@@ -1,6 +1,6 @@
 # This is a example config containing information for the preselection
 
-ntuple_path: "/ceph/sbrommer/smhtt_ul/2022_07_v7/ntuples"
+ntuple_path: "/storage/gridka-nrg/nshadskiy/CROWN/ntuples/ff_ntuple_tt/CROWNRun"
 era: "2018"
 
 channel: "tt" # options are et, mt, tt
@@ -36,6 +36,25 @@ processes:
             - "all"
         samples:
             - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+    QCD:
+        tau_gen_modes:
+            - "all"
+        samples:
+            - "QCD_Pt_15to30_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_30to50_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_50to80_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_80to120_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_120to170_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_170to300_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_300to470_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_470to600_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_600to800_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_800to1000_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_1000to1400_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_1400to1800_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_1800to2400_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_2400to3200_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "QCD_Pt_3200toInf_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
     embedding:
         tau_gen_modes:
             - "all"
@@ -54,4 +73,4 @@ processes:
             - "Tau_Run2018D-UL2018"
 
 tree: "ntuple"
-output_path: "/ceph/nshadskiy/FFmethod/test_v3"
+output_path: "/ceph/nshadskiy/FFmethod/test_v4"

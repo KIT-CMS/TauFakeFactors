@@ -65,6 +65,43 @@ def had_tau_vsLep_id_cut(rdf, channel):
         sys.exit("Eventfilter: tau id: Such a channel is not defined: {}".format(channel))
     return rdf
 
+def lep_iso_cut(rdf, channel):
+    if channel == "et":
+        rdf = rdf.Filter(
+            "iso_1 < 0.15",
+            "electron isolation cut",
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "iso_1 < 0.15",
+            "muon isolation cut",
+        )
+    elif channel == "tt":
+        pass
+    else:
+        sys.exit("Eventfilter: extra lep veto: Such a channel is not defined: {}".format(channel))
+    return rdf
+
+def extra_leptons_veto(rdf, channel):
+    if channel == "et":
+        rdf = rdf.Filter(
+            "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+            "extra leptons veto",
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+            "extra leptons veto",
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+            "extra leptons veto",
+        )
+    else:
+        sys.exit("Eventfilter: extra lep veto: Such a channel is not defined: {}".format(channel))
+    return rdf
+
 def trigger_cut(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
