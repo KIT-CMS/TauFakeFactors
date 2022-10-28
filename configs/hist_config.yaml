@@ -1,12 +1,33 @@
 tree: "ntuple"
-file_path: "/ceph/nshadskiy/FFmethod/final_test_v1"
+file_path: "/ceph/nshadskiy/FFmethod/final_test_JTLsplit"
 
 era: "2018"
 channel: "et" # options are et, mt, tt
-target_process: "QCD" # options are QCD, ttbar, Wjets
-jet_split_categories:
-    - "== 0" 
-    - "== 1"
-    - ">= 2"
+target_process: 
+    QCD: 
+        jet_split_categories:
+            - "== 0" 
+            - "== 1"
+            - ">= 2"
+        #tau_pt_bins: [30,35,40,50,500] # for logx
+        tau_pt_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        tau_pt_logx: False    
+    Wjets: 
+        jet_split_categories:
+            - "== 0" 
+            - "== 1"
+            - ">= 2"
+        #tau_pt_bins: [30,34,38,50,60,75,90,110,500] # for logx
+        #tau_pt_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        tau_pt_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        tau_pt_logx: False
+    # ttbar: # options are QCD, ttbar, Wjets
+    #     jet_split_categories:
+    #         - "<= 1"
+    #         #- ">= 2"
+    #     tau_pt_bins: [30,35,40,50,500] # for logx
+    #     tau_pt_logx: True
+    #     # tau_pt_bins: [30,33,36,40,45,50,60,100]
+    #     # tau_pt_logx: False
 
-workdir_name: "testing_v2"
+workdir_name: "ffs_version_linear_1"

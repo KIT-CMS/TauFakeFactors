@@ -96,10 +96,12 @@ def trigger_weight(rdf, channel, process):
 def gen_weight(rdf, sample):
     number_generated_events_weight = 1. / float(sample["nevents"])
     cross_section_per_event_weight = float(sample["xsec"])
+    negative_events_fraction = float(sample["generator_weight"])
     rdf = rdf.Define("numberGeneratedEventsWeight", "(float){}".format(number_generated_events_weight))
     rdf = rdf.Define("crossSectionPerEventWeight", "(float){}".format(cross_section_per_event_weight))
+    rdf = rdf.Define("negativeEventsFraction", "(float){}".format(negative_events_fraction))
 
-    return rdf.Redefine("weight", "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight")
+    return rdf.Redefine("weight", "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>0) * 1)))")
 
 def Z_pt_reweight(rdf, process):
     if process == "DYjets":

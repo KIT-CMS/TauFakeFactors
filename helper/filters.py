@@ -105,7 +105,7 @@ def extra_leptons_veto(rdf, channel):
 def trigger_cut(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
-            "((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5))) || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))",
+            "((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)))", # || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))",
             "single electron or cross trigger + electron pT cuts",
         )
     elif channel == "mt":
@@ -138,7 +138,8 @@ def tau_gen_match_split(rdf, channel, tau_gen_mode):
             )
         elif tau_gen_mode == "L":
             rdf = rdf.Filter(
-                "((gen_match_1 != 3) && (gen_match_2 != 5)) && (gen_match_2 != 6)",
+                "(!(gen_match_1==3 && gen_match_2==5)) && (!(gen_match_2 == 6))",
+                # "((gen_match_1 != 3) && (gen_match_2 != 5)) && (gen_match_2 != 6)",
                 "tau gen. match split cuts",
             )
         else:
@@ -194,7 +195,8 @@ def tau_gen_match_split(rdf, channel, tau_gen_mode):
 def emb_tau_gen_match(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
-            "(gen_match_1 == 3) && (gen_match_2 == 5)",
+            #"(gen_match_1 == 3) && (gen_match_2 == 5)",
+            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "mt":

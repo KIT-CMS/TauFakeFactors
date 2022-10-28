@@ -48,6 +48,7 @@ output_feature = [
                 "iso_1",
                 "q_1",
                 "id_tau_vsJet_Medium_2",
+                "id_tau_vsJet_Tight_2",
                 "id_tau_vsJet_VVVLoose_2",
                 "pt_2",
                 "eta_2",
@@ -94,16 +95,16 @@ if __name__ == "__main__":
             rdf = ROOT.RDataFrame(config["tree"], func.get_samples(config, sample))
 
             # apply wanted event filters
-            rdf = filters.had_tau_pt_cut(rdf, config["channel"])
-            rdf = filters.had_tau_eta_cut(rdf, config["channel"])
-            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"])
-            rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"])
-            rdf = filters.lep_iso_cut(rdf, config["channel"])
-            rdf = filters.extra_leptons_veto(rdf, config["channel"])
-            rdf = filters.trigger_cut(rdf, config["channel"])
+            rdf = filters.had_tau_pt_cut(rdf, config["channel"]) # > 30 GeV
+            rdf = filters.had_tau_eta_cut(rdf, config["channel"]) # < 2.3
+            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"]) # 0,1,10,11
+            rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"]) # vloose vsMu, tight vsEle
+            rdf = filters.lep_iso_cut(rdf, config["channel"]) # < 0.15
+            rdf = filters.extra_leptons_veto(rdf, config["channel"]) # (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
+            rdf = filters.trigger_cut(rdf, config["channel"]) # ((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5))) || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))
 
             if process == "embedding":
-                rdf = filters.emb_tau_gen_match(rdf, config["channel"])
+                rdf = filters.emb_tau_gen_match(rdf, config["channel"]) # (gen_match_1 == 3) && (gen_match_2 == 5)
 
             # calculate event weights for plotting
             rdf = rdf.Define("weight", "1.")
@@ -119,10 +120,12 @@ if __name__ == "__main__":
                 rdf = weights.gen_weight(rdf, datasets[sample])
                 rdf = weights.Z_pt_reweight(rdf, process)
                 rdf = weights.Top_pt_reweight(rdf, process)
+
             if process == "embedding":
                 rdf = weights.emb_gen_weight(rdf)
                 rdf = weights.iso_weight(rdf, config["channel"])
                 rdf = weights.id_weight(rdf, config["channel"])
+                # rdf = weights.tau_id_vsJet_weight(rdf, config["channel"]) only tight WP weight present
                 rdf = weights.trigger_weight(rdf, config["channel"], process)
 
             # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
