@@ -74,4 +74,4 @@ processes:
             - "EGamma_Run2018D-UL2018"
 
 tree: "ntuple"
-output_path: "/ceph/nshadskiy/FFmethod/final_test_JTLsplit"
+output_path: "/ceph/nshadskiy/FFmethod/ttbar_test"

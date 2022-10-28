@@ -1,11 +1,14 @@
-import ROOT
-import argparse
-import yaml
-import glob
+"""
+This script is preprocessing ntuples for the fake factor calculation
+"""
+
 import os
 import sys
+import argparse
 from io import StringIO
 from wurlitzer import pipes, STDOUT
+import yaml
+import ROOT
 
 import helper.filters as filters
 import helper.weights as weights
@@ -22,7 +25,6 @@ class Logger(object):
         self.log.write(message)  
 
     def flush(self):
-        # this flush method is needed for python3 compatibility
         pass   
 
 
@@ -58,6 +60,7 @@ output_feature = [
                 "m_vis",
                 "mt_1",
                 "mt_2",
+                "no_extra_lep",
             ]
 
 
@@ -100,7 +103,7 @@ if __name__ == "__main__":
             rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"]) # 0,1,10,11
             rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"]) # vloose vsMu, tight vsEle
             rdf = filters.lep_iso_cut(rdf, config["channel"]) # < 0.15
-            rdf = filters.extra_leptons_veto(rdf, config["channel"]) # (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
+            # rdf = filters.extra_leptons_veto(rdf, config["channel"]) # (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
             rdf = filters.trigger_cut(rdf, config["channel"]) # ((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5))) || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))
 
             if process == "embedding":
@@ -127,6 +130,16 @@ if __name__ == "__main__":
                 rdf = weights.id_weight(rdf, config["channel"])
                 # rdf = weights.tau_id_vsJet_weight(rdf, config["channel"]) only tight WP weight present
                 rdf = weights.trigger_weight(rdf, config["channel"], process)
+
+            # calculate additional variables
+            if config["channel"] == "tt":
+                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)") 
+            elif config["channel"] == "mt":
+                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)")
+            elif config["channel"] == "et":
+                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)")
+            else:
+                print("Extra lepton veto: Such a channel is not defined: {}".format(config["channel"]))
 
             # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
             for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:

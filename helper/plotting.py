@@ -1,7 +1,5 @@
-from typing import ValuesView
-import ROOT
 import os
-import array
+import ROOT
 
 from . import functions as func
 
