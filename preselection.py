@@ -19,13 +19,13 @@ class Logger(object):
     def __init__(self, log_file_name="logfile.log"):
         self.terminal = sys.stdout
         self.log = open(log_file_name, "a")
-   
+
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        self.log.write(message)
 
     def flush(self):
-        pass   
+        pass
 
 
 parser = argparse.ArgumentParser()
@@ -37,31 +37,31 @@ parser.add_argument(
 )
 
 output_feature = [
-                "weight",
-                "bpt_1",
-                "bpt_2",
-                "njets",
-                "nbtag",
-                "mjj",
-                "met",
-                "pt_1",
-                "eta_1",
-                "phi_1",
-                "iso_1",
-                "q_1",
-                "id_tau_vsJet_Medium_2",
-                "id_tau_vsJet_Tight_2",
-                "id_tau_vsJet_VVVLoose_2",
-                "pt_2",
-                "eta_2",
-                "phi_2",
-                "iso_2",
-                "q_2",
-                "m_vis",
-                "mt_1",
-                "mt_2",
-                "no_extra_lep",
-            ]
+    "weight",
+    "bpt_1",
+    "bpt_2",
+    "njets",
+    "nbtag",
+    "mjj",
+    "met",
+    "pt_1",
+    "eta_1",
+    "phi_1",
+    "iso_1",
+    "q_1",
+    "id_tau_vsJet_Medium_2",
+    "id_tau_vsJet_Tight_2",
+    "id_tau_vsJet_VVVLoose_2",
+    "pt_2",
+    "eta_2",
+    "phi_2",
+    "iso_2",
+    "q_2",
+    "m_vis",
+    "mt_1",
+    "mt_2",
+    "no_extra_lep",
+]
 
 
 if __name__ == "__main__":
@@ -74,10 +74,16 @@ if __name__ == "__main__":
     with open("configs/datasets.yaml", "r") as file:
         datasets = yaml.load(file, yaml.FullLoader)
 
-    # define output path for the preselected samples 
-    output_path = config["output_path"] + "/preselection/" + config["era"] + "/" + config["channel"]
+    # define output path for the preselected samples
+    output_path = (
+        config["output_path"]
+        + "/preselection/"
+        + config["era"]
+        + "/"
+        + config["channel"]
+    )
     func.check_output_path(output_path)
-    
+
     # start output logging
     sys.stdout = Logger(output_path + "/preselection.log")
 
@@ -91,23 +97,23 @@ if __name__ == "__main__":
         # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
         process_file_dict = dict()
         for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
-             process_file_dict[tau_gen_mode] = []
+            process_file_dict[tau_gen_mode] = []
 
         # going through all contributing samples for the process
         for idx, sample in enumerate(config["processes"][process]["samples"]):
             rdf = ROOT.RDataFrame(config["tree"], func.get_samples(config, sample))
 
             # apply wanted event filters
-            rdf = filters.had_tau_pt_cut(rdf, config["channel"]) # > 30 GeV
-            rdf = filters.had_tau_eta_cut(rdf, config["channel"]) # < 2.3
-            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"]) # 0,1,10,11
-            rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"]) # vloose vsMu, tight vsEle
-            rdf = filters.lep_iso_cut(rdf, config["channel"]) # < 0.15
-            # rdf = filters.extra_leptons_veto(rdf, config["channel"]) # (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
-            rdf = filters.trigger_cut(rdf, config["channel"]) # ((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5))) || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))
+            selection_conf = config["event_selection"]
+            rdf = filters.had_tau_pt_cut(rdf, config["channel"], selection_conf)
+            rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
+            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
+            rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"], selection_conf)
+            rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
+            rdf = filters.trigger_cut(rdf, config["channel"])
 
             if process == "embedding":
-                rdf = filters.emb_tau_gen_match(rdf, config["channel"]) # (gen_match_1 == 3) && (gen_match_2 == 5)
+                rdf = filters.emb_tau_gen_match(rdf, config["channel"])
 
             # calculate event weights for plotting
             rdf = rdf.Define("weight", "1.")
@@ -133,19 +139,34 @@ if __name__ == "__main__":
 
             # calculate additional variables
             if config["channel"] == "tt":
-                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)") 
+                rdf = rdf.Define(
+                    "no_extra_lep",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                )
             elif config["channel"] == "mt":
-                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)")
+                rdf = rdf.Define(
+                    "no_extra_lep",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                )
             elif config["channel"] == "et":
-                rdf = rdf.Define("no_extra_lep", "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)")
+                rdf = rdf.Define(
+                    "no_extra_lep",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                )
             else:
-                print("Extra lepton veto: Such a channel is not defined: {}".format(config["channel"]))
+                print(
+                    "Extra lepton veto: Such a channel is not defined: {}".format(
+                        config["channel"]
+                    )
+                )
 
             # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
             for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
                 tmp_rdf = rdf
                 if process in ["DYjets", "ttbar", "diboson"]:
-                    tmp_rdf = filters.tau_gen_match_split(tmp_rdf, config["channel"], tau_gen_mode)
+                    tmp_rdf = filters.tau_gen_match_split(
+                        tmp_rdf, config["channel"], tau_gen_mode
+                    )
 
                 # redirecting C++ stdout for Report() to python stdout
                 out = StringIO()
@@ -154,11 +175,17 @@ if __name__ == "__main__":
 
                 print(out.getvalue())
                 print("-" * 50)
-                
-                tmp_file_name = func.get_output_name(output_path, process, tau_gen_mode, idx)
+
+                tmp_file_name = func.get_output_name(
+                    output_path, process, tau_gen_mode, idx
+                )
                 # check for empty data frame -> only save/calculate if event number is not zero
                 if tmp_rdf.Count().GetValue() != 0:
-                    print("The current data frame will be saved to {}".format(tmp_file_name))
+                    print(
+                        "The current data frame will be saved to {}".format(
+                            tmp_file_name
+                        )
+                    )
                     tmp_rdf.Snapshot(config["tree"], tmp_file_name, output_feature)
                     print("-" * 50)
                     process_file_dict[tau_gen_mode].append(tmp_file_name)
@@ -171,12 +198,22 @@ if __name__ == "__main__":
             out_file_name = func.get_output_name(output_path, process, tau_gen_mode)
             # combining sample files to a single process file, if there are any
             if len(process_file_dict[tau_gen_mode]) != 0:
-                sum_rdf = ROOT.RDataFrame(config["tree"], process_file_dict[tau_gen_mode])
-                print("The processed files for the {} process are concatenated. The data frame will be saved to {}".format(process, out_file_name))
+                sum_rdf = ROOT.RDataFrame(
+                    config["tree"], process_file_dict[tau_gen_mode]
+                )
+                print(
+                    "The processed files for the {} process are concatenated. The data frame will be saved to {}".format(
+                        process, out_file_name
+                    )
+                )
                 sum_rdf.Snapshot(config["tree"], out_file_name, output_feature)
                 print("-" * 50)
             else:
-                print("No processed files for the {} process. An empty data frame will be saved to {}".format(process, out_file_name))
+                print(
+                    "No processed files for the {} process. An empty data frame will be saved to {}".format(
+                        process, out_file_name
+                    )
+                )
                 sum_rdf.Snapshot(config["tree"], out_file_name, [])
                 print("-" * 50)
 

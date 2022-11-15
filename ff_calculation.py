@@ -25,7 +25,14 @@ if __name__ == "__main__":
         config = yaml.load(file, yaml.FullLoader)
 
     # getting all the input files
-    sample_path_list = glob.glob(config["file_path"] + "/preselection/" + config["era"] + "/" + config["channel"] + "/*.root")
+    sample_path_list = glob.glob(
+        config["file_path"]
+        + "/preselection/"
+        + config["era"]
+        + "/"
+        + config["channel"]
+        + "/*.root"
+    )
     print(
         "The following files are loaded for era: {}, channel: {}".format(
             config["era"], config["channel"]
@@ -35,7 +42,7 @@ if __name__ == "__main__":
     for f in sample_path_list:
         print(f)
     print("-" * 50)
-    
+
     for process in config["target_process"]:
         if process == "QCD":
             calculation_QCD_FFs(config, sample_path_list)
@@ -44,4 +51,6 @@ if __name__ == "__main__":
         elif process == "ttbar":
             calculation_ttbar_FFs(config, sample_path_list)
         else:
-            sys.exit("Target process: Such a process is not defined: {}".format(process))
+            sys.exit(
+                "Target process: Such a process is not defined: {}".format(process)
+            )

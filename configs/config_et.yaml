@@ -37,25 +37,6 @@ processes:
             - "all"
         samples:
             - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    # QCD:
-    #     tau_gen_modes:
-    #         - "all"
-    #     samples:
-    #         - "QCD_Pt_15to30_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_30to50_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_50to80_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_80to120_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_120to170_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_170to300_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_300to470_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_470to600_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_600to800_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_800to1000_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_1000to1400_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_1400to1800_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_1800to2400_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_2400to3200_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
-    #         - "QCD_Pt_3200toInf_TuneCP5_13TeV_pythia8_RunIISummer20UL18NanoAODv9-106X"
     embedding:
         tau_gen_modes:
             - "all"
@@ -73,5 +54,13 @@ processes:
             - "EGamma_Run2018C-UL2018"
             - "EGamma_Run2018D-UL2018"
 
+event_selection:
+    had_tau_pt: "> 30"
+    had_tau_eta: "< 2.3"
+    had_tau_decay_mode: ["0","1","10","11"] # has to be a list
+    had_tau_id_vs_ele: "Tight"
+    had_tau_id_vs_mu: "VLoose"
+    lep_iso: "< 0.15"
+
 tree: "ntuple"
-output_path: "/ceph/nshadskiy/FFmethod/ttbar_test"
+output_path: "/ceph/nshadskiy/FFmethod/opt_test"
