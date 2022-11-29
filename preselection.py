@@ -1,5 +1,5 @@
 """
-This script is preprocessing ntuples for the fake factor calculation
+Script for preprocessing n-tuples for the fake factor calculation
 """
 
 import os
@@ -10,22 +10,10 @@ from wurlitzer import pipes, STDOUT
 import yaml
 import ROOT
 
+from helper.Logger import Logger
 import helper.filters as filters
 import helper.weights as weights
 import helper.functions as func
-
-
-class Logger(object):
-    def __init__(self, log_file_name="logfile.log"):
-        self.terminal = sys.stdout
-        self.log = open(log_file_name, "a")
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)
-
-    def flush(self):
-        pass
 
 
 parser = argparse.ArgumentParser()
@@ -38,29 +26,38 @@ parser.add_argument(
 
 output_feature = [
     "weight",
-    "bpt_1",
-    "bpt_2",
+    "btag_weight",
     "njets",
     "nbtag",
-    "mjj",
-    "met",
-    "pt_1",
-    "eta_1",
-    "phi_1",
-    "iso_1",
-    "q_1",
-    "id_tau_vsJet_Medium_2",
     "id_tau_vsJet_Tight_2",
+    "id_tau_vsJet_Medium_2",
     "id_tau_vsJet_VVVLoose_2",
+    "id_wgt_tau_vsJet_Tight_2",
+    "id_wgt_tau_vsJet_Medium_2",
+    "id_wgt_tau_vsJet_VVVLoose_2",
+    "q_1",
     "pt_2",
-    "eta_2",
     "phi_2",
-    "iso_2",
     "q_2",
+    "gen_match_2",
     "m_vis",
     "mt_1",
-    "mt_2",
     "no_extra_lep",
+    "dR_tau_pair",
+    # following variables are not directly needed for the FF calculation
+    # "pt_1",
+    # "eta_1",
+    # "phi_1",
+    # "iso_1",
+    # "eta_2",
+    # "iso_2",
+    # "bpt_1",
+    # "beta_1",
+    # "bphi_1",
+    # "bpt_2",
+    # "mjj",
+    # "met",
+    # "metphi",
 ]
 
 
@@ -89,69 +86,119 @@ if __name__ == "__main__":
 
     # these variables are no defined in et, mt ntuples
     if config["channel"] == "tt":
+        output_feature.append("id_tau_vsJet_Tight_1")
         output_feature.append("id_tau_vsJet_Medium_1")
         output_feature.append("id_tau_vsJet_VVVLoose_1")
+        output_feature.append("id_wgt_tau_vsJet_Tight_1")
+        output_feature.append("id_wgt_tau_vsJet_Medium_1")
+        output_feature.append("id_wgt_tau_vsJet_VVVLoose_1")
 
     # going through all wanted processes
     for process in config["processes"]:
+
         # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
         process_file_dict = dict()
         for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
-            process_file_dict[tau_gen_mode] = []
+            process_file_dict[tau_gen_mode] = list()
 
         # going through all contributing samples for the process
         for idx, sample in enumerate(config["processes"][process]["samples"]):
-            rdf = ROOT.RDataFrame(config["tree"], func.get_samples(config, sample))
+            rdf = ROOT.RDataFrame(config["tree"], func.get_ntuples(config, sample))
 
             # apply wanted event filters
             selection_conf = config["event_selection"]
-            rdf = filters.had_tau_pt_cut(rdf, config["channel"], selection_conf)
-            rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
-            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
-            rdf = filters.had_tau_vsLep_id_cut(rdf, config["channel"], selection_conf)
-            rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
-            rdf = filters.trigger_cut(rdf, config["channel"])
+            if "had_tau_pt" in selection_conf:
+                rdf = filters.had_tau_pt_cut(rdf, config["channel"], selection_conf)
+            if "had_tau_eta" in selection_conf:
+                rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
+            if "had_tau_decay_mode" in selection_conf:
+                rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
+            if "had_tau_id_vs_ele" in selection_conf:
+                rdf = filters.had_tau_id_vsEle_cut(rdf, config["channel"], selection_conf)
+            if "had_tau_id_vs_mu" in selection_conf:
+                rdf = filters.had_tau_id_vsMu_cut(rdf, config["channel"], selection_conf)
+            if "lep_iso" in selection_conf:
+                rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
+            if "trigger" in selection_conf:
+                rdf = filters.trigger_cut(rdf, config["channel"])
 
             if process == "embedding":
                 rdf = filters.emb_tau_gen_match(rdf, config["channel"])
 
             # calculate event weights for plotting
+            mc_weight_conf = config["mc_weights"]
             rdf = rdf.Define("weight", "1.")
             if process not in ["data", "embedding"]:
-                rdf = weights.iso_weight(rdf, config["channel"])
-                rdf = weights.id_weight(rdf, config["channel"])
-                rdf = weights.tau_id_vsJet_weight(rdf, config["channel"])
-                rdf = weights.tau_id_vsMu_weight(rdf, config["channel"])
-                rdf = weights.tau_id_vsEle_weight(rdf, config["channel"])
-                rdf = weights.lumi_weight(rdf, config["era"])
-                rdf = weights.pileup_weight(rdf)
-                rdf = weights.trigger_weight(rdf, config["channel"], process)
-                rdf = weights.gen_weight(rdf, datasets[sample])
-                rdf = weights.Z_pt_reweight(rdf, process)
-                rdf = weights.Top_pt_reweight(rdf, process)
+                if "generator" in mc_weight_conf:
+                    rdf = weights.gen_weight(rdf, datasets[sample])
+                if "lumi" in mc_weight_conf:
+                    rdf = weights.lumi_weight(rdf, config["era"])
+                if "pileup" in mc_weight_conf:
+                    rdf = weights.pileup_weight(rdf)
+                if "lep_iso" in mc_weight_conf:
+                    rdf = weights.lep_iso_weight(rdf, config["channel"])
+                if "lep_id" in mc_weight_conf:
+                    rdf = weights.lep_id_weight(rdf, config["channel"])
+                if "had_tau_id_vs_mu" in mc_weight_conf:
+                    rdf = weights.tau_id_vsMu_weight(rdf, config["channel"], selection_conf)
+                if "had_tau_id_vs_ele" in mc_weight_conf:
+                    rdf = weights.tau_id_vsEle_weight(rdf, config["channel"], selection_conf)
+                if "trigger" in mc_weight_conf:
+                    rdf = weights.trigger_weight(rdf, config["channel"], process)
+                if "Z_pt_reweight" in mc_weight_conf:
+                    rdf = weights.Z_pt_reweight(rdf, process)
+                if "Top_pt_reweight" in mc_weight_conf:
+                    rdf = weights.Top_pt_reweight(rdf, process)
 
+            emb_weight_conf = config["emb_weights"]
             if process == "embedding":
-                rdf = weights.emb_gen_weight(rdf)
-                rdf = weights.iso_weight(rdf, config["channel"])
-                rdf = weights.id_weight(rdf, config["channel"])
-                # rdf = weights.tau_id_vsJet_weight(rdf, config["channel"]) only tight WP weight present
-                rdf = weights.trigger_weight(rdf, config["channel"], process)
+                if "generator" in emb_weight_conf:
+                    rdf = weights.emb_gen_weight(rdf)
+                if "lep_iso" in emb_weight_conf:
+                    rdf = weights.lep_iso_weight(rdf, config["channel"])
+                if "lep_id" in emb_weight_conf:
+                    rdf = weights.lep_id_weight(rdf, config["channel"])
+                if "trigger" in emb_weight_conf:
+                    rdf = weights.trigger_weight(rdf, config["channel"], process)
+
+            # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
+            if process == "data":
+                rdf = rdf.Define("btag_weight", "1.")
+                rdf = rdf.Define("id_wgt_tau_vsJet_Tight_2", "1.")
+                rdf = rdf.Define("id_wgt_tau_vsJet_Medium_2", "1.")
+                rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_2", "1.")
+                rdf = rdf.Define("gen_match_2", "-1.")
+                if config["channel"] == "tt":
+                    rdf = rdf.Define("id_wgt_tau_vsJet_Tight_1", "1.")
+                    rdf = rdf.Define("id_wgt_tau_vsJet_Medium_1", "1.")
+                    rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_1", "1.")
+            if process == "embedding":
+                rdf = rdf.Define("btag_weight", "1.")
+                # the following weights are temporary until they are available in the ntuples
+                rdf = rdf.Define("id_wgt_tau_vsJet_Medium_2", "1.")
+                rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_2", "1.")
+                if config["channel"] == "tt":
+                    rdf = rdf.Define("id_wgt_tau_vsJet_Medium_1", "1.")
+                    rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_1", "1.")
 
             # calculate additional variables
-            if config["channel"] == "tt":
+            if config["channel"] in ["et","mt"]:
                 rdf = rdf.Define(
                     "no_extra_lep",
                     "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
                 )
-            elif config["channel"] == "mt":
+                rdf = rdf.Define(
+                    "dR_tau_pair",
+                    "ROOT::VecOps::DeltaR(eta_1, eta_2, phi_1, phi_2)",
+                )
+            elif config["channel"] == "tt":
                 rdf = rdf.Define(
                     "no_extra_lep",
                     "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
                 )
-            elif config["channel"] == "et":
                 rdf = rdf.Define(
-                    "no_extra_lep",
-                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                    "dR_tau_pair",
+                    "ROOT::VecOps::DeltaR(eta_1, eta_2, phi_1, phi_2)",
                 )
             else:
                 print(
@@ -163,8 +210,8 @@ if __name__ == "__main__":
             # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
             for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
                 tmp_rdf = rdf
-                if process in ["DYjets", "ttbar", "diboson"]:
-                    tmp_rdf = filters.tau_gen_match_split(
+                if tau_gen_mode != "all":
+                    tmp_rdf = filters.tau_origin_split(
                         tmp_rdf, config["channel"], tau_gen_mode
                     )
 

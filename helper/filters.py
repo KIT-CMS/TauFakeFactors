@@ -93,42 +93,132 @@ def had_tau_decay_mode_cut(rdf, channel, config):
     return rdf
 
 
-def had_tau_vsLep_id_cut(rdf, channel, config):
+def had_tau_id_vsEle_cut(rdf, channel, config):
     if channel == "et":
         rdf = rdf.Filter(
-            "(id_tau_vsMu_{}_2 > 0.5) && (id_tau_vsEle_{}_2 > 0.5)".format(
-                config["had_tau_id_vs_mu"], config["had_tau_id_vs_ele"]
-            ),
-            "tau {} vsEle and {} vsMu id cuts".format(
-                config["had_tau_id_vs_ele"], config["had_tau_id_vs_mu"]
-            ),
+            "(id_tau_vsEle_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_ele"]),
+            "cut on {WP} tau vs electrons id".format(WP=config["had_tau_id_vs_ele"]),
         )
     elif channel == "mt":
         rdf = rdf.Filter(
-            "(id_tau_vsMu_{}_2 > 0.5) && (id_tau_vsEle_{}_2 > 0.5)".format(
-                config["had_tau_id_vs_mu"], config["had_tau_id_vs_ele"]
-            ),
-            "tau {} vsEle and {} vsMu id cuts".format(
-                config["had_tau_id_vs_ele"], config["had_tau_id_vs_mu"]
-            ),
+            "(id_tau_vsEle_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_ele"]),
+            "cut on {WP} tau vs electrons id".format(WP=config["had_tau_id_vs_ele"]),
         )
     elif channel == "tt":
         rdf = rdf.Filter(
-            "(id_tau_vsMu_{}_1 > 0.5) && (id_tau_vsEle_{}_1 > 0.5) && (id_tau_vsMu_{}_2 > 0.5) && (id_tau_vsEle_{}_2 > 0.5)".format(
-                config["had_tau_id_vs_mu"],
-                config["had_tau_id_vs_ele"],
-                config["had_tau_id_vs_mu"],
-                config["had_tau_id_vs_ele"],
+            "(id_tau_vsEle_{WP}_1 > 0.5) && (id_tau_vsEle_{WP}_2 > 0.5)".format(
+                WP=config["had_tau_id_vs_ele"]
             ),
-            "tau {} vsEle and {} vsMu id cuts".format(
-                config["had_tau_id_vs_ele"], config["had_tau_id_vs_mu"]
+            "cut on {WP} tau vs electrons id".format(
+                WP=config["had_tau_id_vs_ele"]
             ),
         )
     else:
         sys.exit(
-            "Eventfilter: tau id vs leptons: Such a channel is not defined: {}".format(
+            "Eventfilter: tau id vs electron: Such a channel is not defined: {}".format(
                 channel
             )
+        )
+    return rdf
+
+def had_tau_id_vsMu_cut(rdf, channel, config):
+    if channel == "et":
+        rdf = rdf.Filter(
+            "(id_tau_vsMu_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_mu"]),
+            "cut on {WP} tau vs muons id".format(WP=config["had_tau_id_vs_mu"]),
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "(id_tau_vsMu_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_mu"]),
+            "cut on {WP} tau vs muons id".format(WP=config["had_tau_id_vs_mu"]),
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "(id_tau_vsMu_{WP}_1 > 0.5) && (id_tau_vsMu_{WP}_2 > 0.5)".format(
+                WP=config["had_tau_id_vs_mu"],
+            ),
+            "cut on {WP} tau vs muons id".format(
+                WP=config["had_tau_id_vs_mu"]
+            ),
+        )
+    else:
+        sys.exit(
+            "Eventfilter: tau id vs muon: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
+def had_tau_id_vsJet_cut(rdf, channel, config):
+    if isinstance(config["had_tau_id_vs_jet"], str):
+        if channel == "et":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
+                "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
+            )
+        elif channel == "mt":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
+                "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
+            )
+        elif channel == "tt":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
+                "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
+            )
+        else:
+            sys.exit(
+                "Eventfilter: tau id vs jet: Such a channel is not defined: {}".format(
+                    channel
+                )
+            )
+
+    elif isinstance(config["had_tau_id_vs_jet"], list):
+        if channel == "et":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+                "cut on tau vs jets id between {lower_WP} and {upper_WP}".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+            )
+        elif channel == "mt":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{upper_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+                "cut on tau vs jets id between {lower_WP} and {upper_WP}".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+            )
+        elif channel == "tt":
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+                "cut on tau vs jets id between {lower_WP} and {upper_WP}".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    upper_WP=config["had_tau_id_vs_jet"][1],
+                ),
+            )
+        else:
+            sys.exit(
+                "Eventfilter: tau id vs jet: Such a channel is not defined: {}".format(
+                    channel
+                )
+            )
+    else:
+        sys.exit(
+                "Eventfilter: tau id vs jet: Such a type is not defined: {}".format(
+                    config["had_tau_id_vs_jet"]
+                )
         )
     return rdf
 
@@ -155,16 +245,94 @@ def lep_iso_cut(rdf, channel, config):
     return rdf
 
 
+def lep_mt_cut(rdf, channel, config):
+    if channel == "et":
+        rdf = rdf.Filter(
+            "(mt_1 {})".format(config["lep_mt"]),
+            "W boson origin cut on lepton mt {}".format(config["lep_mt"]),
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "(mt_1 {})".format(config["lep_mt"]),
+            "W boson origin cut on lepton mT {}".format(config["lep_mt"]),
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "(mt_1 {})".format(config["lep_mt"]),
+            "W boson origin cut on lepton mT {}".format(config["lep_mt"]),
+        )
+    else:
+        sys.exit(
+            "Eventfilter: lepton transverse mass: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
+def no_extra_lep_cut(rdf, channel, config):
+    no_lep = "> 0.5" if config["no_extra_lep"] else "< 0.5"
+    if channel == "et":
+        rdf = rdf.Filter(
+            "(no_extra_lep {})".format(no_lep),
+            "exclude additional leptons: {}".format(config["no_extra_lep"]),
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "(no_extra_lep {})".format(no_lep),
+            "exclude additional leptons: {}".format(config["no_extra_lep"]),
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "(no_extra_lep {})".format(no_lep),
+            "exclude additional leptons: {}".format(config["no_extra_lep"]),
+        )
+    else:
+        sys.exit(
+            "Eventfilter: no extra lep: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
+def tau_pair_sign_cut(rdf, channel, sign):
+    if sign == "same":
+        sign_cut = "> 0"
+    elif sign == "opposite":
+        sign_cut = "< 0"
+    else:
+        sys.exit("Eventfilter: SS/OS: Such a sign is not defined: {}".format(sign))
+
+    if channel == "et":
+        rdf = rdf.Filter(
+            "((q_1 * q_2) {})".format(sign_cut), "{} sign cut".format(sign)
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "((q_1 * q_2) {})".format(sign_cut), "{} sign cut".format(sign)
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "((q_1 * q_2) {})".format(sign_cut), "{} sign cut".format(sign)
+        )
+    else:
+        sys.exit(
+            "Eventfilter: SS/OS: Such a channel is not defined: {}".format(channel)
+        )
+    return rdf
+
+
 def trigger_cut(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
             "((pt_1 > 33) && ((trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)))",  # || ((pt_2 > 35) && (abs(eta_2) < 2.1) && (pt_1 <= 33) && (pt_1 > 25) && ((trg_cross_ele24tau30 > 0.5) || (trg_cross_ele24tau30_hps > 0.5)))",
-            "single electron or cross trigger + electron pT cuts",
+            "single electron trigger + electron pT cuts",
         )
     elif channel == "mt":
         rdf = rdf.Filter(
-            "((pt_1 > 25) && ((trg_single_mu24 > 0.5) || (trg_single_mu27 > 0.5))) || ((pt_2 > 32) && (pt_1 <= 25) && (pt_1 > 21) && ((trg_cross_mu20tau27 > 0.5) || (trg_cross_mu20tau27_hps > 0.5)))",
-            "single muon or cross trigger + muon pT cuts",
+            "((pt_1 > 25) && ((trg_single_mu24 > 0.5) || (trg_single_mu27 > 0.5)))",  # || ((pt_2 > 32) && (pt_1 <= 25) && (pt_1 > 21) && ((trg_cross_mu20tau27 > 0.5) || (trg_cross_mu20tau27_hps > 0.5)))",
+            "single muon trigger + muon pT cuts",
         )
     elif channel == "tt":
         rdf = rdf.Filter(
@@ -178,7 +346,48 @@ def trigger_cut(rdf, channel):
     return rdf
 
 
-def tau_gen_match_split(rdf, channel, tau_gen_mode):
+def bjet_number_cut(rdf, channel, nbtags):
+    if channel == "et":
+        rdf = rdf.Filter(
+            "(nbtag {})".format(nbtags),
+            "cut on {} b-tagged jets".format(nbtags),
+        )
+    elif channel == "mt":
+        rdf = rdf.Filter(
+            "(nbtag {})".format(nbtags),
+            "cut on {} b-tagged jets".format(nbtags),
+        )
+    elif channel == "tt":
+        rdf = rdf.Filter(
+            "(nbtag {})".format(nbtags),
+            "cut on {} b-tagged jets".format(nbtags),
+        )
+    else:
+        sys.exit(
+            "Eventfilter: bjet number: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
+def jet_number_cut(rdf, channel, njets):
+    if channel == "et":
+        rdf = rdf.Filter("(njets {})".format(njets), "cut on {} jets".format(njets))
+    elif channel == "mt":
+        rdf = rdf.Filter("(njets {})".format(njets), "cut on {} jets".format(njets))
+    elif channel == "tt":
+        rdf = rdf.Filter("(njets {})".format(njets), "cut on {} jets".format(njets))
+    else:
+        sys.exit(
+            "Eventfilter: jet number: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
+def tau_origin_split(rdf, channel, tau_gen_mode):
     if channel == "et":
         if tau_gen_mode == "all":
             pass

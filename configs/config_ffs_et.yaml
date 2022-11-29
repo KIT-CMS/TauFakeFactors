@@ -1,0 +1,113 @@
+# This is an example config containing information for the FF calculation
+
+file_path: "/ceph/nshadskiy/FFmethod/11_2022_v5"
+era: "2018"
+channel: "et" # options are et, mt, tt
+tree: "ntuple"
+
+workdir_name: "new_tests_v4"
+
+use_embedding: True
+generate_json: True
+
+target_process: 
+    QCD: 
+        split_categories: 
+            njets: 
+                - "==0" 
+                - "==1"
+                - ">=2"
+
+        SRlike_cuts:
+            tau_pair_sign: "same" 
+            lep_mt: "<50"
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Medium"
+
+        ARlike_cuts:
+            tau_pair_sign: "same" 
+            lep_mt: "<50" 
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVVLoose","Medium"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+
+    Wjets: 
+        split_categories: 
+            njets:  
+                - "==0" 
+                - "==1"
+                - ">=2"
+
+        SRlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: "==0" 
+            lep_mt: ">70"
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Medium"
+
+        ARlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: "==0"
+            lep_mt: ">70" 
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVVLoose","Medium"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+
+    ttbar: 
+        split_categories: 
+            njets:  
+                - "<=1"
+                - ">=2"
+
+        SR_cuts:
+            tau_pair_sign: "opposite"  
+            nbtag: ">=1" 
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Medium"
+
+        AR_cuts:
+            tau_pair_sign: "opposite"  
+            nbtag: ">=1"
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVVLoose","Medium"]
+
+        SRlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: ">=1" 
+            no_extra_lep: False
+            had_tau_id_vs_jet: "Medium"
+            
+        ARlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: ">=1"
+            no_extra_lep: False
+            had_tau_id_vs_jet: ["VVVLoose","Medium"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+
+process_fractions:
+    processes: ["QCD", "Wjets", "ttbar_J"]
+
+    split_categories:
+        nbtag:
+            - "==0"
+            - "==1"
+            - ">=2"
+
+    AR_cuts:
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet: ["VVVLoose","Medium"]
+
+    SR_cuts:
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet: "Medium"
+
+    var_dependence: "mt_1"
+    var_bins: [0,10,20,30,40,50,60,70,80,90,100]

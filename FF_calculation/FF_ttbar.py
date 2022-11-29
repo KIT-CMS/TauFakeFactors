@@ -5,9 +5,10 @@ Function for calculating fake factors for the ttbar process
 import array
 import ROOT
 
-from helper import region_filters as filters
 import helper.functions as func
 import helper.plotting as plotting
+
+from FF_calculation.FF_region_filters import region_filter
 
 
 def calculation_ttbar_FFs(config, sample_path_list):
@@ -20,8 +21,13 @@ def calculation_ttbar_FFs(config, sample_path_list):
     # init histogram dict for QCD SS/OS estimation
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
+    # init dictionary for the FF functions for correctionlib
+    cs_expressions = dict()
 
+    # get QCD specific config information
     process_conf = config["target_process"]["ttbar"]
+
+    split_vars, split_combinations = func.get_split_combinations(process_conf["split_categories"])
 
     # calculating global histograms for the data/mc scale factor
     for sample_path in sample_path_list:
@@ -32,25 +38,9 @@ def calculation_ttbar_FFs(config, sample_path_list):
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        njets = ">= 0"  # inclusive
         # event filter for ttbar signal-like region
-        region_cut_conf = process_conf["SRlike_cuts"]
-        rdf_SRlike = filters.btag_number(rdf, config["channel"], region_cut_conf)
-        rdf_SRlike = filters.no_extra_leptons(
-            rdf_SRlike, config["channel"], region_cut_conf
-        )
-        rdf_SRlike = filters.tau_id_vs_jets_WP(
-            rdf_SRlike, config["channel"], region_cut_conf
-        )
-        rdf_SRlike = filters.jet_number(rdf_SRlike, config["channel"], njets)
-        # split into same/opposite sign regions for QCD estimation
-        rdf_SRlike_qcd = filters.same_opposite_sign(
-            rdf_SRlike, config["channel"], "same"
-        )
-        rdf_SRlike = filters.same_opposite_sign(
-            rdf_SRlike, config["channel"], region_cut_conf["tau_pair_sign"]
-        )
-
+        region_cut_conf = {**process_conf["SRlike_cuts"]}
+        rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the signal-like region. Target process: {}\n".format(
                 "ttbar"
@@ -58,25 +48,22 @@ def calculation_ttbar_FFs(config, sample_path_list):
         )
         rdf_SRlike.Report().Print()
         print("-" * 50)
+        
+        # QCD estimation from same sign in signal-like region
+        region_cut_conf["tau_pair_sign"] = "same"
+        rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+        print(
+            "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
+                "ttbar"
+            )
+        )
+        rdf_SRlike_qcd.Report().Print()
+        print("-" * 50)
+        
 
         # event filter for ttbar application-like region
-        region_cut_conf = process_conf["ARlike_cuts"]
-        rdf_ARlike = filters.btag_number(rdf, config["channel"], region_cut_conf)
-        rdf_ARlike = filters.no_extra_leptons(
-            rdf_ARlike, config["channel"], region_cut_conf
-        )
-        rdf_ARlike = filters.tau_id_vs_jets_between_WPs(
-            rdf_ARlike, config["channel"], region_cut_conf
-        )
-        rdf_ARlike = filters.jet_number(rdf_ARlike, config["channel"], njets)
-        # split into same/opposite sign regions for QCD estimation
-        rdf_ARlike_qcd = filters.same_opposite_sign(
-            rdf_ARlike, config["channel"], "same"
-        )
-        rdf_ARlike = filters.same_opposite_sign(
-            rdf_ARlike, config["channel"], region_cut_conf["tau_pair_sign"]
-        )
-
+        region_cut_conf = {**process_conf["ARlike_cuts"]}
+        rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the application-like region. Target process: {}\n".format(
                 "ttbar"
@@ -85,24 +72,40 @@ def calculation_ttbar_FFs(config, sample_path_list):
         rdf_ARlike.Report().Print()
         print("-" * 50)
 
+        # QCD estimation from same sign in application-like region
+        region_cut_conf["tau_pair_sign"] = "same"
+        rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+        print(
+            "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
+                "Wjets"
+            )
+        )
+        rdf_ARlike_qcd.Report().Print()
+        print("-" * 50)
+
+
         # make yield histograms for FF data correction
         h = rdf_SRlike.Histo1D(
             ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
         )
         SRlike_hists[sample] = h.GetValue()
+
         h = rdf_ARlike.Histo1D(
             ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
+
         # make yield histograms for QCD estimation
         h_qcd = rdf_SRlike_qcd.Histo1D(
             ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
+
         h_qcd = rdf_ARlike_qcd.Histo1D(
             ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
+
 
     # calculate QCD estimation
     SRlike_hists["QCD"] = func.QCD_SS_estimate(SRlike_hists_qcd)
@@ -113,38 +116,27 @@ def calculation_ttbar_FFs(config, sample_path_list):
     ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
 
     for hist in SRlike_hists:
-        if hist not in ["data", "data_subtracted", "ttbar_J"] and "_T" not in hist:
+        if hist not in ["data", "data_subtracted", "ttbar_J"]:
             SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
     for hist in ARlike_hists:
-        if hist not in ["data", "data_subtracted", "ttbar_J"] and "_T" not in hist:
+        if hist not in ["data", "data_subtracted", "ttbar_J"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
-    # differentiating between N_jets categories for mc-based FF calculation
-    for njets in process_conf["njet_split_categories"]:
+    # splitting between different categories for mc-based FF calculation
+    for split in split_combinations:
         for sample_path in sample_path_list:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
             if sample == "ttbar_J":
-                print("Processing {} for the {} jets category.".format(sample, njets))
+                print("Processing {sample} for the {cat} category.".format(sample=sample, cat=", ".join(["{} {}".format(split[var], var) for var in split_vars])))
                 print("-" * 50)
 
                 rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
                 # event filter for ttbar signal region
-                region_cut_conf = process_conf["SR_cuts"]
-                rdf_SR = filters.same_opposite_sign(
-                    rdf, config["channel"], region_cut_conf["tau_pair_sign"]
-                )
-                rdf_SR = filters.btag_number(rdf_SR, config["channel"], region_cut_conf)
-                rdf_SR = filters.no_extra_leptons(
-                    rdf_SR, config["channel"], region_cut_conf
-                )
-                rdf_SR = filters.tau_id_vs_jets_WP(
-                    rdf_SR, config["channel"], region_cut_conf
-                )
-                rdf_SR = filters.jet_number(rdf_SR, config["channel"], njets)
-
+                region_cut_conf = {**split, **process_conf["SR_cuts"]}
+                rdf_SR = region_filter(rdf, config["channel"], region_cut_conf, sample)
                 print(
                     "Filtering events for the signal region. Target process: {}\n".format(
                         "ttbar"
@@ -154,19 +146,8 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 print("-" * 50)
 
                 # event filter for ttbar application region
-                region_cut_conf = process_conf["AR_cuts"]
-                rdf_AR = filters.same_opposite_sign(
-                    rdf, config["channel"], region_cut_conf["tau_pair_sign"]
-                )
-                rdf_AR = filters.btag_number(rdf_AR, config["channel"], region_cut_conf)
-                rdf_AR = filters.no_extra_leptons(
-                    rdf_AR, config["channel"], region_cut_conf
-                )
-                rdf_AR = filters.tau_id_vs_jets_between_WPs(
-                    rdf_AR, config["channel"], region_cut_conf
-                )
-                rdf_AR = filters.jet_number(rdf_AR, config["channel"], njets)
-
+                region_cut_conf = {**split, **process_conf["AR_cuts"]}
+                rdf_AR = region_filter(rdf, config["channel"], region_cut_conf, sample)
                 print(
                     "Filtering events for the application region. Target process: {}\n".format(
                         "ttbar"
@@ -175,57 +156,79 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 rdf_AR.Report().Print()
                 print("-" * 50)
 
-                # get binning for tau pT
-                xbinning = array.array("d", process_conf["tau_pt_bins"])
-                nbinsx = len(process_conf["tau_pt_bins"]) - 1
-                # make tau pT histograms
+                # get binning of the dependent variable
+                xbinning = array.array("d", process_conf["var_bins"])
+                nbinsx = len(process_conf["var_bins"]) - 1
 
+                # making the histograms
                 h = rdf_SR.Histo1D(
-                    ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                    "pt_2",
+                    (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                    process_conf["var_dependence"],
                     "weight",
                 )
                 SR_hists[sample] = h.GetValue()
+
                 h = rdf_AR.Histo1D(
-                    ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                    "pt_2",
+                    (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                    process_conf["var_dependence"],
                     "weight",
                 )
                 AR_hists[sample] = h.GetValue()
 
-        # Start of the calculation
+
+        # Start of the FF calculation
         FF_hist = func.calculate_ttbar_FF(
             SR_hists, AR_hists, SRlike_hists, ARlike_hists
         )
-        plotting.plot_FFs(FF_hist, config, "ttbar", njets)
+        cs_exp = plotting.plot_FFs(FF_hist, "ttbar", config, split)  # the fit is performed during the plotting
+        cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
+        cs_expressions[cat] = cs_exp
 
-        sig = "data"
-        bkg = [
-            "QCD",
-            "diboson_J",
-            "diboson_L",
-            "Wjets",
-            "ttbar_J",
-            "ttbar_L",
-            "DYjets_J",
-            "DYjets_L",
-            "embedding",
-        ]
-        # plotting.plot_data_mc(SRlike_hists, config, "SR_like", "tau_phi", "ttbar", njets, sig, bkg)
-        # plotting.plot_data_mc(ARlike_hists, config, "AR_like", "tau_phi", "ttbar", njets, sig, bkg)
+       # doing some control plots
+        data = "data"
+        if config["use_embedding"]:
+            samples = [
+                "QCD",
+                "diboson_J",
+                "diboson_L",
+                "Wjets",
+                "ttbar_J",
+                "ttbar_L",
+                "DYjets_J",
+                "DYjets_L",
+                "embedding",
+            ]
+        else:
+            samples = [
+                "QCD",
+                "diboson_J",
+                "diboson_L",
+                "diboson_T",
+                "Wjets",
+                "ttbar_J",
+                "ttbar_L",
+                "ttbar_T",
+                "DYjets_J",
+                "DYjets_L",
+                "DYjets_T",
+            ]
+      
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "SR_like", "tau_phi", "ttbar", njets, sig, bkg
+            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "AR_like", "tau_phi", "ttbar", njets, sig, bkg
+            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split
         )
-        sig = "data_subtracted"
-        bkg = ["ttbar_J"]
-        # plotting.plot_data_mc(SRlike_hists, config, "SR_like", "tau_phi", "ttbar", njets, sig, bkg)
-        # plotting.plot_data_mc(ARlike_hists, config, "AR_like", "tau_phi", "ttbar", njets, sig, bkg)
+
+        data = "data_subtracted"
+        samples = ["ttbar_J"]
+      
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "SR_like", "tau_phi", "ttbar", njets, sig, bkg
+            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "AR_like", "tau_phi", "ttbar", njets, sig, bkg
+            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split
         )
+        print("-" * 50)
+
+    return cs_expressions

@@ -5,9 +5,10 @@ Function for calculating fake factors for the W-jets process
 import array
 import ROOT
 
-from helper import region_filters as filters
 import helper.functions as func
 import helper.plotting as plotting
+
+from FF_calculation.FF_region_filters import region_filter
 
 
 def calculation_Wjets_FFs(config, sample_path_list):
@@ -17,40 +18,27 @@ def calculation_Wjets_FFs(config, sample_path_list):
     # init histogram dict for QCD SS/OS estimation
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
+    # init dictionary for the FF functions for correctionlib
+    cs_expressions = dict()
 
+    # get QCD specific config information
     process_conf = config["target_process"]["Wjets"]
 
-    # differentiating between N jets categories
-    for njets in process_conf["njet_split_categories"]:
+    split_vars, split_combinations = func.get_split_combinations(process_conf["split_categories"])
+
+    # splitting between different categories
+    for split in split_combinations:
         for sample_path in sample_path_list:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            print("Processing {} for the {} jets category.".format(sample, njets))
+            print("Processing {sample} for the {cat} category.".format(sample=sample, cat=", ".join(["{} {}".format(split[var], var) for var in split_vars])))
             print("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for Wjets signal-like region
-            region_cut_conf = process_conf["SRlike_cuts"]
-            rdf_SRlike = filters.btag_number(rdf, config["channel"], region_cut_conf)
-            rdf_SRlike = filters.lepton_mT(
-                rdf_SRlike, config["channel"], region_cut_conf
-            )
-            rdf_SRlike = filters.no_extra_leptons(
-                rdf_SRlike, config["channel"], region_cut_conf
-            )
-            rdf_SRlike = filters.tau_id_vs_jets_WP(
-                rdf_SRlike, config["channel"], region_cut_conf
-            )
-            rdf_SRlike = filters.jet_number(rdf_SRlike, config["channel"], njets)
-            # split into same/opposite sign regions for QCD estimation
-            rdf_SRlike_qcd = filters.same_opposite_sign(
-                rdf_SRlike, config["channel"], "same"
-            )
-            rdf_SRlike = filters.same_opposite_sign(
-                rdf_SRlike, config["channel"], region_cut_conf["tau_pair_sign"]
-            )
-
+            region_cut_conf = {**split, **process_conf["SRlike_cuts"]}
+            rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
             print(
                 "Filtering events for the signal-like region. Target process: {}\n".format(
                     "Wjets"
@@ -58,28 +46,22 @@ def calculation_Wjets_FFs(config, sample_path_list):
             )
             rdf_SRlike.Report().Print()
             print("-" * 50)
+            
+            # QCD estimation from same sign in signal-like region
+            region_cut_conf["tau_pair_sign"] = "same"
+            rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
+                    "Wjets"
+                )
+            )
+            rdf_SRlike_qcd.Report().Print()
+            print("-" * 50)
 
+            
             # event filter for Wjets application-like region
-            region_cut_conf = process_conf["ARlike_cuts"]
-            rdf_ARlike = filters.btag_number(rdf, config["channel"], region_cut_conf)
-            rdf_ARlike = filters.lepton_mT(
-                rdf_ARlike, config["channel"], region_cut_conf
-            )
-            rdf_ARlike = filters.no_extra_leptons(
-                rdf_ARlike, config["channel"], region_cut_conf
-            )
-            rdf_ARlike = filters.tau_id_vs_jets_between_WPs(
-                rdf_ARlike, config["channel"], region_cut_conf
-            )
-            rdf_ARlike = filters.jet_number(rdf_ARlike, config["channel"], njets)
-            # split into same/opposite sign regions for QCD estimation
-            rdf_ARlike_qcd = filters.same_opposite_sign(
-                rdf_ARlike, config["channel"], "same"
-            )
-            rdf_ARlike = filters.same_opposite_sign(
-                rdf_ARlike, config["channel"], region_cut_conf["tau_pair_sign"]
-            )
-
+            region_cut_conf = {**split, **process_conf["ARlike_cuts"]}
+            rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
             print(
                 "Filtering events for the application-like region. Target process: {}\n".format(
                     "Wjets"
@@ -88,32 +70,48 @@ def calculation_Wjets_FFs(config, sample_path_list):
             rdf_ARlike.Report().Print()
             print("-" * 50)
 
-            # get binning for tau pT
-            xbinning = array.array("d", process_conf["tau_pt_bins"])
-            nbinsx = len(process_conf["tau_pt_bins"]) - 1
-            # make tau pT histograms
+            # QCD estimation from same sign in application-like region
+            region_cut_conf["tau_pair_sign"] = "same"
+            rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
+                    "Wjets"
+                )
+            )
+            rdf_ARlike_qcd.Report().Print()
+            print("-" * 50)
+
+            
+            # get binning of the dependent variable
+            xbinning = array.array("d", process_conf["var_bins"])
+            nbinsx = len(process_conf["var_bins"]) - 1
+
+            # making the histograms
             h = rdf_SRlike.Histo1D(
-                ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                "pt_2",
+                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                process_conf["var_dependence"],
                 "weight",
             )
             SRlike_hists[sample] = h.GetValue()
+
             h = rdf_ARlike.Histo1D(
-                ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                "pt_2",
+                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                process_conf["var_dependence"],
                 "weight",
             )
             ARlike_hists[sample] = h.GetValue()
-            # make tau pT histograms for QCD estimation
+
+            # making the histograms for QCD estimation
             h_qcd = rdf_SRlike_qcd.Histo1D(
-                ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                "pt_2",
+                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                process_conf["var_dependence"],
                 "weight",
             )
             SRlike_hists_qcd[sample] = h_qcd.GetValue()
+
             h_qcd = rdf_ARlike_qcd.Histo1D(
-                ("p_{T}(#tau_{h})", "{}".format(sample), nbinsx, xbinning),
-                "pt_2",
+                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                process_conf["var_dependence"],
                 "weight",
             )
             ARlike_hists_qcd[sample] = h_qcd.GetValue()
@@ -127,43 +125,63 @@ def calculation_Wjets_FFs(config, sample_path_list):
         ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
 
         for hist in SRlike_hists:
-            if hist not in ["data", "data_subtracted", "Wjets"] and "_T" not in hist:
+            if hist not in ["data", "data_subtracted", "Wjets"]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
         for hist in ARlike_hists:
-            if hist not in ["data", "data_subtracted", "Wjets"] and "_T" not in hist:
+            if hist not in ["data", "data_subtracted", "Wjets"]:
                 ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
-        # Start of the calculation
+        # Start of the FF calculation
         FF_hist = func.calculate_Wjets_FF(SRlike_hists, ARlike_hists)
-        plotting.plot_FFs(FF_hist, config, "Wjets", njets)
+        cs_exp = plotting.plot_FFs(FF_hist, "Wjets", config, split)  # the fit is performed during the plotting
+        cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
+        cs_expressions[cat] = cs_exp
 
-        sig = "data"
-        bkg = [
-            "QCD",
-            "diboson_J",
-            "diboson_L",
-            "Wjets",
-            "ttbar_J",
-            "ttbar_L",
-            "DYjets_J",
-            "DYjets_L",
-            "embedding",
-        ]
-        # plotting.plot_data_mc(SRlike_hists, config, "SR_like", "tau_pt", "Wjets", njets, sig, bkg)
-        # plotting.plot_data_mc(ARlike_hists, config, "AR_like", "tau_pt", "Wjets", njets, sig, bkg)
+        # doing some control plots
+        data = "data"
+        if config["use_embedding"]:
+            samples = [
+                "QCD",
+                "diboson_J",
+                "diboson_L",
+                "Wjets",
+                "ttbar_J",
+                "ttbar_L",
+                "DYjets_J",
+                "DYjets_L",
+                "embedding",
+            ]
+        else:
+            samples = [
+                "QCD",
+                "diboson_J",
+                "diboson_L",
+                "diboson_T",
+                "Wjets",
+                "ttbar_J",
+                "ttbar_L",
+                "ttbar_T",
+                "DYjets_J",
+                "DYjets_L",
+                "DYjets_T",
+            ]
+        
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "SR_like", "tau_pt", "Wjets", njets, sig, bkg
+            SRlike_hists, config, process_conf["var_dependence"], "Wjets", "SR_like", data, samples, split
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "AR_like", "tau_pt", "Wjets", njets, sig, bkg
+            ARlike_hists, config, process_conf["var_dependence"], "Wjets", "AR_like", data, samples, split
         )
-        sig = "data_subtracted"
-        bkg = ["Wjets"]
-        # plotting.plot_data_mc(SRlike_hists, config, "SR_like", "tau_pt", "Wjets", njets, sig, bkg)
-        # plotting.plot_data_mc(ARlike_hists, config, "AR_like", "tau_pt", "Wjets", njets, sig, bkg)
+
+        data = "data_subtracted"
+        samples = ["Wjets"]
+        
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "SR_like", "tau_pt", "Wjets", njets, sig, bkg
+            SRlike_hists, config, process_conf["var_dependence"], "Wjets", "SR_like", data, samples, split
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "AR_like", "tau_pt", "Wjets", njets, sig, bkg
+            ARlike_hists, config, process_conf["var_dependence"], "Wjets", "AR_like", data, samples, split
         )
+        print("-" * 50)
+
+    return cs_expressions
