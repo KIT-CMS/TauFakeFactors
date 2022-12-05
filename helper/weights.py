@@ -33,14 +33,14 @@ def apply_btag_weight(rdf):
     rdf = rdf.Define("wgt_with_btag", "weight * btag_weight")
 
     # measure corr. ratio for N jets (0 to 8); the highest N jet here is an arbitrary choice
-    xbinning = array.array("d", [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5])
+    xbinning = array.array("d", [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5])
     nbinsx = len(xbinning) - 1
-    
+
     # histogram without b-tagging SFs
-    h = rdf.Histo1D(("", "",  nbinsx, xbinning), "njets", "weight")
+    h = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "weight")
     h = h.GetValue()
     # histogram with b-tagging SFs
-    h_btag = rdf.Histo1D(("", "",  nbinsx, xbinning), "njets", "wgt_with_btag")
+    h_btag = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "wgt_with_btag")
     h_btag = h_btag.GetValue()
 
     ratio = h.Clone()
@@ -49,10 +49,10 @@ def apply_btag_weight(rdf):
     # generating expression for b-tagging weights with the N jets dependent corr. ratio
     btag_wgt = "btag_weight*("
     for n in range(nbinsx):
-        if ratio.GetBinContent(n+1) != 0.:
-            btag_wgt += "(njets=={})*{}+".format(n, ratio.GetBinContent(n+1))
+        if ratio.GetBinContent(n + 1) != 0.0:
+            btag_wgt += "(njets=={})*{}+".format(n, ratio.GetBinContent(n + 1))
         else:
-            btag_wgt += "(njets=={})*{}+".format(n, 1.)
+            btag_wgt += "(njets=={})*{}+".format(n, 1.0)
     btag_wgt += "(njets>8)*1.)"
 
     # applying the b-tagging SFs
@@ -65,21 +65,29 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
         if channel == "et":
             rdf = rdf.Redefine(
                 "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_jet"]),
+                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                    WP=config["had_tau_id_vs_jet"]
+                ),
             )
         elif channel == "mt":
             rdf = rdf.Redefine(
                 "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_jet"]),
+                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                    WP=config["had_tau_id_vs_jet"]
+                ),
             )
         elif channel == "tt":
             rdf = rdf.Redefine(
                 "weight",
-                "weight * ((gen_match_1==5) * ((id_tau_vsJet_{WP}_1>0.5)*id_wgt_tau_vsJet_{WP}_1 + (id_tau_vsJet_{WP}_1<0.5)) + (gen_match_1!=5))".format(WP=config["had_tau_id_vs_jet"]),
+                "weight * ((gen_match_1==5) * ((id_tau_vsJet_{WP}_1>0.5)*id_wgt_tau_vsJet_{WP}_1 + (id_tau_vsJet_{WP}_1<0.5)) + (gen_match_1!=5))".format(
+                    WP=config["had_tau_id_vs_jet"]
+                ),
             )
             rdf = rdf.Redefine(
                 "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_jet"]),
+                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                    WP=config["had_tau_id_vs_jet"]
+                ),
             )
         else:
             sys.exit(
@@ -92,7 +100,7 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    lower_WP=config["had_tau_id_vs_jet"][0],
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
@@ -100,7 +108,7 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    lower_WP=config["had_tau_id_vs_jet"][0],
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
@@ -108,14 +116,14 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_1==5) * ((id_tau_vsJet_{upper_WP}_1>0.5) + (id_tau_vsJet_{upper_WP}_1<0.5)*(id_tau_vsJet_{lower_WP}_1>0.5)*id_wgt_tau_vsJet_{lower_WP}_1 + (id_tau_vsJet_{lower_WP}_1<0.5)) + (gen_match_1!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    lower_WP=config["had_tau_id_vs_jet"][0],
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0], 
+                    lower_WP=config["had_tau_id_vs_jet"][0],
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
@@ -127,9 +135,9 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
             )
     else:
         sys.exit(
-                "Weight calc: tau id vs jet: Such a type is not defined: {}".format(
-                    config["had_tau_id_vs_jet"]
-                )
+            "Weight calc: tau id vs jet: Such a type is not defined: {}".format(
+                config["had_tau_id_vs_jet"]
+            )
         )
 
     return rdf
@@ -139,21 +147,29 @@ def tau_id_vsMu_weight(rdf, channel, config):
     if channel == "et":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_mu"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_mu"]
+            ),
         )
     elif channel == "mt":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_mu"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_mu"]
+            ),
         )
     elif channel == "tt":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_1==5) * ((id_tau_vsMu_{WP}_1>0.5)*id_wgt_tau_vsMu_{WP}_1 + (id_tau_vsMu_{WP}_1<0.5)) + (gen_match_1!=5))".format(WP=config["had_tau_id_vs_mu"]),
+            "weight * ((gen_match_1==5) * ((id_tau_vsMu_{WP}_1>0.5)*id_wgt_tau_vsMu_{WP}_1 + (id_tau_vsMu_{WP}_1<0.5)) + (gen_match_1!=5))".format(
+                WP=config["had_tau_id_vs_mu"]
+            ),
         )
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_mu"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_mu"]
+            ),
         )
     else:
         sys.exit(
@@ -169,21 +185,29 @@ def tau_id_vsEle_weight(rdf, channel, config):
     if channel == "et":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_ele"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_ele"]
+            ),
         )
     elif channel == "mt":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_ele"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_ele"]
+            ),
         )
     elif channel == "tt":
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_1==5) * ((id_tau_vsEle_{WP}_1>0.5)*id_wgt_tau_vsEle_{WP}_1 + (id_tau_vsEle_{WP}_1<0.5)) + (gen_match_1!=5))".format(WP=config["had_tau_id_vs_ele"]),
+            "weight * ((gen_match_1==5) * ((id_tau_vsEle_{WP}_1>0.5)*id_wgt_tau_vsEle_{WP}_1 + (id_tau_vsEle_{WP}_1<0.5)) + (gen_match_1!=5))".format(
+                WP=config["had_tau_id_vs_ele"]
+            ),
         )
         rdf = rdf.Redefine(
             "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(WP=config["had_tau_id_vs_ele"]),
+            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                WP=config["had_tau_id_vs_ele"]
+            ),
         )
     else:
         sys.exit(
@@ -219,7 +243,7 @@ def trigger_weight(rdf, channel, process):
         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_ele32orele35")
     elif channel == "mt":
         if process == "embedding":
-            rdf = rdf.Redefine("weight", "weight * trg_wgtsingle_mu24Ormu27")
+            rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24Ormu27")
         else:
             rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
     elif channel == "tt":

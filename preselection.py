@@ -43,7 +43,7 @@ output_feature = [
     "m_vis",
     "mt_1",
     "no_extra_lep",
-    "dR_tau_pair",
+    "deltaR_ditaupair",
     # following variables are not directly needed for the FF calculation
     # "pt_1",
     # "eta_1",
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         + config["channel"]
     )
     func.check_output_path(output_path)
-
+    
     # start output logging
     sys.stdout = Logger(output_path + "/preselection.log")
 
@@ -112,11 +112,17 @@ if __name__ == "__main__":
             if "had_tau_eta" in selection_conf:
                 rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
             if "had_tau_decay_mode" in selection_conf:
-                rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
+                rdf = filters.had_tau_decay_mode_cut(
+                    rdf, config["channel"], selection_conf
+                )
             if "had_tau_id_vs_ele" in selection_conf:
-                rdf = filters.had_tau_id_vsEle_cut(rdf, config["channel"], selection_conf)
+                rdf = filters.had_tau_id_vsEle_cut(
+                    rdf, config["channel"], selection_conf
+                )
             if "had_tau_id_vs_mu" in selection_conf:
-                rdf = filters.had_tau_id_vsMu_cut(rdf, config["channel"], selection_conf)
+                rdf = filters.had_tau_id_vsMu_cut(
+                    rdf, config["channel"], selection_conf
+                )
             if "lep_iso" in selection_conf:
                 rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
             if "trigger" in selection_conf:
@@ -140,9 +146,13 @@ if __name__ == "__main__":
                 if "lep_id" in mc_weight_conf:
                     rdf = weights.lep_id_weight(rdf, config["channel"])
                 if "had_tau_id_vs_mu" in mc_weight_conf:
-                    rdf = weights.tau_id_vsMu_weight(rdf, config["channel"], selection_conf)
+                    rdf = weights.tau_id_vsMu_weight(
+                        rdf, config["channel"], selection_conf
+                    )
                 if "had_tau_id_vs_ele" in mc_weight_conf:
-                    rdf = weights.tau_id_vsEle_weight(rdf, config["channel"], selection_conf)
+                    rdf = weights.tau_id_vsEle_weight(
+                        rdf, config["channel"], selection_conf
+                    )
                 if "trigger" in mc_weight_conf:
                     rdf = weights.trigger_weight(rdf, config["channel"], process)
                 if "Z_pt_reweight" in mc_weight_conf:
@@ -174,31 +184,24 @@ if __name__ == "__main__":
                     rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_1", "1.")
             if process == "embedding":
                 rdf = rdf.Define("btag_weight", "1.")
-                # the following weights are temporary until they are available in the ntuples
-                rdf = rdf.Define("id_wgt_tau_vsJet_Medium_2", "1.")
-                rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_2", "1.")
-                if config["channel"] == "tt":
-                    rdf = rdf.Define("id_wgt_tau_vsJet_Medium_1", "1.")
-                    rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_1", "1.")
+                # rdf = rdf.Define("id_wgt_tau_vsJet_Medium_2", "1.")
+                # rdf = rdf.Define("id_wgt_tau_vsJet_VVVLoose_2", "1.")
 
             # calculate additional variables
-            if config["channel"] in ["et","mt"]:
+            if config["channel"] == "et":
                 rdf = rdf.Define(
                     "no_extra_lep",
                     "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
                 )
+            elif config["channel"] == "mt":
                 rdf = rdf.Define(
-                    "dR_tau_pair",
-                    "ROOT::VecOps::DeltaR(eta_1, eta_2, phi_1, phi_2)",
+                    "no_extra_lep",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
                 )
             elif config["channel"] == "tt":
                 rdf = rdf.Define(
                     "no_extra_lep",
                     "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
-                )
-                rdf = rdf.Define(
-                    "dR_tau_pair",
-                    "ROOT::VecOps::DeltaR(eta_1, eta_2, phi_1, phi_2)",
                 )
             else:
                 print(
@@ -219,7 +222,6 @@ if __name__ == "__main__":
                 out = StringIO()
                 with pipes(stdout=out, stderr=STDOUT):
                     tmp_rdf.Report().Print()
-
                 print(out.getvalue())
                 print("-" * 50)
 

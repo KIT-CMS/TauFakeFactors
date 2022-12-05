@@ -86,6 +86,10 @@ The FF calculation config has the following options:
         * each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2") 
         * implemented split variables are "njets" and "nbtag"
         * at least one inclusive category needs to be specified
+    * `split_categories_binedges`: `list` of bin edge values for each variable 
+      * variables should be same the as in `split_categories`
+      * number of bin edges should always be N(variable cuts)+1
+      * is only used if `generate_json` is True
     * `SRlike_cuts`: `list` of event selections specific for the signal-like region of the target process
     * `ARlike_cuts`: `list` of event selections specific for the application-like region of the target process
     * `SR_cuts`: `list` of event selections specific for the signal region (only needed for ttbar)
@@ -101,7 +105,7 @@ The FF calculation config has the following options:
     * `var_bins`: `list` of bin edges for the variable specified in `var_dependence`
 * `process_fractions`: `list` of specifications for the calculation of the process fractions
     * `processes`: `list` of sample names (processes) for which the fractions should be stored in the correctionlib json
-    * `split_categories`: see `target_process`
+    * `split_categories`: see `target_process` (only in 1D)
     * `AR_cuts`: see `target_process`
     * `SR_cuts`: see `target_process`, (optional) not needed for the fraction calculation
   

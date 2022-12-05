@@ -5,11 +5,13 @@ Main script initializing the fake factor calculation
 import argparse
 import yaml
 import sys
+import os
 
 from FF_calculation.FF_QCD import calculation_QCD_FFs
 from FF_calculation.FF_Wjets import calculation_Wjets_FFs
 from FF_calculation.FF_ttbar import calculation_ttbar_FFs
 from FF_calculation.fractions import fraction_calculation
+from helper.Logger import Logger
 from helper.correctionlib_json import generate_cs_json
 import helper.functions as func
 
@@ -29,9 +31,15 @@ if __name__ == "__main__":
     with open("configs/" + args.config + ".yaml", "r") as file:
         config = yaml.load(file, yaml.FullLoader)
 
+    save_path = "workdir/{}/{}/".format(config["workdir_name"], config["channel"])
+    func.check_output_path(os.getcwd() + "/" + save_path)
+
+    # start output logging
+    sys.stdout = Logger(save_path + "ff_calculation.log")
+
     # getting all the input files
     sample_path_list = func.get_samples(config)
-    
+
     # initializing the fake factor calculation
     fake_factors = dict()
     if "target_process" in config:
@@ -58,7 +66,9 @@ if __name__ == "__main__":
         print("Calculating the process fractions for the FF application.")
         print("-" * 50)
         fractions = fraction_calculation(config, sample_path_list)
-        fractions = func.get_yields_from_hists(fractions, config["process_fractions"]["processes"])
-    
+        fractions = func.get_yields_from_hists(
+            fractions, config["process_fractions"]["processes"]
+        )
+
     if config["generate_json"]:
-        generate_cs_json(config, fake_factors, fractions)
+        generate_cs_json(config, fake_factors, fractions, save_path)

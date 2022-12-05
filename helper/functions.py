@@ -8,6 +8,9 @@ import glob
 import array
 import ROOT
 
+from io import StringIO
+from wurlitzer import pipes, STDOUT
+
 
 def check_for_empty_file(path, tree):
     f = ROOT.TFile.Open(path)
@@ -52,6 +55,7 @@ def get_ntuples(config, sample):
 
     return cleaned_sample_path_list
 
+
 def get_samples(config):
     sample_paths = (
         config["file_path"]
@@ -76,8 +80,8 @@ def get_samples(config):
             sample_path_list.remove(f)
         elif not config["use_embedding"] and sample == "embedding":
             sample_path_list.remove(f)
-    
-    for f in sample_path_list:    
+
+    for f in sample_path_list:
         print(f)
     print("-" * 50)
 
@@ -108,7 +112,7 @@ def get_output_name(output_path, process, tau_gen_mode, idx=None):
 def get_split_combinations(categories):
     combinations = list()
     split_vars = list(categories.keys())
-    
+
     if len(split_vars) == 1:
         for n in categories[split_vars[0]]:
             combinations.append({split_vars[0]: n})
@@ -134,6 +138,7 @@ def QCD_SS_estimate(hists):
             qcd.SetBinContent(i, 0.0)
     return qcd
 
+
 def calc_fraction(hists, target, processes):
     mc = hists[processes[0]].Clone()
     for p in processes:
@@ -142,6 +147,7 @@ def calc_fraction(hists, target, processes):
     frac = hists[target].Clone()
     frac.Divide(mc)
     return frac
+
 
 def calculate_QCD_FF(SRlike, ARlike):
     ratio = SRlike["data_subtracted"].Clone()
@@ -172,17 +178,17 @@ def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
 
 
 def fit_function(ff_hist):
-    nbins = ff_hist.GetNbinsX() 
+    nbins = ff_hist.GetNbinsX()
 
     x = list()
     y = list()
     error_y_up = list()
     error_y_down = list()
     for nbin in range(nbins):
-        x.append(ff_hist.GetBinCenter(nbin+1))
-        y.append(ff_hist.GetBinContent(nbin+1))
-        error_y_up.append(ff_hist.GetBinErrorUp(nbin+1))
-        error_y_down.append(ff_hist.GetBinErrorLow(nbin+1))
+        x.append(ff_hist.GetBinCenter(nbin + 1))
+        y.append(ff_hist.GetBinContent(nbin + 1))
+        error_y_up.append(ff_hist.GetBinErrorUp(nbin + 1))
+        error_y_down.append(ff_hist.GetBinErrorLow(nbin + 1))
 
     x = array.array("d", x)
     y = array.array("d", y)
@@ -191,8 +197,12 @@ def fit_function(ff_hist):
 
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
-    fit = graph.Fit("pol1", "SFN")
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):
+        fit = graph.Fit("pol1", "SFN")
+    print(out.getvalue())
     print("-" * 50)
+
     fitted_func = lambda pt: fit.Parameter(1) * pt + fit.Parameter(0)
     cs_expression = "{}*x+{}".format(fit.Parameter(1), fit.Parameter(0))
 
@@ -213,9 +223,12 @@ def fit_function(ff_hist):
     error_y_fit_up = array.array("d", error_y_fit_up)
     error_y_fit_down = array.array("d", error_y_fit_down)
 
-    fit_graph = ROOT.TGraphAsymmErrors(nbins, x, y_fit, 0, 0, error_y_fit_down, error_y_fit_up)
-    
+    fit_graph = ROOT.TGraphAsymmErrors(
+        nbins, x, y_fit, 0, 0, error_y_fit_down, error_y_fit_up
+    )
+
     return fit_graph, chi2, dof, cs_expression
+
 
 def get_yields_from_hists(hists, processes):
     fracs = dict()
@@ -226,18 +239,20 @@ def get_yields_from_hists(hists, processes):
             h = hists[cat][p]
             l = list()
             for b in range(h.GetNbinsX()):
-                l.append(h.GetBinContent(b+1)) 
+                l.append(h.GetBinContent(b + 1))
             nfracs[p] = l
         fracs[cat] = nfracs
-    
+
     return fracs
 
 
 def calculating_FF(rdf):
     import correctionlib
+
     correctionlib.register_pyroot_binding()
 
-    ROOT.gInterpreter.ProcessLine('''
+    ROOT.gInterpreter.ProcessLine(
+        """
         float calc_ff(float pt, int njets, float mt, int nbtag) {
         if (njets > 2) {
             njets = 2;
@@ -266,11 +281,12 @@ def calculating_FF(rdf):
         ttbar_frac = frac->evaluate({"ttbar", mt, nbtag});
         float full_ff = qcd_frac*qcd_ff+wjets_frac*wjets_ff+ttbar_frac*ttbar_ff;
         return full_ff;
-        }''')
+        }"""
+    )
 
     rdf = rdf.Define(
         "fake_factor",
         "calc_ff(pt_2,njets,mt_1,nbtag)",
-        )
-    
+    )
+
     return rdf

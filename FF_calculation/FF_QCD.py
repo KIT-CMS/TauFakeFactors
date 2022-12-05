@@ -4,6 +4,8 @@ Function for calculating fake factors for the QCD process
 
 import array
 import ROOT
+from io import StringIO
+from wurlitzer import pipes, STDOUT
 
 import helper.functions as func
 import helper.plotting as plotting
@@ -21,14 +23,23 @@ def calculation_QCD_FFs(config, sample_path_list):
     # get QCD specific config information
     process_conf = config["target_process"]["QCD"]
 
-    split_vars, split_combinations = func.get_split_combinations(process_conf["split_categories"])
+    split_vars, split_combinations = func.get_split_combinations(
+        process_conf["split_categories"]
+    )
 
     # splitting between different categories
     for split in split_combinations:
         for sample_path in sample_path_list:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            print("Processing {sample} for the {cat} category.".format(sample=sample, cat=", ".join(["{} {}".format(split[var], var) for var in split_vars])))
+            print(
+                "Processing {sample} for the {cat} category.".format(
+                    sample=sample,
+                    cat=", ".join(
+                        ["{} {}".format(var, split[var]) for var in split_vars]
+                    ),
+                )
+            )
             print("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -41,7 +52,11 @@ def calculation_QCD_FFs(config, sample_path_list):
                     "QCD"
                 )
             )
-            rdf_SRlike.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SRlike.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
 
             # event filter for QCD application-like region
@@ -52,7 +67,11 @@ def calculation_QCD_FFs(config, sample_path_list):
                     "QCD"
                 )
             )
-            rdf_ARlike.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_ARlike.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
 
             # get binning of the dependent variable
@@ -74,7 +93,6 @@ def calculation_QCD_FFs(config, sample_path_list):
             )
             ARlike_hists[sample] = h.GetValue()
 
-
         # calculate QCD enriched data by subtraction all the background samples
         SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
         ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
@@ -88,9 +106,19 @@ def calculation_QCD_FFs(config, sample_path_list):
 
         # Start of the FF calculation
         FF_hist = func.calculate_QCD_FF(SRlike_hists, ARlike_hists)
-        cs_exp = plotting.plot_FFs(FF_hist, "QCD", config, split)  # the fit is performed during the plotting
-        cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
-        cs_expressions[cat] = cs_exp
+        # the fit is performed during the plotting
+        cs_exp = plotting.plot_FFs(
+            FF_hist, "QCD", config, split
+        )  
+
+        if len(split) == 1:
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
+        elif len(split) == 2:
+            if "{}#{}".format(split_vars[0],split[split_vars[0]]) not in cs_expressions:
+                cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = dict()
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])]["{}#{}".format(split_vars[1],split[split_vars[1]])] = cs_exp
+        else:
+            sys.exit("Category splitting is only defined up to 2 dimensions.")
 
         # doing some control plots
         data = "data"
@@ -118,12 +146,26 @@ def calculation_QCD_FFs(config, sample_path_list):
                 "DYjets_L",
                 "DYjets_T",
             ]
-            
+
         plotting.plot_data_mc(
-            SRlike_hists, config, process_conf["var_dependence"], "QCD", "SR_like", data, samples, split
+            SRlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "QCD",
+            "SR_like",
+            data,
+            samples,
+            split,
         )
         plotting.plot_data_mc(
-            ARlike_hists, config, process_conf["var_dependence"], "QCD", "AR_like", data, samples, split
+            ARlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "QCD",
+            "AR_like",
+            data,
+            samples,
+            split,
         )
         print("-" * 50)
 

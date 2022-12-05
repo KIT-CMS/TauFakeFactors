@@ -1,9 +1,12 @@
-# This is a example config containing information for the preselection
+# This is an example config containing information for the preselection
 
-ntuple_path: "/storage/gridka-nrg/nshadskiy/CROWN/ntuples/ff_ntuple_mt/CROWNRun"
+ntuple_path: "/storage/gridka-nrg/nshadskiy/CROWN/ntuples/ff_ntuple_v2/CROWNRun"
 era: "2018"
+channel: "mt"
+tree: "ntuple"
 
-channel: "mt" # options are et, mt, tt
+output_path: "/ceph/nshadskiy/FFmethod/12_2022_v1"
+
 processes:
     DYjets:
         tau_gen_modes:
@@ -54,12 +57,28 @@ processes:
             - "SingleMuon_Run2018D-UL2018"
 
 event_selection:
-    had_tau_pt: "> 30"
-    had_tau_eta: "< 2.3"
+    had_tau_pt: ">30"
+    had_tau_eta: "<2.3"
     had_tau_decay_mode: ["0","1","10","11"] # has to be a list
     had_tau_id_vs_ele: "VVLoose"
     had_tau_id_vs_mu: "Tight"
-    lep_iso: "< 0.15"
+    lep_iso: "<0.15"
+    trigger: True
 
-tree: "ntuple"
-output_path: "/ceph/nshadskiy/FFmethod/test_v4"
+mc_weights:
+    - "generator"
+    - "lumi"
+    - "pileup"
+    - "lep_iso"
+    - "lep_id"
+    - "had_tau_id_vs_ele"
+    - "had_tau_id_vs_mu"
+    - "trigger"
+    - "Z_pt_reweight"
+    - "Top_pt_reweight"
+
+emb_weights:
+    - "generator"
+    - "lep_iso"
+    - "lep_id"
+    - "trigger"

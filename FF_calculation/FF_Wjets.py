@@ -2,8 +2,11 @@
 Function for calculating fake factors for the W-jets process
 """
 
+import sys
 import array
 import ROOT
+from io import StringIO
+from wurlitzer import pipes, STDOUT
 
 import helper.functions as func
 import helper.plotting as plotting
@@ -24,14 +27,23 @@ def calculation_Wjets_FFs(config, sample_path_list):
     # get QCD specific config information
     process_conf = config["target_process"]["Wjets"]
 
-    split_vars, split_combinations = func.get_split_combinations(process_conf["split_categories"])
+    split_vars, split_combinations = func.get_split_combinations(
+        process_conf["split_categories"]
+    )
 
     # splitting between different categories
     for split in split_combinations:
         for sample_path in sample_path_list:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            print("Processing {sample} for the {cat} category.".format(sample=sample, cat=", ".join(["{} {}".format(split[var], var) for var in split_vars])))
+            print(
+                "Processing {sample} for the {cat} category.".format(
+                    sample=sample,
+                    cat=", ".join(
+                        ["{} {}".format(var, split[var]) for var in split_vars]
+                    ),
+                )
+            )
             print("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -44,21 +56,30 @@ def calculation_Wjets_FFs(config, sample_path_list):
                     "Wjets"
                 )
             )
-            rdf_SRlike.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SRlike.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
-            
+
             # QCD estimation from same sign in signal-like region
             region_cut_conf["tau_pair_sign"] = "same"
-            rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            rdf_SRlike_qcd = region_filter(
+                rdf, config["channel"], region_cut_conf, sample
+            )
             print(
                 "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
                     "Wjets"
                 )
             )
-            rdf_SRlike_qcd.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SRlike_qcd.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
 
-            
             # event filter for Wjets application-like region
             region_cut_conf = {**split, **process_conf["ARlike_cuts"]}
             rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
@@ -67,21 +88,30 @@ def calculation_Wjets_FFs(config, sample_path_list):
                     "Wjets"
                 )
             )
-            rdf_ARlike.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_ARlike.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
 
             # QCD estimation from same sign in application-like region
             region_cut_conf["tau_pair_sign"] = "same"
-            rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            rdf_ARlike_qcd = region_filter(
+                rdf, config["channel"], region_cut_conf, sample
+            )
             print(
                 "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
                     "Wjets"
                 )
             )
-            rdf_ARlike_qcd.Report().Print()
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_ARlike_qcd.Report().Print()
+            print(out.getvalue())
             print("-" * 50)
 
-            
             # get binning of the dependent variable
             xbinning = array.array("d", process_conf["var_bins"])
             nbinsx = len(process_conf["var_bins"]) - 1
@@ -133,9 +163,19 @@ def calculation_Wjets_FFs(config, sample_path_list):
 
         # Start of the FF calculation
         FF_hist = func.calculate_Wjets_FF(SRlike_hists, ARlike_hists)
-        cs_exp = plotting.plot_FFs(FF_hist, "Wjets", config, split)  # the fit is performed during the plotting
-        cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
-        cs_expressions[cat] = cs_exp
+        # the fit is performed during the plotting
+        cs_exp = plotting.plot_FFs(
+            FF_hist, "Wjets", config, split
+        )  
+        
+        if len(split) == 1:
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
+        elif len(split) == 2:
+            if "{}#{}".format(split_vars[0],split[split_vars[0]]) not in cs_expressions:
+                cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = dict()
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])]["{}#{}".format(split_vars[1],split[split_vars[1]])] = cs_exp
+        else:
+            sys.exit("Category splitting is only defined up to 2 dimensions.")
 
         # doing some control plots
         data = "data"
@@ -165,22 +205,50 @@ def calculation_Wjets_FFs(config, sample_path_list):
                 "DYjets_L",
                 "DYjets_T",
             ]
-        
+
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, process_conf["var_dependence"], "Wjets", "SR_like", data, samples, split
+            SRlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "Wjets",
+            "SR_like",
+            data,
+            samples,
+            split,
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, process_conf["var_dependence"], "Wjets", "AR_like", data, samples, split
+            ARlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "Wjets",
+            "AR_like",
+            data,
+            samples,
+            split,
         )
 
         data = "data_subtracted"
         samples = ["Wjets"]
-        
+
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, process_conf["var_dependence"], "Wjets", "SR_like", data, samples, split
+            SRlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "Wjets",
+            "SR_like",
+            data,
+            samples,
+            split,
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, process_conf["var_dependence"], "Wjets", "AR_like", data, samples, split
+            ARlike_hists,
+            config,
+            process_conf["var_dependence"],
+            "Wjets",
+            "AR_like",
+            data,
+            samples,
+            split,
         )
         print("-" * 50)
 

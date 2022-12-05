@@ -4,6 +4,8 @@ Function for calculating fake factors for the ttbar process
 
 import array
 import ROOT
+from io import StringIO
+from wurlitzer import pipes, STDOUT
 
 import helper.functions as func
 import helper.plotting as plotting
@@ -27,7 +29,9 @@ def calculation_ttbar_FFs(config, sample_path_list):
     # get QCD specific config information
     process_conf = config["target_process"]["ttbar"]
 
-    split_vars, split_combinations = func.get_split_combinations(process_conf["split_categories"])
+    split_vars, split_combinations = func.get_split_combinations(
+        process_conf["split_categories"]
+    )
 
     # calculating global histograms for the data/mc scale factor
     for sample_path in sample_path_list:
@@ -46,9 +50,13 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 "ttbar"
             )
         )
-        rdf_SRlike.Report().Print()
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_SRlike.Report().Print()
+        print(out.getvalue())
         print("-" * 50)
-        
+
         # QCD estimation from same sign in signal-like region
         region_cut_conf["tau_pair_sign"] = "same"
         rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
@@ -57,9 +65,12 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 "ttbar"
             )
         )
-        rdf_SRlike_qcd.Report().Print()
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_SRlike_qcd.Report().Print()
+        print(out.getvalue())
         print("-" * 50)
-        
 
         # event filter for ttbar application-like region
         region_cut_conf = {**process_conf["ARlike_cuts"]}
@@ -69,7 +80,11 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 "ttbar"
             )
         )
-        rdf_ARlike.Report().Print()
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_ARlike.Report().Print()
+        print(out.getvalue())
         print("-" * 50)
 
         # QCD estimation from same sign in application-like region
@@ -80,9 +95,12 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 "Wjets"
             )
         )
-        rdf_ARlike_qcd.Report().Print()
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_ARlike_qcd.Report().Print()
+        print(out.getvalue())
         print("-" * 50)
-
 
         # make yield histograms for FF data correction
         h = rdf_SRlike.Histo1D(
@@ -106,7 +124,6 @@ def calculation_ttbar_FFs(config, sample_path_list):
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
-
     # calculate QCD estimation
     SRlike_hists["QCD"] = func.QCD_SS_estimate(SRlike_hists_qcd)
     ARlike_hists["QCD"] = func.QCD_SS_estimate(ARlike_hists_qcd)
@@ -129,7 +146,14 @@ def calculation_ttbar_FFs(config, sample_path_list):
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
             if sample == "ttbar_J":
-                print("Processing {sample} for the {cat} category.".format(sample=sample, cat=", ".join(["{} {}".format(split[var], var) for var in split_vars])))
+                print(
+                    "Processing {sample} for the {cat} category.".format(
+                        sample=sample,
+                        cat=", ".join(
+                            ["{} {}".format(var, split[var]) for var in split_vars]
+                        ),
+                    )
+                )
                 print("-" * 50)
 
                 rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -142,7 +166,11 @@ def calculation_ttbar_FFs(config, sample_path_list):
                         "ttbar"
                     )
                 )
-                rdf_SR.Report().Print()
+                # redirecting C++ stdout for Report() to python stdout
+                out = StringIO()
+                with pipes(stdout=out, stderr=STDOUT):
+                    rdf_SR.Report().Print()
+                print(out.getvalue())
                 print("-" * 50)
 
                 # event filter for ttbar application region
@@ -153,7 +181,11 @@ def calculation_ttbar_FFs(config, sample_path_list):
                         "ttbar"
                     )
                 )
-                rdf_AR.Report().Print()
+                # redirecting C++ stdout for Report() to python stdout
+                out = StringIO()
+                with pipes(stdout=out, stderr=STDOUT):
+                    rdf_AR.Report().Print()
+                print(out.getvalue())
                 print("-" * 50)
 
                 # get binning of the dependent variable
@@ -162,29 +194,48 @@ def calculation_ttbar_FFs(config, sample_path_list):
 
                 # making the histograms
                 h = rdf_SR.Histo1D(
-                    (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                    (
+                        process_conf["var_dependence"],
+                        "{}".format(sample),
+                        nbinsx,
+                        xbinning,
+                    ),
                     process_conf["var_dependence"],
                     "weight",
                 )
                 SR_hists[sample] = h.GetValue()
 
                 h = rdf_AR.Histo1D(
-                    (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                    (
+                        process_conf["var_dependence"],
+                        "{}".format(sample),
+                        nbinsx,
+                        xbinning,
+                    ),
                     process_conf["var_dependence"],
                     "weight",
                 )
                 AR_hists[sample] = h.GetValue()
 
-
         # Start of the FF calculation
         FF_hist = func.calculate_ttbar_FF(
             SR_hists, AR_hists, SRlike_hists, ARlike_hists
         )
-        cs_exp = plotting.plot_FFs(FF_hist, "ttbar", config, split)  # the fit is performed during the plotting
-        cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
-        cs_expressions[cat] = cs_exp
+        # the fit is performed during the plotting
+        cs_exp = plotting.plot_FFs(
+            FF_hist, "ttbar", config, split
+        )  
 
-       # doing some control plots
+        if len(split) == 1:
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
+        elif len(split) == 2:
+            if "{}#{}".format(split_vars[0],split[split_vars[0]]) not in cs_expressions:
+                cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = dict()
+            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])]["{}#{}".format(split_vars[1],split[split_vars[1]])] = cs_exp
+        else:
+            sys.exit("Category splitting is only defined up to 2 dimensions.")
+
+        # doing some control plots
         data = "data"
         if config["use_embedding"]:
             samples = [
@@ -212,7 +263,7 @@ def calculation_ttbar_FFs(config, sample_path_list):
                 "DYjets_L",
                 "DYjets_T",
             ]
-      
+
         plotting.plot_data_mc_ratio(
             SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
         )
@@ -222,7 +273,7 @@ def calculation_ttbar_FFs(config, sample_path_list):
 
         data = "data_subtracted"
         samples = ["ttbar_J"]
-      
+
         plotting.plot_data_mc_ratio(
             SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
         )

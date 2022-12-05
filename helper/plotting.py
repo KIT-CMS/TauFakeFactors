@@ -1,5 +1,7 @@
 import os
 import ROOT
+from io import StringIO
+from wurlitzer import pipes, STDOUT
 
 from . import functions as func
 
@@ -61,6 +63,12 @@ var_dict = {
     "nbtag": "number of b-tagged jets",
 }
 
+cat_dict = {
+    "njets": "jets",
+    "nbtag": "b-jets",
+    "deltaR_ditaupair": "#Delta"+"R(l#tau_{h})",
+}
+
 
 def plot_FFs(ratio, process, config, split):
     c = ROOT.TCanvas("c", "", 700, 700)
@@ -98,12 +106,12 @@ def plot_FFs(ratio, process, config, split):
 
     text = ROOT.TLatex()
     text.SetNDC()
-    text.SetTextSize(0.04)
+    text.SetTextSize(0.03)
     text.DrawLatex(
         0.165,
-        0.915,
+        0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], var) for var in split.keys()])
+            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
         ),
     )
     text.SetTextSize(0.035)
@@ -114,16 +122,19 @@ def plot_FFs(ratio, process, config, split):
     )
 
     func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
-    c.SaveAs(
-        "workdir/{}/{}/ff_{}_{}.png".format(
-            config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):    
+        c.SaveAs(
+            "workdir/{}/{}/ff_{}_{}.png".format(
+                config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
-    c.SaveAs(
-        "workdir/{}/{}/ff_{}_{}.pdf".format(
-            config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+        c.SaveAs(
+            "workdir/{}/{}/ff_{}_{}.pdf".format(
+                config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
+    print(out.getvalue())
     c.Close()
 
     return cs_exp
@@ -183,12 +194,12 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
 
     text = ROOT.TLatex()
     text.SetNDC()
-    text.SetTextSize(0.04)
+    text.SetTextSize(0.03)
     text.DrawLatex(
         0.23,
-        0.915,
+        0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], var) for var in split.keys()])
+            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
         ),
     )
     text.SetTextSize(0.035)
@@ -201,16 +212,19 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
     else:
         hist_str = "full"
 
-    c.SaveAs(
-        "workdir/{}/{}/hist_{}_{}_{}_{}_{}.png".format(
-            config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):   
+        c.SaveAs(
+            "workdir/{}/{}/hist_{}_{}_{}_{}_{}.png".format(
+                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
-    c.SaveAs(
-        "workdir/{}/{}/hist_{}_{}_{}_{}_{}.pdf".format(
-            config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+        c.SaveAs(
+            "workdir/{}/{}/hist_{}_{}_{}_{}_{}.pdf".format(
+                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
+    print(out.getvalue())
     c.Close()
 
 
@@ -305,12 +319,12 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
 
     text = ROOT.TLatex()
     text.SetNDC()
-    text.SetTextSize(0.04)
+    text.SetTextSize(0.03)
     text.DrawLatex(
         0.23,
-        0.915,
+        0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], var) for var in split.keys()])
+            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
         ),
     )
     text.SetTextSize(0.035)
@@ -326,16 +340,19 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     else:
         hist_str = "full"
 
-    c.SaveAs(
-        "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
-            config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT): 
+        c.SaveAs(
+            "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
+                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
-    c.SaveAs(
-        "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
-            config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+        c.SaveAs(
+            "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
+                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
+    print(out.getvalue())
     c.Close()
 
 
@@ -378,26 +395,30 @@ def fraction_plot(hists, config, var, region, samples, split):
 
     text = ROOT.TLatex()
     text.SetNDC()
-    text.SetTextSize(0.04)
+    text.SetTextSize(0.03)
     text.DrawLatex(
         0.23,
         0.915,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], var) for var in split.keys()])
+            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
         ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
 
     func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
-    c.SaveAs(
-        "workdir/{}/{}/fraction_{}_{}_{}.png".format(
-            config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT): 
+        c.SaveAs(
+            "workdir/{}/{}/fraction_{}_{}_{}.png".format(
+                config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
-    c.SaveAs(
-        "workdir/{}/{}/fraction_{}_{}_{}.pdf".format(
-            config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+        c.SaveAs(
+            "workdir/{}/{}/fraction_{}_{}_{}.pdf".format(
+                config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
         )
-    )
+    print(out.getvalue())
     c.Close()

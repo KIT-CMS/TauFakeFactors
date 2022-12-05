@@ -1,24 +1,24 @@
 # This is an example config containing information for the FF calculation
 
-file_path: "/ceph/nshadskiy/FFmethod/11_2022_v5"
+file_path: "/ceph/nshadskiy/FFmethod/12_2022_v1"
 era: "2018"
-channel: "et" # options are et, mt, tt
+channel: "mt" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "new_tests_v5"
+workdir_name: "full_set_medium_v2"
 
 use_embedding: True
-generate_json: True
+generate_json: False
 
 target_process: 
     QCD: 
         split_categories: 
             njets: 
                 - "==0" 
-                # - "==1"
-                # - ">=2"
+                - "==1"
+                - ">=2"
         split_categories_binedges:
-            njets: [-0.5,0.5]
+            njets: [-0.5,0.5,1.5,2.5]
 
         SRlike_cuts:
             tau_pair_sign: "same" 
@@ -39,14 +39,14 @@ target_process:
         split_categories: 
             njets:  
                 - "==0" 
-                # - "==1"
-                # - ">=2"
-            deltaR_ditaupair:
-                #- "<3"
-                - ">=3"
+                - "==1"
+                - ">=2"
+            # deltaR_ditaupair:
+            #     - "<3"
+            #     - ">=3"
         split_categories_binedges:
-            njets: [-0.5,0.5]
-            deltaR_ditaupair: [3.,10.]
+            njets: [-0.5,0.5,1.5,2.5]
+            #deltaR_ditaupair: [0.,3.,10.]
 
         SRlike_cuts:
             tau_pair_sign: "opposite" 
@@ -69,9 +69,9 @@ target_process:
         split_categories: 
             njets:  
                 - "<=1"
-                #- ">=2"
+                - ">=2"
         split_categories_binedges:
-            njets: [-0.5,1.5]
+            njets: [-0.5,1.5,2.5]
 
         SR_cuts:
             tau_pair_sign: "opposite"  
@@ -106,10 +106,10 @@ process_fractions:
     split_categories:
         nbtag:
             - "==0"
-            # - "==1"
-            # - ">=2"
+            - "==1"
+            - ">=2"
     split_categories_binedges:
-        nbtag: [-0.5,0.5]
+        nbtag: [-0.5,0.5,1.5,2.5]
 
     AR_cuts:
         tau_pair_sign: "opposite"  
