@@ -20,7 +20,7 @@ The preselection config has the following options:
     * `tree`: `string` name of the tree in the n-tuple files (in CROWN "ntuple")
 * the output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
     * `output_path`: `string` absolute path where the files with the preselected events will be stored
-* `processes`: `list` of processes that should be preprocessed, the names are used for the output file naming
+* `processes`: `list` of processes that should be preprocessed, the names are used for the output file naming \
   each process needs two specifications:
     * `tau_gen_modes`: split of the events corresponding to the origin of the hadronic tau
         * `T`: `string` genuine tau
@@ -28,7 +28,7 @@ The preselection config has the following options:
         * `L`: `string` lepton misidentified as a tau
         * `all`: `string` if no split should be performed
     * `samples`: `list` of all sample tags corresponding to the process
-* `event_selection`: `list` of all selections that should be applied
+* `event_selection`: `list` of all selections that should be applied \
   currently implemented options:
     * `had_tau_pt`: `string` threshold for the transverse momentum of the hadronic tau in GeV (e.g. ">30")
     * `had_tau_eta`: `string` threshold for the pseudo rapidity of the hadronic tau as absolute value (e.g. "<2.3")
@@ -37,7 +37,7 @@ The preselection config has the following options:
     * `had_tau_id_vs_mu`: `string` working point for the tau ID vs muon (e.g. "VLoose")
     * `lep_iso`: `string` threshold for the lepton (e/mu) isolation (e.g. "<0.15")
     * `trigger`: `bool` True if a trigger selection should be applied, False otherwise
-* `mc_weights`: `list` of weights that should be applied for simulated samples
+* `mc_weights`: `list` of weights that should be applied for simulated samples \
   options are:
     * `generator`: `string` generator weight from MC production
     * `lumi`: `string` luminosity scaling
@@ -50,7 +50,7 @@ The preselection config has the following options:
     * `Z_pt_reweight`: `string` reweighting of the Z boson pt
     * `Top_pt_reweight`: `string` reweighting of the top quark pt
 
-* `emb_weights`: `list` of weights that should be applied for embedded samples
+* `emb_weights`: `list` of weights that should be applied for embedded samples \
   options are:
     * `generator`: `string` generator weight from MC production
     * `lep_iso`: `string` lepton (e/mu) isolation scale factor
@@ -79,7 +79,7 @@ The FF calculation config has the following options:
     * `workdir_name`: `string` relative path where the output files will be stored
 * `use_embedding`: `bool` True if embedded sample should be used, False if only MC sample should be used
 * `generate_json`: `bool` True if a correctionlib json file with the FFs should be produced, False otherwise
-* `target_process`: `list` of processes for which FFs should ve calculated (normally for QCD, Wjets, ttbar)
+* `target_process`: `list` of processes for which FFs should ve calculated (normally for QCD, Wjets, ttbar) \
   each target process needs specifications:
     * `split_categories`: `list` of variables 
         * the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)
@@ -93,13 +93,13 @@ The FF calculation config has the following options:
     * `SRlike_cuts`: `list` of event selections specific for the signal-like region of the target process
     * `ARlike_cuts`: `list` of event selections specific for the application-like region of the target process
     * `SR_cuts`: `list` of event selections specific for the signal region (only needed for ttbar)
-    * `AR_cuts`: `list` of event selections specific for the application region (only needed for ttbar)
+    * `AR_cuts`: `list` of event selections specific for the application region (only needed for ttbar) \
       implemented event selections are:
         * `tau_pair_sign`: `string` two options "same" or "opposite"
         * `nbtag`: `string` number of b-tagged jets (e.g. ">=1")
         * `lep_mt`: `string` threshold for the transverse mass of the lepton (e/mu) + MET pair in GeV (e.g. "<50")
         * `no_extra_lep`: `bool` True if no other leptons than the tau pair are allowed, False if other leptons should be present 
-        * `had_tau_id_vs_jet`: `string` to select events above a working point (e.g. "Tight") 
+        * `had_tau_id_vs_jet`: `string` to select events above a working point (e.g. "Tight") \
         or `list` to select events between two working points (e.g. ["VVVLoose","Tight"])
     * `var_dependence`: `string` variable the FF measurement should depend on (normally pt of the hadronic tau e.g. "pt_2")
     * `var_bins`: `list` of bin edges for the variable specified in `var_dependence`
