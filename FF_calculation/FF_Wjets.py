@@ -153,19 +153,27 @@ def calculation_Wjets_FFs(config, sample_path_list):
         # calculate Wjets enriched data by subtraction all there backgrould sample
         SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
         ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_up"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_up"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_down"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_down"] = ARlike_hists["data"].Clone()
 
         for hist in SRlike_hists:
-            if hist not in ["data", "data_subtracted", "Wjets"]:
+            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "Wjets"]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
+                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
         for hist in ARlike_hists:
-            if hist not in ["data", "data_subtracted", "Wjets"]:
+            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "Wjets"]:
                 ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+                ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist], -0.93)
+                ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist], -1.07)
 
         # Start of the FF calculation
-        FF_hist = func.calculate_Wjets_FF(SRlike_hists, ARlike_hists)
+        FF_hist, FF_hist_up, FF_hist_down = func.calculate_Wjets_FF(SRlike_hists, ARlike_hists)
         # the fit is performed during the plotting
         cs_exp = plotting.plot_FFs(
-            FF_hist, "Wjets", config, split
+            [FF_hist, FF_hist_up, FF_hist_down], "Wjets", config, split
         )  
         
         if len(split) == 1:

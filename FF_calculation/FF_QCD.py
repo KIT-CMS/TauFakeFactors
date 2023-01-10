@@ -2,6 +2,7 @@
 Function for calculating fake factors for the QCD process
 """
 
+import sys
 import array
 import ROOT
 from io import StringIO
@@ -96,19 +97,27 @@ def calculation_QCD_FFs(config, sample_path_list):
         # calculate QCD enriched data by subtraction all the background samples
         SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
         ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_up"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_up"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_down"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_down"] = ARlike_hists["data"].Clone()
 
         for hist in SRlike_hists:
-            if hist not in ["data", "data_subtracted", "QCD"]:
+            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "QCD"]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
+                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
         for hist in ARlike_hists:
-            if hist not in ["data", "data_subtracted", "QCD"]:
+            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "QCD"]:
                 ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+                ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist], -0.93)
+                ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist], -1.07)
 
         # Start of the FF calculation
-        FF_hist = func.calculate_QCD_FF(SRlike_hists, ARlike_hists)
+        FF_hist, FF_hist_up, FF_hist_down = func.calculate_QCD_FF(SRlike_hists, ARlike_hists)
         # the fit is performed during the plotting
         cs_exp = plotting.plot_FFs(
-            FF_hist, "QCD", config, split
+            [FF_hist, FF_hist_up, FF_hist_down], "QCD", config, split
         )  
 
         if len(split) == 1:

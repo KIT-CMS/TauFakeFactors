@@ -2,6 +2,7 @@
 Function for calculating fake factors for the ttbar process
 """
 
+import sys
 import array
 import ROOT
 from io import StringIO

@@ -6,6 +6,7 @@ import sys
 import os
 import glob
 import array
+import numpy as np
 import ROOT
 
 from io import StringIO
@@ -109,6 +110,21 @@ def get_output_name(output_path, process, tau_gen_mode, idx=None):
         return output_path + "/" + process + tau_gen_mode + ".root"
 
 
+def check_categories(config):
+    for process in config["target_process"]:
+        cats = config["target_process"][process]["split_categories"]
+        cat_edges = config["target_process"][process]["split_categories_binedges"]
+        for cat in cats:
+            if len(cats[cat]) != (len(cat_edges[cat]) - 1):
+                sys.exit("Categories and binning for the categories does not match up for {}, {}.".format(process, cat))
+
+    frac_cats = config["process_fractions"]["split_categories"]
+    frac_cat_edges = config["process_fractions"]["split_categories_binedges"]
+    for cat in frac_cats:
+        if len(frac_cats[cat]) != (len(frac_cat_edges[cat]) - 1):
+            sys.exit("Categories and binning for the categories does not match up for {} for fractions.".format(cat))
+
+   
 def get_split_combinations(categories):
     combinations = list()
     split_vars = list(categories.keys())
@@ -139,26 +155,24 @@ def QCD_SS_estimate(hists):
     return qcd
 
 
-def calc_fraction(hists, target, processes):
-    mc = hists[processes[0]].Clone()
-    for p in processes:
-        if p != processes[0]:
-            mc.Add(hists[p])
-    frac = hists[target].Clone()
-    frac.Divide(mc)
-    return frac
-
-
 def calculate_QCD_FF(SRlike, ARlike):
     ratio = SRlike["data_subtracted"].Clone()
     ratio.Divide(ARlike["data_subtracted"])
-    return ratio
+    ratio_up = SRlike["data_subtracted_up"].Clone()
+    ratio_up.Divide(ARlike["data_subtracted_up"])
+    ratio_down = SRlike["data_subtracted_down"].Clone()
+    ratio_down.Divide(ARlike["data_subtracted_down"])
+    return ratio, ratio_up, ratio_down
 
 
 def calculate_Wjets_FF(SRlike, ARlike):
     ratio = SRlike["data_subtracted"].Clone()
     ratio.Divide(ARlike["data_subtracted"])
-    return ratio
+    ratio_up = SRlike["data_subtracted_up"].Clone()
+    ratio_up.Divide(ARlike["data_subtracted_up"])
+    ratio_down = SRlike["data_subtracted_down"].Clone()
+    ratio_down.Divide(ARlike["data_subtracted_down"])
+    return ratio, ratio_up, ratio_down
 
 
 def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
@@ -176,8 +190,151 @@ def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
 
     return ratio_mc
 
+def calc_fraction(hists, target, processes):
+    mc = hists[target].Clone()
+    for p in processes:
+        if p != target:
+            mc.Add(hists[p])
+    frac = hists[target].Clone()
+    frac.Divide(mc)
+    return frac
 
-def fit_function(ff_hist):
+
+def add_fraction_variations(hists, processes):
+    variations = dict()
+    variations["nominal"] = dict(hists)
+
+    for p in processes:
+        hists_up = dict(hists)
+        for hist in hists_up:
+            hists_up[hist] = hists_up[hist].Clone()
+            if p == hist:
+                hists_up[hist].Scale(1.07)
+            else:
+                hists_up[hist].Scale(0.93)
+        variations["frac_{}_up".format(p)] = hists_up
+
+    for p in processes:
+        hists_down = dict(hists)
+        for hist in hists_down:
+            hists_down[hist] = hists_down[hist].Clone()
+            if p == hist:
+                hists_down[hist].Scale(0.93)
+            else:
+                hists_down[hist].Scale(1.07)
+        variations["frac_{}_down".format(p)] = hists_down
+
+    return variations
+
+
+def get_yields_from_hists(hists, processes):
+    fracs = dict()
+    categories = hists.keys()
+    for cat in categories:
+        v_fracs = dict()
+        for var in hists[cat]:
+            p_fracs = dict()
+            for p in processes:
+                h = hists[cat][var][p]
+                l = list()
+                for b in range(h.GetNbinsX()):
+                    l.append(h.GetBinContent(b + 1))
+                p_fracs[p] = l
+            v_fracs[var] = p_fracs
+        fracs[cat] = v_fracs
+
+    return fracs
+
+
+def resample(x , y, error_y, n=100, bins=100):
+    sampled_y = list()
+    for idx, binx in enumerate(x):
+        sampled_y.append(np.random.normal(y[idx], error_y[idx], n))
+    sampled_y = np.array(sampled_y)
+    sampled_y[sampled_y < 0.] = 0.
+
+    fit_y_binned = list()
+    for idx in range(bins):
+        fit_y_binned.append(list())
+    
+    param1 = list()
+    param2 = list()
+
+    for sample in range(n):
+        y_arr = array.array("d", sampled_y[:,sample])
+        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y, error_y)
+        gs = ROOT.TGraphSmooth("normal")
+        grout = gs.SmoothKern(graph, "normal", 30., bins)
+        # fit = graph.Fit("pol1", "SFNQ")
+        # param1.append(fit.Parameter(1))
+        # param2.append(fit.Parameter(0))
+        # fitted_func = lambda pt: fit.Parameter(1) * pt + fit.Parameter(0)
+        X_arr = grout.GetX()
+        for i in range(bins):
+        #for idx, binx in enumerate(x):
+            #fit_y_binned[idx].append(fitted_func(binx))
+            fit_y_binned[i].append(grout.GetPointY(i))
+    # fit_y_binned = np.array(fit_y_binned)
+    # fit_y_binned[fit_y_binned < 0.] = 0.
+    #print("Parameter for m * pt + b:", "m =", np.mean(param1), "+/-", np.std(param1), "b =", np.mean(param2), "+/-", np.std(param2))
+
+    resampling_y = list()
+    resampling_y_up = list()
+    resampling_y_down = list()
+
+    for b in fit_y_binned:
+        resampling_y.append(np.mean(b))
+        # resampling_y_up.append(max(b)-np.mean(b))
+        # resampling_y_down.append(np.mean(b)-min(b))
+        resampling_y_up.append(np.std(b))
+        resampling_y_down.append(np.std(b))
+
+    return array.array("d", X_arr), array.array("d", resampling_y), array.array("d", resampling_y_up), array.array("d", resampling_y_down)
+
+
+def smoothing(x , y, error_y, n_samples=100, n_bins=100):
+    # sampling values for y based on a normal distribution with the measured statistical uncertainty
+    sampled_y = list()
+    for idx in range(len(x)):
+        sampled_y.append(np.random.normal(y[idx], error_y[idx], n_samples))
+    sampled_y = np.array(sampled_y)
+    sampled_y[sampled_y < 0.] = 0.
+
+    # calculate widths 
+
+    fit_y_binned = list()
+    for i in range(n_bins):
+        fit_y_binned.append(list())
+
+    for sample in range(n_samples):
+        y_arr = array.array("d", sampled_y[:,sample])
+        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y, error_y)
+        gs = ROOT.TGraphSmooth("normal")
+        grout = gs.SmoothKern(graph, "normal", 17.5, n_bins)
+        X_arr = grout.GetX()
+        for i in range(n_bins):
+            fit_y_binned[i].append(grout.GetPointY(i))
+
+    resampling_y = list()
+    resampling_y_up = list()
+    resampling_y_down = list()
+
+    for b in fit_y_binned:
+        resampling_y.append(np.mean(b))
+        resampling_y_up.append(np.std(b))
+        resampling_y_down.append(np.std(b))
+
+    return array.array("d", X_arr), array.array("d", resampling_y), array.array("d", resampling_y_up), array.array("d", resampling_y_down)
+
+
+def fit_function(ff_hist, bin_edges):
+    do_mc_subtr_unc = False
+    if isinstance(ff_hist, list):
+        do_mc_subtr_unc = True
+        ff_hist_up = ff_hist[1]
+        ff_hist_down = ff_hist[2]
+        ff_hist = ff_hist[0]
+
     nbins = ff_hist.GetNbinsX()
 
     x = list()
@@ -195,55 +352,100 @@ def fit_function(ff_hist):
     error_y_up = array.array("d", error_y_up)
     error_y_down = array.array("d", error_y_down)
 
+    # Nbins = 448
+    # x_arr, resampling_y, resampling_y_up, resampling_y_down = resample(x, y, error_y_up, n=200, bins=Nbins)
+
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         fit = graph.Fit("pol1", "SFN")
+        if do_mc_subtr_unc:
+            fit_up = ff_hist_up.Fit("pol1", "SFN")
+            fit_down = ff_hist_down.Fit("pol1", "SFN")
     print(out.getvalue())
     print("-" * 50)
 
-    fitted_func = lambda pt: fit.Parameter(1) * pt + fit.Parameter(0)
-    cs_expression = "{}*x+{}".format(fit.Parameter(1), fit.Parameter(0))
+    fit_func = lambda pt: (fit.Parameter(1) * pt + fit.Parameter(0))
+    fit_func_slope_up = lambda pt: ((fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0))
+    fit_func_slope_down = lambda pt: ((fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0))
+    fit_func_norm_up = lambda pt: (fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0)))
+    fit_func_norm_down = lambda pt: (fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0)))
+    if do_mc_subtr_unc:
+        fit_func_up = lambda pt: (fit_up.Parameter(1) * pt + fit_up.Parameter(0))
+        fit_func_down = lambda pt: (fit_down.Parameter(1) * pt + fit_down.Parameter(0))
 
-    cl68 = fit.GetConfidenceIntervals(cl=0.68)
+    cs_expressions = list()
+    # best fit
+    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), fit.Parameter(0)))
+    # slope parameter up/down
+    cs_expressions.append("{}*x+{}".format((fit.Parameter(1) + fit.ParError(1)), fit.Parameter(0)))
+    cs_expressions.append("{}*x+{}".format((fit.Parameter(1) - fit.ParError(1)), fit.Parameter(0)))
+    # normalization parameter up/down
+    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) + fit.ParError(0))))
+    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) - fit.ParError(0))))
+    # MC subtraction uncertainty up/down
+    if do_mc_subtr_unc:
+        cs_expressions.append("{}*x+{}".format(fit_up.Parameter(1), fit_up.Parameter(0)))
+        cs_expressions.append("{}*x+{}".format(fit_down.Parameter(1), fit_down.Parameter(0)))
+    
+    # cl68 = fit.GetConfidenceIntervals(cl=0.68)
+    # print(cl68)
     chi2 = fit.Chi2()
     dof = fit.Ndf()
 
     y_fit = list()
-    error_y_fit_up = list()
-    error_y_fit_down = list()
+    y_fit_slope_up = list()
+    y_fit_slope_down = list()
+    y_fit_norm_up = list()
+    y_fit_norm_down = list()
+    if do_mc_subtr_unc:
+        y_fit_up = list()
+        y_fit_down = list()
 
-    for nbin in range(nbins):
-        y_fit.append(fitted_func(x[nbin]))
-        error_y_fit_up.append(cl68[nbin])
-        error_y_fit_down.append(cl68[nbin])
+    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000*nbins)
 
+    for val in x_fit:
+        y_fit.append(fit_func(val))
+        y_fit_slope_up.append(abs(fit_func_slope_up(val) - fit_func(val)))
+        y_fit_slope_down.append(abs(fit_func_slope_down(val) - fit_func(val)))
+        y_fit_norm_up.append(abs(fit_func_norm_up(val) - fit_func(val)))
+        y_fit_norm_down.append(abs(fit_func_norm_down(val) - fit_func(val)))
+        if do_mc_subtr_unc:
+            y_fit_up.append(abs(fit_func_up(val) - fit_func(val)))
+            y_fit_down.append(abs(fit_func_down(val) - fit_func(val)))
+
+
+    x_fit = array.array("d", x_fit)
     y_fit = array.array("d", y_fit)
-    error_y_fit_up = array.array("d", error_y_fit_up)
-    error_y_fit_down = array.array("d", error_y_fit_down)
+    y_fit_slope_up = array.array("d", y_fit_slope_up)
+    y_fit_slope_down = array.array("d", y_fit_slope_down)
+    y_fit_norm_up = array.array("d", y_fit_norm_up)
+    y_fit_norm_down = array.array("d", y_fit_norm_down)
+    if do_mc_subtr_unc:
+        y_fit_up = array.array("d", y_fit_up)
+        y_fit_down = array.array("d", y_fit_down)
 
-    fit_graph = ROOT.TGraphAsymmErrors(
-        nbins, x, y_fit, 0, 0, error_y_fit_down, error_y_fit_up
+    fit_graph_slope = ROOT.TGraphAsymmErrors(
+        len(x_fit), x_fit, y_fit, 0, 0, y_fit_slope_down, y_fit_slope_up
     )
+    fit_graph_norm = ROOT.TGraphAsymmErrors(
+        len(x_fit), x_fit, y_fit, 0, 0, y_fit_norm_down, y_fit_norm_up
+    )
+    if do_mc_subtr_unc:
+        fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
+            len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
+        )
+    # resampled_fit_graph = ROOT.TGraphAsymmErrors(
+    #     Nbins, x_arr, resampling_y, 0, 0, resampling_y_down, resampling_y_up
+    # )
+    if do_mc_subtr_unc:
+        return fit_graph_slope, fit_graph_norm, fit_graph_mc_sub, chi2, dof, cs_expressions
+    else:
+        return fit_graph_slope, fit_graph_norm, chi2, dof, cs_expressions
 
-    return fit_graph, chi2, dof, cs_expression
 
 
-def get_yields_from_hists(hists, processes):
-    fracs = dict()
-    categories = hists.keys()
-    for cat in categories:
-        nfracs = dict()
-        for p in processes:
-            h = hists[cat][p]
-            l = list()
-            for b in range(h.GetNbinsX()):
-                l.append(h.GetBinContent(b + 1))
-            nfracs[p] = l
-        fracs[cat] = nfracs
-
-    return fracs
 
 
 def calculating_FF(rdf):

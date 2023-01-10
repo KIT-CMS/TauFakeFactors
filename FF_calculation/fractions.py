@@ -120,13 +120,16 @@ def fraction_calculation(config, sample_path_list):
 
         frac_hists = dict()
 
-        for p in samples:
-            frac_hists[p] = func.calc_fraction(AR_hists, p, samples)
+        for p in config["process_fractions"]["processes"]:
+            frac_hists[p] = func.calc_fraction(AR_hists, p, config["process_fractions"]["processes"])
+        frac_hists = func.add_fraction_variations(frac_hists, config["process_fractions"]["processes"])
+        print(frac_hists)
+
         cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
         fractions[cat] = frac_hists
 
         plotting.fraction_plot(
-            frac_hists, config, process_conf["var_dependence"], "AR", samples, split
+            frac_hists["nominal"], config, process_conf["var_dependence"], "AR", config["process_fractions"]["processes"], split
         )
         plotting.plot_data_mc_ratio(
             AR_hists,

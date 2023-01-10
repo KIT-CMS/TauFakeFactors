@@ -4,8 +4,6 @@ import gzip
 import correctionlib.schemav2 as cs
 import rich
 
-#import helper.functions as func
-
 
 var_dict = {
     "pt_2": "tau_pt",
@@ -49,34 +47,64 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
     if "QCD" in config["target_process"]:
         var = config["target_process"]["QCD"]["var_dependence"]
         binning = config["target_process"]["QCD"]["var_bins"]
+        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+            "FFslopeUncUp": 1,
+            "FFslopeUncDown": 2,
+            "FFnormUncUp": 3,
+            "FFnormUncDown": 4,
+            "FFmcSubUncUp": 5,
+            "FFmcSubUncDown": 6,
+        }
         if len(config["target_process"]["QCD"]["split_categories"]) == 1:
-            QCD_ff = make_1D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"])
+            QCD_ff = make_1D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
         elif len(config["target_process"]["QCD"]["split_categories"]) == 2:
-            QCD_ff = make_2D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"])
+            QCD_ff = make_2D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
         corrections.append(QCD_ff)
 
     if "Wjets" in config["target_process"]:
         var = config["target_process"]["Wjets"]["var_dependence"]
         binning = config["target_process"]["Wjets"]["var_bins"]
+        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+            "FFslopeUncUp": 1,
+            "FFslopeUncDown": 2,
+            "FFnormUncUp": 3,
+            "FFnormUncDown": 4,
+            "FFmcSubUncUp": 5,
+            "FFmcSubUncDown": 6,
+        }
         if len(config["target_process"]["Wjets"]["split_categories"]) == 1:
-            Wjets_ff = make_1D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"])
+            Wjets_ff = make_1D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
         elif len(config["target_process"]["Wjets"]["split_categories"]) == 2:
-            Wjets_ff = make_2D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"])
+            Wjets_ff = make_2D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
         corrections.append(Wjets_ff)
 
     if "ttbar" in config["target_process"]:
         var = config["target_process"]["ttbar"]["var_dependence"]
         binning = config["target_process"]["ttbar"]["var_bins"]
+        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+            "FFslopeUncUp": 1,
+            "FFslopeUncDown": 2,
+            "FFnormUncUp": 3,
+            "FFnormUncDown": 4,
+        }
         if len(config["target_process"]["ttbar"]["split_categories"]) == 1:
-            ttbar_ff = make_1D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"])
+            ttbar_ff = make_1D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
         elif len(config["target_process"]["ttbar"]["split_categories"]) == 2:
-            ttbar_ff = make_2D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"])
+            ttbar_ff = make_2D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
         corrections.append(ttbar_ff)
 
     if "process_fractions" in config:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
-        fraction = make_1D_fractions((var, binning), fractions, config["process_fractions"])
+        frac_unc = { # the naming has to match the one used in helper/functions.py -> add_fraction_variations()  
+            "fracQCDUncUp": "frac_QCD_up",
+            "fracQCDUncDown": "frac_QCD_down",
+            "fracWjetsUncUp": "frac_Wjets_up",
+            "fracWjetsUncDown": "frac_Wjets_down",
+            "fracTTbarUncUp": "frac_ttbar_J_up",
+            "fracTTbarUncDown": "frac_ttbar_J_down",
+        }
+        fraction = make_1D_fractions((var, binning), fractions, config["process_fractions"], frac_unc)
         corrections.append(fraction)
 
     cset = cs.CorrectionSet(
@@ -92,7 +120,7 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
         fout.write(cset.json(exclude_unset=True, indent=4))
 
 
-def make_1D_ff(process, variable, ff_functions, config):
+def make_1D_ff(process, variable, ff_functions, config, uncertainties):
    # get categories from config
     cat_inputs = list(config["split_categories"].keys())
     cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
@@ -116,41 +144,82 @@ def make_1D_ff(process, variable, ff_functions, config):
                 type=var_type[cat_inputs[0]],
                 description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
+            cs.Variable(name="syst", type="string", description="Uncertainties from the best fit for the fake factor measurement."),
         ],
         output=cs.Variable(
             name="{}_ff".format(process),
             type="real",
             description="{} part of the fake factor".format(process),
         ),
-        data=cs.Binning(
-            nodetype="binning",
-            input=var_dict[cat_inputs[0]],
-            edges=config["split_categories_binedges"][cat_inputs[0]],
+        data=cs.Category(
+            nodetype="category",
+            input="syst",
             content=[
-                cs.Binning(
-                    nodetype="binning",
-                    input=var_dict[variable[0]],
-                    edges=[
-                        0,
-                        min(variable[1]),
-                        max(variable[1]),
-                        (max(variable[1]) + 1),
-                    ],
-                    content=[
-                        eval(ff_functions[cat1].replace("x", str(min(variable[1])))),
-                        cs.Formula(
-                            nodetype="formula",
-                            variables=[var_dict[variable[0]]],
-                            parser="TFormula",
-                            expression=ff_functions[cat1],
-                        ),
-                        eval(ff_functions[cat1].replace("x", str(max(variable[1])))), 
-                    ],
-                    flow="clamp",
+                cs.CategoryItem(
+                    key=unc,
+                    value=cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[cat_inputs[0]],
+                        edges=config["split_categories_binedges"][cat_inputs[0]],
+                        content=[
+                            cs.Binning(
+                                nodetype="binning",
+                                input=var_dict[variable[0]],
+                                edges=[
+                                    0,
+                                    min(variable[1]),
+                                    max(variable[1]),
+                                    (max(variable[1]) + 1),
+                                ],
+                                content=[
+                                    eval(ff_functions[cat1][idx].replace("x", str(min(variable[1])))),
+                                    cs.Formula(
+                                        nodetype="formula",
+                                        variables=[var_dict[variable[0]]],
+                                        parser="TFormula",
+                                        expression=ff_functions[cat1][idx],
+                                    ),
+                                    eval(ff_functions[cat1][idx].replace("x", str(max(variable[1])))), 
+                                ],
+                                flow="clamp",
+                            )
+                            for cat1 in ff_functions
+                        ],
+                        flow="clamp",
+                    ),
                 )
-                for cat1 in ff_functions
+                for unc, idx in uncertainties.items()
             ],
-            flow="clamp",
+            default=cs.Binning(
+                nodetype="binning",
+                input=var_dict[cat_inputs[0]],
+                edges=config["split_categories_binedges"][cat_inputs[0]],
+                content=[
+                    cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[variable[0]],
+                        edges=[
+                            0,
+                            min(variable[1]),
+                            max(variable[1]),
+                            (max(variable[1]) + 1),
+                        ],
+                        content=[
+                            eval(ff_functions[cat1][0].replace("x", str(min(variable[1])))),
+                            cs.Formula(
+                                nodetype="formula",
+                                variables=[var_dict[variable[0]]],
+                                parser="TFormula",
+                                expression=ff_functions[cat1][0],
+                            ),
+                            eval(ff_functions[cat1][0].replace("x", str(max(variable[1])))), 
+                        ],
+                        flow="clamp",
+                    )
+                    for cat1 in ff_functions
+                ],
+                flow="clamp",
+            ),
         ),
     )
     rich.print(ff)
@@ -158,7 +227,7 @@ def make_1D_ff(process, variable, ff_functions, config):
     return ff
 
 
-def make_2D_ff(process, variable, ff_functions, config):
+def make_2D_ff(process, variable, ff_functions, config, uncertainties):
     # get categories from config
     cat_inputs = list(config["split_categories"].keys())
     cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
@@ -187,50 +256,100 @@ def make_2D_ff(process, variable, ff_functions, config):
                 type=var_type[cat_inputs[1]],
                 description=var_discription[cat_inputs[1]] + ", ".join(cat_values[1]),
             ),
+            cs.Variable(name="syst", type="string", description="Uncertainties from the best fit for the fake factor measurement."),
         ],
         output=cs.Variable(
             name="{}_ff".format(process),
             type="real",
             description="{} part of the fake factor".format(process),
         ),
-        data=cs.Binning(
-            nodetype="binning",
-            input=var_dict[cat_inputs[0]],
-            edges=config["split_categories_binedges"][cat_inputs[0]],
+        data=cs.Category(
+            nodetype="category",
+            input="syst",
             content=[
-                cs.Binning(
-                    nodetype="binning",
-                    input=var_dict[cat_inputs[1]],
-                    edges=config["split_categories_binedges"][cat_inputs[1]],
-                    content=[
-                        cs.Binning(
-                            nodetype="binning",
-                            input=var_dict[variable[0]],
-                            edges=[
-                                0,
-                                min(variable[1]),
-                                max(variable[1]),
-                                (max(variable[1]) + 1),
-                            ],
-                            content=[
-                                eval(ff_functions[cat1][cat2].replace("x", str(min(variable[1])))),
-                                cs.Formula(
-                                    nodetype="formula",
-                                    variables=[var_dict[variable[0]]],
-                                    parser="TFormula",
-                                    expression=ff_functions[cat1][cat2],
-                                ),
-                                eval(ff_functions[cat1][cat2].replace("x", str(max(variable[1])))),
-                            ],
-                            flow="clamp",
-                        )
-                        for cat2 in ff_functions[cat1]
-                    ],
-                    flow="clamp",
+                cs.CategoryItem(
+                    key=unc,
+                    value=cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[cat_inputs[0]],
+                        edges=config["split_categories_binedges"][cat_inputs[0]],
+                        content=[
+                            cs.Binning(
+                                nodetype="binning",
+                                input=var_dict[cat_inputs[1]],
+                                edges=config["split_categories_binedges"][cat_inputs[1]],
+                                content=[
+                                    cs.Binning(
+                                        nodetype="binning",
+                                        input=var_dict[variable[0]],
+                                        edges=[
+                                            0,
+                                            min(variable[1]),
+                                            max(variable[1]),
+                                            (max(variable[1]) + 1),
+                                        ],
+                                        content=[
+                                            eval(ff_functions[cat1][cat2][idx].replace("x", str(min(variable[1])))),
+                                            cs.Formula(
+                                                nodetype="formula",
+                                                variables=[var_dict[variable[0]]],
+                                                parser="TFormula",
+                                                expression=ff_functions[cat1][cat2][idx],
+                                            ),
+                                            eval(ff_functions[cat1][cat2][idx].replace("x", str(max(variable[1])))),
+                                        ],
+                                        flow="clamp",
+                                    )
+                                    for cat2 in ff_functions[cat1]
+                                ],
+                                flow="clamp",
+                            )
+                            for cat1 in ff_functions
+                        ],
+                        flow="clamp",
+                    ),
                 )
-                for cat1 in ff_functions
+                for unc, idx in uncertainties.items()
             ],
-            flow="clamp",
+            default=cs.Binning(
+                nodetype="binning",
+                input=var_dict[cat_inputs[0]],
+                edges=config["split_categories_binedges"][cat_inputs[0]],
+                content=[
+                    cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[cat_inputs[1]],
+                        edges=config["split_categories_binedges"][cat_inputs[1]],
+                        content=[
+                            cs.Binning(
+                                nodetype="binning",
+                                input=var_dict[variable[0]],
+                                edges=[
+                                    0,
+                                    min(variable[1]),
+                                    max(variable[1]),
+                                    (max(variable[1]) + 1),
+                                ],
+                                content=[
+                                    eval(ff_functions[cat1][cat2][0].replace("x", str(min(variable[1])))),
+                                    cs.Formula(
+                                        nodetype="formula",
+                                        variables=[var_dict[variable[0]]],
+                                        parser="TFormula",
+                                        expression=ff_functions[cat1][cat2][0],
+                                    ),
+                                    eval(ff_functions[cat1][cat2][0].replace("x", str(max(variable[1])))),
+                                ],
+                                flow="clamp",
+                            )
+                            for cat2 in ff_functions[cat1]
+                        ],
+                        flow="clamp",
+                    )
+                    for cat1 in ff_functions
+                ],
+                flow="clamp",
+            ),
         ),
     )
     rich.print(ff)
@@ -238,7 +357,7 @@ def make_2D_ff(process, variable, ff_functions, config):
     return ff
 
 
-def make_1D_fractions(variable, fractions, config):
+def make_1D_fractions(variable, fractions, config, uncertainties):
     # get categories from config
     cat_inputs = list(config["split_categories"].keys())
     cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
@@ -263,36 +382,75 @@ def make_1D_fractions(variable, fractions, config):
                 type=var_type[cat_inputs[0]],
                 description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
+            cs.Variable(name="syst", type="string", description="Uncertainties from the +/-7% variation of the process fractions."),
         ],
         output=cs.Variable(
             name="fraction", type="real", description="process fraction"
         ),
         data=cs.Category(
             nodetype="category",
-            input="process",
+            input="syst",
             content=[
                 cs.CategoryItem(
-                    key=var_dict[p],
-                    value=cs.Binning(
-                        nodetype="binning",
-                        input=var_dict[cat_inputs[0]],
-                        edges=config["split_categories_binedges"][cat_inputs[0]],
+                    key=unc,
+                    value=cs.Category(
+                        nodetype="category",
+                        input="process",
                         content=[
-                            cs.Binning(
-                                nodetype="binning",
-                                input=var_dict[variable[0]],
-                                edges=variable[1],
-                                content=fractions[cat][p],
-                                flow="clamp",
+                            cs.CategoryItem(
+                                key=var_dict[p],
+                                value=cs.Binning(
+                                    nodetype="binning",
+                                    input=var_dict[cat_inputs[0]],
+                                    edges=config["split_categories_binedges"][cat_inputs[0]],
+                                    content=[
+                                        cs.Binning(
+                                            nodetype="binning",
+                                            input=var_dict[variable[0]],
+                                            edges=variable[1],
+                                            content=fractions[cat][unc_name][p],
+                                            flow="clamp",
+                                        )
+                                        for cat in fractions
+                                    ],
+                                    flow="clamp",
+                                ),
                             )
-                            for cat in fractions
+                            for p in config["processes"]
                         ],
-                        flow="clamp",
                     ),
                 )
-                for p in config["processes"]
+                for unc, unc_name in uncertainties.items()
             ],
+            default=cs.Category(
+                nodetype="category",
+                input="process",
+                content=[
+                    cs.CategoryItem(
+                        key=var_dict[p],
+                        value=cs.Binning(
+                            nodetype="binning",
+                            input=var_dict[cat_inputs[0]],
+                            edges=config["split_categories_binedges"][cat_inputs[0]],
+                            content=[
+                                cs.Binning(
+                                    nodetype="binning",
+                                    input=var_dict[variable[0]],
+                                    edges=variable[1],
+                                    content=fractions[cat]["nominal"][p],
+                                    flow="clamp",
+                                )
+                                for cat in fractions
+                            ],
+                            flow="clamp",
+                        ),
+                    )
+                    for p in config["processes"]
+                ],
+            ),
         ),
+        
+        
     )
     rich.print(frac)
 

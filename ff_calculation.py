@@ -40,6 +40,9 @@ if __name__ == "__main__":
     # getting all the input files
     sample_path_list = func.get_samples(config)
 
+    # check binning of defined categories in the config
+    func.check_categories(config)
+
     # initializing the fake factor calculation
     fake_factors = dict()
     if "target_process" in config:

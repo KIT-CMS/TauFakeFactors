@@ -81,6 +81,13 @@ def plot_FFs(ratio, process, config, split):
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
+    do_mc_subtr_unc = False
+    if isinstance(ratio, list):
+        do_mc_subtr_unc = True
+        ratio_up = ratio[1]
+        ratio_down = ratio[2]
+        ratio = ratio[0]
+
     ratio.SetAxisRange(0, 0.5, "Y")
     ratio.SetMarkerStyle(20)
     ratio.SetMarkerSize(1.2)
@@ -96,13 +103,37 @@ def plot_FFs(ratio, process, config, split):
     ratio.GetYaxis().SetTitleSize(0.05)
     ratio.GetXaxis().SetTitleSize(0.05)
 
-    fit, chi2, dof, cs_exp = func.fit_function(ratio.Clone())
+    if do_mc_subtr_unc:
+        fit_slope, fit_norm, fit_mc_sub, chi2, dof, cs_exp = func.fit_function([ratio.Clone(), ratio_up, ratio_down], config["target_process"][process]["var_bins"])
+    else:
+        fit_slope, fit_norm, chi2, dof, cs_exp = func.fit_function(ratio.Clone(), config["target_process"][process]["var_bins"])
 
     ratio.Draw()
-    fit.SetLineWidth(2)
-    fit.SetLineColor(ROOT.kRed)
-    fit.SetFillColorAlpha(ROOT.kRed, 0.35)
-    fit.Draw("E4 SAME")
+    fit_slope.SetLineWidth(2)
+    fit_slope.SetLineColor(ROOT.kBlue)
+    fit_slope.SetFillColorAlpha(ROOT.kBlue, 0.35)
+    fit_slope.Draw("E3 L SAME")
+    fit_norm.SetLineWidth(2)
+    fit_norm.SetLineColor(ROOT.kRed)
+    fit_norm.SetFillColorAlpha(ROOT.kRed, 0.35)
+    fit_norm.Draw("E3 L SAME")
+    if do_mc_subtr_unc:
+        fit_mc_sub.SetLineWidth(2)
+        fit_mc_sub.SetLineColor(ROOT.kGreen)
+        fit_mc_sub.SetFillColorAlpha(ROOT.kGreen, 0.35)
+        fit_mc_sub.Draw("E3 L SAME")
+
+    legend = ROOT.TLegend(0.2, 0.68, 0.5, 0.88)
+    legend.SetFillStyle(0)
+    legend.SetBorderSize(0)
+    legend.SetTextSize(0.03)
+    legend.SetTextAlign(12)
+    legend.AddEntry(ratio, "measured", "lep")
+    legend.AddEntry(fit_slope, "best fit (slope unc.)", "fl")
+    legend.AddEntry(fit_norm, "best fit (normalization unc.)", "fl")
+    if do_mc_subtr_unc:
+        legend.AddEntry(fit_mc_sub, "best fit (MC subtraction unc.)", "fl")
+    legend.Draw("SAME")
 
     text = ROOT.TLatex()
     text.SetNDC()
@@ -186,7 +217,7 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
     legend.SetTextSize(0.035)
-    legend.SetTextAlign(32)
+    legend.SetTextAlign(12)
     legend.AddEntry(obs, label_dict[data], "lep")
     for sample in samples:
         legend.AddEntry(hists[sample], label_dict[sample], "f")
@@ -311,7 +342,7 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
     legend.SetTextSize(0.035)
-    legend.SetTextAlign(32)
+    legend.SetTextAlign(12)
     legend.AddEntry(obs, label_dict[data], "lep")
     for sample in samples:
         legend.AddEntry(hists[sample], label_dict[sample], "f")
