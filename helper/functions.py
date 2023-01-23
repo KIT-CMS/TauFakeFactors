@@ -117,15 +117,23 @@ def check_categories(config):
         cat_edges = config["target_process"][process]["split_categories_binedges"]
         for cat in cats:
             if len(cats[cat]) != (len(cat_edges[cat]) - 1):
-                sys.exit("Categories and binning for the categories does not match up for {}, {}.".format(process, cat))
+                sys.exit(
+                    "Categories and binning for the categories does not match up for {}, {}.".format(
+                        process, cat
+                    )
+                )
 
     frac_cats = config["process_fractions"]["split_categories"]
     frac_cat_edges = config["process_fractions"]["split_categories_binedges"]
     for cat in frac_cats:
         if len(frac_cats[cat]) != (len(frac_cat_edges[cat]) - 1):
-            sys.exit("Categories and binning for the categories does not match up for {} for fractions.".format(cat))
+            sys.exit(
+                "Categories and binning for the categories does not match up for {} for fractions.".format(
+                    cat
+                )
+            )
 
-   
+
 def get_split_combinations(categories):
     combinations = list()
     split_vars = list(categories.keys())
@@ -190,6 +198,7 @@ def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
     ratio_mc.Scale(sf)
 
     return ratio_mc
+
 
 def calc_fraction(hists, target, processes):
     mc = hists[target].Clone()
@@ -287,10 +296,18 @@ def fit_function(ff_hist, bin_edges):
     print("-" * 50)
 
     fit_func = lambda pt: (fit.Parameter(1) * pt + fit.Parameter(0))
-    fit_func_slope_up = lambda pt: ((fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0))
-    fit_func_slope_down = lambda pt: ((fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0))
-    fit_func_norm_up = lambda pt: (fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0)))
-    fit_func_norm_down = lambda pt: (fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0)))
+    fit_func_slope_up = lambda pt: (
+        (fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0)
+    )
+    fit_func_slope_down = lambda pt: (
+        (fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0)
+    )
+    fit_func_norm_up = lambda pt: (
+        fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0))
+    )
+    fit_func_norm_down = lambda pt: (
+        fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0))
+    )
     if do_mc_subtr_unc:
         fit_func_up = lambda pt: (fit_up.Parameter(1) * pt + fit_up.Parameter(0))
         fit_func_down = lambda pt: (fit_down.Parameter(1) * pt + fit_down.Parameter(0))
@@ -299,15 +316,27 @@ def fit_function(ff_hist, bin_edges):
     # best fit
     cs_expressions.append("{}*x+{}".format(fit.Parameter(1), fit.Parameter(0)))
     # slope parameter up/down
-    cs_expressions.append("{}*x+{}".format((fit.Parameter(1) + fit.ParError(1)), fit.Parameter(0)))
-    cs_expressions.append("{}*x+{}".format((fit.Parameter(1) - fit.ParError(1)), fit.Parameter(0)))
+    cs_expressions.append(
+        "{}*x+{}".format((fit.Parameter(1) + fit.ParError(1)), fit.Parameter(0))
+    )
+    cs_expressions.append(
+        "{}*x+{}".format((fit.Parameter(1) - fit.ParError(1)), fit.Parameter(0))
+    )
     # normalization parameter up/down
-    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) + fit.ParError(0))))
-    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) - fit.ParError(0))))
+    cs_expressions.append(
+        "{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) + fit.ParError(0)))
+    )
+    cs_expressions.append(
+        "{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) - fit.ParError(0)))
+    )
     # MC subtraction uncertainty up/down
     if do_mc_subtr_unc:
-        cs_expressions.append("{}*x+{}".format(fit_up.Parameter(1), fit_up.Parameter(0)))
-        cs_expressions.append("{}*x+{}".format(fit_down.Parameter(1), fit_down.Parameter(0)))
+        cs_expressions.append(
+            "{}*x+{}".format(fit_up.Parameter(1), fit_up.Parameter(0))
+        )
+        cs_expressions.append(
+            "{}*x+{}".format(fit_down.Parameter(1), fit_down.Parameter(0))
+        )
 
     y_fit = list()
     y_fit_slope_up = list()
@@ -318,7 +347,7 @@ def fit_function(ff_hist, bin_edges):
         y_fit_up = list()
         y_fit_down = list()
 
-    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000*nbins)
+    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
 
     for val in x_fit:
         y_fit.append(fit_func(val))
@@ -329,7 +358,6 @@ def fit_function(ff_hist, bin_edges):
         if do_mc_subtr_unc:
             y_fit_up.append(abs(fit_func_up(val) - fit_func(val)))
             y_fit_down.append(abs(fit_func_down(val) - fit_func(val)))
-
 
     x_fit = array.array("d", x_fit)
     y_fit = array.array("d", y_fit)
@@ -355,9 +383,16 @@ def fit_function(ff_hist, bin_edges):
     #     Nbins, x_arr, resampling_y, 0, 0, resampling_y_down, resampling_y_up
     # )
     if do_mc_subtr_unc:
-        return {"fit_graph_slope": fit_graph_slope, "fit_graph_norm": fit_graph_norm, "fit_graph_mc_sub": fit_graph_mc_sub}, cs_expressions
+        return {
+            "fit_graph_slope": fit_graph_slope,
+            "fit_graph_norm": fit_graph_norm,
+            "fit_graph_mc_sub": fit_graph_mc_sub,
+        }, cs_expressions
     else:
-        return {"fit_graph_slope": fit_graph_slope, "fit_graph_norm": fit_graph_norm}, cs_expressions
+        return {
+            "fit_graph_slope": fit_graph_slope,
+            "fit_graph_norm": fit_graph_norm,
+        }, cs_expressions
 
 
 def smooth_function(ff_hist, bin_edges):
@@ -385,25 +420,25 @@ def smooth_function(ff_hist, bin_edges):
     for idx in range(len(x)):
         sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
     sampled_y = np.array(sampled_y)
-    sampled_y[sampled_y < 0.] = 0.
+    sampled_y[sampled_y < 0.0] = 0.0
 
-    # calculate widths 
+    # calculate widths
     fit_y_binned = list()
 
     n_bins = 100 * hist_bins
     for i in range(n_bins):
         fit_y_binned.append(list())
 
-    eval_bin_edges = np.linspace(bin_edges[0], bin_edges[-1], (n_bins+1))
-    bin_half = (eval_bin_edges[1] - eval_bin_edges[0]) / 2.
+    eval_bin_edges = np.linspace(bin_edges[0], bin_edges[-1], (n_bins + 1))
+    bin_half = (eval_bin_edges[1] - eval_bin_edges[0]) / 2.0
     smooth_x = (eval_bin_edges + bin_half)[:-1]
     smooth_x = array.array("d", smooth_x)
 
     for sample in range(n_samples):
-        y_arr = array.array("d", sampled_y[:,sample])
+        y_arr = array.array("d", sampled_y[:, sample])
         graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", 20., n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", 20.0, n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
@@ -442,6 +477,7 @@ def calculate_non_closure_correction(SRlike, ARlike):
 
     corr.Divide(predicted)
     return corr, frac
+
 
 def calculate_non_closure_correction_ttbar(SRlike, ARlike):
     corr = SRlike["ttbar_J"].Clone()
@@ -495,6 +531,7 @@ def calculating_FF(rdf):
 
     return rdf
 
+
 def eval_QCD_FF(rdf):
     import correctionlib
 
@@ -520,6 +557,7 @@ def eval_QCD_FF(rdf):
 
     return rdf
 
+
 def eval_Wjets_FF(rdf):
     import correctionlib
 
@@ -544,6 +582,7 @@ def eval_Wjets_FF(rdf):
     )
 
     return rdf
+
 
 def eval_ttbar_FF(rdf):
     import correctionlib

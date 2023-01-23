@@ -57,18 +57,26 @@ if __name__ == "__main__":
                 if process == "QCD":
                     print("Calculating fake factors for the QCD process.")
                     print("-" * 50)
-                    cs_expressions = FF_QCD.calculation_QCD_FFs(config, sample_path_list)
+                    cs_expressions = FF_QCD.calculation_QCD_FFs(
+                        config, sample_path_list
+                    )
                 elif process == "Wjets":
                     print("Calculating fake factors for the Wjets process.")
                     print("-" * 50)
-                    cs_expressions = FF_Wjets.calculation_Wjets_FFs(config, sample_path_list)
+                    cs_expressions = FF_Wjets.calculation_Wjets_FFs(
+                        config, sample_path_list
+                    )
                 elif process == "ttbar":
                     print("Calculating fake factors for the ttbar process.")
                     print("-" * 50)
-                    cs_expressions = FF_ttbar.calculation_ttbar_FFs(config, sample_path_list)
+                    cs_expressions = FF_ttbar.calculation_ttbar_FFs(
+                        config, sample_path_list
+                    )
                 else:
                     sys.exit(
-                        "Target process: Such a process is not defined: {}".format(process)
+                        "Target process: Such a process is not defined: {}".format(
+                            process
+                        )
                     )
                 fake_factors[process] = cs_expressions
 
@@ -82,7 +90,7 @@ if __name__ == "__main__":
 
         if config["generate_json"]:
             cs.generate_ff_cs_json(config, fake_factors, fractions, save_path)
-        
+
     if config["do_corrections"]:
         # This activates implicit multi-threading
         ROOT.EnableImplicitMT()
@@ -111,7 +119,9 @@ if __name__ == "__main__":
                     corrections[process]["non_closure"] = corr
                 else:
                     sys.exit(
-                        "Target process: Such a process is not defined: {}".format(process)
+                        "Target process: Such a process is not defined: {}".format(
+                            process
+                        )
                     )
 
         cs.generate_corr_cs_json(config, corrections, save_path)

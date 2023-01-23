@@ -44,11 +44,11 @@ output_feature = [
     "mt_1",
     "no_extra_lep",
     "deltaR_ditaupair",
-    # following variables are not directly needed for the FF calculation
     "pt_1",
+    "iso_1",
+    # following variables are not directly needed for the FF calculation
     "eta_1",
     "phi_1",
-    "iso_1",
     "eta_2",
     "iso_2",
     "bpt_1",
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         + config["channel"]
     )
     func.check_output_path(output_path)
-    
+
     # start output logging
     sys.stdout = Logger(output_path + "/preselection.log")
 

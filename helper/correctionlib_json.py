@@ -53,7 +53,7 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
     if "QCD" in config["target_process"]:
         var = config["target_process"]["QCD"]["var_dependence"]
         binning = config["target_process"]["QCD"]["var_bins"]
-        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
             "FFslopeUncUp": 1,
             "FFslopeUncDown": 2,
             "FFnormUncUp": 3,
@@ -62,15 +62,27 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             "FFmcSubUncDown": 6,
         }
         if len(config["target_process"]["QCD"]["split_categories"]) == 1:
-            QCD_ff = make_1D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
+            QCD_ff = make_1D_ff(
+                "QCD",
+                (var, binning),
+                ff_functions["QCD"],
+                config["target_process"]["QCD"],
+                ff_unc_order,
+            )
         elif len(config["target_process"]["QCD"]["split_categories"]) == 2:
-            QCD_ff = make_2D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
+            QCD_ff = make_2D_ff(
+                "QCD",
+                (var, binning),
+                ff_functions["QCD"],
+                config["target_process"]["QCD"],
+                ff_unc_order,
+            )
         cs_corrections.append(QCD_ff)
 
     if "Wjets" in config["target_process"]:
         var = config["target_process"]["Wjets"]["var_dependence"]
         binning = config["target_process"]["Wjets"]["var_bins"]
-        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
             "FFslopeUncUp": 1,
             "FFslopeUncDown": 2,
             "FFnormUncUp": 3,
@@ -79,30 +91,54 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             "FFmcSubUncDown": 6,
         }
         if len(config["target_process"]["Wjets"]["split_categories"]) == 1:
-            Wjets_ff = make_1D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
+            Wjets_ff = make_1D_ff(
+                "Wjets",
+                (var, binning),
+                ff_functions["Wjets"],
+                config["target_process"]["Wjets"],
+                ff_unc_order,
+            )
         elif len(config["target_process"]["Wjets"]["split_categories"]) == 2:
-            Wjets_ff = make_2D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
+            Wjets_ff = make_2D_ff(
+                "Wjets",
+                (var, binning),
+                ff_functions["Wjets"],
+                config["target_process"]["Wjets"],
+                ff_unc_order,
+            )
         cs_corrections.append(Wjets_ff)
 
     if "ttbar" in config["target_process"]:
         var = config["target_process"]["ttbar"]["var_dependence"]
         binning = config["target_process"]["ttbar"]["var_bins"]
-        ff_unc_order = { # the order has to match the one used in helper/functions.py -> fit_function()  
+        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
             "FFslopeUncUp": 1,
             "FFslopeUncDown": 2,
             "FFnormUncUp": 3,
             "FFnormUncDown": 4,
         }
         if len(config["target_process"]["ttbar"]["split_categories"]) == 1:
-            ttbar_ff = make_1D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
+            ttbar_ff = make_1D_ff(
+                "ttbar",
+                (var, binning),
+                ff_functions["ttbar"],
+                config["target_process"]["ttbar"],
+                ff_unc_order,
+            )
         elif len(config["target_process"]["ttbar"]["split_categories"]) == 2:
-            ttbar_ff = make_2D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
+            ttbar_ff = make_2D_ff(
+                "ttbar",
+                (var, binning),
+                ff_functions["ttbar"],
+                config["target_process"]["ttbar"],
+                ff_unc_order,
+            )
         cs_corrections.append(ttbar_ff)
 
     if "process_fractions" in config:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
-        frac_unc = { # the naming has to match the one used in helper/functions.py -> add_fraction_variations()  
+        frac_unc = {  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
             "fracQCDUncUp": "frac_QCD_up",
             "fracQCDUncDown": "frac_QCD_down",
             "fracWjetsUncUp": "frac_Wjets_up",
@@ -110,7 +146,9 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             "fracTTbarUncUp": "frac_ttbar_J_up",
             "fracTTbarUncDown": "frac_ttbar_J_down",
         }
-        fraction = make_1D_fractions((var, binning), fractions, config["process_fractions"], frac_unc)
+        fraction = make_1D_fractions(
+            (var, binning), fractions, config["process_fractions"], frac_unc
+        )
         cs_corrections.append(fraction)
 
     cset = cs.CorrectionSet(
@@ -150,7 +188,11 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
                 type=var_type[cat_inputs[0]],
                 description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
-            cs.Variable(name="syst", type="string", description="Uncertainties from the best fit for the fake factor measurement."),
+            cs.Variable(
+                name="syst",
+                type="string",
+                description="Uncertainties from the best fit for the fake factor measurement.",
+            ),
         ],
         output=cs.Variable(
             name="{}_ff".format(process),
@@ -178,14 +220,22 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
                                     (max(variable[1]) + 1),
                                 ],
                                 content=[
-                                    eval(ff_functions[cat1][idx].replace("x", str(min(variable[1])))),
+                                    eval(
+                                        ff_functions[cat1][idx].replace(
+                                            "x", str(min(variable[1]))
+                                        )
+                                    ),
                                     cs.Formula(
                                         nodetype="formula",
                                         variables=[var_dict[variable[0]]],
                                         parser="TFormula",
                                         expression=ff_functions[cat1][idx],
                                     ),
-                                    eval(ff_functions[cat1][idx].replace("x", str(max(variable[1])))), 
+                                    eval(
+                                        ff_functions[cat1][idx].replace(
+                                            "x", str(max(variable[1]))
+                                        )
+                                    ),
                                 ],
                                 flow="clamp",
                             )
@@ -211,14 +261,22 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
                             (max(variable[1]) + 1),
                         ],
                         content=[
-                            eval(ff_functions[cat1][0].replace("x", str(min(variable[1])))),
+                            eval(
+                                ff_functions[cat1][0].replace(
+                                    "x", str(min(variable[1]))
+                                )
+                            ),
                             cs.Formula(
                                 nodetype="formula",
                                 variables=[var_dict[variable[0]]],
                                 parser="TFormula",
                                 expression=ff_functions[cat1][0],
                             ),
-                            eval(ff_functions[cat1][0].replace("x", str(max(variable[1])))), 
+                            eval(
+                                ff_functions[cat1][0].replace(
+                                    "x", str(max(variable[1]))
+                                )
+                            ),
                         ],
                         flow="clamp",
                     )
@@ -262,7 +320,11 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
                 type=var_type[cat_inputs[1]],
                 description=var_discription[cat_inputs[1]] + ", ".join(cat_values[1]),
             ),
-            cs.Variable(name="syst", type="string", description="Uncertainties from the best fit for the fake factor measurement."),
+            cs.Variable(
+                name="syst",
+                type="string",
+                description="Uncertainties from the best fit for the fake factor measurement.",
+            ),
         ],
         output=cs.Variable(
             name="{}_ff".format(process),
@@ -283,7 +345,9 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
                             cs.Binning(
                                 nodetype="binning",
                                 input=var_dict[cat_inputs[1]],
-                                edges=config["split_categories_binedges"][cat_inputs[1]],
+                                edges=config["split_categories_binedges"][
+                                    cat_inputs[1]
+                                ],
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
@@ -295,14 +359,24 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
                                             (max(variable[1]) + 1),
                                         ],
                                         content=[
-                                            eval(ff_functions[cat1][cat2][idx].replace("x", str(min(variable[1])))),
+                                            eval(
+                                                ff_functions[cat1][cat2][idx].replace(
+                                                    "x", str(min(variable[1]))
+                                                )
+                                            ),
                                             cs.Formula(
                                                 nodetype="formula",
                                                 variables=[var_dict[variable[0]]],
                                                 parser="TFormula",
-                                                expression=ff_functions[cat1][cat2][idx],
+                                                expression=ff_functions[cat1][cat2][
+                                                    idx
+                                                ],
                                             ),
-                                            eval(ff_functions[cat1][cat2][idx].replace("x", str(max(variable[1])))),
+                                            eval(
+                                                ff_functions[cat1][cat2][idx].replace(
+                                                    "x", str(max(variable[1]))
+                                                )
+                                            ),
                                         ],
                                         flow="clamp",
                                     )
@@ -337,14 +411,22 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
                                     (max(variable[1]) + 1),
                                 ],
                                 content=[
-                                    eval(ff_functions[cat1][cat2][0].replace("x", str(min(variable[1])))),
+                                    eval(
+                                        ff_functions[cat1][cat2][0].replace(
+                                            "x", str(min(variable[1]))
+                                        )
+                                    ),
                                     cs.Formula(
                                         nodetype="formula",
                                         variables=[var_dict[variable[0]]],
                                         parser="TFormula",
                                         expression=ff_functions[cat1][cat2][0],
                                     ),
-                                    eval(ff_functions[cat1][cat2][0].replace("x", str(max(variable[1])))),
+                                    eval(
+                                        ff_functions[cat1][cat2][0].replace(
+                                            "x", str(max(variable[1]))
+                                        )
+                                    ),
                                 ],
                                 flow="clamp",
                             )
@@ -388,7 +470,11 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                 type=var_type[cat_inputs[0]],
                 description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
-            cs.Variable(name="syst", type="string", description="Uncertainties from the +/-7% variation of the process fractions."),
+            cs.Variable(
+                name="syst",
+                type="string",
+                description="Uncertainties from the +/-7% variation of the process fractions.",
+            ),
         ],
         output=cs.Variable(
             name="fraction", type="real", description="process fraction"
@@ -408,7 +494,9 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                                 value=cs.Binning(
                                     nodetype="binning",
                                     input=var_dict[cat_inputs[0]],
-                                    edges=config["split_categories_binedges"][cat_inputs[0]],
+                                    edges=config["split_categories_binedges"][
+                                        cat_inputs[0]
+                                    ],
                                     content=[
                                         cs.Binning(
                                             nodetype="binning",
@@ -455,8 +543,6 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                 ],
             ),
         ),
-        
-        
     )
     rich.print(frac)
 
@@ -467,17 +553,20 @@ corr_unc_dict = {
     "non_closure": "nonClosure",
 }
 
+
 def generate_corr_cs_json(config, corrections, save_path):
 
     cs_ff_corrections = list()
 
     for process in corrections.keys():
         for correction in corrections[process].keys():
-            var = config["target_process"][process]["corrections"][correction]["var_dependence"]
+            var = config["target_process"][process]["corrections"][correction][
+                "var_dependence"
+            ]
             corr_dict = corrections[process][correction]
             corr = make_1D_correction(process, var, correction, corr_dict)
             cs_ff_corrections.append(corr)
-    
+
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",
@@ -508,7 +597,11 @@ def make_1D_correction(process, variable, correction, corr_dict):
                 .replace("#var_min", str(min(corr_dict["edges"])))
                 .replace("#var_max", str(max(corr_dict["edges"]))),
             ),
-            cs.Variable(name="syst", type="string", description="Uncertainty from the correction measurement."),
+            cs.Variable(
+                name="syst",
+                type="string",
+                description="Uncertainty from the correction measurement.",
+            ),
         ],
         output=cs.Variable(
             name="{}_{}_correction".format(process, correction),

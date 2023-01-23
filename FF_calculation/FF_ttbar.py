@@ -223,16 +223,25 @@ def calculation_ttbar_FFs(config, sample_path_list):
             SR_hists, AR_hists, SRlike_hists, ARlike_hists
         )
         # performing the fit and calculating the uncertainties
-        fit_graphs, cs_exp = func.fit_function(FF_hist.Clone(), process_conf["var_bins"])
-        
-        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split)   
+        fit_graphs, cs_exp = func.fit_function(
+            FF_hist.Clone(), process_conf["var_bins"]
+        )
+
+        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split)
 
         if len(split) == 1:
-            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
+            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
         elif len(split) == 2:
-            if "{}#{}".format(split_vars[0],split[split_vars[0]]) not in cs_expressions:
-                cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = dict()
-            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])]["{}#{}".format(split_vars[1],split[split_vars[1]])] = cs_exp
+            if (
+                "{}#{}".format(split_vars[0], split[split_vars[0]])
+                not in cs_expressions
+            ):
+                cs_expressions[
+                    "{}#{}".format(split_vars[0], split[split_vars[0]])
+                ] = dict()
+            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])][
+                "{}#{}".format(split_vars[1], split[split_vars[1]])
+            ] = cs_exp
         else:
             sys.exit("Category splitting is only defined up to 2 dimensions.")
 
@@ -350,28 +359,41 @@ def non_closure_correction(config, sample_path_list):
 
             # making the histograms
             h = rdf_SR.Histo1D(
-                (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                (
+                    correction_conf["var_dependence"],
+                    "{}".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
                 correction_conf["var_dependence"],
                 "weight",
             )
             SR_hists[sample] = h.GetValue()
 
             h = rdf_AR.Histo1D(
-                (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                (
+                    correction_conf["var_dependence"],
+                    "{}".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
                 correction_conf["var_dependence"],
                 "weight_ff",
             )
             AR_hists["ttbar_ff"] = h.GetValue()
 
-
     corr_hist = func.calculate_non_closure_correction_ttbar(SR_hists, AR_hists)
 
-    smooth_graph, corr_def = func.smooth_function(corr_hist.Clone(), correction_conf["var_bins"])
+    smooth_graph, corr_def = func.smooth_function(
+        corr_hist.Clone(), correction_conf["var_bins"]
+    )
 
-    plotting.plot_correction(corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config) 
+    plotting.plot_correction(
+        corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config
+    )
 
     plot_hists = dict()
-    
+
     plot_hists["data_subtracted"] = SR_hists["ttbar_J"].Clone()
     plot_hists["data_ff"] = AR_hists["ttbar_ff"].Clone()
 

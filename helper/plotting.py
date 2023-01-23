@@ -53,25 +53,24 @@ label_dict = {
     "fit_graph_slope": "best fit (slope unc.)",
     "fit_graph_norm": "best fit (normalization unc.)",
     "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
-
 }
 var_dict = {
-    "pt_1": "p_{T}(e/#mu) (GeV)", 
-    "pt_2": "p_{T}(#tau_{h}) (GeV)", 
-    "eta_1": "#eta(e/#mu)", 
-    "eta_2": "#eta(#tau_{h})", 
-    "phi_1": "#phi(e/#mu)", 
-    "phi_2": "#phi(#tau_{h})", 
-    "mt_1": "m_{T}(e/#mu) (GeV)", 
-    "m_vis": "m_{vis}(#tau_{h}) (GeV)", 
-    "mjj": "m_{jj} (GeV)", 
-    "met": "MET (GeV)", 
+    "pt_1": "p_{T}(e/#mu) (GeV)",
+    "pt_2": "p_{T}(#tau_{h}) (GeV)",
+    "eta_1": "#eta(e/#mu)",
+    "eta_2": "#eta(#tau_{h})",
+    "phi_1": "#phi(e/#mu)",
+    "phi_2": "#phi(#tau_{h})",
+    "mt_1": "m_{T}(e/#mu) (GeV)",
+    "m_vis": "m_{vis}(#tau_{h}) (GeV)",
+    "mjj": "m_{jj} (GeV)",
+    "met": "MET (GeV)",
     "metphi": "MET #phi",
-    "bpt_1": "p_{T}(leading b) (GeV)", 
-    "beta_1": "#eta (leading b)", 
-    "bphi_1": "#phi (leading b)", 
-    "bpt_2": "p_{T}(second b) (GeV)", 
-    "njets": "number of jets", 
+    "bpt_1": "p_{T}(leading b) (GeV)",
+    "beta_1": "#eta (leading b)",
+    "bphi_1": "#phi (leading b)",
+    "bpt_2": "p_{T}(second b) (GeV)",
+    "njets": "number of jets",
     "nbtag": "number of b-tagged jets",
 }
 
@@ -79,7 +78,7 @@ cat_dict = {
     "incl": "incl.",
     "njets": "jets",
     "nbtag": "b-jets",
-    "deltaR_ditaupair": "#Delta"+"R(l#tau_{h})",
+    "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
 }
 
 
@@ -103,7 +102,9 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split):
     ff_ratio.GetXaxis().SetMoreLogLabels()
     ff_ratio.GetXaxis().SetNoExponent()
     ff_ratio.GetYaxis().SetTitle(FF_YAxis[process])
-    ff_ratio.GetXaxis().SetTitle(var_dict[config["target_process"][process]["var_dependence"]])
+    ff_ratio.GetXaxis().SetTitle(
+        var_dict[config["target_process"][process]["var_dependence"]]
+    )
     ff_ratio.GetYaxis().SetLabelSize(0.04)
     ff_ratio.GetXaxis().SetLabelSize(0.04)
     ff_ratio.GetYaxis().SetTitleSize(0.05)
@@ -133,7 +134,10 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split):
         0.165,
         0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
+            channel_dict[config["channel"]],
+            ", ".join(
+                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
+            ),
         ),
     )
     text.SetTextSize(0.035)
@@ -143,17 +147,25 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split):
     #     0.62, 0.8, "{} = {} / {}".format("#chi^{2} / N_{dof}", round(chi2, 2), dof)
     # )
 
-    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    func.check_output_path(
+        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    )
     out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):    
+    with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
             "workdir/{}/{}/ff_{}_{}.png".format(
-                config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                process,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
             "workdir/{}/{}/ff_{}_{}.pdf".format(
-                config["workdir_name"], config["channel"], process, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                process,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
     print(out.getvalue())
@@ -219,13 +231,18 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
         0.23,
         0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
+            channel_dict[config["channel"]],
+            ", ".join(
+                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
+            ),
         ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
 
-    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    func.check_output_path(
+        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    )
 
     if data == "data_subtracted":
         hist_str = "reduced"
@@ -233,15 +250,27 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
         hist_str = "full"
 
     out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):   
+    with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
             "workdir/{}/{}/hist_{}_{}_{}_{}_{}.png".format(
-                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                hist_str,
+                var,
+                process,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
             "workdir/{}/{}/hist_{}_{}_{}_{}_{}.pdf".format(
-                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                hist_str,
+                var,
+                process,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
     print(out.getvalue())
@@ -344,7 +373,10 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
         0.23,
         0.917,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
+            channel_dict[config["channel"]],
+            ", ".join(
+                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
+            ),
         ),
     )
     text.SetTextSize(0.035)
@@ -353,7 +385,9 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     pad2.cd()
     ratio.Draw("ep")
 
-    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    func.check_output_path(
+        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    )
 
     if data == "data_subtracted":
         hist_str = "reduced"
@@ -361,15 +395,27 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
         hist_str = "full"
 
     out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT): 
+    with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
             "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
-                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                hist_str,
+                var,
+                process,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
             "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
-                config["workdir_name"], config["channel"], hist_str, var, process, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                hist_str,
+                var,
+                process,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
     print(out.getvalue())
@@ -420,24 +466,37 @@ def fraction_plot(hists, config, var, region, samples, split):
         0.23,
         0.915,
         "channel: {}, {}".format(
-            channel_dict[config["channel"]], ", ".join(["{} {}".format(split[var], cat_dict[var]) for var in split.keys()])
+            channel_dict[config["channel"]],
+            ", ".join(
+                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
+            ),
         ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
 
-    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    func.check_output_path(
+        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    )
 
     out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT): 
+    with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
             "workdir/{}/{}/fraction_{}_{}_{}.png".format(
-                config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                var,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
             "workdir/{}/{}/fraction_{}_{}_{}.pdf".format(
-                config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+                config["workdir_name"],
+                config["channel"],
+                var,
+                region,
+                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
     print(out.getvalue())
@@ -492,20 +551,18 @@ def plot_correction(corr_ratio, uncertainty, var, process, config):
     text.DrawLatex(
         0.165,
         0.917,
-        "channel: {}, {}".format(
-            channel_dict[config["channel"]], process
-        ),
+        "channel: {}, {}".format(channel_dict[config["channel"]], process),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
     text.SetTextSize(0.035)
-    text.DrawLatex(
-        0.2, 0.8, "non closure correction"
-    )
+    text.DrawLatex(0.2, 0.8, "non closure correction")
 
-    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    func.check_output_path(
+        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    )
     out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):    
+    with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
             "workdir/{}/{}/corr_{}_{}.png".format(
                 config["workdir_name"], config["channel"], process, "non_closure"

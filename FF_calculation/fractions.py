@@ -59,7 +59,9 @@ def fraction_calculation(config, sample_path_list):
             # event filter for signal region; this is not needed for the FF calculation, just for control plots
             region_cut_conf = {**split, **process_conf["SR_cuts"]}
             rdf_SR = region_filter(rdf, config["channel"], region_cut_conf, sample)
-            print("Filtering events for the fraction calculation in the signal region.\n")
+            print(
+                "Filtering events for the fraction calculation in the signal region.\n"
+            )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
@@ -121,14 +123,23 @@ def fraction_calculation(config, sample_path_list):
         frac_hists = dict()
 
         for p in config["process_fractions"]["processes"]:
-            frac_hists[p] = func.calc_fraction(AR_hists, p, config["process_fractions"]["processes"])
-        frac_hists = func.add_fraction_variations(frac_hists, config["process_fractions"]["processes"])
+            frac_hists[p] = func.calc_fraction(
+                AR_hists, p, config["process_fractions"]["processes"]
+            )
+        frac_hists = func.add_fraction_variations(
+            frac_hists, config["process_fractions"]["processes"]
+        )
 
         cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
         fractions[cat] = frac_hists
 
         plotting.fraction_plot(
-            frac_hists["nominal"], config, process_conf["var_dependence"], "AR", config["process_fractions"]["processes"], split
+            frac_hists["nominal"],
+            config,
+            process_conf["var_dependence"],
+            "AR",
+            config["process_fractions"]["processes"],
+            split,
         )
         plotting.plot_data_mc_ratio(
             AR_hists,

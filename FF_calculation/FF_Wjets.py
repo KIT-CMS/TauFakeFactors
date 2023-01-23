@@ -159,29 +159,52 @@ def calculation_Wjets_FFs(config, sample_path_list):
         ARlike_hists["data_subtracted_down"] = ARlike_hists["data"].Clone()
 
         for hist in SRlike_hists:
-            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "Wjets"]:
+            if hist not in [
+                "data",
+                "data_subtracted",
+                "data_subtracted_up",
+                "data_subtracted_down",
+                "Wjets",
+            ]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
                 SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
                 SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
         for hist in ARlike_hists:
-            if hist not in ["data", "data_subtracted", "data_subtracted_up", "data_subtracted_down", "Wjets"]:
+            if hist not in [
+                "data",
+                "data_subtracted",
+                "data_subtracted_up",
+                "data_subtracted_down",
+                "Wjets",
+            ]:
                 ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
                 ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist], -0.93)
                 ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist], -1.07)
 
         # Start of the FF calculation
-        FF_hist, FF_hist_up, FF_hist_down = func.calculate_Wjets_FF(SRlike_hists, ARlike_hists)
+        FF_hist, FF_hist_up, FF_hist_down = func.calculate_Wjets_FF(
+            SRlike_hists, ARlike_hists
+        )
         # performing the fit and calculating the uncertainties
-        fit_graphs, cs_exp = func.fit_function([FF_hist.Clone(), FF_hist_up, FF_hist_down], process_conf["var_bins"])
-        
-        plotting.plot_FFs(FF_hist, fit_graphs, "Wjets", config, split)   
-        
+        fit_graphs, cs_exp = func.fit_function(
+            [FF_hist.Clone(), FF_hist_up, FF_hist_down], process_conf["var_bins"]
+        )
+
+        plotting.plot_FFs(FF_hist, fit_graphs, "Wjets", config, split)
+
         if len(split) == 1:
-            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
+            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
         elif len(split) == 2:
-            if "{}#{}".format(split_vars[0],split[split_vars[0]]) not in cs_expressions:
-                cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = dict()
-            cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])]["{}#{}".format(split_vars[1],split[split_vars[1]])] = cs_exp
+            if (
+                "{}#{}".format(split_vars[0], split[split_vars[0]])
+                not in cs_expressions
+            ):
+                cs_expressions[
+                    "{}#{}".format(split_vars[0], split[split_vars[0]])
+                ] = dict()
+            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])][
+                "{}#{}".format(split_vars[1], split[split_vars[1]])
+            ] = cs_exp
         else:
             sys.exit("Category splitting is only defined up to 2 dimensions.")
 
@@ -306,9 +329,7 @@ def non_closure_correction(config, sample_path_list):
 
         # QCD estimation from same sign in signal-like region
         region_cut_conf["tau_pair_sign"] = "same"
-        rdf_SRlike_qcd = region_filter(
-            rdf, config["channel"], region_cut_conf, sample
-        )
+        rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
                 "Wjets"
@@ -344,9 +365,7 @@ def non_closure_correction(config, sample_path_list):
 
         # QCD estimation from same sign in application-like region
         region_cut_conf["tau_pair_sign"] = "same"
-        rdf_ARlike_qcd = region_filter(
-            rdf, config["channel"], region_cut_conf, sample
-        )
+        rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
                 "Wjets"
@@ -378,7 +397,12 @@ def non_closure_correction(config, sample_path_list):
 
         if sample == "data":
             h = rdf_ARlike.Histo1D(
-                (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                (
+                    correction_conf["var_dependence"],
+                    "{}".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
                 correction_conf["var_dependence"],
                 "weight_ff",
             )
@@ -411,11 +435,17 @@ def non_closure_correction(config, sample_path_list):
         if hist not in ["data", "data_subtracted", "data_ff", "Wjets"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
-    corr_hist, proc_frac = func.calculate_non_closure_correction(SRlike_hists, ARlike_hists)
+    corr_hist, proc_frac = func.calculate_non_closure_correction(
+        SRlike_hists, ARlike_hists
+    )
 
-    smooth_graph, corr_def = func.smooth_function(corr_hist.Clone(), correction_conf["var_bins"])
+    smooth_graph, corr_def = func.smooth_function(
+        corr_hist.Clone(), correction_conf["var_bins"]
+    )
 
-    plotting.plot_correction(corr_hist, smooth_graph, correction_conf["var_dependence"], "Wjets", config) 
+    plotting.plot_correction(
+        corr_hist, smooth_graph, correction_conf["var_dependence"], "Wjets", config
+    )
 
     plot_hists = dict()
 
