@@ -123,7 +123,6 @@ def fraction_calculation(config, sample_path_list):
         for p in config["process_fractions"]["processes"]:
             frac_hists[p] = func.calc_fraction(AR_hists, p, config["process_fractions"]["processes"])
         frac_hists = func.add_fraction_variations(frac_hists, config["process_fractions"]["processes"])
-        print(frac_hists)
 
         cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
         fractions[cat] = frac_hists

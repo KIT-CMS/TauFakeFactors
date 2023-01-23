@@ -7,7 +7,9 @@ import rich
 
 var_dict = {
     "pt_2": "tau_pt",
+    "pt_1": "lep_pt",
     "mt_1": "lep_mt",
+    "m_vis": "m_vis",
     "njets": "njets",
     "nbtag": "nbtags",
     "deltaR_ditaupair": "dR_tau_pair",
@@ -17,14 +19,18 @@ var_dict = {
 }
 var_type = {
     "pt_2": "real",
+    "pt_1": "real",
     "mt_1": "real",
+    "m_vis": "real",
     "njets": "real",
     "nbtag": "real",
     "deltaR_ditaupair": "real",
 }
 var_discription = {
-    "pt_2": "transverse momentum of the hadronic tau in the tau pair; the fake factors are measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "mt_1": "transverse mass of the lepton in the tau pair; the fractions are measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+    "pt_2": "transverse momentum of the hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "pt_1": "transverse momentum of the leptonic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "mt_1": "transverse mass of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+    "m_vis": "invariant mass of the visible tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
@@ -41,8 +47,8 @@ def cat_transalator(c):
         sys.exit("Category splitting is only defined up to 2 dimensions.")
 
 
-def generate_cs_json(config, ff_functions, fractions, save_path):
-    corrections = list()
+def generate_ff_cs_json(config, ff_functions, fractions, save_path):
+    cs_corrections = list()
 
     if "QCD" in config["target_process"]:
         var = config["target_process"]["QCD"]["var_dependence"]
@@ -59,7 +65,7 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
             QCD_ff = make_1D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
         elif len(config["target_process"]["QCD"]["split_categories"]) == 2:
             QCD_ff = make_2D_ff("QCD", (var, binning), ff_functions["QCD"], config["target_process"]["QCD"], ff_unc_order)
-        corrections.append(QCD_ff)
+        cs_corrections.append(QCD_ff)
 
     if "Wjets" in config["target_process"]:
         var = config["target_process"]["Wjets"]["var_dependence"]
@@ -76,7 +82,7 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
             Wjets_ff = make_1D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
         elif len(config["target_process"]["Wjets"]["split_categories"]) == 2:
             Wjets_ff = make_2D_ff("Wjets", (var, binning), ff_functions["Wjets"], config["target_process"]["Wjets"], ff_unc_order)
-        corrections.append(Wjets_ff)
+        cs_corrections.append(Wjets_ff)
 
     if "ttbar" in config["target_process"]:
         var = config["target_process"]["ttbar"]["var_dependence"]
@@ -91,7 +97,7 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
             ttbar_ff = make_1D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
         elif len(config["target_process"]["ttbar"]["split_categories"]) == 2:
             ttbar_ff = make_2D_ff("ttbar", (var, binning), ff_functions["ttbar"], config["target_process"]["ttbar"], ff_unc_order)
-        corrections.append(ttbar_ff)
+        cs_corrections.append(ttbar_ff)
 
     if "process_fractions" in config:
         var = config["process_fractions"]["var_dependence"]
@@ -105,12 +111,12 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
             "fracTTbarUncDown": "frac_ttbar_J_down",
         }
         fraction = make_1D_fractions((var, binning), fractions, config["process_fractions"], frac_unc)
-        corrections.append(fraction)
+        cs_corrections.append(fraction)
 
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Fake factors for tau analysis",
-        corrections=corrections,
+        corrections=cs_corrections,
     )
 
     with open(save_path + "fake_factors.json", "w") as fout:
@@ -121,7 +127,7 @@ def generate_cs_json(config, ff_functions, fractions, save_path):
 
 
 def make_1D_ff(process, variable, ff_functions, config, uncertainties):
-   # get categories from config
+    # get categories from config
     cat_inputs = list(config["split_categories"].keys())
     cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
 
@@ -455,3 +461,94 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
     rich.print(frac)
 
     return frac
+
+
+corr_unc_dict = {
+    "non_closure": "nonClosure",
+}
+
+def generate_corr_cs_json(config, corrections, save_path):
+
+    cs_ff_corrections = list()
+
+    for process in corrections.keys():
+        for correction in corrections[process].keys():
+            var = config["target_process"][process]["corrections"][correction]["var_dependence"]
+            corr_dict = corrections[process][correction]
+            corr = make_1D_correction(process, var, correction, corr_dict)
+            cs_ff_corrections.append(corr)
+    
+    cset = cs.CorrectionSet(
+        schema_version=2,
+        description="Corrections for fake factors for tau analysis",
+        corrections=cs_ff_corrections,
+    )
+
+    with open(save_path + "FF_corrections.json", "w") as fout:
+        fout.write(cset.json(exclude_unset=True, indent=4))
+
+    with gzip.open(save_path + "FF_corrections.json.gz", "wt") as fout:
+        fout.write(cset.json(exclude_unset=True, indent=4))
+
+
+def make_1D_correction(process, variable, correction, corr_dict):
+
+    cs_corr = cs.Correction(
+        name="{}_{}_correction".format(process, correction),
+        description="Calculation of the {} correction for {} for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.".format(
+            correction,
+            process,
+        ),
+        version=1,
+        inputs=[
+            cs.Variable(
+                name=var_dict[variable],
+                type=var_type[variable],
+                description=var_discription[variable]
+                .replace("#var_min", str(min(corr_dict["edges"])))
+                .replace("#var_max", str(max(corr_dict["edges"]))),
+            ),
+            cs.Variable(name="syst", type="string", description="Uncertainty from the correction measurement."),
+        ],
+        output=cs.Variable(
+            name="{}_{}_correction".format(process, correction),
+            type="real",
+            description="{} correction for {}".format(correction, process),
+        ),
+        data=cs.Category(
+            nodetype="category",
+            input="syst",
+            content=[
+                cs.CategoryItem(
+                    key="{}CorrUp".format(corr_unc_dict[correction]),
+                    value=cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[variable],
+                        edges=list(corr_dict["edges"]),
+                        content=list(corr_dict["up"]),
+                        flow="clamp",
+                    ),
+                ),
+                cs.CategoryItem(
+                    key="{}CorrDown".format(corr_unc_dict[correction]),
+                    value=cs.Binning(
+                        nodetype="binning",
+                        input=var_dict[variable],
+                        edges=list(corr_dict["edges"]),
+                        content=list(corr_dict["down"]),
+                        flow="clamp",
+                    ),
+                ),
+            ],
+            default=cs.Binning(
+                nodetype="binning",
+                input=var_dict[variable],
+                edges=list(corr_dict["edges"]),
+                content=list(corr_dict["down"]),
+                flow="clamp",
+            ),
+        ),
+    )
+    rich.print(cs_corr)
+
+    return cs_corr

@@ -25,7 +25,14 @@ color_dict = {
     "DYjets_T": (231, 34, 11),
     "embedding": (255, 204, 0),
     "tau_fakes": (137, 160, 44),
+    "data_ff": (255, 204, 0),
 }
+unc_color_dict = {
+    "fit_graph_slope": ROOT.kBlue,
+    "fit_graph_norm": ROOT.kRed,
+    "fit_graph_mc_sub": ROOT.kGreen,
+}
+
 label_dict = {
     "QCD": "QCD multijet",
     "diboson_J": "Diboson (jet#rightarrow#tau_{h})",
@@ -41,7 +48,12 @@ label_dict = {
     "embedding": "#tau embedded",
     "data": "Data",
     "data_subtracted": "reduced Data",
+    "data_ff": "Data with FFs",
     "tau_fakes": "jet#rightarrow#tau_{h}",
+    "fit_graph_slope": "best fit (slope unc.)",
+    "fit_graph_norm": "best fit (normalization unc.)",
+    "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
+
 }
 var_dict = {
     "pt_1": "p_{T}(e/#mu) (GeV)", 
@@ -64,13 +76,14 @@ var_dict = {
 }
 
 cat_dict = {
+    "incl": "incl.",
     "njets": "jets",
     "nbtag": "b-jets",
     "deltaR_ditaupair": "#Delta"+"R(l#tau_{h})",
 }
 
 
-def plot_FFs(ratio, process, config, split):
+def plot_FFs(ff_ratio, uncertainties, process, config, split):
     c = ROOT.TCanvas("c", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -81,58 +94,36 @@ def plot_FFs(ratio, process, config, split):
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
-    do_mc_subtr_unc = False
-    if isinstance(ratio, list):
-        do_mc_subtr_unc = True
-        ratio_up = ratio[1]
-        ratio_down = ratio[2]
-        ratio = ratio[0]
+    ff_ratio.SetAxisRange(0, 0.5, "Y")
+    ff_ratio.SetMarkerStyle(20)
+    ff_ratio.SetMarkerSize(1.2)
+    ff_ratio.SetLineWidth(2)
+    ff_ratio.SetLineColor(ROOT.kBlack)
+    ff_ratio.SetTitle("")
+    ff_ratio.GetXaxis().SetMoreLogLabels()
+    ff_ratio.GetXaxis().SetNoExponent()
+    ff_ratio.GetYaxis().SetTitle(FF_YAxis[process])
+    ff_ratio.GetXaxis().SetTitle(var_dict[config["target_process"][process]["var_dependence"]])
+    ff_ratio.GetYaxis().SetLabelSize(0.04)
+    ff_ratio.GetXaxis().SetLabelSize(0.04)
+    ff_ratio.GetYaxis().SetTitleSize(0.05)
+    ff_ratio.GetXaxis().SetTitleSize(0.05)
 
-    ratio.SetAxisRange(0, 0.5, "Y")
-    ratio.SetMarkerStyle(20)
-    ratio.SetMarkerSize(1.2)
-    ratio.SetLineWidth(2)
-    ratio.SetLineColor(ROOT.kBlack)
-    ratio.SetTitle("")
-    ratio.GetXaxis().SetMoreLogLabels()
-    ratio.GetXaxis().SetNoExponent()
-    ratio.GetYaxis().SetTitle(FF_YAxis[process])
-    ratio.GetXaxis().SetTitle(var_dict[config["target_process"][process]["var_dependence"]])
-    ratio.GetYaxis().SetLabelSize(0.04)
-    ratio.GetXaxis().SetLabelSize(0.04)
-    ratio.GetYaxis().SetTitleSize(0.05)
-    ratio.GetXaxis().SetTitleSize(0.05)
-
-    if do_mc_subtr_unc:
-        fit_slope, fit_norm, fit_mc_sub, chi2, dof, cs_exp = func.fit_function([ratio.Clone(), ratio_up, ratio_down], config["target_process"][process]["var_bins"])
-    else:
-        fit_slope, fit_norm, chi2, dof, cs_exp = func.fit_function(ratio.Clone(), config["target_process"][process]["var_bins"])
-
-    ratio.Draw()
-    fit_slope.SetLineWidth(2)
-    fit_slope.SetLineColor(ROOT.kBlue)
-    fit_slope.SetFillColorAlpha(ROOT.kBlue, 0.35)
-    fit_slope.Draw("E3 L SAME")
-    fit_norm.SetLineWidth(2)
-    fit_norm.SetLineColor(ROOT.kRed)
-    fit_norm.SetFillColorAlpha(ROOT.kRed, 0.35)
-    fit_norm.Draw("E3 L SAME")
-    if do_mc_subtr_unc:
-        fit_mc_sub.SetLineWidth(2)
-        fit_mc_sub.SetLineColor(ROOT.kGreen)
-        fit_mc_sub.SetFillColorAlpha(ROOT.kGreen, 0.35)
-        fit_mc_sub.Draw("E3 L SAME")
+    ff_ratio.Draw()
+    for unc in uncertainties:
+        uncertainties[unc].SetLineWidth(2)
+        uncertainties[unc].SetLineColor(unc_color_dict[unc])
+        uncertainties[unc].SetFillColorAlpha(unc_color_dict[unc], 0.35)
+        uncertainties[unc].Draw("E3 L SAME")
 
     legend = ROOT.TLegend(0.2, 0.68, 0.5, 0.88)
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
     legend.SetTextSize(0.03)
     legend.SetTextAlign(12)
-    legend.AddEntry(ratio, "measured", "lep")
-    legend.AddEntry(fit_slope, "best fit (slope unc.)", "fl")
-    legend.AddEntry(fit_norm, "best fit (normalization unc.)", "fl")
-    if do_mc_subtr_unc:
-        legend.AddEntry(fit_mc_sub, "best fit (MC subtraction unc.)", "fl")
+    legend.AddEntry(ff_ratio, "measured", "lep")
+    for unc in uncertainties:
+        legend.AddEntry(uncertainties[unc], label_dict[unc], "fl")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -147,10 +138,10 @@ def plot_FFs(ratio, process, config, split):
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
-    text.SetTextSize(0.035)
-    text.DrawLatex(
-        0.62, 0.8, "{} = {} / {}".format("#chi^{2} / N_{dof}", round(chi2, 2), dof)
-    )
+    # text.SetTextSize(0.035)
+    # text.DrawLatex(
+    #     0.62, 0.8, "{} = {} / {}".format("#chi^{2} / N_{dof}", round(chi2, 2), dof)
+    # )
 
     func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
     out = StringIO()
@@ -167,8 +158,6 @@ def plot_FFs(ratio, process, config, split):
         )
     print(out.getvalue())
     c.Close()
-
-    return cs_exp
 
 
 def plot_data_mc(hists, config, var, process, region, data, samples, split):
@@ -449,6 +438,82 @@ def fraction_plot(hists, config, var, region, samples, split):
         c.SaveAs(
             "workdir/{}/{}/fraction_{}_{}_{}.pdf".format(
                 config["workdir_name"], config["channel"], var, region, "_".join(["{}_{}".format(split[var], var) for var in split.keys()])
+            )
+        )
+    print(out.getvalue())
+    c.Close()
+
+
+def plot_correction(corr_ratio, uncertainty, var, process, config):
+    c = ROOT.TCanvas("c", "", 700, 700)
+    c.SetRightMargin(0.05)
+    c.SetLeftMargin(0.16)
+    c.SetBottomMargin(0.12)
+
+    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
+    ROOT.gStyle.SetTextFont(
+        42
+    )  # chosing font, see https://root.cern/root/html534/TAttText.html
+
+    corr_ratio.SetAxisRange(0, 2, "Y")
+    corr_ratio.SetMarkerStyle(20)
+    corr_ratio.SetMarkerSize(1.2)
+    corr_ratio.SetLineWidth(2)
+    corr_ratio.SetLineColor(ROOT.kBlack)
+    corr_ratio.SetTitle("")
+    corr_ratio.GetXaxis().SetMoreLogLabels()
+    corr_ratio.GetXaxis().SetNoExponent()
+    corr_ratio.GetYaxis().SetTitle("Correction")
+    corr_ratio.GetXaxis().SetTitle(var_dict[var])
+    corr_ratio.GetYaxis().SetLabelSize(0.04)
+    corr_ratio.GetXaxis().SetLabelSize(0.04)
+    corr_ratio.GetYaxis().SetTitleSize(0.05)
+    corr_ratio.GetXaxis().SetTitleSize(0.05)
+
+    corr_ratio.Draw()
+
+    uncertainty.SetLineWidth(2)
+    uncertainty.SetLineColor(ROOT.kOrange)
+    uncertainty.SetFillColorAlpha(ROOT.kOrange, 0.35)
+    uncertainty.Draw("E3 L SAME")
+
+    legend = ROOT.TLegend(0.65, 0.68, 0.9, 0.88)
+    legend.SetFillStyle(0)
+    legend.SetBorderSize(0)
+    legend.SetTextSize(0.03)
+    legend.SetTextAlign(12)
+    legend.AddEntry(corr_ratio, "measured", "lep")
+    legend.AddEntry(uncertainty, "smoothed curve", "fl")
+    legend.Draw("SAME")
+
+    text = ROOT.TLatex()
+    text.SetNDC()
+    text.SetTextSize(0.03)
+    text.DrawLatex(
+        0.165,
+        0.917,
+        "channel: {}, {}".format(
+            channel_dict[config["channel"]], process
+        ),
+    )
+    text.SetTextSize(0.035)
+    text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
+    text.SetTextSize(0.035)
+    text.DrawLatex(
+        0.2, 0.8, "non closure correction"
+    )
+
+    func.check_output_path(os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"])
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):    
+        c.SaveAs(
+            "workdir/{}/{}/corr_{}_{}.png".format(
+                config["workdir_name"], config["channel"], process, "non_closure"
+            )
+        )
+        c.SaveAs(
+            "workdir/{}/{}/corr_{}_{}.pdf".format(
+                config["workdir_name"], config["channel"], process, "non_closure"
             )
         )
     print(out.getvalue())

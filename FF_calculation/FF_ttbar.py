@@ -222,10 +222,10 @@ def calculation_ttbar_FFs(config, sample_path_list):
         FF_hist = func.calculate_ttbar_FF(
             SR_hists, AR_hists, SRlike_hists, ARlike_hists
         )
-        # the fit is performed during the plotting
-        cs_exp = plotting.plot_FFs(
-            FF_hist, "ttbar", config, split
-        )  
+        # performing the fit and calculating the uncertainties
+        fit_graphs, cs_exp = func.fit_function(FF_hist.Clone(), process_conf["var_bins"])
+        
+        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split)   
 
         if len(split) == 1:
             cs_expressions["{}#{}".format(split_vars[0],split[split_vars[0]])] = cs_exp
@@ -284,3 +284,108 @@ def calculation_ttbar_FFs(config, sample_path_list):
         print("-" * 50)
 
     return cs_expressions
+
+
+def non_closure_correction(config, sample_path_list):
+    # init histogram dict for FF measurement
+    SR_hists = dict()
+    AR_hists = dict()
+
+    # get process specific config information
+    process_conf = config["target_process"]["ttbar"]
+    correction_conf = process_conf["corrections"]["non_closure"]
+
+    for sample_path in sample_path_list:
+        # getting the name of the process from the sample path
+        sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
+        if sample == "ttbar_J":
+            print(
+                "Processing {sample} for the non closure correction for {process}.".format(
+                    sample=sample,
+                    process="ttbar",
+                )
+            )
+            print("-" * 50)
+
+            rdf = ROOT.RDataFrame(config["tree"], sample_path)
+
+            # event filter for ttbar signal region
+            region_cut_conf = process_conf["SR_cuts"].copy()
+            rdf_SR = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for the signal region. Target process: {}\n".format(
+                    "ttbar"
+                )
+            )
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SR.Report().Print()
+            print(out.getvalue())
+            print("-" * 50)
+
+            # event filter for ttbar application region
+            region_cut_conf = process_conf["AR_cuts"].copy()
+            rdf_AR = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for the application region. Target process: {}\n".format(
+                    "ttbar"
+                )
+            )
+
+            # evaluate the measured fake factors for the specific processes
+            rdf_AR = func.eval_ttbar_FF(rdf_AR)
+            rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
+
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_AR.Report().Print()
+            print(out.getvalue())
+            print("-" * 50)
+
+            # get binning of the dependent variable
+            xbinning = array.array("d", correction_conf["var_bins"])
+            nbinsx = len(correction_conf["var_bins"]) - 1
+
+            # making the histograms
+            h = rdf_SR.Histo1D(
+                (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                correction_conf["var_dependence"],
+                "weight",
+            )
+            SR_hists[sample] = h.GetValue()
+
+            h = rdf_AR.Histo1D(
+                (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                correction_conf["var_dependence"],
+                "weight_ff",
+            )
+            AR_hists["ttbar_ff"] = h.GetValue()
+
+
+    corr_hist = func.calculate_non_closure_correction_ttbar(SR_hists, AR_hists)
+
+    smooth_graph, corr_def = func.smooth_function(corr_hist.Clone(), correction_conf["var_bins"])
+
+    plotting.plot_correction(corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config) 
+
+    plot_hists = dict()
+    
+    plot_hists["data_subtracted"] = SR_hists["ttbar_J"].Clone()
+    plot_hists["data_ff"] = AR_hists["ttbar_ff"].Clone()
+
+    data = "data_subtracted"
+    samples = ["data_ff"]
+    plotting.plot_data_mc_ratio(
+        plot_hists,
+        config,
+        correction_conf["var_dependence"],
+        "ttbar",
+        "non_closure",
+        data,
+        samples,
+        {"incl": ""},
+    )
+
+    return corr_def

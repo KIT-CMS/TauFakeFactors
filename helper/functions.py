@@ -8,6 +8,7 @@ import glob
 import array
 import numpy as np
 import ROOT
+import XRootD.client.glob_funcs as xrd_glob
 
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -36,8 +37,8 @@ def get_ntuples(config, sample):
     )
     print("-" * 50)
 
-    sample_path_list = glob.glob(sample_paths)
-    cleaned_sample_path_list = glob.glob(sample_paths)
+    sample_path_list = xrd_glob.glob(sample_paths)
+    cleaned_sample_path_list = xrd_glob.glob(sample_paths)
 
     for f in sample_path_list:
         if check_for_empty_file(f, config["tree"]):
@@ -146,7 +147,7 @@ def QCD_SS_estimate(hists):
     qcd = hists["data"].Clone()
 
     for sample in hists:
-        if sample not in ["data", "data_subtracted", "QCD"]:
+        if sample not in ["data", "data_subtracted", "data_ff", "QCD"]:
             qcd.Add(hists[sample], -1)
     # check for negative bins
     for i in range(qcd.GetNbinsX()):
@@ -246,87 +247,6 @@ def get_yields_from_hists(hists, processes):
     return fracs
 
 
-def resample(x , y, error_y, n=100, bins=100):
-    sampled_y = list()
-    for idx, binx in enumerate(x):
-        sampled_y.append(np.random.normal(y[idx], error_y[idx], n))
-    sampled_y = np.array(sampled_y)
-    sampled_y[sampled_y < 0.] = 0.
-
-    fit_y_binned = list()
-    for idx in range(bins):
-        fit_y_binned.append(list())
-    
-    param1 = list()
-    param2 = list()
-
-    for sample in range(n):
-        y_arr = array.array("d", sampled_y[:,sample])
-        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y, error_y)
-        gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", 30., bins)
-        # fit = graph.Fit("pol1", "SFNQ")
-        # param1.append(fit.Parameter(1))
-        # param2.append(fit.Parameter(0))
-        # fitted_func = lambda pt: fit.Parameter(1) * pt + fit.Parameter(0)
-        X_arr = grout.GetX()
-        for i in range(bins):
-        #for idx, binx in enumerate(x):
-            #fit_y_binned[idx].append(fitted_func(binx))
-            fit_y_binned[i].append(grout.GetPointY(i))
-    # fit_y_binned = np.array(fit_y_binned)
-    # fit_y_binned[fit_y_binned < 0.] = 0.
-    #print("Parameter for m * pt + b:", "m =", np.mean(param1), "+/-", np.std(param1), "b =", np.mean(param2), "+/-", np.std(param2))
-
-    resampling_y = list()
-    resampling_y_up = list()
-    resampling_y_down = list()
-
-    for b in fit_y_binned:
-        resampling_y.append(np.mean(b))
-        # resampling_y_up.append(max(b)-np.mean(b))
-        # resampling_y_down.append(np.mean(b)-min(b))
-        resampling_y_up.append(np.std(b))
-        resampling_y_down.append(np.std(b))
-
-    return array.array("d", X_arr), array.array("d", resampling_y), array.array("d", resampling_y_up), array.array("d", resampling_y_down)
-
-
-def smoothing(x , y, error_y, n_samples=100, n_bins=100):
-    # sampling values for y based on a normal distribution with the measured statistical uncertainty
-    sampled_y = list()
-    for idx in range(len(x)):
-        sampled_y.append(np.random.normal(y[idx], error_y[idx], n_samples))
-    sampled_y = np.array(sampled_y)
-    sampled_y[sampled_y < 0.] = 0.
-
-    # calculate widths 
-
-    fit_y_binned = list()
-    for i in range(n_bins):
-        fit_y_binned.append(list())
-
-    for sample in range(n_samples):
-        y_arr = array.array("d", sampled_y[:,sample])
-        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y, error_y)
-        gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", 17.5, n_bins)
-        X_arr = grout.GetX()
-        for i in range(n_bins):
-            fit_y_binned[i].append(grout.GetPointY(i))
-
-    resampling_y = list()
-    resampling_y_up = list()
-    resampling_y_down = list()
-
-    for b in fit_y_binned:
-        resampling_y.append(np.mean(b))
-        resampling_y_up.append(np.std(b))
-        resampling_y_down.append(np.std(b))
-
-    return array.array("d", X_arr), array.array("d", resampling_y), array.array("d", resampling_y_up), array.array("d", resampling_y_down)
-
-
 def fit_function(ff_hist, bin_edges):
     do_mc_subtr_unc = False
     if isinstance(ff_hist, list):
@@ -388,11 +308,6 @@ def fit_function(ff_hist, bin_edges):
     if do_mc_subtr_unc:
         cs_expressions.append("{}*x+{}".format(fit_up.Parameter(1), fit_up.Parameter(0)))
         cs_expressions.append("{}*x+{}".format(fit_down.Parameter(1), fit_down.Parameter(0)))
-    
-    # cl68 = fit.GetConfidenceIntervals(cl=0.68)
-    # print(cl68)
-    chi2 = fit.Chi2()
-    dof = fit.Ndf()
 
     y_fit = list()
     y_fit_slope_up = list()
@@ -440,12 +355,99 @@ def fit_function(ff_hist, bin_edges):
     #     Nbins, x_arr, resampling_y, 0, 0, resampling_y_down, resampling_y_up
     # )
     if do_mc_subtr_unc:
-        return fit_graph_slope, fit_graph_norm, fit_graph_mc_sub, chi2, dof, cs_expressions
+        return {"fit_graph_slope": fit_graph_slope, "fit_graph_norm": fit_graph_norm, "fit_graph_mc_sub": fit_graph_mc_sub}, cs_expressions
     else:
-        return fit_graph_slope, fit_graph_norm, chi2, dof, cs_expressions
+        return {"fit_graph_slope": fit_graph_slope, "fit_graph_norm": fit_graph_norm}, cs_expressions
 
 
+def smooth_function(ff_hist, bin_edges):
 
+    hist_bins = ff_hist.GetNbinsX()
+
+    x = list()
+    y = list()
+    error_y_up = list()
+    error_y_down = list()
+    for nbin in range(hist_bins):
+        x.append(ff_hist.GetBinCenter(nbin + 1))
+        y.append(ff_hist.GetBinContent(nbin + 1))
+        error_y_up.append(ff_hist.GetBinErrorUp(nbin + 1))
+        error_y_down.append(ff_hist.GetBinErrorLow(nbin + 1))
+
+    x = array.array("d", x)
+    y = array.array("d", y)
+    error_y_up = array.array("d", error_y_up)
+    error_y_down = array.array("d", error_y_down)
+
+    # sampling values for y based on a normal distribution with the measured statistical uncertainty
+    n_samples = 200
+    sampled_y = list()
+    for idx in range(len(x)):
+        sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
+    sampled_y = np.array(sampled_y)
+    sampled_y[sampled_y < 0.] = 0.
+
+    # calculate widths 
+    fit_y_binned = list()
+
+    n_bins = 100 * hist_bins
+    for i in range(n_bins):
+        fit_y_binned.append(list())
+
+    eval_bin_edges = np.linspace(bin_edges[0], bin_edges[-1], (n_bins+1))
+    bin_half = (eval_bin_edges[1] - eval_bin_edges[0]) / 2.
+    smooth_x = (eval_bin_edges + bin_half)[:-1]
+    smooth_x = array.array("d", smooth_x)
+
+    for sample in range(n_samples):
+        y_arr = array.array("d", sampled_y[:,sample])
+        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
+        gs = ROOT.TGraphSmooth("normal")
+        grout = gs.SmoothKern(graph, "normal", 20., n_bins, smooth_x)
+        for i in range(n_bins):
+            fit_y_binned[i].append(grout.GetPointY(i))
+
+    smooth_y = list()
+    smooth_y_up = list()
+    smooth_y_down = list()
+
+    for b in fit_y_binned:
+        smooth_y.append(np.mean(b))
+        smooth_y_up.append(np.std(b))
+        smooth_y_down.append(np.std(b))
+
+    smooth_y = array.array("d", smooth_y)
+    smooth_y_up = array.array("d", smooth_y_up)
+    smooth_y_down = array.array("d", smooth_y_down)
+
+    corr_dict = {
+        "edges": np.array(eval_bin_edges),
+        "y": np.array(smooth_y),
+        "up": np.array(smooth_y) + np.array(smooth_y_up),
+        "down": np.array(smooth_y) - np.array(smooth_y_down),
+    }
+
+    smooth_graph = ROOT.TGraphAsymmErrors(
+        len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
+    )
+    return smooth_graph, corr_dict
+
+
+def calculate_non_closure_correction(SRlike, ARlike):
+    corr = SRlike["data_subtracted"].Clone()
+
+    frac = ARlike["data_subtracted"].GetMaximum() / ARlike["data"].GetMaximum()
+    predicted = ARlike["data_ff"].Clone()
+    predicted.Scale(frac)
+
+    corr.Divide(predicted)
+    return corr, frac
+
+def calculate_non_closure_correction_ttbar(SRlike, ARlike):
+    corr = SRlike["ttbar_J"].Clone()
+    predicted = ARlike["ttbar_ff"].Clone()
+    corr.Divide(predicted)
+    return corr
 
 
 def calculating_FF(rdf):
@@ -489,6 +491,81 @@ def calculating_FF(rdf):
     rdf = rdf.Define(
         "fake_factor",
         "calc_ff(pt_2,njets,mt_1,nbtag)",
+    )
+
+    return rdf
+
+def eval_QCD_FF(rdf):
+    import correctionlib
+
+    correctionlib.register_pyroot_binding()
+
+    ROOT.gInterpreter.ProcessLine(
+        """
+        float calc_ff(float pt, int njets) {
+        float n_jets = njets;
+
+        auto qcd = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("QCD_fake_factors");
+        float qcd_ff;
+        
+        qcd_ff = qcd->evaluate({pt, n_jets, "nominal"});
+        return qcd_ff;
+        }"""
+    )
+
+    rdf = rdf.Define(
+        "QCD_fake_factor",
+        "calc_ff(pt_2,njets)",
+    )
+
+    return rdf
+
+def eval_Wjets_FF(rdf):
+    import correctionlib
+
+    correctionlib.register_pyroot_binding()
+
+    ROOT.gInterpreter.ProcessLine(
+        """
+        float calc_ff(float pt, int njets) {
+        float n_jets = njets;
+    
+        auto wjets = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("Wjets_fake_factors");
+        float wjets_ff;
+        
+        wjets_ff = wjets->evaluate({pt, n_jets, "nominal"});
+        return wjets_ff;
+        }"""
+    )
+
+    rdf = rdf.Define(
+        "Wjets_fake_factor",
+        "calc_ff(pt_2,njets)",
+    )
+
+    return rdf
+
+def eval_ttbar_FF(rdf):
+    import correctionlib
+
+    correctionlib.register_pyroot_binding()
+
+    ROOT.gInterpreter.ProcessLine(
+        """
+        float calc_ff(float pt, int njets) {
+        float n_jets = njets;
+       
+        auto ttbar = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("ttbar_fake_factors");
+        float ttbar_ff;
+        
+        ttbar_ff = ttbar->evaluate({pt, n_jets, "nominal"});
+        return ttbar_ff;
+        }"""
+    )
+
+    rdf = rdf.Define(
+        "ttbar_fake_factor",
+        "calc_ff(pt_2,njets)",
     )
 
     return rdf
