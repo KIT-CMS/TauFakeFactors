@@ -14,7 +14,7 @@ import helper.plotting as plotting
 from FF_calculation.FF_region_filters import region_filter
 
 
-def calculation_Wjets_FFs(config, sample_path_list):
+def calculation_Wjets_FFs(config, sample_path_list, save_path):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -190,7 +190,7 @@ def calculation_Wjets_FFs(config, sample_path_list):
             [FF_hist.Clone(), FF_hist_up, FF_hist_down], process_conf["var_bins"]
         )
 
-        plotting.plot_FFs(FF_hist, fit_graphs, "Wjets", config, split)
+        plotting.plot_FFs(FF_hist, fit_graphs, "Wjets", config, split, save_path)
 
         if len(split) == 1:
             cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
@@ -246,6 +246,7 @@ def calculation_Wjets_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
             ARlike_hists,
@@ -256,6 +257,7 @@ def calculation_Wjets_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
 
         data = "data_subtracted"
@@ -270,6 +272,7 @@ def calculation_Wjets_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
             ARlike_hists,
@@ -280,13 +283,14 @@ def calculation_Wjets_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         print("-" * 50)
 
     return cs_expressions
 
 
-def non_closure_correction(config, sample_path_list):
+def non_closure_correction(config, corr_config, sample_path_list, save_path):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -296,8 +300,8 @@ def non_closure_correction(config, sample_path_list):
     ARlike_hists_qcd = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["Wjets"]
-    correction_conf = process_conf["corrections"]["non_closure"]
+    process_conf = config["target_process"]["Wjets"].copy()
+    correction_conf = corr_config["target_process"]["Wjets"]["non_closure"]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -353,7 +357,7 @@ def non_closure_correction(config, sample_path_list):
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            rdf_ARlike = func.eval_Wjets_FF(rdf_ARlike)
+            rdf_ARlike = func.eval_Wjets_FF(rdf_ARlike, config)
             rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
 
         # redirecting C++ stdout for Report() to python stdout
@@ -399,7 +403,7 @@ def non_closure_correction(config, sample_path_list):
             h = rdf_ARlike.Histo1D(
                 (
                     correction_conf["var_dependence"],
-                    "{}".format(sample),
+                    "{}_ff".format(sample),
                     nbinsx,
                     xbinning,
                 ),
@@ -421,20 +425,21 @@ def non_closure_correction(config, sample_path_list):
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
+
     # calculate QCD estimation
     SRlike_hists["QCD"] = func.QCD_SS_estimate(SRlike_hists_qcd)
     ARlike_hists["QCD"] = func.QCD_SS_estimate(ARlike_hists_qcd)
-
+    
     SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
     ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
-
+    
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
             SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "data_ff", "Wjets"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
-
+    
     corr_hist, proc_frac = func.calculate_non_closure_correction(
         SRlike_hists, ARlike_hists
     )
@@ -442,11 +447,11 @@ def non_closure_correction(config, sample_path_list):
     smooth_graph, corr_def = func.smooth_function(
         corr_hist.Clone(), correction_conf["var_bins"]
     )
-
+   
     plotting.plot_correction(
-        corr_hist, smooth_graph, correction_conf["var_dependence"], "Wjets", config
+        corr_hist.Clone(), smooth_graph, correction_conf["var_dependence"], "Wjets", config, save_path
     )
-
+    
     plot_hists = dict()
 
     plot_hists["data_subtracted"] = SRlike_hists["data_subtracted"].Clone()
@@ -464,6 +469,7 @@ def non_closure_correction(config, sample_path_list):
         data,
         samples,
         {"incl": ""},
+        save_path,
     )
-
+    
     return corr_def

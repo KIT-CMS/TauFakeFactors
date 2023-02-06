@@ -62,7 +62,7 @@ event_selection:
     had_tau_decay_mode: ["0","1","10","11"] # has to be a list
     had_tau_id_vs_ele: "VVLoose"
     had_tau_id_vs_mu: "Tight"
-    lep_iso: "<0.15"
+    # lep_iso: "<0.15"
     trigger: True
 
 mc_weights:

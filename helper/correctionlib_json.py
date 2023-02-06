@@ -47,10 +47,10 @@ def cat_transalator(c):
         sys.exit("Category splitting is only defined up to 2 dimensions.")
 
 
-def generate_ff_cs_json(config, ff_functions, fractions, save_path):
+def generate_ff_cs_json(config, save_path, ff_functions, fractions=None, processes=[], for_corrections=False):
     cs_corrections = list()
 
-    if "QCD" in config["target_process"]:
+    if "QCD" in processes:
         var = config["target_process"]["QCD"]["var_dependence"]
         binning = config["target_process"]["QCD"]["var_bins"]
         ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
@@ -79,7 +79,7 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             )
         cs_corrections.append(QCD_ff)
 
-    if "Wjets" in config["target_process"]:
+    if "Wjets" in processes:
         var = config["target_process"]["Wjets"]["var_dependence"]
         binning = config["target_process"]["Wjets"]["var_bins"]
         ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
@@ -108,7 +108,7 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             )
         cs_corrections.append(Wjets_ff)
 
-    if "ttbar" in config["target_process"]:
+    if "ttbar" in processes:
         var = config["target_process"]["ttbar"]["var_dependence"]
         binning = config["target_process"]["ttbar"]["var_bins"]
         ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
@@ -135,7 +135,7 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
             )
         cs_corrections.append(ttbar_ff)
 
-    if "process_fractions" in config:
+    if "process_fractions" in config and fractions != None:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
         frac_unc = {  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
@@ -157,11 +157,19 @@ def generate_ff_cs_json(config, ff_functions, fractions, save_path):
         corrections=cs_corrections,
     )
 
-    with open(save_path + "fake_factors.json", "w") as fout:
-        fout.write(cset.json(exclude_unset=True, indent=4))
+    if not for_corrections:
+        with open(save_path + "/fake_factors_{}.json".format(config["channel"]), "w") as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
 
-    with gzip.open(save_path + "fake_factors.json.gz", "wt") as fout:
-        fout.write(cset.json(exclude_unset=True, indent=4))
+        with gzip.open(save_path + "/fake_factors_{}.json.gz".format(config["channel"]), "wt") as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
+
+    elif for_corrections:
+        with open(save_path + "/fake_factors_{}_for_corrections.json".format(config["channel"]), "w") as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
+
+        with gzip.open(save_path + "/fake_factors_{}_for_corrections.json.gz".format(config["channel"]), "wt") as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
 
 
 def make_1D_ff(process, variable, ff_functions, config, uncertainties):
@@ -560,9 +568,7 @@ def generate_corr_cs_json(config, corrections, save_path):
 
     for process in corrections.keys():
         for correction in corrections[process].keys():
-            var = config["target_process"][process]["corrections"][correction][
-                "var_dependence"
-            ]
+            var = config["target_process"][process][correction]["var_dependence"]
             corr_dict = corrections[process][correction]
             corr = make_1D_correction(process, var, correction, corr_dict)
             cs_ff_corrections.append(corr)
@@ -573,10 +579,10 @@ def generate_corr_cs_json(config, corrections, save_path):
         corrections=cs_ff_corrections,
     )
 
-    with open(save_path + "FF_corrections.json", "w") as fout:
+    with open(save_path + "/FF_corrections.json", "w") as fout:
         fout.write(cset.json(exclude_unset=True, indent=4))
 
-    with gzip.open(save_path + "FF_corrections.json.gz", "wt") as fout:
+    with gzip.open(save_path + "/FF_corrections.json.gz", "wt") as fout:
         fout.write(cset.json(exclude_unset=True, indent=4))
 
 

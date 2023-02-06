@@ -5,11 +5,10 @@ era: "2018"
 channel: "mt" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "correction_test_v2"
+workdir_name: "full_set_v4"
 
 use_embedding: True
 generate_json: True
-do_corrections: True
 
 target_process: 
     QCD: 
@@ -24,23 +23,19 @@ target_process:
         SRlike_cuts:
             tau_pair_sign: "same" 
             lep_mt: "<50"
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: "Medium"
 
         ARlike_cuts:
             tau_pair_sign: "same" 
             lep_mt: "<50" 
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: ["VVVLoose","Medium"]
         
         var_dependence: "pt_2"
-        #var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
         var_bins: [30,32,35,40,48,70,100]
-
-        corrections:
-            non_closure:
-                var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
     Wjets: 
         split_categories: 
@@ -59,6 +54,7 @@ target_process:
             tau_pair_sign: "opposite" 
             nbtag: "==0" 
             lep_mt: ">70"
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: "Medium"
 
@@ -66,17 +62,12 @@ target_process:
             tau_pair_sign: "opposite" 
             nbtag: "==0"
             lep_mt: ">70" 
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: ["VVVLoose","Medium"]
         
         var_dependence: "pt_2"
-        #var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
         var_bins: [30,32,38,47,60,100]
-
-        corrections:
-            non_closure:
-                var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
     ttbar: 
         split_categories: 
@@ -89,35 +80,33 @@ target_process:
         SR_cuts:
             tau_pair_sign: "opposite"  
             nbtag: ">=1" 
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: "Medium"
 
         AR_cuts:
             tau_pair_sign: "opposite"  
             nbtag: ">=1"
+            lep_iso: "<0.15"
             no_extra_lep: True
             had_tau_id_vs_jet: ["VVVLoose","Medium"]
 
         SRlike_cuts:
             tau_pair_sign: "opposite" 
             nbtag: ">=1" 
+            lep_iso: "<0.15"
             no_extra_lep: False
             had_tau_id_vs_jet: "Medium"
             
         ARlike_cuts:
             tau_pair_sign: "opposite" 
             nbtag: ">=1"
+            lep_iso: "<0.15"
             no_extra_lep: False
             had_tau_id_vs_jet: ["VVVLoose","Medium"]
         
         var_dependence: "pt_2"
-        # var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
         var_bins: [30,32,35,38,41,44,52,70,100]
-
-        corrections:
-            non_closure:
-                var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
 process_fractions:
     processes: ["QCD", "Wjets", "ttbar_J"]
@@ -131,11 +120,13 @@ process_fractions:
         nbtag: [-0.5,0.5,1.5,2.5]
 
     AR_cuts:
+        lep_iso: "<0.15"
         tau_pair_sign: "opposite"  
         no_extra_lep: True
         had_tau_id_vs_jet: ["VVVLoose","Medium"]
 
     SR_cuts:
+        lep_iso: "<0.15"
         tau_pair_sign: "opposite"  
         no_extra_lep: True
         had_tau_id_vs_jet: "Medium"

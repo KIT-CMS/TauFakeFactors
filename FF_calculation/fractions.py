@@ -13,7 +13,7 @@ import helper.plotting as plotting
 from FF_calculation.FF_region_filters import region_filter
 
 
-def fraction_calculation(config, sample_path_list):
+def fraction_calculation(config, sample_path_list, save_path):
     # init histogram dict for the fraction calculation
     AR_hists = dict()
     SR_hists = dict()
@@ -140,6 +140,7 @@ def fraction_calculation(config, sample_path_list):
             "AR",
             config["process_fractions"]["processes"],
             split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
             AR_hists,
@@ -150,6 +151,7 @@ def fraction_calculation(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
             SR_hists,
@@ -160,6 +162,7 @@ def fraction_calculation(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         print("-" * 50)
 

@@ -82,7 +82,7 @@ cat_dict = {
 }
 
 
-def plot_FFs(ff_ratio, uncertainties, process, config, split):
+def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     c = ROOT.TCanvas("c", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -147,23 +147,18 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split):
     #     0.62, 0.8, "{} = {} / {}".format("#chi^{2} / N_{dof}", round(chi2, 2), dof)
     # )
 
-    func.check_output_path(
-        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    )
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "workdir/{}/{}/ff_{}_{}.png".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/ff_{}_{}.png".format(
+                save_path,
                 process,
                 "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
-            "workdir/{}/{}/ff_{}_{}.pdf".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/ff_{}_{}.pdf".format(
+                save_path,
                 process,
                 "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
@@ -172,7 +167,7 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split):
     c.Close()
 
 
-def plot_data_mc(hists, config, var, process, region, data, samples, split):
+def plot_data_mc(hists, config, var, process, region, data, samples, split, save_path):
     c = ROOT.TCanvas("c", "", 850, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -240,10 +235,6 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
 
-    func.check_output_path(
-        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    )
-
     if data == "data_subtracted":
         hist_str = "reduced"
     else:
@@ -252,9 +243,8 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "workdir/{}/{}/hist_{}_{}_{}_{}_{}.png".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/hist_{}_{}_{}_{}_{}.png".format(
+                save_path,
                 hist_str,
                 var,
                 process,
@@ -263,9 +253,8 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
             )
         )
         c.SaveAs(
-            "workdir/{}/{}/hist_{}_{}_{}_{}_{}.pdf".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/hist_{}_{}_{}_{}_{}.pdf".format(
+                save_path,
                 hist_str,
                 var,
                 process,
@@ -277,7 +266,7 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split):
     c.Close()
 
 
-def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split):
+def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split, save_path):
 
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
@@ -385,10 +374,6 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     pad2.cd()
     ratio.Draw("ep")
 
-    func.check_output_path(
-        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    )
-
     if data == "data_subtracted":
         hist_str = "reduced"
     else:
@@ -397,9 +382,8 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
+                save_path,
                 hist_str,
                 var,
                 process,
@@ -408,9 +392,8 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
             )
         )
         c.SaveAs(
-            "workdir/{}/{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
+                save_path,
                 hist_str,
                 var,
                 process,
@@ -422,7 +405,7 @@ def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split
     c.Close()
 
 
-def fraction_plot(hists, config, var, region, samples, split):
+def fraction_plot(hists, config, var, region, samples, split, save_path):
     c = ROOT.TCanvas("c", "", 750, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -475,25 +458,19 @@ def fraction_plot(hists, config, var, region, samples, split):
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
 
-    func.check_output_path(
-        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    )
-
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "workdir/{}/{}/fraction_{}_{}_{}.png".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/fraction_{}_{}_{}.png".format(
+                save_path,
                 var,
                 region,
                 "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
             )
         )
         c.SaveAs(
-            "workdir/{}/{}/fraction_{}_{}_{}.pdf".format(
-                config["workdir_name"],
-                config["channel"],
+            "{}/fraction_{}_{}_{}.pdf".format(
+                save_path,
                 var,
                 region,
                 "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
@@ -503,8 +480,8 @@ def fraction_plot(hists, config, var, region, samples, split):
     c.Close()
 
 
-def plot_correction(corr_ratio, uncertainty, var, process, config):
-    c = ROOT.TCanvas("c", "", 700, 700)
+def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
+    c = ROOT.TCanvas("can", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
     c.SetBottomMargin(0.12)
@@ -513,7 +490,7 @@ def plot_correction(corr_ratio, uncertainty, var, process, config):
     ROOT.gStyle.SetTextFont(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
+    
     corr_ratio.SetAxisRange(0, 2, "Y")
     corr_ratio.SetMarkerStyle(20)
     corr_ratio.SetMarkerSize(1.2)
@@ -528,14 +505,15 @@ def plot_correction(corr_ratio, uncertainty, var, process, config):
     corr_ratio.GetXaxis().SetLabelSize(0.04)
     corr_ratio.GetYaxis().SetTitleSize(0.05)
     corr_ratio.GetXaxis().SetTitleSize(0.05)
-
+    
     corr_ratio.Draw()
-
+    
     uncertainty.SetLineWidth(2)
     uncertainty.SetLineColor(ROOT.kOrange)
     uncertainty.SetFillColorAlpha(ROOT.kOrange, 0.35)
+    
     uncertainty.Draw("E3 L SAME")
-
+    
     legend = ROOT.TLegend(0.65, 0.68, 0.9, 0.88)
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
@@ -543,8 +521,9 @@ def plot_correction(corr_ratio, uncertainty, var, process, config):
     legend.SetTextAlign(12)
     legend.AddEntry(corr_ratio, "measured", "lep")
     legend.AddEntry(uncertainty, "smoothed curve", "fl")
+    
     legend.Draw("SAME")
-
+    
     text = ROOT.TLatex()
     text.SetNDC()
     text.SetTextSize(0.03)
@@ -557,20 +536,20 @@ def plot_correction(corr_ratio, uncertainty, var, process, config):
     text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
     text.SetTextSize(0.035)
     text.DrawLatex(0.2, 0.8, "non closure correction")
-
-    func.check_output_path(
-        os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    )
+    
+    # func.check_output_path(
+    #     os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
+    # )
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "workdir/{}/{}/corr_{}_{}.png".format(
-                config["workdir_name"], config["channel"], process, "non_closure"
+            "{}/corr_{}_{}.png".format(
+                save_path, process, "non_closure"
             )
         )
         c.SaveAs(
-            "workdir/{}/{}/corr_{}_{}.pdf".format(
-                config["workdir_name"], config["channel"], process, "non_closure"
+            "{}/corr_{}_{}.pdf".format(
+                save_path, process, "non_closure"
             )
         )
     print(out.getvalue())

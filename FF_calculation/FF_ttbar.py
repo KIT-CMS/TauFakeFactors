@@ -14,7 +14,7 @@ import helper.plotting as plotting
 from FF_calculation.FF_region_filters import region_filter
 
 
-def calculation_ttbar_FFs(config, sample_path_list):
+def calculation_ttbar_FFs(config, sample_path_list, save_path):
     # init histogram dict for FF measurement from MC
     SR_hists = dict()
     AR_hists = dict()
@@ -227,7 +227,7 @@ def calculation_ttbar_FFs(config, sample_path_list):
             FF_hist.Clone(), process_conf["var_bins"]
         )
 
-        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split)
+        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split, save_path)
 
         if len(split) == 1:
             cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
@@ -275,34 +275,34 @@ def calculation_ttbar_FFs(config, sample_path_list):
             ]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
+            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split, save_path
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split
+            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split, save_path
         )
 
         data = "data_subtracted"
         samples = ["ttbar_J"]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split
+            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split, save_path
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split
+            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split, save_path
         )
         print("-" * 50)
 
     return cs_expressions
 
 
-def non_closure_correction(config, sample_path_list):
+def non_closure_correction(config, corr_config, sample_path_list, save_path):
     # init histogram dict for FF measurement
     SR_hists = dict()
     AR_hists = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["ttbar"]
-    correction_conf = process_conf["corrections"]["non_closure"]
+    process_conf = config["target_process"]["ttbar"].copy()
+    correction_conf = corr_config["target_process"]["ttbar"]["non_closure"]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -343,7 +343,7 @@ def non_closure_correction(config, sample_path_list):
             )
 
             # evaluate the measured fake factors for the specific processes
-            rdf_AR = func.eval_ttbar_FF(rdf_AR)
+            rdf_AR = func.eval_ttbar_FF(rdf_AR, config)
             rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
 
             # redirecting C++ stdout for Report() to python stdout
@@ -389,7 +389,7 @@ def non_closure_correction(config, sample_path_list):
     )
 
     plotting.plot_correction(
-        corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config
+        corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config, save_path
     )
 
     plot_hists = dict()
@@ -399,7 +399,7 @@ def non_closure_correction(config, sample_path_list):
 
     data = "data_subtracted"
     samples = ["data_ff"]
-    plotting.plot_data_mc_ratio(
+    plotting.plot_data_mc(
         plot_hists,
         config,
         correction_conf["var_dependence"],
@@ -408,6 +408,7 @@ def non_closure_correction(config, sample_path_list):
         data,
         samples,
         {"incl": ""},
+        save_path,
     )
 
     return corr_def

@@ -415,7 +415,7 @@ def smooth_function(ff_hist, bin_edges):
     error_y_down = array.array("d", error_y_down)
 
     # sampling values for y based on a normal distribution with the measured statistical uncertainty
-    n_samples = 200
+    n_samples = 20
     sampled_y = list()
     for idx in range(len(x)):
         sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
@@ -425,7 +425,7 @@ def smooth_function(ff_hist, bin_edges):
     # calculate widths
     fit_y_binned = list()
 
-    n_bins = 100 * hist_bins
+    n_bins = 10 * hist_bins
     for i in range(n_bins):
         fit_y_binned.append(list())
 
@@ -532,79 +532,73 @@ def calculating_FF(rdf):
     return rdf
 
 
-def eval_QCD_FF(rdf):
+def eval_QCD_FF(rdf, config):
     import correctionlib
-
     correctionlib.register_pyroot_binding()
 
-    ROOT.gInterpreter.ProcessLine(
-        """
-        float calc_ff(float pt, int njets) {
-        float n_jets = njets;
+    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
 
-        auto qcd = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("QCD_fake_factors");
-        float qcd_ff;
-        
-        qcd_ff = qcd->evaluate({pt, n_jets, "nominal"});
-        return qcd_ff;
-        }"""
+    ROOT.gInterpreter.ProcessLine(
+        'float calc_ff_qcd(float pt, int njets) {'
+        + 'float n_jets = njets;'
+        + 'auto qcd = correction::CorrectionSet::from_file("{}")->at("QCD_fake_factors");'.format(ff_path)
+        + 'float qcd_ff;'
+        + 'qcd_ff = qcd->evaluate({pt, n_jets, "nominal"});'
+        + 'return qcd_ff;'
+        + '}'
     )
 
     rdf = rdf.Define(
         "QCD_fake_factor",
-        "calc_ff(pt_2,njets)",
+        "calc_ff_qcd(pt_2,njets)",
     )
 
     return rdf
 
 
-def eval_Wjets_FF(rdf):
+def eval_Wjets_FF(rdf, config):
     import correctionlib
-
     correctionlib.register_pyroot_binding()
 
+    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+
     ROOT.gInterpreter.ProcessLine(
-        """
-        float calc_ff(float pt, int njets) {
-        float n_jets = njets;
-    
-        auto wjets = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("Wjets_fake_factors");
-        float wjets_ff;
-        
-        wjets_ff = wjets->evaluate({pt, n_jets, "nominal"});
-        return wjets_ff;
-        }"""
+        'float calc_ff_wjets(float pt, int njets) {'
+        + 'float n_jets = njets;'
+        + 'auto wjets = correction::CorrectionSet::from_file("{}")->at("Wjets_fake_factors");'.format(ff_path)
+        + 'float wjets_ff;'
+        + 'wjets_ff = wjets->evaluate({pt, n_jets, "nominal"});'
+        + 'return wjets_ff;'
+        + '}'
     )
 
     rdf = rdf.Define(
         "Wjets_fake_factor",
-        "calc_ff(pt_2,njets)",
+        "calc_ff_wjets(pt_2,njets)",
     )
 
     return rdf
 
 
-def eval_ttbar_FF(rdf):
+def eval_ttbar_FF(rdf, config):
     import correctionlib
-
     correctionlib.register_pyroot_binding()
 
+    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+
     ROOT.gInterpreter.ProcessLine(
-        """
-        float calc_ff(float pt, int njets) {
-        float n_jets = njets;
-       
-        auto ttbar = correction::CorrectionSet::from_file("workdir/correction_test_v2/mt/fake_factors.json")->at("ttbar_fake_factors");
-        float ttbar_ff;
-        
-        ttbar_ff = ttbar->evaluate({pt, n_jets, "nominal"});
-        return ttbar_ff;
-        }"""
+        'float calc_ff_ttbar(float pt, int njets) {'
+        + 'float n_jets = njets;'
+        + 'auto ttbar = correction::CorrectionSet::from_file("{}")->at("ttbar_fake_factors");'.format(ff_path)
+        + 'float ttbar_ff;'
+        + 'ttbar_ff = ttbar->evaluate({pt, n_jets, "nominal"});'
+        + 'return ttbar_ff;'
+        + '}'
     )
 
     rdf = rdf.Define(
         "ttbar_fake_factor",
-        "calc_ff(pt_2,njets)",
+        "calc_ff_ttbar(pt_2,njets)",
     )
 
     return rdf

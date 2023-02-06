@@ -1,0 +1,29 @@
+# This is an example config containing information for the FF corrections
+
+workdir_name: "full_set_v4"
+era: "2018"
+channel: "mt" # options are et, mt, tt
+
+generate_json: True
+
+target_process:
+    QCD:
+        non_closure:
+            var_dependence: "pt_1"
+            var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        # SR_DR:
+        #     var_dependence: "m_vis"
+        #     var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+
+    Wjets:
+        non_closure:
+            var_dependence: "pt_1"
+            var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        # SR_DR:
+        #     var_dependence: "m_vis"
+        #     var_bins: [0,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,200,250]
+
+    ttbar:
+        non_closure:
+            var_dependence: "pt_1"
+            var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]

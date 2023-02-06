@@ -10,6 +10,8 @@ def region_filter(rdf, channel, cut_config, sample):
         rdf = filters.tau_pair_dR_cut(rdf, channel, cut_config["deltaR_ditaupair"])
     if "lep_mt" in cut_config:
         rdf = filters.lep_mt_cut(rdf, channel, cut_config)
+    if "lep_iso" in cut_config:
+        rdf = filters.lep_iso_cut(rdf, channel, cut_config)
     if "no_extra_lep" in cut_config:
         rdf = filters.no_extra_lep_cut(rdf, channel, cut_config)
     if "had_tau_id_vs_jet" in cut_config:

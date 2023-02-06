@@ -14,7 +14,7 @@ import helper.plotting as plotting
 from FF_calculation.FF_region_filters import region_filter
 
 
-def calculation_QCD_FFs(config, sample_path_list):
+def calculation_QCD_FFs(config, sample_path_list, save_path):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -134,7 +134,7 @@ def calculation_QCD_FFs(config, sample_path_list):
             [FF_hist.Clone(), FF_hist_up, FF_hist_down], process_conf["var_bins"]
         )
 
-        plotting.plot_FFs(FF_hist, fit_graphs, "QCD", config, split)
+        plotting.plot_FFs(FF_hist, fit_graphs, "QCD", config, split, save_path)
 
         if len(split) == 1:
             cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
@@ -188,6 +188,7 @@ def calculation_QCD_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         plotting.plot_data_mc(
             ARlike_hists,
@@ -198,20 +199,21 @@ def calculation_QCD_FFs(config, sample_path_list):
             data,
             samples,
             split,
+            save_path,
         )
         print("-" * 50)
 
     return cs_expressions
 
 
-def non_closure_correction(config, sample_path_list):
+def non_closure_correction(config, corr_config, sample_path_list, save_path):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["QCD"]
-    correction_conf = process_conf["corrections"]["non_closure"]
+    process_conf = config["target_process"]["QCD"].copy()
+    correction_conf = corr_config["target_process"]["QCD"]["non_closure"]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -252,7 +254,7 @@ def non_closure_correction(config, sample_path_list):
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            rdf_ARlike = func.eval_QCD_FF(rdf_ARlike)
+            rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config)
             rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
 
         # redirecting C++ stdout for Report() to python stdout
@@ -283,7 +285,7 @@ def non_closure_correction(config, sample_path_list):
             h = rdf_ARlike.Histo1D(
                 (
                     correction_conf["var_dependence"],
-                    "{}".format(sample),
+                    "{}_ff".format(sample),
                     nbinsx,
                     xbinning,
                 ),
@@ -311,7 +313,7 @@ def non_closure_correction(config, sample_path_list):
     )
 
     plotting.plot_correction(
-        corr_hist, smooth_graph, correction_conf["var_dependence"], "QCD", config
+        corr_hist, smooth_graph, correction_conf["var_dependence"], "QCD", config, save_path
     )
 
     plot_hists = dict()
@@ -332,6 +334,7 @@ def non_closure_correction(config, sample_path_list):
         data,
         samples,
         {"incl": ""},
+        save_path,
     )
 
     return corr_def
