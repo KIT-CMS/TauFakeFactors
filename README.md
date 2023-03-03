@@ -10,52 +10,70 @@ conda env create --file environment.yaml
 ## Event preselection
 This framework is designed for n-tuples produced with CROWN as input. 
 
-All information for the preselection step is defined in a configuration file in the `configs` folder. 
+All information for the preselection step is defined in a configuration file in the `configs/` folder. 
 The preselection config has the following options:
 
-* the expected input folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
-    * `ntuple_path`: `string` absolute path to the folder with the n-tuples
-    * `era`: `string` data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
-    * `channel`: `string` tau pair decay channels ("et", "mt", "tt")
-    * `tree`: `string` name of the tree in the n-tuple files (in CROWN "ntuple")
-* the output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
-    * `output_path`: `string` absolute path where the files with the preselected events will be stored
-* `processes`: `list` of processes that should be preprocessed, the names are used for the output file naming \
-  each process needs two specifications:
-    * `tau_gen_modes`: split of the events corresponding to the origin of the hadronic tau
-        * `T`: `string` genuine tau
-        * `J`: `string` jet misidentified as a tau
-        * `L`: `string` lepton misidentified as a tau
-        * `all`: `string` if no split should be performed
-    * `samples`: `list` of all sample tags corresponding to the process
-* `event_selection`: `list` of all selections that should be applied \
-  currently implemented options:
-    * `had_tau_pt`: `string` threshold for the transverse momentum of the hadronic tau in GeV (e.g. ">30")
-    * `had_tau_eta`: `string` threshold for the pseudo rapidity of the hadronic tau as absolute value (e.g. "<2.3")
-    * `had_tau_decay_mode`: `list` of all tau decay modes to consider (e.g. ["0","1"])
-    * `had_tau_id_vs_ele`: `string` working point for the tau ID vs electron (e.g. "Tight")
-    * `had_tau_id_vs_mu`: `string` working point for the tau ID vs muon (e.g. "VLoose")
-    * `lep_iso`: `string` threshold for the lepton (e/mu) isolation (e.g. "<0.15")
-    * `trigger`: `bool` True if a trigger selection should be applied, False otherwise
-* `mc_weights`: `list` of weights that should be applied for simulated samples \
-  options are:
-    * `generator`: `string` generator weight from MC production
-    * `lumi`: `string` luminosity scaling
-    * `pileup`: `string` pileup weight
-    * `lep_iso`: `string` lepton (e/mu) isolation scale factor
-    * `lep_id`: `string` lepton (e/mu) identification scale factor
-    * `had_tau_id_vs_ele`: `string` tau ID vs electron scale factor for the working point chosen in the `event_selection`
-    * `had_tau_id_vs_mu`: `string` tau ID vs muon scale factor for the working point chosen in the `event_selection`
-    * `trigger`: `string` trigger scale factor
-    * `Z_pt_reweight`: `string` reweighting of the Z boson pt
-    * `Top_pt_reweight`: `string` reweighting of the top quark pt
+* The expected input folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
+    parameter | type | description
+    ---|---|---
+    `ntuple_path` | `string` | absolute path to the folder with the n-tuples or remote via xrootd
+    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+    `tree` | `string` | name of the tree in the n-tuple files (in CROWN "ntuple")
+* The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
+    parameter | type | description
+    ---|---|---
+    `output_path` | `string` | absolute path where the files with the preselected events will be stored
+* In `processes` all the processes are defined that should be preprocessed. \
+  The names are also used for the output file naming after the processing. \
+  Each process needs two specifications:
+    parameter | type | description
+    ---|---|---
+    `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau
+    `samples` | `list` | list of all sample tags corresponding to the specific process
+  
+  The `tau_gen_modes` have following modes:
+    parameter | type | description
+    ---|---|---
+    `T` | `string` | genuine tau
+    `J` | `string` | jet misidentified as a tau
+    `L` | `string` | lepton misidentified as a tau
+    `all` | `string` | if no split should be performed
 
-* `emb_weights`: `list` of weights that should be applied for embedded samples \
-  options are:
-    * `generator`: `string` generator weight from MC production
-    * `lep_iso`: `string` lepton (e/mu) isolation scale factor
-    * `lep_id`: `string` lepton (e/mu) identification scale factor
-    * `trigger`: `string` trigger scale factor
+* In `event_selection`, parameter for all selections that should be applied are defined. \
+  Currently implemented options are:
+    parameter | type | description
+    ---|---|---
+    `had_tau_pt` | `string` | threshold for the transverse momentum of the hadronic tau in GeV (e.g. ">30")
+    `had_tau_eta` | `string` | threshold for the pseudo rapidity of the hadronic tau as absolute value (e.g. "<2.3")
+    `had_tau_decay_mode` | `list` | of all tau decay modes to consider (e.g. ["0","1"])
+    `had_tau_id_vs_ele` | `string` | working point for the tau ID vs electron (e.g. "Tight")
+    `had_tau_id_vs_mu` | `string` | working point for the tau ID vs muon (e.g. "VLoose")
+    `lep_iso` | `string` | threshold for the lepton (e/mu) isolation (e.g. "<0.15")
+    `trigger` | `bool` | True if a trigger selection should be applied, False otherwise
+* In `mc_weights` all weights that should be applied for simulated samples are defined. \
+  Currently implemented options are:
+    parameter | type | description
+    ---|---|---
+    `generator` | `string` | generator weight from MC production
+    `lumi` | `string` | luminosity scaling
+    `pileup` | `string` | pileup weight
+    `lep_iso` | `string` | lepton (e/mu) isolation scale factor
+    `lep_id` | `string` | lepton (e/mu) identification scale factor
+    `had_tau_id_vs_ele` | `string` | tau ID vs electron scale factor for the working point chosen in the `event_selection`
+    `had_tau_id_vs_mu` | `string` | tau ID vs muon scale factor for the working point chosen in the `event_selection`
+    `trigger` | `string` | trigger scale factor
+    `Z_pt_reweight` | `string` | reweighting of the Z boson pt
+    `Top_pt_reweight` | `string` | reweighting of the top quark pt
+
+* In `emb_weights` all weights that should be applied for embedded samples are defined. \
+  Currently implemented options are:
+    parameter | type | description
+    ---|---|---
+    `generator` | `string` | generator weight from MC production
+    `lep_iso` | `string` | lepton (e/mu) isolation scale factor
+    `lep_id` | `string` | lepton (e/mu) identification scale factor
+    `trigger` | `string` | trigger scale factor
 
 Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. 
 
