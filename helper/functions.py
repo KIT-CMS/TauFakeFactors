@@ -8,7 +8,6 @@ import glob
 import array
 import numpy as np
 import ROOT
-import XRootD.client.glob_funcs as xrd_glob
 
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -36,26 +35,10 @@ def get_ntuples(config, sample):
         )
     )
     print("-" * 50)
-
-    sample_path_list = xrd_glob.glob(sample_paths)
-    cleaned_sample_path_list = xrd_glob.glob(sample_paths)
-
-    for f in sample_path_list:
-        if check_for_empty_file(f, config["tree"]):
-            print(f)
-        else:
-            print(
-                "File {} has no {} tree. Removed from file list.".format(
-                    f, config["tree"]
-                )
-            )
-            cleaned_sample_path_list.remove(f)
+    print(sample_paths)
     print("-" * 50)
 
-    if cleaned_sample_path_list == []:
-        sys.exit("Input files: No files found for {}".format(sample))
-
-    return cleaned_sample_path_list
+    return sample_paths
 
 
 def get_samples(config):
@@ -132,6 +115,19 @@ def check_categories(config):
                     cat
                 )
             )
+
+
+def modify_config(config, process, corr_config):
+    if "SRlike_cuts" in corr_config:
+        for mod in corr_config["SRlike_cuts"]:
+            config["target_process"][process]["SRlike_cuts"][mod] = corr_config[
+                "SRlike_cuts"
+            ][mod]
+    if "ARlike_cuts" in corr_config:
+        for mod in corr_config["ARlike_cuts"]:
+            config["target_process"][process]["ARlike_cuts"][mod] = corr_config[
+                "ARlike_cuts"
+            ][mod]
 
 
 def get_split_combinations(categories):
@@ -396,7 +392,6 @@ def fit_function(ff_hist, bin_edges):
 
 
 def smooth_function(ff_hist, bin_edges):
-
     hist_bins = ff_hist.GetNbinsX()
 
     x = list()
@@ -425,12 +420,15 @@ def smooth_function(ff_hist, bin_edges):
     # calculate widths
     fit_y_binned = list()
 
-    n_bins = 10 * hist_bins
+    n_bins = 100 * hist_bins
     for i in range(n_bins):
         fit_y_binned.append(list())
 
-    eval_bin_edges = np.linspace(bin_edges[0], bin_edges[-1], (n_bins + 1))
-    bin_half = (eval_bin_edges[1] - eval_bin_edges[0]) / 2.0
+    eval_bin_edges, bin_step = np.linspace(
+        bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True
+    )
+    bin_range = bin_edges[-1] - bin_edges[0]
+    bin_half = bin_step / 2.0
     smooth_x = (eval_bin_edges + bin_half)[:-1]
     smooth_x = array.array("d", smooth_x)
 
@@ -438,7 +436,7 @@ def smooth_function(ff_hist, bin_edges):
         y_arr = array.array("d", sampled_y[:, sample])
         graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", 20.0, n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", (bin_range / 3.0), n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
@@ -477,6 +475,13 @@ def calculate_non_closure_correction(SRlike, ARlike):
 
     corr.Divide(predicted)
     return corr, frac
+
+
+def calculate_non_closure_correction_Wjets(SRlike, ARlike):
+    corr = SRlike["Wjets"].Clone()
+    predicted = ARlike["Wjets_ff"].Clone()
+    corr.Divide(predicted)
+    return corr
 
 
 def calculate_non_closure_correction_ttbar(SRlike, ARlike):
@@ -532,20 +537,40 @@ def calculating_FF(rdf):
     return rdf
 
 
-def eval_QCD_FF(rdf, config):
+def eval_QCD_FF(rdf, config, for_correction=False):
     import correctionlib
+
     correctionlib.register_pyroot_binding()
 
-    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+    if not for_correction:
+        ff_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+        )
+    else:
+        ff_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/corrections/{ch}/fake_factors_{ch}_for_corrections.json".format(
+                ch=config["channel"]
+            )
+        )
 
     ROOT.gInterpreter.ProcessLine(
-        'float calc_ff_qcd(float pt, int njets) {'
-        + 'float n_jets = njets;'
-        + 'auto qcd = correction::CorrectionSet::from_file("{}")->at("QCD_fake_factors");'.format(ff_path)
-        + 'float qcd_ff;'
+        "float calc_ff_qcd(float pt, int njets) {"
+        + "float n_jets = njets;"
+        + 'auto qcd = correction::CorrectionSet::from_file("{}")->at("QCD_fake_factors");'.format(
+            ff_path
+        )
+        + "float qcd_ff;"
         + 'qcd_ff = qcd->evaluate({pt, n_jets, "nominal"});'
-        + 'return qcd_ff;'
-        + '}'
+        + "return qcd_ff;"
+        + "}"
     )
 
     rdf = rdf.Define(
@@ -556,20 +581,40 @@ def eval_QCD_FF(rdf, config):
     return rdf
 
 
-def eval_Wjets_FF(rdf, config):
+def eval_Wjets_FF(rdf, config, for_correction=False):
     import correctionlib
+
     correctionlib.register_pyroot_binding()
 
-    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+    if not for_correction:
+        ff_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+        )
+    else:
+        ff_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/corrections/{ch}/fake_factors_{ch}_for_corrections.json".format(
+                ch=config["channel"]
+            )
+        )
 
     ROOT.gInterpreter.ProcessLine(
-        'float calc_ff_wjets(float pt, int njets) {'
-        + 'float n_jets = njets;'
-        + 'auto wjets = correction::CorrectionSet::from_file("{}")->at("Wjets_fake_factors");'.format(ff_path)
-        + 'float wjets_ff;'
+        "float calc_ff_wjets(float pt, int njets) {"
+        + "float n_jets = njets;"
+        + 'auto wjets = correction::CorrectionSet::from_file("{}")->at("Wjets_fake_factors");'.format(
+            ff_path
+        )
+        + "float wjets_ff;"
         + 'wjets_ff = wjets->evaluate({pt, n_jets, "nominal"});'
-        + 'return wjets_ff;'
-        + '}'
+        + "return wjets_ff;"
+        + "}"
     )
 
     rdf = rdf.Define(
@@ -582,18 +627,27 @@ def eval_Wjets_FF(rdf, config):
 
 def eval_ttbar_FF(rdf, config):
     import correctionlib
+
     correctionlib.register_pyroot_binding()
 
-    ff_path = "workdir/" + config["workdir_name"] + "/" + config["era"] + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+    ff_path = (
+        "workdir/"
+        + config["workdir_name"]
+        + "/"
+        + config["era"]
+        + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+    )
 
     ROOT.gInterpreter.ProcessLine(
-        'float calc_ff_ttbar(float pt, int njets) {'
-        + 'float n_jets = njets;'
-        + 'auto ttbar = correction::CorrectionSet::from_file("{}")->at("ttbar_fake_factors");'.format(ff_path)
-        + 'float ttbar_ff;'
+        "float calc_ff_ttbar(float pt, int njets) {"
+        + "float n_jets = njets;"
+        + 'auto ttbar = correction::CorrectionSet::from_file("{}")->at("ttbar_fake_factors");'.format(
+            ff_path
+        )
+        + "float ttbar_ff;"
         + 'ttbar_ff = ttbar->evaluate({pt, n_jets, "nominal"});'
-        + 'return ttbar_ff;'
-        + '}'
+        + "return ttbar_ff;"
+        + "}"
     )
 
     rdf = rdf.Define(

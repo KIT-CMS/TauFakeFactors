@@ -31,9 +31,13 @@ if __name__ == "__main__":
     with open("configs/" + args.config + ".yaml", "r") as file:
         config = yaml.load(file, yaml.FullLoader)
 
-    save_path_ffs = "workdir/{}/{}/fake_factors".format(config["workdir_name"], config["era"])
+    save_path_ffs = "workdir/{}/{}/fake_factors".format(
+        config["workdir_name"], config["era"]
+    )
     func.check_output_path(os.getcwd() + "/" + save_path_ffs)
-    save_path_plots = "workdir/{}/{}/fake_factors/{}".format(config["workdir_name"], config["era"], config["channel"])
+    save_path_plots = "workdir/{}/{}/fake_factors/{}".format(
+        config["workdir_name"], config["era"], config["channel"]
+    )
     func.check_output_path(os.getcwd() + "/" + save_path_plots)
 
     # start output logging
@@ -74,9 +78,7 @@ if __name__ == "__main__":
                 processes.append(process)
             else:
                 sys.exit(
-                    "Target process: Such a process is not defined: {}".format(
-                        process
-                    )
+                    "Target process: Such a process is not defined: {}".format(process)
                 )
             fake_factors[process] = cs_expressions
 
@@ -89,7 +91,14 @@ if __name__ == "__main__":
         )
 
     if config["generate_json"]:
-        cs.generate_ff_cs_json(config, save_path_ffs, fake_factors, fractions=fractions, processes=processes, for_corrections=False)
+        cs.generate_ff_cs_json(
+            config,
+            save_path_ffs,
+            fake_factors,
+            fractions=fractions,
+            processes=processes,
+            for_corrections=False,
+        )
 
     # dumping config to output directory for documentation
     with open(save_path_plots + "/config.yaml", "w") as config_file:

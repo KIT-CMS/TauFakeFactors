@@ -161,7 +161,9 @@ def had_tau_id_vsJet_cut(rdf, channel, config):
             )
         elif channel == "tt":
             rdf = rdf.Filter(
-                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
+                "(id_tau_vsJet_{WP}_1 > 0.5) && (id_tau_vsJet_{WP}_2 > 0.5)".format(
+                    WP=config["had_tau_id_vs_jet"]
+                ),
                 "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
             )
         else:
@@ -196,7 +198,7 @@ def had_tau_id_vsJet_cut(rdf, channel, config):
             )
         elif channel == "tt":
             rdf = rdf.Filter(
-                "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
+                "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5) && (id_tau_vsJet_{lower_WP}_1 > 0.5) && (id_tau_vsJet_{upper_WP}_1 < 0.5)".format(
                     lower_WP=config["had_tau_id_vs_jet"][0],
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
@@ -254,10 +256,7 @@ def lep_mt_cut(rdf, channel, config):
             "W boson origin cut on lepton mT {}".format(config["lep_mt"]),
         )
     elif channel == "tt":
-        rdf = rdf.Filter(
-            "(mt_1 {})".format(config["lep_mt"]),
-            "W boson origin cut on lepton mT {}".format(config["lep_mt"]),
-        )
+        pass
     else:
         sys.exit(
             "Eventfilter: lepton transverse mass: Such a channel is not defined: {}".format(
@@ -497,13 +496,14 @@ def emb_tau_gen_match(rdf, channel):
         )
     elif channel == "mt":
         rdf = rdf.Filter(
-            #"(gen_match_1 == 4) && (gen_match_2 == 5)",
+            # "(gen_match_1 == 4) && (gen_match_2 == 5)",
             "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "tt":
         rdf = rdf.Filter(
-            "(gen_match_1 == 5) && (gen_match_2 == 5)",
+            # "(gen_match_1 == 5) && (gen_match_2 == 5)",
+            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     else:

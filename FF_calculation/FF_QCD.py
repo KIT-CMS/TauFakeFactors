@@ -4,6 +4,7 @@ Function for calculating fake factors for the QCD process
 
 import sys
 import array
+import copy
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -206,14 +207,18 @@ def calculation_QCD_FFs(config, sample_path_list, save_path):
     return cs_expressions
 
 
-def non_closure_correction(config, corr_config, sample_path_list, save_path):
+def non_closure_correction(
+    config, corr_config, closure_variable, sample_path_list, save_path
+):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["QCD"].copy()
-    correction_conf = corr_config["target_process"]["QCD"]["non_closure"]
+    process_conf = copy.deepcopy(config["target_process"]["QCD"])
+    correction_conf = corr_config["target_process"]["QCD"]["non_closure"][
+        closure_variable
+    ]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -229,7 +234,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
-        region_cut_conf = process_conf["SRlike_cuts"].copy()
+        region_cut_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the signal-like region. Target process: {}\n".format(
@@ -244,7 +249,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         print("-" * 50)
 
         # event filter for QCD application-like region
-        region_cut_conf = process_conf["ARlike_cuts"].copy()
+        region_cut_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the application-like region. Target process: {}\n".format(
@@ -313,7 +318,13 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
     )
 
     plotting.plot_correction(
-        corr_hist, smooth_graph, correction_conf["var_dependence"], "QCD", config, save_path
+        corr_hist,
+        smooth_graph,
+        correction_conf["var_dependence"],
+        "QCD",
+        "non_closure_" + closure_variable,
+        config,
+        save_path,
     )
 
     plot_hists = dict()
@@ -330,7 +341,150 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         config,
         correction_conf["var_dependence"],
         "QCD",
-        "non_closure",
+        "non_closure_" + closure_variable,
+        data,
+        samples,
+        {"incl": ""},
+        save_path,
+    )
+
+    return corr_def
+
+
+def DR_SR_correction(config, corr_config, sample_path_list, save_path):
+    # init histogram dict for FF measurement
+    SRlike_hists = dict()
+    ARlike_hists = dict()
+
+    # get process specific config information
+    process_conf = copy.deepcopy(config["target_process"]["QCD"])
+    # change cuts from SRlike/ARlike to SR/AR
+    process_conf["SRlike_cuts"]["tau_pair_sign"] = "opposite"
+    process_conf["ARlike_cuts"]["tau_pair_sign"] = "opposite"
+    correction_conf = corr_config["target_process"]["QCD"]["DR_SR"]
+
+    for sample_path in sample_path_list:
+        # getting the name of the process from the sample path
+        sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
+        print(
+            "Processing {sample} for the DR to SR correction for {process}.".format(
+                sample=sample,
+                process="QCD",
+            )
+        )
+        print("-" * 50)
+
+        rdf = ROOT.RDataFrame(config["tree"], sample_path)
+
+        # event filter for QCD signal-like region
+        region_cut_conf = copy.deepcopy(process_conf["SRlike_cuts"])
+        rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
+        print(
+            "Filtering events for the signal-like region. Target process: {}\n".format(
+                "QCD"
+            )
+        )
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_SRlike.Report().Print()
+        print(out.getvalue())
+        print("-" * 50)
+
+        # event filter for QCD application-like region
+        region_cut_conf = copy.deepcopy(process_conf["ARlike_cuts"])
+        rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
+        print(
+            "Filtering events for the application-like region. Target process: {}\n".format(
+                "QCD"
+            )
+        )
+
+        # evaluate the measured fake factors for the specific processes
+        if sample == "data":
+            rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config, for_correction=True)
+            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+
+        # redirecting C++ stdout for Report() to python stdout
+        out = StringIO()
+        with pipes(stdout=out, stderr=STDOUT):
+            rdf_ARlike.Report().Print()
+        print(out.getvalue())
+        print("-" * 50)
+
+        # get binning of the dependent variable
+        xbinning = array.array("d", correction_conf["var_bins"])
+        nbinsx = len(correction_conf["var_bins"]) - 1
+
+        # making the histograms
+        h = rdf_SRlike.Histo1D(
+            (correction_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+            correction_conf["var_dependence"],
+            "weight",
+        )
+        SRlike_hists[sample] = h.GetValue()
+
+        h = rdf_ARlike.Histo1D(
+            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+        )
+        ARlike_hists[sample] = h.GetValue()
+
+        if sample == "data":
+            h = rdf_ARlike.Histo1D(
+                (
+                    correction_conf["var_dependence"],
+                    "{}_ff".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
+                correction_conf["var_dependence"],
+                "weight_ff",
+            )
+            ARlike_hists["data_ff"] = h.GetValue()
+
+    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
+    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+
+    for hist in SRlike_hists:
+        if hist not in ["data", "data_subtracted", "QCD"]:
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+    for hist in ARlike_hists:
+        if hist not in ["data", "data_subtracted", "data_ff", "QCD"]:
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+
+    corr_hist, proc_frac = func.calculate_non_closure_correction(
+        SRlike_hists, ARlike_hists
+    )
+
+    smooth_graph, corr_def = func.smooth_function(
+        corr_hist.Clone(), correction_conf["var_bins"]
+    )
+
+    plotting.plot_correction(
+        corr_hist,
+        smooth_graph,
+        correction_conf["var_dependence"],
+        "QCD",
+        "DR_SR",
+        config,
+        save_path,
+    )
+
+    plot_hists = dict()
+
+    plot_hists["data_subtracted"] = SRlike_hists["data_subtracted"].Clone()
+    plot_hists["data_ff"] = ARlike_hists["data_ff"].Clone()
+    plot_hists["data_ff"].Scale(proc_frac)
+
+    data = "data_subtracted"
+    samples = ["data_ff"]
+
+    plotting.plot_data_mc(
+        plot_hists,
+        config,
+        correction_conf["var_dependence"],
+        "QCD",
+        "DR_SR",
         data,
         samples,
         {"incl": ""},

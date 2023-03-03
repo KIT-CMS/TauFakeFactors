@@ -4,6 +4,7 @@ Function for calculating fake factors for the W-jets process
 
 import sys
 import array
+import copy
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -290,7 +291,9 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
     return cs_expressions
 
 
-def non_closure_correction(config, corr_config, sample_path_list, save_path):
+def non_closure_correction(
+    config, corr_config, closure_variable, sample_path_list, save_path
+):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -300,8 +303,10 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
     ARlike_hists_qcd = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["Wjets"].copy()
-    correction_conf = corr_config["target_process"]["Wjets"]["non_closure"]
+    process_conf = copy.deepcopy(config["target_process"]["Wjets"])
+    correction_conf = corr_config["target_process"]["Wjets"]["non_closure"][
+        closure_variable
+    ]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -317,7 +322,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for Wjets signal-like region
-        region_cut_conf = process_conf["SRlike_cuts"].copy()
+        region_cut_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the signal-like region. Target process: {}\n".format(
@@ -347,7 +352,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         print("-" * 50)
 
         # event filter for Wjets application-like region
-        region_cut_conf = process_conf["ARlike_cuts"].copy()
+        region_cut_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for the application-like region. Target process: {}\n".format(
@@ -425,21 +430,20 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
-
     # calculate QCD estimation
     SRlike_hists["QCD"] = func.QCD_SS_estimate(SRlike_hists_qcd)
     ARlike_hists["QCD"] = func.QCD_SS_estimate(ARlike_hists_qcd)
-    
+
     SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
     ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
-    
+
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
             SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "data_ff", "Wjets"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
-    
+
     corr_hist, proc_frac = func.calculate_non_closure_correction(
         SRlike_hists, ARlike_hists
     )
@@ -447,11 +451,17 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
     smooth_graph, corr_def = func.smooth_function(
         corr_hist.Clone(), correction_conf["var_bins"]
     )
-   
+
     plotting.plot_correction(
-        corr_hist.Clone(), smooth_graph, correction_conf["var_dependence"], "Wjets", config, save_path
+        corr_hist.Clone(),
+        smooth_graph,
+        correction_conf["var_dependence"],
+        "Wjets",
+        "non_closure_" + closure_variable,
+        config,
+        save_path,
     )
-    
+
     plot_hists = dict()
 
     plot_hists["data_subtracted"] = SRlike_hists["data_subtracted"].Clone()
@@ -465,11 +475,139 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         config,
         correction_conf["var_dependence"],
         "Wjets",
-        "non_closure",
+        "non_closure_" + closure_variable,
         data,
         samples,
         {"incl": ""},
         save_path,
     )
-    
+
+    return corr_def
+
+
+def DR_SR_correction(config, corr_config, sample_path_list, save_path):
+    # init histogram dict for FF measurement
+    SRlike_hists = dict()
+    ARlike_hists = dict()
+
+    # get process specific config information
+    process_conf = copy.deepcopy(config["target_process"]["Wjets"])
+    # change cuts from SRlike/ARlike to SR/AR
+    process_conf["SRlike_cuts"]["nbtag"] = ">=1"
+    process_conf["ARlike_cuts"]["nbtag"] = ">=1"
+    correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"]
+
+    for sample_path in sample_path_list:
+        # getting the name of the process from the sample path
+        sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
+        if sample == "Wjets":
+            print(
+                "Processing {sample} for the DR to SR correction for {process}.".format(
+                    sample=sample,
+                    process="Wjets",
+                )
+            )
+            print("-" * 50)
+
+            rdf = ROOT.RDataFrame(config["tree"], sample_path)
+
+            # event filter for Wjets signal-like region
+            region_cut_conf = copy.deepcopy(process_conf["SRlike_cuts"])
+            rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for the signal-like region. Target process: {}\n".format(
+                    "Wjets"
+                )
+            )
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SRlike.Report().Print()
+            print(out.getvalue())
+            print("-" * 50)
+
+            # event filter for Wjets application-like region
+            region_cut_conf = copy.deepcopy(process_conf["ARlike_cuts"])
+            rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
+            print(
+                "Filtering events for the application-like region. Target process: {}\n".format(
+                    "Wjets"
+                )
+            )
+
+            # evaluate the measured fake factors for the specific processes
+            rdf_ARlike = func.eval_Wjets_FF(rdf_ARlike, config, for_correction=True)
+            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
+
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_ARlike.Report().Print()
+            print(out.getvalue())
+            print("-" * 50)
+
+            # get binning of the dependent variable
+            xbinning = array.array("d", correction_conf["var_bins"])
+            nbinsx = len(correction_conf["var_bins"]) - 1
+
+            # making the histograms
+            h = rdf_SRlike.Histo1D(
+                (
+                    correction_conf["var_dependence"],
+                    "{}".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
+                correction_conf["var_dependence"],
+                "weight",
+            )
+            SRlike_hists[sample] = h.GetValue()
+
+            h = rdf_ARlike.Histo1D(
+                (
+                    correction_conf["var_dependence"],
+                    "{}_ff".format(sample),
+                    nbinsx,
+                    xbinning,
+                ),
+                correction_conf["var_dependence"],
+                "weight_ff",
+            )
+            ARlike_hists["Wjets_ff"] = h.GetValue()
+
+    corr_hist = func.calculate_non_closure_correction_Wjets(SRlike_hists, ARlike_hists)
+
+    smooth_graph, corr_def = func.smooth_function(
+        corr_hist.Clone(), correction_conf["var_bins"]
+    )
+
+    plotting.plot_correction(
+        corr_hist.Clone(),
+        smooth_graph,
+        correction_conf["var_dependence"],
+        "Wjets",
+        "DR_SR",
+        config,
+        save_path,
+    )
+
+    plot_hists = dict()
+
+    plot_hists["data_subtracted"] = SRlike_hists["Wjets"].Clone()
+    plot_hists["data_ff"] = ARlike_hists["Wjets_ff"].Clone()
+
+    data = "data_subtracted"
+    samples = ["data_ff"]
+    plotting.plot_data_mc(
+        plot_hists,
+        config,
+        correction_conf["var_dependence"],
+        "Wjets",
+        "DR_SR",
+        data,
+        samples,
+        {"incl": ""},
+        save_path,
+    )
+
     return corr_def

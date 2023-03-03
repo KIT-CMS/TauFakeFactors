@@ -9,6 +9,7 @@ var_dict = {
     "pt_2": "tau_pt",
     "pt_1": "lep_pt",
     "mt_1": "lep_mt",
+    "iso_1": "lep_iso",
     "m_vis": "m_vis",
     "njets": "njets",
     "nbtag": "nbtags",
@@ -21,6 +22,7 @@ var_type = {
     "pt_2": "real",
     "pt_1": "real",
     "mt_1": "real",
+    "iso_1": "real",
     "m_vis": "real",
     "njets": "real",
     "nbtag": "real",
@@ -29,8 +31,9 @@ var_type = {
 var_discription = {
     "pt_2": "transverse momentum of the hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "pt_1": "transverse momentum of the leptonic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
     "mt_1": "transverse mass of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
-    "m_vis": "invariant mass of the visible tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
+    "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
@@ -47,7 +50,9 @@ def cat_transalator(c):
         sys.exit("Category splitting is only defined up to 2 dimensions.")
 
 
-def generate_ff_cs_json(config, save_path, ff_functions, fractions=None, processes=[], for_corrections=False):
+def generate_ff_cs_json(
+    config, save_path, ff_functions, fractions=None, processes=[], for_corrections=False
+):
     cs_corrections = list()
 
     if "QCD" in processes:
@@ -158,17 +163,29 @@ def generate_ff_cs_json(config, save_path, ff_functions, fractions=None, process
     )
 
     if not for_corrections:
-        with open(save_path + "/fake_factors_{}.json".format(config["channel"]), "w") as fout:
+        with open(
+            save_path + "/fake_factors_{}.json".format(config["channel"]), "w"
+        ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
-        with gzip.open(save_path + "/fake_factors_{}.json.gz".format(config["channel"]), "wt") as fout:
+        with gzip.open(
+            save_path + "/fake_factors_{}.json.gz".format(config["channel"]), "wt"
+        ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
     elif for_corrections:
-        with open(save_path + "/fake_factors_{}_for_corrections.json".format(config["channel"]), "w") as fout:
+        with open(
+            save_path
+            + "/fake_factors_{}_for_corrections.json".format(config["channel"]),
+            "w",
+        ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
-        with gzip.open(save_path + "/fake_factors_{}_for_corrections.json.gz".format(config["channel"]), "wt") as fout:
+        with gzip.open(
+            save_path
+            + "/fake_factors_{}_for_corrections.json.gz".format(config["channel"]),
+            "wt",
+        ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
 
@@ -212,7 +229,7 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=unc,
+                    key=process + unc,
                     value=cs.Binning(
                         nodetype="binning",
                         input=var_dict[cat_inputs[0]],
@@ -344,7 +361,7 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=unc,
+                    key=process + unc,
                     value=cs.Binning(
                         nodetype="binning",
                         input=var_dict[cat_inputs[0]],
@@ -558,7 +575,9 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
 
 
 corr_unc_dict = {
-    "non_closure": "nonClosure",
+    "non_closure_lep_pt": "nonClosureLepPt",
+    "non_closure_lep_iso": "nonClosureLepIso",
+    "DR_SR": "DRtoSR",
 }
 
 
@@ -568,7 +587,13 @@ def generate_corr_cs_json(config, corrections, save_path):
 
     for process in corrections.keys():
         for correction in corrections[process].keys():
-            var = config["target_process"][process][correction]["var_dependence"]
+            if "non_closure" in correction:
+                corr_var = correction.split("non_closure_")[1]
+                var = config["target_process"][process]["non_closure"][corr_var][
+                    "var_dependence"
+                ]
+            else:
+                var = config["target_process"][process][correction]["var_dependence"]
             corr_dict = corrections[process][correction]
             corr = make_1D_correction(process, var, correction, corr_dict)
             cs_ff_corrections.append(corr)
@@ -579,10 +604,14 @@ def generate_corr_cs_json(config, corrections, save_path):
         corrections=cs_ff_corrections,
     )
 
-    with open(save_path + "/FF_corrections.json", "w") as fout:
+    with open(
+        save_path + "/FF_corrections_{}.json".format(config["channel"]), "w"
+    ) as fout:
         fout.write(cset.json(exclude_unset=True, indent=4))
 
-    with gzip.open(save_path + "/FF_corrections.json.gz", "wt") as fout:
+    with gzip.open(
+        save_path + "/FF_corrections_{}.json.gz".format(config["channel"]), "wt"
+    ) as fout:
         fout.write(cset.json(exclude_unset=True, indent=4))
 
 
@@ -619,7 +648,7 @@ def make_1D_correction(process, variable, correction, corr_dict):
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key="{}CorrUp".format(corr_unc_dict[correction]),
+                    key=process + "{}CorrUp".format(corr_unc_dict[correction]),
                     value=cs.Binning(
                         nodetype="binning",
                         input=var_dict[variable],
@@ -629,7 +658,7 @@ def make_1D_correction(process, variable, correction, corr_dict):
                     ),
                 ),
                 cs.CategoryItem(
-                    key="{}CorrDown".format(corr_unc_dict[correction]),
+                    key=process + "{}CorrDown".format(corr_unc_dict[correction]),
                     value=cs.Binning(
                         nodetype="binning",
                         input=var_dict[variable],

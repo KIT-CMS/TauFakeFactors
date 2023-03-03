@@ -61,8 +61,9 @@ var_dict = {
     "eta_2": "#eta(#tau_{h})",
     "phi_1": "#phi(e/#mu)",
     "phi_2": "#phi(#tau_{h})",
+    "iso_1": "isolation (e/#mu)",
     "mt_1": "m_{T}(e/#mu) (GeV)",
-    "m_vis": "m_{vis}(#tau_{h}) (GeV)",
+    "m_vis": "m_{vis} (GeV)",
     "mjj": "m_{jj} (GeV)",
     "met": "MET (GeV)",
     "metphi": "MET #phi",
@@ -202,7 +203,12 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     mc.Draw("E2 SAME")
 
     obs = hists[data]
-    stack.SetMaximum(obs.GetMaximum() + 0.4 * obs.GetMaximum())
+    stack.SetMaximum(
+        max(
+            obs.GetMaximum() + 0.4 * obs.GetMaximum(),
+            stack.GetMaximum() + 0.4 * stack.GetMaximum(),
+        )
+    )
     obs.SetMarkerStyle(20)
     obs.SetMarkerSize(1.2)
     obs.SetLineWidth(2)
@@ -266,7 +272,9 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     c.Close()
 
 
-def plot_data_mc_ratio(hists, config, var, process, region, data, samples, split, save_path):
+def plot_data_mc_ratio(
+    hists, config, var, process, region, data, samples, split, save_path
+):
 
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
@@ -480,7 +488,9 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     c.Close()
 
 
-def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
+def plot_correction(
+    corr_ratio, uncertainty, var, process, correction, config, save_path
+):
     c = ROOT.TCanvas("can", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -490,7 +500,7 @@ def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
     ROOT.gStyle.SetTextFont(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
-    
+
     corr_ratio.SetAxisRange(0, 2, "Y")
     corr_ratio.SetMarkerStyle(20)
     corr_ratio.SetMarkerSize(1.2)
@@ -505,15 +515,15 @@ def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
     corr_ratio.GetXaxis().SetLabelSize(0.04)
     corr_ratio.GetYaxis().SetTitleSize(0.05)
     corr_ratio.GetXaxis().SetTitleSize(0.05)
-    
+
     corr_ratio.Draw()
-    
+
     uncertainty.SetLineWidth(2)
     uncertainty.SetLineColor(ROOT.kOrange)
     uncertainty.SetFillColorAlpha(ROOT.kOrange, 0.35)
-    
+
     uncertainty.Draw("E3 L SAME")
-    
+
     legend = ROOT.TLegend(0.65, 0.68, 0.9, 0.88)
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
@@ -521,9 +531,9 @@ def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
     legend.SetTextAlign(12)
     legend.AddEntry(corr_ratio, "measured", "lep")
     legend.AddEntry(uncertainty, "smoothed curve", "fl")
-    
+
     legend.Draw("SAME")
-    
+
     text = ROOT.TLatex()
     text.SetNDC()
     text.SetTextSize(0.03)
@@ -535,22 +545,14 @@ def plot_correction(corr_ratio, uncertainty, var, process, config, save_path):
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
     text.SetTextSize(0.035)
-    text.DrawLatex(0.2, 0.8, "non closure correction")
-    
-    # func.check_output_path(
-    #     os.getcwd() + "/workdir/" + config["workdir_name"] + "/" + config["channel"]
-    # )
+    if "non_closure" in correction:
+        text.DrawLatex(0.2, 0.8, "non closure correction")
+    elif "DR_SR" in correction:
+        text.DrawLatex(0.2, 0.8, "DR to SR correction")
+
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            "{}/corr_{}_{}.png".format(
-                save_path, process, "non_closure"
-            )
-        )
-        c.SaveAs(
-            "{}/corr_{}_{}.pdf".format(
-                save_path, process, "non_closure"
-            )
-        )
+        c.SaveAs("{}/corr_{}_{}.png".format(save_path, process, correction))
+        c.SaveAs("{}/corr_{}_{}.pdf".format(save_path, process, correction))
     print(out.getvalue())
     c.Close()

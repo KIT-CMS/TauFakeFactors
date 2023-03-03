@@ -5,10 +5,13 @@ Script for preprocessing n-tuples for the fake factor calculation
 import os
 import sys
 import argparse
+import yaml
+
+# import gc
+import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
-import yaml
-import ROOT
+
 
 from helper.Logger import Logger
 import helper.filters as filters
@@ -86,6 +89,7 @@ if __name__ == "__main__":
 
     # these variables are no defined in et, mt ntuples
     if config["channel"] == "tt":
+        output_feature.append("gen_match_1")
         output_feature.append("id_tau_vsJet_Tight_1")
         output_feature.append("id_tau_vsJet_Medium_1")
         output_feature.append("id_tau_vsJet_VVVLoose_1")
@@ -191,17 +195,17 @@ if __name__ == "__main__":
             if config["channel"] == "et":
                 rdf = rdf.Define(
                     "no_extra_lep",
-                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
                 )
             elif config["channel"] == "mt":
                 rdf = rdf.Define(
                     "no_extra_lep",
-                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
                 )
             elif config["channel"] == "tt":
                 rdf = rdf.Define(
                     "no_extra_lep",
-                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
+                    "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
                 )
             else:
                 print(
@@ -266,10 +270,9 @@ if __name__ == "__main__":
                 sum_rdf.Snapshot(config["tree"], out_file_name, [])
                 print("-" * 50)
 
-            # delete unneeded sample files after combination
+            # delete not needed sample files after combination
             for rf in process_file_dict[tau_gen_mode]:
                 os.remove(rf)
-            process_file_list = []
             print("-" * 50)
 
     # dumping config to output directory for documentation

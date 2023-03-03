@@ -4,6 +4,7 @@ Function for calculating fake factors for the ttbar process
 
 import sys
 import array
+import copy
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -275,34 +276,70 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
             ]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split, save_path
+            SRlike_hists,
+            config,
+            "phi_2",
+            "ttbar",
+            "SR_like",
+            data,
+            samples,
+            split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split, save_path
+            ARlike_hists,
+            config,
+            "phi_2",
+            "ttbar",
+            "AR_like",
+            data,
+            samples,
+            split,
+            save_path,
         )
 
         data = "data_subtracted"
         samples = ["ttbar_J"]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists, config, "phi_2", "ttbar", "SR_like", data, samples, split, save_path
+            SRlike_hists,
+            config,
+            "phi_2",
+            "ttbar",
+            "SR_like",
+            data,
+            samples,
+            split,
+            save_path,
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists, config, "phi_2", "ttbar", "AR_like", data, samples, split, save_path
+            ARlike_hists,
+            config,
+            "phi_2",
+            "ttbar",
+            "AR_like",
+            data,
+            samples,
+            split,
+            save_path,
         )
         print("-" * 50)
 
     return cs_expressions
 
 
-def non_closure_correction(config, corr_config, sample_path_list, save_path):
+def non_closure_correction(
+    config, corr_config, closure_variable, sample_path_list, save_path
+):
     # init histogram dict for FF measurement
     SR_hists = dict()
     AR_hists = dict()
 
     # get process specific config information
-    process_conf = config["target_process"]["ttbar"].copy()
-    correction_conf = corr_config["target_process"]["ttbar"]["non_closure"]
+    process_conf = copy.deepcopy(config["target_process"]["ttbar"])
+    correction_conf = corr_config["target_process"]["ttbar"]["non_closure"][
+        closure_variable
+    ]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -319,7 +356,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for ttbar signal region
-            region_cut_conf = process_conf["SR_cuts"].copy()
+            region_cut_conf = copy.deepcopy(process_conf["SR_cuts"])
             rdf_SR = region_filter(rdf, config["channel"], region_cut_conf, sample)
             print(
                 "Filtering events for the signal region. Target process: {}\n".format(
@@ -334,7 +371,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
             print("-" * 50)
 
             # event filter for ttbar application region
-            region_cut_conf = process_conf["AR_cuts"].copy()
+            region_cut_conf = copy.deepcopy(process_conf["AR_cuts"])
             rdf_AR = region_filter(rdf, config["channel"], region_cut_conf, sample)
             print(
                 "Filtering events for the application region. Target process: {}\n".format(
@@ -389,7 +426,13 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
     )
 
     plotting.plot_correction(
-        corr_hist, smooth_graph, correction_conf["var_dependence"], "ttbar", config, save_path
+        corr_hist,
+        smooth_graph,
+        correction_conf["var_dependence"],
+        "ttbar",
+        "non_closure_" + closure_variable,
+        config,
+        save_path,
     )
 
     plot_hists = dict()
@@ -404,7 +447,7 @@ def non_closure_correction(config, corr_config, sample_path_list, save_path):
         config,
         correction_conf["var_dependence"],
         "ttbar",
-        "non_closure",
+        "non_closure_" + closure_variable,
         data,
         samples,
         {"incl": ""},

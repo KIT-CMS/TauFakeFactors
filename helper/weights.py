@@ -242,10 +242,7 @@ def trigger_weight(rdf, channel, process):
     if channel == "et":
         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_ele32orele35")
     elif channel == "mt":
-        if process == "embedding":
-            rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24Ormu27")
-        else:
-            rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
+        rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
     elif channel == "tt":
         rdf = rdf.Redefine("weight", "weight")
     else:
