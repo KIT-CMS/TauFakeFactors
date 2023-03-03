@@ -31,7 +31,7 @@ if __name__ == "__main__":
     with open("configs/" + args.config + ".yaml", "r") as file:
         config = yaml.load(file, yaml.FullLoader)
 
-    save_path_ffs = "workdir/{}/{}/fake_factors".format(
+    save_path_ffs = "workdir/{}/{}".format(
         config["workdir_name"], config["era"]
     )
     func.check_output_path(os.getcwd() + "/" + save_path_ffs)

@@ -20,10 +20,12 @@ The preselection config has the following options:
     `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `tree` | `string` | name of the tree in the n-tuple files (in CROWN "ntuple")
+
 * The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
     parameter | type | description
     ---|---|---
     `output_path` | `string` | absolute path where the files with the preselected events will be stored
+
 * In `processes` all the processes are defined that should be preprocessed. \
   The names are also used for the output file naming after the processing. \
   Each process needs two specifications:
@@ -51,6 +53,7 @@ The preselection config has the following options:
     `had_tau_id_vs_mu` | `string` | working point for the tau ID vs muon (e.g. "VLoose")
     `lep_iso` | `string` | threshold for the lepton (e/mu) isolation (e.g. "<0.15")
     `trigger` | `bool` | True if a trigger selection should be applied, False otherwise
+
 * In `mc_weights` all weights that should be applied for simulated samples are defined. \
   Currently implemented options are:
     parameter | type | description
@@ -85,52 +88,65 @@ python preselection.py --config CONFIG_NAME
 ## Fake Factor calculation
 In this step the fake factors are calculated. This should be run after the preselection step.
 
-All information for the FF calculation step is defined in a configuration file in the `configs` folder. 
+All information for the FF calculation step is defined in a configuration file in the `configs/` folder. \
 The FF calculation config has the following options:
 
-* the expected input folder structure is FILE_PATH//preselection/ERA/CHANNEL/*.root
-    * `file_path`: `string` absolute path to the folder with the preselected files
-    * `era`: `string` data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
-    * `channel`: `string` tau pair decay channels ("et", "mt", "tt")
-    * `tree`: `string` name of the tree in the preselected files (same as in preselection e.g. "ntuple")
-* the output folder structure is workdir/WORKDIR_NAME/CHANNEL/*outputfiles*
-    * `workdir_name`: `string` relative path where the output files will be stored
-* `use_embedding`: `bool` True if embedded sample should be used, False if only MC sample should be used
-* `generate_json`: `bool` True if a correctionlib json file with the FFs should be produced, False otherwise
-* `target_process`: `list` of processes for which FFs should ve calculated (normally for QCD, Wjets, ttbar) \
-  each target process needs specifications:
-    * `split_categories`: `list` of variables 
-        * the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)
-        * each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2") 
-        * implemented split variables are "njets" and "nbtag"
-        * at least one inclusive category needs to be specified
-    * `split_categories_binedges`: `list` of bin edge values for each variable 
-      * variables should be same the as in `split_categories`
-      * number of bin edges should always be N(variable cuts)+1
-      * is only used if `generate_json` is True
-    * `SRlike_cuts`: `list` of event selections specific for the signal-like region of the target process
-    * `ARlike_cuts`: `list` of event selections specific for the application-like region of the target process
-    * `SR_cuts`: `list` of event selections specific for the signal region (only needed for ttbar)
-    * `AR_cuts`: `list` of event selections specific for the application region (only needed for ttbar) \
-      implemented event selections are:
-        * `tau_pair_sign`: `string` two options "same" or "opposite"
-        * `nbtag`: `string` number of b-tagged jets (e.g. ">=1")
-        * `lep_mt`: `string` threshold for the transverse mass of the lepton (e/mu) + MET pair in GeV (e.g. "<50")
-        * `no_extra_lep`: `bool` True if no other leptons than the tau pair are allowed, False if other leptons should be present 
-        * `had_tau_id_vs_jet`: `string` to select events above a working point (e.g. "Tight") \
-        or `list` to select events between two working points (e.g. ["VVVLoose","Tight"])
-    * `var_dependence`: `string` variable the FF measurement should depend on (normally pt of the hadronic tau e.g. "pt_2")
-    * `var_bins`: `list` of bin edges for the variable specified in `var_dependence`
-* `process_fractions`: `list` of specifications for the calculation of the process fractions
-    * `processes`: `list` of sample names (processes) for which the fractions should be stored in the correctionlib json
-    * `split_categories`: see `target_process` (only in 1D)
-    * `AR_cuts`: see `target_process`
-    * `SR_cuts`: see `target_process`, (optional) not needed for the fraction calculation
-  
+* The expected input folder structure is FILE_PATH/preselection/ERA/CHANNEL/*.root
+    parameter | type | description
+    ---|---|---
+    `file_path` | `string` | absolute path to the folder with the preselected files
+    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+    `tree` | `string` | name of the tree in the preselected files (same as in preselection e.g. "ntuple")
 
+* The output folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*outputfiles*
+    parameter | type | description
+    ---|---|---
+    `workdir_name` | `string` | relative path where the output files will be stored
+
+* General options for the calculation:
+    parameter | type | description
+    ---|---|---
+    `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
+    `generate_json` | `bool` | True if a correctionlib json file with the FFs should be produced, False otherwise
+
+* In `target_process` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. \
+  Each target process needs some specifications:
+    parameter | type | description
+    ---|---|---
+    `split_categories` | `list` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li>implemented split variables are "njets", "nbtag" or "deltaR_ditaupair"</li><li>at least one inclusive category needs to be specified</li></ul>
+    `split_categories_binedges` | `list` | bin edge values for each `split_categories` variable <ul><li>number of bin edges should always be N(variable cuts)+1</li><li>is only used if `generate_json` is True</li></ul>
+    `SRlike_cuts` | `list` | event selections for the signal-like region of the target process
+    `ARlike_cuts` | `list` | event selections for the application-like region of the target process
+    `SR_cuts` | `list` | event selections for the signal region (normally only needed for ttbar)
+    `AR_cuts` | `list` | event selections for the application region (normally only needed for ttbar)
+    `var_dependence` | `string` | variable the FF measurement should depend on (normally pt of the hadronic tau e.g. "pt_2")
+    `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
+    
+    Implemented event selection cuts are (besides the already mentioned cuts in the preselection step):
+    parameter | type | description
+    ---|---|---
+    `tau_pair_sign` | `string` | two options "same" or "opposite"
+    `nbtag` | `string` | number of b-tagged jets (e.g. ">=1")
+    `lep_mt` | `string` | threshold for the transverse mass of the lepton (e/mu) + MET pair in GeV (e.g. "<50")
+    `no_extra_lep` | `bool` | True if no other leptons than the tau pair are allowed, False if other leptons should be present 
+    `had_tau_id_vs_jet` | `string`/`list` | select events above a working point (e.g. "Tight") / select events between two working points (e.g. ["VVVLoose","Tight"])
+
+* In `process_fractions` specifications for the calculation of the process fractions are defined.
+    parameter | type | description
+    ---|---|---
+    `processes` | `list` | sample names (from the preprocessing step) of the processes for which the fractions should be stored in the correctionlib json
+    `split_categories` | `list` | see `target_process` (only in 1D)
+    `AR_cuts` | `list` | see `target_process`
+    `SR_cuts` | `list` | see `target_process`, (optional) not needed for the fraction calculation
+  
 To run the FF calculation step execute the python script and specify the config file name:
 ```bash
 python ff_calculation.py --config CONFIG_NAME 
 ```
 
-## Fake Factor validation
+## Fake Factor corrections
+In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.
+
+All information for the FF correction calculation step is defined in a configuration file in the `configs/` folder. \
+The FF correction config has the following options:
