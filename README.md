@@ -7,7 +7,13 @@ The environment can be set up with conda via
 conda env create --file environment.yaml
 ```
 
+<details>
+<summary>
+
 ## Event preselection
+
+</summary>
+
 This framework is designed for n-tuples produced with CROWN as input. 
 
 All information for the preselection step is defined in a configuration file in the `configs/` folder. 
@@ -85,7 +91,15 @@ To run the preselection step execute the python script and specify the config fi
 python preselection.py --config CONFIG_NAME 
 ```
 
+</details>
+
+<details>
+<summary>
+
 ## Fake Factor calculation
+
+</summary>
+
 In this step the fake factors are calculated. This should be run after the preselection step.
 
 All information for the FF calculation step is defined in a configuration file in the `configs/` folder. \
@@ -145,8 +159,18 @@ To run the FF calculation step execute the python script and specify the config 
 python ff_calculation.py --config CONFIG_NAME 
 ```
 
+</details>
+
+<details>
+<summary>
+
 ## Fake Factor corrections
+
+</summary>
+
 In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.
 
 All information for the FF correction calculation step is defined in a configuration file in the `configs/` folder. \
 The FF correction config has the following options:
+
+</details>
