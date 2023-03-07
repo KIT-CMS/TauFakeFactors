@@ -170,7 +170,38 @@ python ff_calculation.py --config CONFIG_NAME
 
 In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.
 
-All information for the FF correction calculation step is defined in a configuration file in the `configs/` folder. \
+Currently two different correction types are implemented: 
+1. non closure correction dependent of a specific variable
+2. DR to SR interpolation correction dependent of a specific variable
+
+All information for the FF correction calculation step is defined in a configuration file in the `configs/` folder. Additional information is loaded from the used config in the previous FF calculation step. \
 The FF correction config has the following options:
 
+* The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*
+    parameter | type | description
+    ---|---|---
+    `workdir_name` | `string` | the name of the work directory for which the corrections should be calculated (normally the same as in the FF calculation step)
+    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+
+* General options for the calculation:
+    parameter | type | description
+    ---|---|---
+    `generate_json` | `bool` | True if a correctionlib json file with the FF corrections should be produced, False otherwise
+
+* In `target_process` the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined. \
+  Each target process needs some specifications:
+    parameter | type | description
+    ---|---|---
+    `non_closure` | `string` | multiple non closure corrections can be specified indicated by the variable to correct on (e.g. "lep_pt")
+    `DR_SR` | `string` | this correction can be specified once per `target_process`
+
+  Each correction has following specifications:
+    parameter | type | description
+    ---|---|---
+    `var_dependence` | `string` | variable the FF correction measurement should depend on (e.g. "pt_1" for "lep_pt")
+    `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
+    `SRlike_cuts` | `list` | event selections for the signal-like region of the target process that should be adjusted compared to the selection used in the previous FF calculation step
+    `ARlike_cuts` | `list` | event selections for the application-like region of the target process that should be adjusted compared to the selection used in the previous FF calculation step
+    
 </details>
