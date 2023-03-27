@@ -22,14 +22,23 @@ parser.add_argument(
     default="hist_config",
     help="Name of a config file in configs/ which contains information for the fake factor calculation step.",
 )
+parser.add_argument(
+    "--config-file",
+    default=None,
+    help="path to the config file",
+)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
     # loading of the chosen config file
-    with open("configs/" + args.config + ".yaml", "r") as file:
-        config = yaml.load(file, yaml.FullLoader)
+    if args.config_file is not None:
+        with open(args.config_file, "r") as file:
+            config = yaml.load(file, yaml.FullLoader)
+    else:
+        # loading of the chosen config file
+        with open("configs/" + args.config + ".yaml", "r") as file:
+            config = yaml.load(file, yaml.FullLoader)
 
     save_path_ffs = "workdir/{}/{}".format(
         config["workdir_name"], config["era"]
@@ -45,6 +54,8 @@ if __name__ == "__main__":
 
     # getting all the input files
     sample_path_list = func.get_samples(config)
+    if len(sample_path_list) == 0:
+        raise Exception("No input files found!") 
 
     # check binning of defined categories in the config
     func.check_categories(config)
