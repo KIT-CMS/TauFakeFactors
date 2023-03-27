@@ -18,6 +18,16 @@ def check_for_empty_file(path, tree):
     return bool(f.Get(tree))
 
 
+def rdf_is_empty(rdf):
+    try:
+        cols = rdf.GetColumnNames()
+        if len(cols) == 0:
+            return True
+    except:
+        return True
+    return False
+
+
 def get_ntuples(config, sample):
     sample_paths = (
         config["ntuple_path"]
@@ -51,8 +61,8 @@ def get_samples(config):
         + "/*.root"
     )
     print(
-        "The following files are loaded for era: {}, channel: {}".format(
-            config["era"], config["channel"]
+        "The following files are loaded for era: {}, channel: {} from {}".format(
+            config["era"], config["channel"], sample_paths
         )
     )
     print("-" * 50)

@@ -53,9 +53,9 @@ def had_tau_decay_mode_cut(rdf, channel, config):
     cut_string = ""
     for i, dm in enumerate(config["had_tau_decay_mode"]):
         if i == 0:
-            cut_string += "(decaymode_2 == {})".format(dm)
+            cut_string += "(tau_decaymode_2 == {})".format(dm)
         else:
-            cut_string += "|| (decaymode_2 == {})".format(dm)
+            cut_string += "|| (tau_decaymode_2 == {})".format(dm)
 
     if channel == "et":
         rdf = rdf.Filter(
