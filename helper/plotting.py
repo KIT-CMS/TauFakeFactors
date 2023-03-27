@@ -84,6 +84,8 @@ cat_dict = {
 
 
 def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+    ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -169,6 +171,8 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
 
 
 def plot_data_mc(hists, config, var, process, region, data, samples, split, save_path):
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+    ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 850, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -275,12 +279,12 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
 def plot_data_mc_ratio(
     hists, config, var, process, region, data, samples, split, save_path
 ):
-
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+    ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
     stack = ROOT.THStack()
     mc = hists[samples[0]].Clone()
     for sample in samples:
@@ -414,6 +418,8 @@ def plot_data_mc_ratio(
 
 
 def fraction_plot(hists, config, var, region, samples, split, save_path):
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+    ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 750, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
@@ -491,6 +497,8 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
 def plot_correction(
     corr_ratio, uncertainty, var, process, correction, config, save_path
 ):
+    ROOT.PyConfig.IgnoreCommandLineOptions = True
+    ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("can", "", 700, 700)
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
