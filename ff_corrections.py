@@ -28,14 +28,24 @@ parser.add_argument(
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for additional regions and directly calculate the corrections. This is useful if you already calculated the needed fake factors.",
 )
+parser.add_argument(
+    "--config-file",
+    default=None,
+    help="path to the config file",
+)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    with open("configs/" + args.config + ".yaml", "r") as file:
-        corr_config = yaml.load(file, yaml.FullLoader)
+    if args.config_file is not None:
+        with open(args.config_file, "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
+    else:
+        # loading of the chosen config file
+        with open("configs/" + args.config + ".yaml", "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
     with open(
         "workdir/"
         + corr_config["workdir_name"]
