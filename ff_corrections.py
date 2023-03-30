@@ -131,7 +131,9 @@ if __name__ == "__main__":
     ROOT.EnableImplicitMT()
 
     corrections = {"QCD": dict(), "Wjets": dict(), "ttbar": dict()}
-
+    evaluators = {}
+    for process in corr_config["target_process"]:
+        evaluators[process] = func.FakeFactorEvaluator(config, process)
     if "target_process" in corr_config:
         for process in corr_config["target_process"]:
             if process == "QCD":
@@ -160,6 +162,7 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluators["QCD"],
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
                     )
 
                     corr = FF_QCD.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluators["QCD"]
                     )
                     corrections[process]["DR_SR"] = corr
 
@@ -204,6 +207,7 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluators["Wjets"]
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
@@ -218,7 +222,7 @@ if __name__ == "__main__":
                     )
 
                     corr = FF_Wjets.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluators["Wjets"]
                     )
                     corrections[process]["DR_SR"] = corr
 
@@ -250,6 +254,7 @@ if __name__ == "__main__":
                         closure_corr,
                         sample_path_list,
                         save_path_plots,
+                        evaluators["ttbar"]
                     )
                     corrections[process]["non_closure_" + closure_corr] = corr
 
