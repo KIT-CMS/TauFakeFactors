@@ -1,0 +1,135 @@
+# This is an example config containing information for the FF calculation
+
+file_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v1"
+era: "2018"
+channel: "et" # options are et, mt, tt
+tree: "ntuple"
+
+workdir_name: "full_set_v1"
+
+use_embedding: True
+generate_json: True
+
+target_process: 
+    QCD: 
+        split_categories:
+            njets: 
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "same" 
+            lep_mt: "<50"
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Tight"
+
+        ARlike_cuts:
+            tau_pair_sign: "same" 
+            lep_mt: "<50" 
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVLoose","Tight"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,32,35,40,48,70,100]
+
+    Wjets: 
+        split_categories: 
+            njets:  
+                - "==0" 
+                - "==1"
+                - ">=2"
+            # deltaR_ditaupair:
+            #     - "<3"
+            #     - ">=3"
+        split_categories_binedges:
+            njets: [-0.5,0.5,1.5,2.5]
+            # deltaR_ditaupair: [0.,3.,10.]
+
+        SRlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: "==0" 
+            lep_mt: ">70"
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Tight"
+
+        ARlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: "==0"
+            lep_mt: ">70" 
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVLoose","Tight"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,32,38,47,60,100]
+
+    ttbar: 
+        split_categories: 
+            njets:  
+                - "<=1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,1.5,2.5]
+
+        SR_cuts:
+            tau_pair_sign: "opposite"  
+            nbtag: ">=1" 
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: "Tight"
+
+        AR_cuts:
+            tau_pair_sign: "opposite"  
+            nbtag: ">=1"
+            lep_iso: "<0.15"
+            no_extra_lep: True
+            had_tau_id_vs_jet: ["VVLoose","Tight"]
+
+        SRlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: ">=1" 
+            lep_iso: "<0.15"
+            no_extra_lep: False
+            had_tau_id_vs_jet: "Tight"
+            
+        ARlike_cuts:
+            tau_pair_sign: "opposite" 
+            nbtag: ">=1"
+            lep_iso: "<0.15"
+            no_extra_lep: False
+            had_tau_id_vs_jet: ["VVLoose","Tight"]
+        
+        var_dependence: "pt_2"
+        var_bins: [30,32,35,38,41,44,52,70,100]
+
+process_fractions:
+    processes: ["QCD", "Wjets", "ttbar_J"]
+
+    split_categories:
+        njets:
+            - "==0"
+            - "==1"
+            - ">=2"
+    split_categories_binedges:
+        njets: [-0.5,0.5,1.5,2.5]
+
+    AR_cuts:
+        lep_iso: "<0.15"
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet: ["VVLoose","Tight"]
+
+    SR_cuts:
+        lep_iso: "<0.15"
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet: "Tight"
+
+    var_dependence: "mt_1"
+    var_bins: [0,10,20,30,40,50,60,70,80,90,100]
