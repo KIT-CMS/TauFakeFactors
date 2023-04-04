@@ -548,7 +548,7 @@ def eval_QCD_FF(rdf, config, for_correction=False):
             + config["workdir_name"]
             + "/"
             + config["era"]
-            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+            + "/fake_factors_{}.json".format(config["channel"])
         )
     else:
         ff_path = (
@@ -580,6 +580,48 @@ def eval_QCD_FF(rdf, config, for_correction=False):
 
     return rdf
 
+def eval_QCD_correction(rdf, config, for_DRtoSR=True):
+    import correctionlib
+
+    correctionlib.register_pyroot_binding()
+
+    if not for_DRtoSR:
+        corr_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/FF_corrections_{}.json".format(config["channel"])
+        )
+    else:
+        corr_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/corrections/{ch}/FF_corrections_{ch}_for_DRtoSR.json".format(
+                ch=config["channel"]
+            )
+        )
+
+    ROOT.gInterpreter.ProcessLine(
+        "float calc_corr_qcd(float pt) {"
+        + 'auto qcd_corr = correction::CorrectionSet::from_file("{}")->at("QCD_non_closure_lep_pt_correction");'.format(
+            corr_path
+        )
+        + "float qcd_ff_corr;"
+        + 'qcd_ff_corr = qcd_corr->evaluate({pt, "nominal"});'
+        + "return qcd_ff_corr;"
+        + "}"
+    )
+
+    rdf = rdf.Define(
+        "QCD_ff_corr",
+        "calc_corr_qcd(pt_1)",
+    )
+
+    return rdf
+
 
 def eval_Wjets_FF(rdf, config, for_correction=False):
     import correctionlib
@@ -592,7 +634,7 @@ def eval_Wjets_FF(rdf, config, for_correction=False):
             + config["workdir_name"]
             + "/"
             + config["era"]
-            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+            + "/fake_factors_{}.json".format(config["channel"])
         )
     else:
         ff_path = (
@@ -624,6 +666,47 @@ def eval_Wjets_FF(rdf, config, for_correction=False):
 
     return rdf
 
+def eval_Wjets_correction(rdf, config, for_DRtoSR=True):
+    import correctionlib
+
+    correctionlib.register_pyroot_binding()
+
+    if not for_DRtoSR:
+        corr_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/FF_corrections_{}.json".format(config["channel"])
+        )
+    else:
+        corr_path = (
+            "workdir/"
+            + config["workdir_name"]
+            + "/"
+            + config["era"]
+            + "/corrections/{ch}/FF_corrections_{ch}_for_DRtoSR.json".format(
+                ch=config["channel"]
+            )
+        )
+
+    ROOT.gInterpreter.ProcessLine(
+        "float calc_corr_wjets(float pt) {"
+        + 'auto wjets_corr = correction::CorrectionSet::from_file("{}")->at("Wjets_non_closure_lep_pt_correction");'.format(
+            corr_path
+        )
+        + "float wjets_ff_corr;"
+        + 'wjets_ff_corr = wjets_corr->evaluate({pt, "nominal"});'
+        + "return wjets_ff_corr;"
+        + "}"
+    )
+
+    rdf = rdf.Define(
+        "Wjets_ff_corr",
+        "calc_corr_wjets(pt_1)",
+    )
+
+    return rdf
 
 def eval_ttbar_FF(rdf, config):
     import correctionlib
@@ -635,7 +718,7 @@ def eval_ttbar_FF(rdf, config):
         + config["workdir_name"]
         + "/"
         + config["era"]
-        + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+        + "/fake_factors_{}.json".format(config["channel"])
     )
 
     ROOT.gInterpreter.ProcessLine(

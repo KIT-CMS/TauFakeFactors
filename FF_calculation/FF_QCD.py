@@ -208,7 +208,7 @@ def calculation_QCD_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path
+    config, corr_config, closure_variable, sample_path_list, save_path, for_DRtoSR=False
 ):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -216,9 +216,14 @@ def non_closure_correction(
 
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["QCD"])
-    correction_conf = corr_config["target_process"]["QCD"]["non_closure"][
-        closure_variable
-    ]
+    if for_DRtoSR:
+        correction_conf = corr_config["target_process"]["QCD"]["DR_SR"]["non_closure"][
+            closure_variable
+        ]
+    else:
+        correction_conf = corr_config["target_process"]["QCD"]["non_closure"][
+            closure_variable
+        ]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -317,12 +322,17 @@ def non_closure_correction(
         corr_hist.Clone(), correction_conf["var_bins"]
     )
 
+    if for_DRtoSR:
+        add_str = "_for_DRtoSR"
+    else:
+        add_str = ""
+
     plotting.plot_correction(
         corr_hist,
         smooth_graph,
         correction_conf["var_dependence"],
         "QCD",
-        "non_closure_" + closure_variable,
+        "non_closure_" + closure_variable + add_str,
         config,
         save_path,
     )
@@ -341,7 +351,7 @@ def non_closure_correction(
         config,
         correction_conf["var_dependence"],
         "QCD",
-        "non_closure_" + closure_variable,
+        "non_closure_" + closure_variable + add_str,
         data,
         samples,
         {"incl": ""},
@@ -403,7 +413,8 @@ def DR_SR_correction(config, corr_config, sample_path_list, save_path):
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config, for_correction=True)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+            rdf_ARlike = func.eval_QCD_correction(rdf_ARlike, config, for_DRtoSR=True)
+            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor * QCD_ff_corr")
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()

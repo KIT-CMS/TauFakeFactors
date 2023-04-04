@@ -11,6 +11,7 @@ var_dict = {
     "mt_1": "lep_mt",
     "iso_1": "lep_iso",
     "m_vis": "m_vis",
+    "bpt_1": "b_pt",
     "njets": "njets",
     "nbtag": "nbtags",
     "deltaR_ditaupair": "dR_tau_pair",
@@ -24,6 +25,7 @@ var_type = {
     "mt_1": "real",
     "iso_1": "real",
     "m_vis": "real",
+    "bpt_1": "real",
     "njets": "real",
     "nbtag": "real",
     "deltaR_ditaupair": "real",
@@ -34,9 +36,17 @@ var_discription = {
     "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
     "mt_1": "transverse mass of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
     "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
+    "bpt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
+}
+
+corr_unc_dict = {
+    "non_closure_lep_pt": "nonClosureLepPt",
+    "non_closure_b_pt": "nonClosureBPt",
+    "non_closure_lep_iso": "nonClosureLepIso",
+    "DR_SR": "DRtoSR",
 }
 
 
@@ -574,22 +584,20 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
     return frac
 
 
-corr_unc_dict = {
-    "non_closure_lep_pt": "nonClosureLepPt",
-    "non_closure_lep_iso": "nonClosureLepIso",
-    "DR_SR": "DRtoSR",
-}
-
-
-def generate_corr_cs_json(config, corrections, save_path):
+def generate_corr_cs_json(config, save_path, corrections, for_DRtoSR=False):
 
     cs_ff_corrections = list()
 
     for process in corrections.keys():
         for correction in corrections[process].keys():
-            if "non_closure" in correction:
+            if "non_closure" in correction and not for_DRtoSR:
                 corr_var = correction.split("non_closure_")[1]
                 var = config["target_process"][process]["non_closure"][corr_var][
+                    "var_dependence"
+                ]
+            elif "non_closure" in correction and for_DRtoSR:
+                corr_var = correction.split("non_closure_")[1]
+                var = config["target_process"][process]["DR_SR"]["non_closure"][corr_var][
                     "var_dependence"
                 ]
             else:
@@ -604,15 +612,29 @@ def generate_corr_cs_json(config, corrections, save_path):
         corrections=cs_ff_corrections,
     )
 
-    with open(
-        save_path + "/FF_corrections_{}.json".format(config["channel"]), "w"
-    ) as fout:
-        fout.write(cset.json(exclude_unset=True, indent=4))
+    
 
-    with gzip.open(
-        save_path + "/FF_corrections_{}.json.gz".format(config["channel"]), "wt"
-    ) as fout:
-        fout.write(cset.json(exclude_unset=True, indent=4))
+    if not for_DRtoSR:
+        with open(
+            save_path + "/FF_corrections_{}.json".format(config["channel"]), "w"
+        ) as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
+
+        with gzip.open(
+            save_path + "/FF_corrections_{}.json.gz".format(config["channel"]), "wt"
+        ) as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
+
+    elif for_DRtoSR:
+        with open(
+            save_path + "/FF_corrections_{}_for_DRtoSR.json".format(config["channel"]), "w"
+        ) as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
+
+        with gzip.open(
+            save_path + "/FF_corrections_{}_for_DRtoSR.json.gz".format(config["channel"]), "wt"
+        ) as fout:
+            fout.write(cset.json(exclude_unset=True, indent=4))
 
 
 def make_1D_correction(process, variable, correction, corr_dict):
