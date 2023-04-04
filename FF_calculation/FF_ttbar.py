@@ -329,7 +329,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path
+    config, corr_config, closure_variable, sample_path_list, save_path, evaluator
 ):
     # init histogram dict for FF measurement
     SR_hists = dict()
@@ -380,7 +380,7 @@ def non_closure_correction(
             )
 
             # evaluate the measured fake factors for the specific processes
-            rdf_AR = func.eval_ttbar_FF(rdf_AR, config)
+            rdf_AR = evaluator.evaluate_pt_njets(rdf_AR)
             rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
 
             # redirecting C++ stdout for Report() to python stdout

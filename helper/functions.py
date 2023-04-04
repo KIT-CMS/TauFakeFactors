@@ -8,6 +8,7 @@ import glob
 import array
 import numpy as np
 import ROOT
+import correctionlib
 
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -16,6 +17,16 @@ from wurlitzer import pipes, STDOUT
 def check_for_empty_file(path, tree):
     f = ROOT.TFile.Open(path)
     return bool(f.Get(tree))
+
+
+def rdf_is_empty(rdf):
+    try:
+        cols = rdf.GetColumnNames()
+        if len(cols) == 0:
+            return True
+    except:
+        return True
+    return False
 
 
 def get_ntuples(config, sample):
@@ -51,8 +62,8 @@ def get_samples(config):
         + "/*.root"
     )
     print(
-        "The following files are loaded for era: {}, channel: {}".format(
-            config["era"], config["channel"]
+        "The following files are loaded for era: {}, channel: {} from {}".format(
+            config["era"], config["channel"], sample_paths
         )
     )
     print("-" * 50)
@@ -537,122 +548,33 @@ def calculating_FF(rdf):
     return rdf
 
 
-def eval_QCD_FF(rdf, config, for_correction=False):
-    import correctionlib
-
-    correctionlib.register_pyroot_binding()
-
-    if not for_correction:
-        ff_path = (
+class FakeFactorEvaluator:
+    def __init__(self, config, process):
+        self.ff_path = (
             "workdir/"
             + config["workdir_name"]
             + "/"
             + config["era"]
-            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
+            + "/fake_factors_{}.json".format(config["channel"])
         )
-    else:
-        ff_path = (
-            "workdir/"
-            + config["workdir_name"]
-            + "/"
-            + config["era"]
-            + "/corrections/{ch}/fake_factors_{ch}_for_corrections.json".format(
-                ch=config["channel"]
-            )
+        self.process = process
+        correctionlib.register_pyroot_binding()
+        print(f"Loading fake factor file {self.ff_path} for process {process}")
+        if process not in ["QCD", "Wjets", "ttbar"]:
+            raise ValueError(f"Unknown process {process}")
+        ROOT.gInterpreter.Declare(f'auto {process} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{process}_fake_factors");')
+
+
+    def evaluate_pt_njets(self, rdf):
+        rdf = rdf.Define(
+            f"{self.process}_fake_factor",
+            f'{self.process}->evaluate({{pt_2, (float)njets, "nominal"}})',
         )
-
-    ROOT.gInterpreter.ProcessLine(
-        "float calc_ff_qcd(float pt, int njets) {"
-        + "float n_jets = njets;"
-        + 'auto qcd = correction::CorrectionSet::from_file("{}")->at("QCD_fake_factors");'.format(
-            ff_path
+        return rdf
+    
+    def evaluate_pt_njets_deltaR(self, rdf):
+        rdf = rdf.Define(
+            f"{self.process}_fake_factor",
+            f'{self.process}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
         )
-        + "float qcd_ff;"
-        + 'qcd_ff = qcd->evaluate({pt, n_jets, "nominal"});'
-        + "return qcd_ff;"
-        + "}"
-    )
-
-    rdf = rdf.Define(
-        "QCD_fake_factor",
-        "calc_ff_qcd(pt_2,njets)",
-    )
-
-    return rdf
-
-
-def eval_Wjets_FF(rdf, config, for_correction=False):
-    import correctionlib
-
-    correctionlib.register_pyroot_binding()
-
-    if not for_correction:
-        ff_path = (
-            "workdir/"
-            + config["workdir_name"]
-            + "/"
-            + config["era"]
-            + "/fake_factors/fake_factors_{}.json".format(config["channel"])
-        )
-    else:
-        ff_path = (
-            "workdir/"
-            + config["workdir_name"]
-            + "/"
-            + config["era"]
-            + "/corrections/{ch}/fake_factors_{ch}_for_corrections.json".format(
-                ch=config["channel"]
-            )
-        )
-
-    ROOT.gInterpreter.ProcessLine(
-        "float calc_ff_wjets(float pt, int njets) {"
-        + "float n_jets = njets;"
-        + 'auto wjets = correction::CorrectionSet::from_file("{}")->at("Wjets_fake_factors");'.format(
-            ff_path
-        )
-        + "float wjets_ff;"
-        + 'wjets_ff = wjets->evaluate({pt, n_jets, "nominal"});'
-        + "return wjets_ff;"
-        + "}"
-    )
-
-    rdf = rdf.Define(
-        "Wjets_fake_factor",
-        "calc_ff_wjets(pt_2,njets)",
-    )
-
-    return rdf
-
-
-def eval_ttbar_FF(rdf, config):
-    import correctionlib
-
-    correctionlib.register_pyroot_binding()
-
-    ff_path = (
-        "workdir/"
-        + config["workdir_name"]
-        + "/"
-        + config["era"]
-        + "/fake_factors/fake_factors_{}.json".format(config["channel"])
-    )
-
-    ROOT.gInterpreter.ProcessLine(
-        "float calc_ff_ttbar(float pt, int njets) {"
-        + "float n_jets = njets;"
-        + 'auto ttbar = correction::CorrectionSet::from_file("{}")->at("ttbar_fake_factors");'.format(
-            ff_path
-        )
-        + "float ttbar_ff;"
-        + 'ttbar_ff = ttbar->evaluate({pt, n_jets, "nominal"});'
-        + "return ttbar_ff;"
-        + "}"
-    )
-
-    rdf = rdf.Define(
-        "ttbar_fake_factor",
-        "calc_ff_ttbar(pt_2,njets)",
-    )
-
-    return rdf
+        return rdf

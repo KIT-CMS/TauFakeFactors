@@ -28,14 +28,24 @@ parser.add_argument(
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for additional regions and directly calculate the corrections. This is useful if you already calculated the needed fake factors.",
 )
+parser.add_argument(
+    "--config-file",
+    default=None,
+    help="path to the config file",
+)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    with open("configs/" + args.config + ".yaml", "r") as file:
-        corr_config = yaml.load(file, yaml.FullLoader)
+    if args.config_file is not None:
+        with open(args.config_file, "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
+    else:
+        # loading of the chosen config file
+        with open("configs/" + args.config + ".yaml", "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
     with open(
         "workdir/"
         + corr_config["workdir_name"]
@@ -121,7 +131,9 @@ if __name__ == "__main__":
     ROOT.EnableImplicitMT()
 
     corrections = {"QCD": dict(), "Wjets": dict(), "ttbar": dict()}
-
+    evaluators = {}
+    for process in corr_config["target_process"]:
+        evaluators[process] = func.FakeFactorEvaluator(config, process)
     if "target_process" in corr_config:
         for process in corr_config["target_process"]:
             if process == "QCD":
@@ -150,6 +162,7 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluators["QCD"],
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
@@ -164,7 +177,7 @@ if __name__ == "__main__":
                     )
 
                     corr = FF_QCD.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluators["QCD"]
                     )
                     corrections[process]["DR_SR"] = corr
 
@@ -194,6 +207,7 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluators["Wjets"]
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
@@ -208,7 +222,7 @@ if __name__ == "__main__":
                     )
 
                     corr = FF_Wjets.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluators["Wjets"]
                     )
                     corrections[process]["DR_SR"] = corr
 
@@ -240,6 +254,7 @@ if __name__ == "__main__":
                         closure_corr,
                         sample_path_list,
                         save_path_plots,
+                        evaluators["ttbar"]
                     )
                     corrections[process]["non_closure_" + closure_corr] = corr
 
