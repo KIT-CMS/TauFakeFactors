@@ -28,14 +28,24 @@ parser.add_argument(
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for additional regions and directly calculate the corrections. This is useful if you already calculated the needed fake factors.",
 )
+parser.add_argument(
+    "--config-file",
+    default=None,
+    help="path to the config file",
+)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    with open("configs/" + args.config + ".yaml", "r") as file:
-        corr_config = yaml.load(file, yaml.FullLoader)
+    if args.config_file is not None:
+        with open(args.config_file, "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
+    else:
+        # loading of the chosen config file
+        with open("configs/" + args.config + ".yaml", "r") as file:
+            corr_config = yaml.load(file, yaml.FullLoader)
     with open(
         "workdir/"
         + corr_config["workdir_name"]
@@ -70,6 +80,8 @@ if __name__ == "__main__":
     # This activates implicit multi-threading
     ROOT.EnableImplicitMT()
 
+    ########### needed precalculations for DR to SR corrections ###########
+
     if not args.only_corrections:
         if "target_process" in corr_config:
             for process in corr_config["target_process"]:
@@ -83,6 +95,7 @@ if __name__ == "__main__":
                         temp_conf,
                         process,
                         corr_config["target_process"]["QCD"]["DR_SR"],
+                        for_AR_SR=False,
                     )
                     cs_expressions = FF_QCD.calculation_QCD_FFs(
                         temp_conf, sample_path_list, save_path_plots
@@ -103,6 +116,7 @@ if __name__ == "__main__":
                         temp_conf,
                         process,
                         corr_config["target_process"]["Wjets"]["DR_SR"],
+                        for_AR_SR=False,
                     )
                     cs_expressions = FF_Wjets.calculation_Wjets_FFs(
                         temp_conf, sample_path_list, save_path_plots
@@ -126,6 +140,7 @@ if __name__ == "__main__":
         if "target_process" in corr_config:
             for process in corr_config["target_process"]:
                 if process == "QCD" and "DR_SR" in corr_config["target_process"]["QCD"] and "non_closure" in corr_config["target_process"]["QCD"]["DR_SR"]:  
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=True)
                     for closure_corr in corr_config["target_process"]["QCD"]["DR_SR"][
                         "non_closure"
                     ]:
@@ -140,6 +155,7 @@ if __name__ == "__main__":
                             temp_conf,
                             process,
                             corr_config["target_process"]["QCD"]["DR_SR"],
+                            for_AR_SR=False,
                         )
 
                         corr = FF_QCD.non_closure_correction(
@@ -148,11 +164,13 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluator,
                             for_DRtoSR=True,
                         )
                         DR_SR_corrections[process]["non_closure_" + closure_corr] = corr
 
                 elif process == "Wjets" and "DR_SR" in corr_config["target_process"]["Wjets"] and "non_closure" in corr_config["target_process"]["Wjets"]["DR_SR"]:
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=True)
                     for closure_corr in corr_config["target_process"]["Wjets"]["DR_SR"][
                         "non_closure"
                     ]:
@@ -167,6 +185,7 @@ if __name__ == "__main__":
                             temp_conf,
                             process,
                             corr_config["target_process"]["Wjets"]["DR_SR"],
+                            for_AR_SR=False,
                         )
 
                         corr = FF_Wjets.non_closure_correction(
@@ -175,6 +194,7 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluator,
                             for_DRtoSR=True,
                         )
                         DR_SR_corrections[process]["non_closure_" + closure_corr] = corr
@@ -190,6 +210,8 @@ if __name__ == "__main__":
         for process in corr_config["target_process"]:
             if process == "QCD":
                 if "non_closure" in corr_config["target_process"]["QCD"]:
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=False)
+
                     for closure_corr in corr_config["target_process"]["QCD"][
                         "non_closure"
                     ]:
@@ -206,6 +228,7 @@ if __name__ == "__main__":
                             corr_config["target_process"]["QCD"]["non_closure"][
                                 closure_corr
                             ],
+                            for_AR_SR=False,
                         )
 
                         corr = FF_QCD.non_closure_correction(
@@ -214,10 +237,15 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluator,
+                            for_DRtoSR=False,
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
                 if "DR_SR" in corr_config["target_process"]["QCD"]:
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=True)
+                    corr_evaluator = func.FakeFactorCorrectionEvaluator(config, process, for_DRtoSR=True)
+
                     print("Calculating DR to SR correction for the QCD process.")
                     print("-" * 50)
                     temp_conf = copy.deepcopy(config)
@@ -225,15 +253,18 @@ if __name__ == "__main__":
                         temp_conf,
                         process,
                         corr_config["target_process"]["QCD"]["DR_SR"],
+                        for_AR_SR=True,
                     )
 
                     corr = FF_QCD.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluator, corr_evaluator
                     )
                     corrections[process]["DR_SR"] = corr
 
             elif process == "Wjets":
                 if "non_closure" in corr_config["target_process"]["Wjets"]:
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=False)
+
                     for closure_corr in corr_config["target_process"]["Wjets"][
                         "non_closure"
                     ]:
@@ -250,6 +281,7 @@ if __name__ == "__main__":
                             corr_config["target_process"]["Wjets"]["non_closure"][
                                 closure_corr
                             ],
+                            for_AR_SR=False,
                         )
 
                         corr = FF_Wjets.non_closure_correction(
@@ -258,10 +290,15 @@ if __name__ == "__main__":
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
+                            evaluator,
+                            for_DRtoSR=False,
                         )
                         corrections[process]["non_closure_" + closure_corr] = corr
 
                 if "DR_SR" in corr_config["target_process"]["Wjets"]:
+                    evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=True)
+                    corr_evaluator = func.FakeFactorCorrectionEvaluator(config, process, for_DRtoSR=True)
+
                     print("Calculating DR to SR correction for the Wjets process.")
                     print("-" * 50)
                     temp_conf = copy.deepcopy(config)
@@ -269,10 +306,11 @@ if __name__ == "__main__":
                         temp_conf,
                         process,
                         corr_config["target_process"]["Wjets"]["DR_SR"],
+                        for_AR_SR=True,
                     )
 
                     corr = FF_Wjets.DR_SR_correction(
-                        temp_conf, corr_config, sample_path_list, save_path_plots
+                        temp_conf, corr_config, sample_path_list, save_path_plots, evaluator, corr_evaluator
                     )
                     corrections[process]["DR_SR"] = corr
 
@@ -280,6 +318,8 @@ if __name__ == "__main__":
                 process == "ttbar"
                 and "non_closure" in corr_config["target_process"]["ttbar"]
             ):
+                evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=False)
+
                 for closure_corr in corr_config["target_process"]["ttbar"][
                     "non_closure"
                 ]:
@@ -296,6 +336,7 @@ if __name__ == "__main__":
                         corr_config["target_process"]["ttbar"]["non_closure"][
                             closure_corr
                         ],
+                        for_AR_SR=False,
                     )
 
                     corr = FF_ttbar.non_closure_correction(
@@ -304,6 +345,7 @@ if __name__ == "__main__":
                         closure_corr,
                         sample_path_list,
                         save_path_plots,
+                        evaluator,
                     )
                     corrections[process]["non_closure_" + closure_corr] = corr
 

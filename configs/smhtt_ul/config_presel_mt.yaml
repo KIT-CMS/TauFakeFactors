@@ -1,12 +1,12 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_02_2023_v1/CROWNRun"
-# ntuple_path: "/ceph/nshadskiy/nmssm_ul/nmssm_02_2023_v2/ntuples"
+ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v1/CROWNRun"
+
 era: "2018"
 channel: "mt"
 tree: "ntuple"
 
-output_path: "/ceph/nshadskiy/FFmethod/03_2023_v1"
+output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v1"
 
 processes:
     DYjets:
@@ -23,7 +23,7 @@ processes:
             - "T"
             - "L"
         samples:
-            - "ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X" 
+            - "ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "WW_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "WZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
     ttbar:

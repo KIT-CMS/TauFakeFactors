@@ -153,14 +153,16 @@ def generate_ff_cs_json(
     if "process_fractions" in config and fractions != None:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
-        frac_unc = {  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
-            "fracQCDUncUp": "frac_QCD_up",
-            "fracQCDUncDown": "frac_QCD_down",
-            "fracWjetsUncUp": "frac_Wjets_up",
-            "fracWjetsUncDown": "frac_Wjets_down",
-            "fracTTbarUncUp": "frac_ttbar_J_up",
-            "fracTTbarUncDown": "frac_ttbar_J_down",
-        }
+        frac_unc = {}  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
+        if "QCD" in processes:
+            frac_unc["fracQCDUncUp"] = "frac_QCD_up"
+            frac_unc["fracQCDUncDown"] = "frac_QCD_down"
+        if "Wjets" in processes:
+            frac_unc["fracWjetsUncUp"] = "frac_Wjets_up"
+            frac_unc["fracWjetsUncDown"] = "frac_Wjets_down"
+        if "ttbar" in processes:
+            frac_unc["fracTTbarUncUp"] = "frac_ttbar_J_up"
+            frac_unc["fracTTbarUncDown"] = "frac_ttbar_J_down"
         fraction = make_1D_fractions(
             (var, binning), fractions, config["process_fractions"], frac_unc
         )

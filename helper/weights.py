@@ -270,7 +270,7 @@ def gen_weight(rdf, sample):
 
     return rdf.Redefine(
         "weight",
-        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>0) * 1)))",
+        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1)))",
     )
 
 

@@ -1,0 +1,47 @@
+# This is an example config containing information for the FF corrections
+
+workdir_name: "full_set_v1"
+era: "2018"
+channel: "et" # options are et, mt, tt
+
+generate_json: True
+
+target_process:
+    QCD:
+        non_closure:
+            lep_pt:
+                var_dependence: "pt_1"
+                var_bins: [30,35,40,45,50,55,60,70,80,100]
+            lep_iso:
+                var_dependence: "iso_1"
+                var_bins: [0.,0.02,0.05,0.1,0.15,0.2,0.25,0.31]
+                SRlike_cuts:
+                    lep_iso: ">=0.0"
+                ARlike_cuts:
+                    lep_iso: ">=0.0"
+        DR_SR:
+            var_dependence: "m_vis"
+            var_bins: [0,30,80,90,100,120,140,160,180,250]
+            SRlike_cuts:
+                lep_iso: ">=0.15"
+            ARlike_cuts:
+                lep_iso: ">=0.15"
+
+    Wjets:
+        non_closure:
+            lep_pt:
+                var_dependence: "pt_1"
+                var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+        DR_SR:
+            var_dependence: "m_vis"
+            var_bins: [0,50,80,100,140,180,250]
+            SRlike_cuts:
+                lep_mt: ">=0.0"
+            ARlike_cuts:
+                lep_mt: ">=0.0"
+
+    ttbar:
+        non_closure:
+            lep_pt:
+                var_dependence: "pt_1"
+                var_bins: [30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]

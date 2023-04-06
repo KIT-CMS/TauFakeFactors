@@ -208,7 +208,7 @@ def calculation_QCD_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path, for_DRtoSR=False
+    config, corr_config, closure_variable, sample_path_list, save_path, evaluator, for_DRtoSR=False
 ):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -264,7 +264,7 @@ def non_closure_correction(
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config)
+            rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
 
         # redirecting C++ stdout for Report() to python stdout
@@ -361,7 +361,7 @@ def non_closure_correction(
     return corr_def
 
 
-def DR_SR_correction(config, corr_config, sample_path_list, save_path):
+def DR_SR_correction(config, corr_config, sample_path_list, save_path, evaluator, corr_evaluator):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -412,8 +412,9 @@ def DR_SR_correction(config, corr_config, sample_path_list, save_path):
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config, for_correction=True)
-            rdf_ARlike = func.eval_QCD_correction(rdf_ARlike, config, for_DRtoSR=True)
+            # rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config, for_correction=True)
+            rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
+            rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor * QCD_ff_corr")
 
         # redirecting C++ stdout for Report() to python stdout
