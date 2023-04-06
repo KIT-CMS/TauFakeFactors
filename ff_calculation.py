@@ -40,9 +40,7 @@ if __name__ == "__main__":
         with open("configs/" + args.config + ".yaml", "r") as file:
             config = yaml.load(file, yaml.FullLoader)
 
-    save_path_ffs = "workdir/{}/{}".format(
-        config["workdir_name"], config["era"]
-    )
+    save_path_ffs = "workdir/{}/{}".format(config["workdir_name"], config["era"])
     func.check_output_path(os.getcwd() + "/" + save_path_ffs)
     save_path_plots = "workdir/{}/{}/fake_factors/{}".format(
         config["workdir_name"], config["era"], config["channel"]
@@ -55,7 +53,7 @@ if __name__ == "__main__":
     # getting all the input files
     sample_path_list = func.get_samples(config)
     if len(sample_path_list) == 0:
-        raise Exception("No input files found!") 
+        raise Exception("No input files found!")
 
     # check binning of defined categories in the config
     func.check_categories(config)

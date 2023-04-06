@@ -292,7 +292,13 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path, evaluator, for_DRtoSR=False
+    config,
+    corr_config,
+    closure_variable,
+    sample_path_list,
+    save_path,
+    evaluator,
+    for_DRtoSR=False,
 ):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -305,9 +311,9 @@ def non_closure_correction(
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["Wjets"])
     if for_DRtoSR:
-        correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"]["non_closure"][
-            closure_variable
-        ]
+        correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"][
+            "non_closure"
+        ][closure_variable]
     else:
         correction_conf = corr_config["target_process"]["Wjets"]["non_closure"][
             closure_variable
@@ -522,7 +528,9 @@ def non_closure_correction(
     return corr_def
 
 
-def DR_SR_correction(config, corr_config, sample_path_list, save_path, evaluator, corr_evaluator):
+def DR_SR_correction(
+    config, corr_config, sample_path_list, save_path, evaluator, corr_evaluator
+):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
@@ -575,7 +583,9 @@ def DR_SR_correction(config, corr_config, sample_path_list, save_path, evaluator
             else:
                 rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
             rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr")
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+            )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()

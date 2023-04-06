@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--config",
     default="config",
-    help="Name of a config file in configs/ which contains information for the preselection step."
+    help="Name of a config file in configs/ which contains information for the preselection step.",
 )
 parser.add_argument(
     "--config-file",
@@ -75,6 +75,7 @@ for wp in tau_wps:
 
 def run_preselection(args):
     import ROOT
+
     process, config = args
     print("Processing process: {}".format(process))
     # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
@@ -99,17 +100,11 @@ def run_preselection(args):
         if "had_tau_eta" in selection_conf:
             rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
         if "had_tau_decay_mode" in selection_conf:
-            rdf = filters.had_tau_decay_mode_cut(
-                rdf, config["channel"], selection_conf
-            )
+            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
         if "had_tau_id_vs_ele" in selection_conf:
-            rdf = filters.had_tau_id_vsEle_cut(
-                rdf, config["channel"], selection_conf
-            )
+            rdf = filters.had_tau_id_vsEle_cut(rdf, config["channel"], selection_conf)
         if "had_tau_id_vs_mu" in selection_conf:
-            rdf = filters.had_tau_id_vsMu_cut(
-                rdf, config["channel"], selection_conf
-            )
+            rdf = filters.had_tau_id_vsMu_cut(rdf, config["channel"], selection_conf)
         if "lep_iso" in selection_conf:
             rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
         if "trigger" in selection_conf:
@@ -133,9 +128,7 @@ def run_preselection(args):
             if "lep_id" in mc_weight_conf:
                 rdf = weights.lep_id_weight(rdf, config["channel"])
             if "had_tau_id_vs_mu" in mc_weight_conf:
-                rdf = weights.tau_id_vsMu_weight(
-                    rdf, config["channel"], selection_conf
-                )
+                rdf = weights.tau_id_vsMu_weight(rdf, config["channel"], selection_conf)
             if "had_tau_id_vs_ele" in mc_weight_conf:
                 rdf = weights.tau_id_vsEle_weight(
                     rdf, config["channel"], selection_conf
@@ -220,9 +213,7 @@ def run_preselection(args):
             # check for empty data frame -> only save/calculate if event number is not zero
             if tmp_rdf.Count().GetValue() != 0:
                 print(
-                    "The current data frame will be saved to {}".format(
-                        tmp_file_name
-                    )
+                    "The current data frame will be saved to {}".format(tmp_file_name)
                 )
                 cols = tmp_rdf.GetColumnNames()
                 missing_cols = [x for x in output_feature if x not in cols]
@@ -240,9 +231,7 @@ def run_preselection(args):
         out_file_name = func.get_output_name(output_path, process, tau_gen_mode)
         # combining sample files to a single process file, if there are any
         if len(process_file_dict[tau_gen_mode]) != 0:
-            sum_rdf = ROOT.RDataFrame(
-                config["tree"], process_file_dict[tau_gen_mode]
-            )
+            sum_rdf = ROOT.RDataFrame(config["tree"], process_file_dict[tau_gen_mode])
             print(
                 "The processed files for the {} process are concatenated. The data frame will be saved to {}".format(
                     process, out_file_name
@@ -302,9 +291,10 @@ if __name__ == "__main__":
     args_list = [(process, config) for process in config["processes"]]
     # for args in args_list:
     #     run_preselection(args)
-    with multiprocessing.Pool(processes=min(len(config["processes"]), int(args.nthreads))) as pool:
+    with multiprocessing.Pool(
+        processes=min(len(config["processes"]), int(args.nthreads))
+    ) as pool:
         pool.map(run_preselection, args_list)
-
 
     # dumping config to output directory for documentation
     with open(output_path + "/config.yaml", "w") as config_file:

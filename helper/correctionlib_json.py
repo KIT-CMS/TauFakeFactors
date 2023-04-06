@@ -153,7 +153,9 @@ def generate_ff_cs_json(
     if "process_fractions" in config and fractions != None:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
-        frac_unc = {}  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
+        frac_unc = (
+            {}
+        )  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
         if "QCD" in processes:
             frac_unc["fracQCDUncUp"] = "frac_QCD_up"
             frac_unc["fracQCDUncDown"] = "frac_QCD_down"
@@ -599,9 +601,9 @@ def generate_corr_cs_json(config, save_path, corrections, for_DRtoSR=False):
                 ]
             elif "non_closure" in correction and for_DRtoSR:
                 corr_var = correction.split("non_closure_")[1]
-                var = config["target_process"][process]["DR_SR"]["non_closure"][corr_var][
-                    "var_dependence"
-                ]
+                var = config["target_process"][process]["DR_SR"]["non_closure"][
+                    corr_var
+                ]["var_dependence"]
             else:
                 var = config["target_process"][process][correction]["var_dependence"]
             corr_dict = corrections[process][correction]
@@ -613,8 +615,6 @@ def generate_corr_cs_json(config, save_path, corrections, for_DRtoSR=False):
         description="Corrections for fake factors for tau analysis",
         corrections=cs_ff_corrections,
     )
-
-    
 
     if not for_DRtoSR:
         with open(
@@ -629,12 +629,15 @@ def generate_corr_cs_json(config, save_path, corrections, for_DRtoSR=False):
 
     elif for_DRtoSR:
         with open(
-            save_path + "/FF_corrections_{}_for_DRtoSR.json".format(config["channel"]), "w"
+            save_path + "/FF_corrections_{}_for_DRtoSR.json".format(config["channel"]),
+            "w",
         ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
         with gzip.open(
-            save_path + "/FF_corrections_{}_for_DRtoSR.json.gz".format(config["channel"]), "wt"
+            save_path
+            + "/FF_corrections_{}_for_DRtoSR.json.gz".format(config["channel"]),
+            "wt",
         ) as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
