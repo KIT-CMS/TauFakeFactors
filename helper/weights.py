@@ -270,8 +270,43 @@ def gen_weight(rdf, sample):
 
     return rdf.Redefine(
         "weight",
-        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>0) * 1)))",
+        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1)))",
     )
+
+
+def stitching_weight(rdf, era, process, sample):
+    number_generated_events_weight = 1.0 / float(sample["nevents"])
+    cross_section_per_event_weight = float(sample["xsec"])
+    negative_events_fraction = float(sample["generator_weight"])
+    rdf = rdf.Define(
+        "numberGeneratedEventsWeight",
+        "(float){}".format(number_generated_events_weight),
+    )
+    rdf = rdf.Define(
+        "crossSectionPerEventWeight", "(float){}".format(cross_section_per_event_weight)
+    )
+    rdf = rdf.Define(
+        "negativeEventsFraction", "(float){}".format(negative_events_fraction)
+    )
+
+    if era == "2018":
+        if process == "Wjets":
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * (0.0007590865*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2191273680 + (npartons==2)*0.1335837379 + (npartons==3)*0.0636217909 + (npartons==4)*0.0823135765 ))",
+            )
+        elif process == "DYjets":
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ( (genbosonmass>=50.0)*0.0000631493*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2056921342 + (npartons==2)*0.1664121306 + (npartons==3)*0.0891121485 + (npartons==4)*0.0843396952 ) + (genbosonmass<50.0) * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1))))",
+            )
+        else:
+            raise ValueError(
+                "No stitching weights for this process: {}".format(process)
+            )
+    else:
+        raise ValueError("No stitching weights for this era: {}".format(era))
+    return rdf
 
 
 def Z_pt_reweight(rdf, process):

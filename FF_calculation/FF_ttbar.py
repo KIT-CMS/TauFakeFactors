@@ -380,7 +380,7 @@ def non_closure_correction(
             )
 
             # evaluate the measured fake factors for the specific processes
-            rdf_AR = evaluator.evaluate_pt_njets(rdf_AR)
+            rdf_AR = evaluator.evaluate_tau_pt_njets(rdf_AR)
             rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
 
             # redirecting C++ stdout for Report() to python stdout

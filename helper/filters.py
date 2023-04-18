@@ -79,7 +79,7 @@ def had_tau_decay_mode_cut(rdf, channel, config):
             ),
         )
         rdf = rdf.Filter(
-            cut_string.replace("decaymode_2", "decaymode_1"),
+            cut_string.replace("tau_decaymode_2", "tau_decaymode_1"),
             "cut first had. tau decay modes: {}".format(
                 " ".join(dm for dm in config["had_tau_decay_mode"])
             ),

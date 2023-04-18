@@ -292,7 +292,13 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path, evaluator
+    config,
+    corr_config,
+    closure_variable,
+    sample_path_list,
+    save_path,
+    evaluator,
+    for_DRtoSR=False,
 ):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -304,9 +310,14 @@ def non_closure_correction(
 
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["Wjets"])
-    correction_conf = corr_config["target_process"]["Wjets"]["non_closure"][
-        closure_variable
-    ]
+    if for_DRtoSR:
+        correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"][
+            "non_closure"
+        ][closure_variable]
+    else:
+        correction_conf = corr_config["target_process"]["Wjets"]["non_closure"][
+            closure_variable
+        ]
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -362,10 +373,10 @@ def non_closure_correction(
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            if "deltaR_ditaupair" in config["target_process"]["Wjets"]["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_pt_njets_deltaR(rdf_ARlike)
+            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
+                rdf_ARlike = evaluator.evaluate_tau_pt_njets_deltaR(rdf_ARlike)
             else:
-                rdf_ARlike = evaluator.evaluate_pt_njets(rdf_ARlike)
+                rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
 
         # redirecting C++ stdout for Report() to python stdout
@@ -455,12 +466,17 @@ def non_closure_correction(
         corr_hist.Clone(), correction_conf["var_bins"]
     )
 
+    if for_DRtoSR:
+        add_str = "_for_DRtoSR"
+    else:
+        add_str = ""
+
     plotting.plot_correction(
         corr_hist.Clone(),
         smooth_graph,
         correction_conf["var_dependence"],
         "Wjets",
-        "non_closure_" + closure_variable,
+        "non_closure_" + closure_variable + add_str,
         config,
         save_path,
     )
@@ -478,7 +494,31 @@ def non_closure_correction(
         config,
         correction_conf["var_dependence"],
         "Wjets",
-        "non_closure_" + closure_variable,
+        "non_closure_" + closure_variable + add_str,
+        data,
+        samples,
+        {"incl": ""},
+        save_path,
+    )
+
+    data = "data"
+    samples = [
+        "QCD",
+        "diboson_J",
+        "diboson_L",
+        "Wjets",
+        "ttbar_J",
+        "ttbar_L",
+        "DYjets_J",
+        "DYjets_L",
+        "embedding",
+    ]
+    plotting.plot_data_mc(
+        SRlike_hists,
+        config,
+        correction_conf["var_dependence"],
+        "Wjets",
+        "non_closure_" + closure_variable + add_str + "_SRlike_hist",
         data,
         samples,
         {"incl": ""},
@@ -488,16 +528,15 @@ def non_closure_correction(
     return corr_def
 
 
-def DR_SR_correction(config, corr_config, sample_path_list, save_path, evaluator):
+def DR_SR_correction(
+    config, corr_config, sample_path_list, save_path, evaluator, corr_evaluator
+):
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
 
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["Wjets"])
-    # change cuts from SRlike/ARlike to SR/AR
-    process_conf["SRlike_cuts"]["nbtag"] = ">=1"
-    process_conf["ARlike_cuts"]["nbtag"] = ">=1"
     correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"]
 
     for sample_path in sample_path_list:
@@ -539,11 +578,14 @@ def DR_SR_correction(config, corr_config, sample_path_list, save_path, evaluator
             )
 
             # evaluate the measured fake factors for the specific processes
-            if "deltaR_ditaupair" in config["target_process"]["Wjets"]["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_pt_njets_deltaR(rdf_ARlike)
+            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
+                rdf_ARlike = evaluator.evaluate_tau_pt_njets_deltaR(rdf_ARlike)
             else:
-                rdf_ARlike = evaluator.evaluate_pt_njets(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
+                rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
+            rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+            )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()

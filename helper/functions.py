@@ -128,7 +128,7 @@ def check_categories(config):
             )
 
 
-def modify_config(config, process, corr_config):
+def modify_config(config, process, corr_config, for_AR_SR=False):
     if "SRlike_cuts" in corr_config:
         for mod in corr_config["SRlike_cuts"]:
             config["target_process"][process]["SRlike_cuts"][mod] = corr_config[
@@ -138,6 +138,14 @@ def modify_config(config, process, corr_config):
         for mod in corr_config["ARlike_cuts"]:
             config["target_process"][process]["ARlike_cuts"][mod] = corr_config[
                 "ARlike_cuts"
+            ][mod]
+    if "AR_SR_cuts" in corr_config and for_AR_SR:
+        for mod in corr_config["AR_SR_cuts"]:
+            config["target_process"][process]["ARlike_cuts"][mod] = corr_config[
+                "AR_SR_cuts"
+            ][mod]
+            config["target_process"][process]["SRlike_cuts"][mod] = corr_config[
+                "AR_SR_cuts"
             ][mod]
 
 
@@ -502,79 +510,90 @@ def calculate_non_closure_correction_ttbar(SRlike, ARlike):
     return corr
 
 
-def calculating_FF(rdf):
-    import correctionlib
-
-    correctionlib.register_pyroot_binding()
-
-    ROOT.gInterpreter.ProcessLine(
-        """
-        float calc_ff(float pt, int njets, float mt, int nbtag) {
-        if (njets > 2) {
-            njets = 2;
-        }
-        if (nbtag > 2) {
-            nbtag = 2;
-        }
-        auto qcd = correction::CorrectionSet::from_file("workdir/json_test_v3/et/fake_factors.json")->at("QCD_fake_factors");
-        auto wjets = correction::CorrectionSet::from_file("workdir/json_test_v3/et/fake_factors.json")->at("Wjets_fake_factors");
-        auto ttbar = correction::CorrectionSet::from_file("workdir/json_test_v3/et/fake_factors.json")->at("ttbar_fake_factors");
-        auto frac = correction::CorrectionSet::from_file("workdir/json_test_v3/et/fake_factors.json")->at("process_fractions");
-        float qcd_ff = 1.;
-        float wjets_ff = 1.;
-        float ttbar_ff = 1.;
-        qcd_ff = qcd->evaluate({pt, njets});
-        wjets_ff = wjets->evaluate({pt, njets});
-        if (njets == 0) {
-            njets = 1;
-        }
-        ttbar_ff = ttbar->evaluate({pt, njets});
-        float qcd_frac = 1.;
-        float wjets_frac = 1.;
-        float ttbar_frac = 1.;
-        qcd_frac = frac->evaluate({"QCD", mt, nbtag});
-        wjets_frac = frac->evaluate({"Wjets", mt, nbtag});
-        ttbar_frac = frac->evaluate({"ttbar", mt, nbtag});
-        float full_ff = qcd_frac*qcd_ff+wjets_frac*wjets_ff+ttbar_frac*ttbar_ff;
-        return full_ff;
-        }"""
-    )
-
-    rdf = rdf.Define(
-        "fake_factor",
-        "calc_ff(pt_2,njets,mt_1,nbtag)",
-    )
-
-    return rdf
-
-
 class FakeFactorEvaluator:
-    def __init__(self, config, process):
-        self.ff_path = (
-            "workdir/"
-            + config["workdir_name"]
-            + "/"
-            + config["era"]
-            + "/fake_factors_{}.json".format(config["channel"])
-        )
+    def __init__(self, config, process, for_DRtoSR=False):
+        if not for_DRtoSR:
+            self.for_DRtoSR = ""
+            self.ff_path = (
+                "workdir/"
+                + config["workdir_name"]
+                + "/"
+                + config["era"]
+                + "/fake_factors_{}.json".format(config["channel"])
+            )
+        else:
+            self.for_DRtoSR = "for_DRtoSR"
+            self.ff_path = (
+                "workdir/"
+                + config["workdir_name"]
+                + "/"
+                + config["era"]
+                + "/corrections/{ch}/fake_factors_{ch}_for_corrections.json".format(
+                    ch=config["channel"]
+                )
+            )
+
         self.process = process
         correctionlib.register_pyroot_binding()
         print(f"Loading fake factor file {self.ff_path} for process {process}")
         if process not in ["QCD", "Wjets", "ttbar"]:
             raise ValueError(f"Unknown process {process}")
-        ROOT.gInterpreter.Declare(f'auto {process} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{process}_fake_factors");')
+        ROOT.gInterpreter.Declare(
+            f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
+        )
 
-
-    def evaluate_pt_njets(self, rdf):
+    def evaluate_tau_pt_njets(self, rdf):
         rdf = rdf.Define(
             f"{self.process}_fake_factor",
-            f'{self.process}->evaluate({{pt_2, (float)njets, "nominal"}})',
+            f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, "nominal"}})',
         )
         return rdf
-    
-    def evaluate_pt_njets_deltaR(self, rdf):
+
+    def evaluate_tau_pt_njets_deltaR(self, rdf):
         rdf = rdf.Define(
             f"{self.process}_fake_factor",
-            f'{self.process}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
+            f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
+        )
+        return rdf
+
+
+class FakeFactorCorrectionEvaluator:
+    def __init__(self, config, process, for_DRtoSR=True):
+        if not for_DRtoSR:
+            self.for_DRtoSR = ""
+            self.corr_path = (
+                "workdir/"
+                + config["workdir_name"]
+                + "/"
+                + config["era"]
+                + "/FF_corrections_{}.json".format(config["channel"])
+            )
+        else:
+            self.for_DRtoSR = "for_DRtoSR"
+            self.corr_path = (
+                "workdir/"
+                + config["workdir_name"]
+                + "/"
+                + config["era"]
+                + "/corrections/{ch}/FF_corrections_{ch}_for_DRtoSR.json".format(
+                    ch=config["channel"]
+                )
+            )
+
+        self.process = process
+        correctionlib.register_pyroot_binding()
+        print(
+            f"Loading fake factor correction file {self.corr_path} for process {process}"
+        )
+        if process not in ["QCD", "Wjets", "ttbar"]:
+            raise ValueError(f"Unknown process {process}")
+        ROOT.gInterpreter.Declare(
+            f'auto {process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{process}_non_closure_lep_pt_correction");'
+        )
+
+    def evaluate_lep_pt(self, rdf):
+        rdf = rdf.Define(
+            f"{self.process}_ff_corr",
+            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_1, "nominal"}})',
         )
         return rdf
