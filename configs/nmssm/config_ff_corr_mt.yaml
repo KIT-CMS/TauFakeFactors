@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "full_set_v12"
+workdir_name: "full_set_v14"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 

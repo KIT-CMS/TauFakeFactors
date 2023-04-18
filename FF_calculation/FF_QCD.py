@@ -420,7 +420,6 @@ def DR_SR_correction(
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            # rdf_ARlike = func.eval_QCD_FF(rdf_ARlike, config, for_correction=True)
             rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
             rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(

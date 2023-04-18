@@ -117,8 +117,23 @@ def run_preselection(args):
         mc_weight_conf = config["mc_weights"]
         rdf = rdf.Define("weight", "1.")
         if process not in ["data", "embedding"]:
-            if "generator" in mc_weight_conf:
-                rdf = weights.gen_weight(rdf, datasets[sample])
+            if process == "DYjets":
+                if "generator" in mc_weight_conf and not config["stitching"]:
+                    rdf = weights.gen_weight(rdf, datasets[sample])
+                elif "generator" in mc_weight_conf and config["stitching"]:
+                    rdf = weights.stitching_weight(
+                        rdf, config["era"], process, datasets[sample]
+                    )
+            elif process == "Wjets":
+                if "generator" in mc_weight_conf and not config["stitching"]:
+                    rdf = weights.gen_weight(rdf, datasets[sample])
+                elif "generator" in mc_weight_conf and config["stitching"]:
+                    rdf = weights.stitching_weight(
+                        rdf, config["era"], process, datasets[sample]
+                    )
+            else:
+                if "generator" in mc_weight_conf:
+                    rdf = weights.gen_weight(rdf, datasets[sample])
             if "lumi" in mc_weight_conf:
                 rdf = weights.lumi_weight(rdf, config["era"])
             if "pileup" in mc_weight_conf:
