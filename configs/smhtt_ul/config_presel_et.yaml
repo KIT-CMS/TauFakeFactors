@@ -1,11 +1,11 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v1/CROWNRun"
+ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v2/CROWNRun"
 era: "2018"
 channel: "et"
 tree: "ntuple"
 
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v1"
+output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v2"
 
 processes:
     DYjets:
