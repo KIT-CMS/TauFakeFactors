@@ -9,6 +9,7 @@ import array
 import numpy as np
 import ROOT
 import correctionlib
+from XRootD import client
 
 from io import StringIO
 from wurlitzer import pipes, STDOUT
@@ -17,6 +18,12 @@ from wurlitzer import pipes, STDOUT
 def check_for_empty_file(path, tree):
     f = ROOT.TFile.Open(path)
     return bool(f.Get(tree))
+
+def check_for_empty_tree(path, tree):
+    # check if tree is empty
+    f = ROOT.TFile.Open(path)
+    t = f.Get(tree)
+    return bool(t.GetEntries() == 0)
 
 
 def rdf_is_empty(rdf):
@@ -28,28 +35,44 @@ def rdf_is_empty(rdf):
         return True
     return False
 
+def check_inputfiles(sample_path):
+    # additional function to check if the input files are empty, if yes, they are skipped
+    selected_files = []
+    fsname = "root://cmsxrootd-kit.gridka.de/"
+    xrdclient = client.FileSystem(fsname)
+    status, listing = xrdclient.dirlist(sample_path.replace(fsname, ""))
+    if not status.ok:
+        print("Error: {}".format(status.message))
+        sys.exit(1)
+    for g in listing:
+        if g.name.endswith(".root"):
+            # check if file is empty
+            if check_for_empty_tree(os.path.join(sample_path, g.name), "ntuple"):
+                print("File {} is empty. Skipping.".format(g.name))
+                continue
+            selected_files.append(os.path.join(sample_path, g.name))
+    return selected_files
+
+
+
+
 
 def get_ntuples(config, sample):
-    sample_paths = (
-        config["ntuple_path"]
-        + "/"
-        + config["era"]
-        + "/"
-        + sample
-        + "/"
-        + config["channel"]
-        + "/*.root"
-    )
+    sample_paths = os.path.join(config["ntuple_path"], config["era"], sample, config["channel"])
     print(
-        "The following files are loaded for era: {}, channel: {}".format(
-            config["era"], config["channel"]
+        "The following files are loaded for era: {}, channel: {}, sample {}".format(
+            config["era"], config["channel"], sample
         )
     )
     print("-" * 50)
     print(sample_paths)
     print("-" * 50)
 
-    return sample_paths
+    # now check, if the files exist
+    selected_files = check_inputfiles(sample_paths)
+
+
+    return selected_files
 
 
 def get_samples(config):
@@ -493,6 +516,12 @@ def calculate_non_closure_correction(SRlike, ARlike):
     predicted.Scale(frac)
 
     corr.Divide(predicted)
+    hist_bins = corr.GetNbinsX()
+    for x in range(hist_bins):
+        bincontent = corr.GetBinContent(x)
+        if bincontent <= 0.0:
+            corr.SetBinContent(x, 1.0)
+            corr.SetBinError(x, 0.3)
     return corr, frac
 
 
@@ -569,7 +598,7 @@ class FakeFactorCorrectionEvaluator:
                 + "/FF_corrections_{}.json".format(config["channel"])
             )
         else:
-            self.for_DRtoSR = "for_DRtoSR"
+            self.for_DRtoSR = "for_DRtoSR_v2"
             self.corr_path = (
                 "workdir/"
                 + config["workdir_name"]
