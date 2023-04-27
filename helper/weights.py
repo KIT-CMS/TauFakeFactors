@@ -244,7 +244,7 @@ def trigger_weight(rdf, channel, process):
     elif channel == "mt":
         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
     elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
+        rdf = rdf.Redefine("weight", "weight * trg_wgt_tau_1 * trg_wgt_tau_2")
     else:
         sys.exit(
             "Weight calc: trigger: Such a channel is not defined: {}".format(channel)
