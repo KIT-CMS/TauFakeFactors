@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "full_set_v2"
+workdir_name: "full_set_v11"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 
@@ -11,10 +11,10 @@ target_process:
         non_closure:
             lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,40,50,60,70,80,90,100,120]
             lep_iso:
                 var_dependence: "iso_1"
-                var_bins: [0.,0.02,0.05,0.1,0.15,0.2,0.25,0.31]
+                var_bins: [0.00,0.05,0.1,0.15,0.2,0.25,0.31]
                 SRlike_cuts:
                     lep_iso: ">=0.0"
                 ARlike_cuts:
@@ -26,12 +26,18 @@ target_process:
                 lep_iso: ">=0.15"
             ARlike_cuts:
                 lep_iso: ">=0.15"
+            AR_SR_cuts:
+                tau_pair_sign: "opposite"
+            non_closure:
+                lep_pt:
+                    var_dependence: "pt_1"
+                    var_bins: [25,30,40,50,60,70,80,90,100,120]
 
     Wjets:
         non_closure:
             lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,40,50,60,70,80,90,100,120]
         DR_SR:
             var_dependence: "m_vis"
             var_bins: [0,40,70,100,140,180,250]
@@ -39,9 +45,15 @@ target_process:
                 lep_mt: ">=0.0"
             ARlike_cuts:
                 lep_mt: ">=0.0"
+            AR_SR_cuts:
+                njets: ">=1"
+            non_closure:
+                lep_pt:
+                    var_dependence: "pt_1"
+                    var_bins: [25,30,40,50,60,70,80,90,100,120]
 
     ttbar:
         non_closure:
             lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,40,50,60,70,80,90,100,120]
