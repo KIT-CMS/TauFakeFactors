@@ -224,18 +224,29 @@ def had_tau_id_vsJet_cut(rdf, channel, config):
 
 def lep_iso_cut(rdf, channel, config):
     if channel == "et":
-        rdf = rdf.Filter(
-            "iso_1 {}".format(config["lep_iso"]),
-            "cut electron isolation {}".format(config["lep_iso"]),
-        )
+        # check if lep_iso is a list
+        if isinstance(config["lep_iso"], list):
+            rdf = rdf.Filter(
+                "(iso_1 {}) && (iso_1 {})".format(
+                    config["lep_iso"][0], config["lep_iso"][1]
+                ),
+                "cut muon isolation {} and {}".format(
+                    config["lep_iso"][0], config["lep_iso"][1]
+                ),
+            )
+        else:
+            rdf = rdf.Filter(
+                "iso_1 {}".format(config["lep_iso"]),
+                "cut muon isolation {}".format(config["lep_iso"]),
+            )
     elif channel == "mt":
         # check if lep_iso is a list
         if isinstance(config["lep_iso"], list):
             rdf = rdf.Filter(
-                "(iso_1 > {}) && (iso_1 < {})".format(
+                "(iso_1 {}) && (iso_1 {})".format(
                     config["lep_iso"][0], config["lep_iso"][1]
                 ),
-                "cut muon isolation between {} and {}".format(
+                "cut muon isolation {} and {}".format(
                     config["lep_iso"][0], config["lep_iso"][1]
                 ),
             )
