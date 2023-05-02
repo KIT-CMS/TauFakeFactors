@@ -1,12 +1,13 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v1/CROWNRun"
+ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v2/CROWNRun"
 
 era: "2018"
 channel: "mt"
 tree: "ntuple"
 
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v1"
+output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v3"
+stitching : True
 
 processes:
     DYjets:
@@ -17,6 +18,13 @@ processes:
         samples:
             - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
     diboson:
         tau_gen_modes:
             - "J"
@@ -40,6 +48,13 @@ processes:
             - "all"
         samples:
             - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            # - "WJetsToLNu_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "W1JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "W4JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
     embedding:
         tau_gen_modes:
             - "all"
