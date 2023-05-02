@@ -109,6 +109,14 @@ def run_preselection(args):
             rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
         if "trigger" in selection_conf:
             rdf = filters.trigger_cut(rdf, config["channel"])
+        # if "had_tau_id_vs_jet" in selection_conf:
+        #     # if process not in ["data"]:
+        #     #     rdf = weights.apply_tau_id_vsJet_weight(rdf, config["channel"], selection_conf)
+        #     rdf = filters.had_tau_id_vsJet_cut(rdf, config["channel"], selection_conf)
+        # if "nbtag" in selection_conf:
+        #     # if process not in ["data", "embedding"]:
+        #     #     rdf = weights.apply_btag_weight(rdf)
+        #     rdf = filters.bjet_number_cut(rdf, config["channel"], selection_conf["nbtag"])
 
         if process == "embedding":
             rdf = filters.emb_tau_gen_match(rdf, config["channel"])
@@ -206,6 +214,9 @@ def run_preselection(args):
                     config["channel"]
                 )
             )
+        
+        # if "no_extra_lep" in selection_conf:
+        #     rdf = filters.no_extra_lep_cut(rdf, config["channel"], selection_conf)
 
         # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
         for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
