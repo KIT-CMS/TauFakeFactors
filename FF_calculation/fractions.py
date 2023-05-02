@@ -103,6 +103,8 @@ def fraction_calculation(config, sample_path_list, save_path):
                 "ttbar_L",
                 "DYjets_J",
                 "DYjets_L",
+                "ST_J",
+                "ST_L",
                 "embedding",
             ]
         else:
@@ -118,6 +120,9 @@ def fraction_calculation(config, sample_path_list, save_path):
                 "DYjets_J",
                 "DYjets_L",
                 "DYjets_T",
+                "ST_J",
+                "ST_L",
+                "ST_T",
             ]
 
         frac_hists = dict()

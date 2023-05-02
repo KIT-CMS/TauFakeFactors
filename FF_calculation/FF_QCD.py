@@ -219,6 +219,7 @@ def non_closure_correction(
     sample_path_list,
     save_path,
     evaluator,
+    corr_evaluator,
     for_DRtoSR=False,
 ):
     # init histogram dict for FF measurement
@@ -276,7 +277,11 @@ def non_closure_correction(
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+            if corr_evaluator == None:
+                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+            else:
+                rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor * QCD_ff_corr")
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
