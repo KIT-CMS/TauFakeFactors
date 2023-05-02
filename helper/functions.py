@@ -15,9 +15,9 @@ from io import StringIO
 from wurlitzer import pipes, STDOUT
 
 
-def check_for_empty_file(path, tree):
-    f = ROOT.TFile.Open(path)
-    return bool(f.Get(tree))
+# def check_for_empty_file(path, tree):
+#     f = ROOT.TFile.Open(path)
+#     return bool(f.Get(tree))
 
 def check_for_empty_tree(path, tree):
     # check if tree is empty
@@ -34,6 +34,7 @@ def rdf_is_empty(rdf):
     except:
         return True
     return False
+
 
 def check_inputfiles(sample_path):
     # additional function to check if the input files are empty, if yes, they are skipped
@@ -54,9 +55,6 @@ def check_inputfiles(sample_path):
     return selected_files
 
 
-
-
-
 def get_ntuples(config, sample):
     sample_paths = os.path.join(config["ntuple_path"], config["era"], sample, config["channel"])
     print(
@@ -71,19 +69,19 @@ def get_ntuples(config, sample):
     # now check, if the files exist
     selected_files = check_inputfiles(sample_paths)
 
-
     return selected_files
 
 
 def get_samples(config):
-    sample_paths = (
-        config["file_path"]
-        + "/preselection/"
-        + config["era"]
-        + "/"
-        + config["channel"]
-        + "/*.root"
-    )
+    sample_paths = os.path.join(config["file_path"], "preselection", config["era"], config["channel"], "*.root")
+    # sample_paths = (
+    #     config["file_path"]
+    #     + "/preselection/"
+    #     + config["era"]
+    #     + "/"
+    #     + config["channel"]
+    #     + "/*.root"
+    # )
     print(
         "The following files are loaded for era: {}, channel: {} from {}".format(
             config["era"], config["channel"], sample_paths
@@ -193,7 +191,7 @@ def QCD_SS_estimate(hists):
     qcd = hists["data"].Clone()
 
     for sample in hists:
-        if sample not in ["data", "data_subtracted", "data_ff", "QCD"]:
+        if sample not in ["data", "data_subtracted", "data_ff", "QCD", "ST_L", "ST_J", "ST_T"]:
             qcd.Add(hists[sample], -1)
     # check for negative bins
     for i in range(qcd.GetNbinsX()):
@@ -224,21 +222,21 @@ def calculate_Wjets_FF(SRlike, ARlike):
 
 def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
     ratio_mc = SR["ttbar_J"].Clone()
-    ratio_mc.Add(SR["ST_J"])
-    ratio_mc_denum = AR["ttbar_J"].Clone()
-    ratio_mc_denum.Add(AR["ST_J"])
-    #ratio_mc.Divide(AR["ttbar_J"])
-    ratio_mc.Divide(ratio_mc_denum)
+    #ratio_mc.Add(SR["ST_J"])
+    #ratio_mc_denum = AR["ttbar_J"].Clone()
+    #ratio_mc_denum.Add(AR["ST_J"])
+    ratio_mc.Divide(AR["ttbar_J"])
+    #ratio_mc.Divide(ratio_mc_denum)
 
     ratio_DR_data = SRlike["data_subtracted"].Clone()
     ratio_DR_data.Divide(ARlike["data_subtracted"])
 
     ratio_DR_mc = SRlike["ttbar_J"].Clone()
-    ratio_DR_mc.Add(SRlike["ST_J"])
-    ratio_DR_mc_denum = ARlike["ttbar_J"].Clone()
-    ratio_DR_mc_denum.Add(ARlike["ST_J"])
-    #ratio_DR_mc.Divide(ARlike["ttbar_J"])
-    ratio_DR_mc.Divide(ratio_DR_mc_denum)
+    #ratio_DR_mc.Add(SRlike["ST_J"])
+    #ratio_DR_mc_denum = ARlike["ttbar_J"].Clone()
+    #ratio_DR_mc_denum.Add(ARlike["ST_J"])
+    ratio_DR_mc.Divide(ARlike["ttbar_J"])
+    #ratio_DR_mc.Divide(ratio_DR_mc_denum)
 
     sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
     ratio_mc.Scale(sf)
@@ -529,7 +527,7 @@ def calculate_non_closure_correction(SRlike, ARlike):
         bincontent = corr.GetBinContent(x)
         if bincontent <= 0.0:
             corr.SetBinContent(x, 1.0)
-            corr.SetBinError(x, 0.3)
+            corr.SetBinError(x, 0.6)
     return corr, frac
 
 

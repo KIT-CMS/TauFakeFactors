@@ -238,7 +238,7 @@ def pileup_weight(rdf):
     return rdf.Redefine("weight", "weight * puweight")
 
 
-def trigger_weight(rdf, channel, process):
+def trigger_weight(rdf, channel):
     if channel == "et":
         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_ele32orele35")
     elif channel == "mt":

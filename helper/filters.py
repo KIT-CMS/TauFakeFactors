@@ -512,14 +512,14 @@ def tau_origin_split(rdf, channel, tau_gen_mode):
 def emb_tau_gen_match(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
-            # "(gen_match_1 == 3) && (gen_match_2 == 5)",
-            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
+            "(gen_match_1 == 3) && (gen_match_2 == 5)",
+            # "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "mt":
         rdf = rdf.Filter(
-            # "(gen_match_1 == 4) && (gen_match_2 == 5)",
-            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
+            "(gen_match_1 == 4) && (gen_match_2 == 5)",
+            # "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "tt":
