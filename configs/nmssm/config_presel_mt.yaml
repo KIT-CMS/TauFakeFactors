@@ -6,7 +6,7 @@ era: "2018"
 channel: "mt"
 tree: "ntuple"
 
-output_path: "/ceph/nshadskiy/FFmethod/04_2023_v7"
+output_path: "/ceph/nshadskiy/FFmethod/04_2023_v8"
 
 stitching: True
 
@@ -47,6 +47,9 @@ processes:
     Wjets:
         tau_gen_modes:
             - "all"
+            # - "J"
+            # - "T"
+            # - "L"
         samples:
             - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             # - "WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
@@ -56,6 +59,16 @@ processes:
             - "W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "W4JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+    ST:
+        tau_gen_modes:
+            - "J"
+            - "T"
+            - "L"
+        samples:
+            - "ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
     embedding:
         tau_gen_modes:
             - "all"
@@ -81,6 +94,10 @@ event_selection:
     had_tau_id_vs_mu: "Tight"
     # lep_iso: "<0.15"
     trigger: True
+    no_extra_lep: True
+    # had_tau_id_vs_jet: "Medium"
+    # tau_pair_sign: "opposite"  
+    # nbtag: ">=1"
 
 mc_weights:
     - "generator"

@@ -135,10 +135,10 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
     ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
 
     for hist in SRlike_hists:
-        if hist not in ["data", "data_subtracted", "ttbar_J"]:
+        if hist not in ["data", "data_subtracted", "ttbar_J", "ST_J"]:
             SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
     for hist in ARlike_hists:
-        if hist not in ["data", "data_subtracted", "ttbar_J"]:
+        if hist not in ["data", "data_subtracted", "ttbar_J", "ST_J"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
     # splitting between different categories for mc-based FF calculation
@@ -147,7 +147,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
-            if sample == "ttbar_J":
+            if sample in ["ttbar_J", "ST_J"]:
                 print(
                     "Processing {sample} for the {cat} category.".format(
                         sample=sample,
@@ -258,6 +258,8 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 "ttbar_L",
                 "DYjets_J",
                 "DYjets_L",
+                "ST_J",
+                "ST_L",
                 "embedding",
             ]
         else:
@@ -273,6 +275,9 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 "DYjets_J",
                 "DYjets_L",
                 "DYjets_T",
+                "ST_J",
+                "ST_L",
+                "ST_T",
             ]
 
         plotting.plot_data_mc_ratio(
