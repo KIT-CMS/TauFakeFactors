@@ -110,6 +110,7 @@ mc_weights:
     - "trigger"
     - "Z_pt_reweight"
     - "Top_pt_reweight"
+    - "stitching"
 
 emb_weights:
     - "generator"

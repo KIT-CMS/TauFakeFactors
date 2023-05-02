@@ -1,12 +1,12 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/tautau_2018_v2/CROWNRun"
+ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/tautau_2018_v4/CROWNRun"
 # ntuple_path: "/ceph/nshadskiy/nmssm_ul/nmssm_02_2023_v2/ntuples"
 era: "2018"
 channel: "tt"
 tree: "ntuple"
 
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v1"
+output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v2"
 
 processes:
     DYjets:
@@ -79,6 +79,8 @@ mc_weights:
     - "had_tau_id_vs_mu"
     - "Z_pt_reweight"
     - "Top_pt_reweight"
+    - "trigger"
 
 emb_weights:
     - "generator"
+    - "trigger"
