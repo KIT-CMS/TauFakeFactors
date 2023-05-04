@@ -15,10 +15,6 @@ from io import StringIO
 from wurlitzer import pipes, STDOUT
 
 
-# def check_for_empty_file(path, tree):
-#     f = ROOT.TFile.Open(path)
-#     return bool(f.Get(tree))
-
 def check_for_empty_tree(path, tree):
     # check if tree is empty
     f = ROOT.TFile.Open(path)
@@ -74,14 +70,6 @@ def get_ntuples(config, sample):
 
 def get_samples(config):
     sample_paths = os.path.join(config["file_path"], "preselection", config["era"], config["channel"], "*.root")
-    # sample_paths = (
-    #     config["file_path"]
-    #     + "/preselection/"
-    #     + config["era"]
-    #     + "/"
-    #     + config["channel"]
-    #     + "/*.root"
-    # )
     print(
         "The following files are loaded for era: {}, channel: {} from {}".format(
             config["era"], config["channel"], sample_paths
@@ -191,7 +179,7 @@ def QCD_SS_estimate(hists):
     qcd = hists["data"].Clone()
 
     for sample in hists:
-        if sample not in ["data", "data_subtracted", "data_ff", "QCD", "ST_L", "ST_J", "ST_T"]:
+        if sample not in ["data", "data_subtracted", "data_ff", "QCD"]:
             qcd.Add(hists[sample], -1)
     # check for negative bins
     for i in range(qcd.GetNbinsX()):
@@ -222,21 +210,13 @@ def calculate_Wjets_FF(SRlike, ARlike):
 
 def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
     ratio_mc = SR["ttbar_J"].Clone()
-    #ratio_mc.Add(SR["ST_J"])
-    #ratio_mc_denum = AR["ttbar_J"].Clone()
-    #ratio_mc_denum.Add(AR["ST_J"])
     ratio_mc.Divide(AR["ttbar_J"])
-    #ratio_mc.Divide(ratio_mc_denum)
 
     ratio_DR_data = SRlike["data_subtracted"].Clone()
     ratio_DR_data.Divide(ARlike["data_subtracted"])
 
     ratio_DR_mc = SRlike["ttbar_J"].Clone()
-    #ratio_DR_mc.Add(SRlike["ST_J"])
-    #ratio_DR_mc_denum = ARlike["ttbar_J"].Clone()
-    #ratio_DR_mc_denum.Add(ARlike["ST_J"])
     ratio_DR_mc.Divide(ARlike["ttbar_J"])
-    #ratio_DR_mc.Divide(ratio_DR_mc_denum)
 
     sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
     ratio_mc.Scale(sf)
@@ -324,9 +304,6 @@ def fit_function(ff_hist, bin_edges):
     y = array.array("d", y)
     error_y_up = array.array("d", error_y_up)
     error_y_down = array.array("d", error_y_down)
-
-    # Nbins = 448
-    # x_arr, resampling_y, resampling_y_up, resampling_y_down = resample(x, y, error_y_up, n=200, bins=Nbins)
 
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
@@ -423,9 +400,7 @@ def fit_function(ff_hist, bin_edges):
         fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
             len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
         )
-    # resampled_fit_graph = ROOT.TGraphAsymmErrors(
-    #     Nbins, x_arr, resampling_y, 0, 0, resampling_y_down, resampling_y_up
-    # )
+  
     if do_mc_subtr_unc:
         return {
             "fit_graph_slope": fit_graph_slope,
@@ -570,9 +545,9 @@ class FakeFactorEvaluator:
 
         self.process = process
         correctionlib.register_pyroot_binding()
-        print(f"Loading fake factor file {self.ff_path} for process {process}")
-        if process not in ["QCD", "Wjets", "ttbar"]:
-            raise ValueError(f"Unknown process {process}")
+        print(f"Loading fake factor file {self.ff_path} for process {self.process}")
+        if self.process not in ["QCD", "Wjets", "ttbar"]:
+            raise ValueError(f"Unknown process {self.process}")
         ROOT.gInterpreter.Declare(
             f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
         )
@@ -618,12 +593,12 @@ class FakeFactorCorrectionEvaluator:
         self.process = process
         correctionlib.register_pyroot_binding()
         print(
-            f"Loading fake factor correction file {self.corr_path} for process {process}"
+            f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
         if process not in ["QCD", "Wjets", "ttbar"]:
-            raise ValueError(f"Unknown process {process}")
+            raise ValueError(f"Unknown process {self.process}")
         ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{process}_non_closure_lep_pt_correction");'
+            f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_lep_pt_correction");'
         )
 
     def evaluate_lep_pt(self, rdf):
