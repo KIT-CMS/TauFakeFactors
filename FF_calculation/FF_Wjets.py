@@ -385,11 +385,14 @@ def non_closure_correction(
                 rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
             # additionally evaluate the first correction, if this is the second correction
             if corr_evaluator == None:
-                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor"
+                )
             else:
                 rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
-                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr")
-            
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()

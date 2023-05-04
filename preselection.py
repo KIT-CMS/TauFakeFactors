@@ -285,14 +285,9 @@ if __name__ == "__main__":
         datasets = yaml.load(file, yaml.FullLoader)
 
     # define output path for the preselected samples
-    output_path = os.path.join(config["output_path"], "preselection", config["era"], config["channel"])
-    # output_path = (
-    #     config["output_path"]
-    #     + "/preselection/"
-    #     + config["era"]
-    #     + "/"
-    #     + config["channel"]
-    # )
+    output_path = os.path.join(
+        config["output_path"], "preselection", config["era"], config["channel"]
+    )
     func.check_output_path(output_path)
 
     # start output logging

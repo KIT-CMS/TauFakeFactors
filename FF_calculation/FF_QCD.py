@@ -281,7 +281,9 @@ def non_closure_correction(
                 rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
             else:
                 rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
-                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor * QCD_ff_corr")
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * QCD_fake_factor * QCD_ff_corr"
+                )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()

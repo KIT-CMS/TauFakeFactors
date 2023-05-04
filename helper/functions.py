@@ -52,7 +52,9 @@ def check_inputfiles(sample_path):
 
 
 def get_ntuples(config, sample):
-    sample_paths = os.path.join(config["ntuple_path"], config["era"], sample, config["channel"])
+    sample_paths = os.path.join(
+        config["ntuple_path"], config["era"], sample, config["channel"]
+    )
     print(
         "The following files are loaded for era: {}, channel: {}, sample {}".format(
             config["era"], config["channel"], sample
@@ -69,7 +71,9 @@ def get_ntuples(config, sample):
 
 
 def get_samples(config):
-    sample_paths = os.path.join(config["file_path"], "preselection", config["era"], config["channel"], "*.root")
+    sample_paths = os.path.join(
+        config["file_path"], "preselection", config["era"], config["channel"], "*.root"
+    )
     print(
         "The following files are loaded for era: {}, channel: {} from {}".format(
             config["era"], config["channel"], sample_paths
@@ -400,7 +404,7 @@ def fit_function(ff_hist, bin_edges):
         fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
             len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
         )
-  
+
     if do_mc_subtr_unc:
         return {
             "fit_graph_slope": fit_graph_slope,
