@@ -275,7 +275,10 @@ if __name__ == "__main__":
 
                         if corr_config["generate_json"]:
                             cs.generate_corr_cs_json(
-                                corr_config, save_path_ffs, corrections, for_DRtoSR=False
+                                corr_config,
+                                save_path_ffs,
+                                corrections,
+                                for_DRtoSR=False,
                             )
                         n_processed += 1
 
@@ -357,12 +360,15 @@ if __name__ == "__main__":
                                 corr_evaluator,
                                 for_DRtoSR=False,
                             )
-                        
+
                         corrections[process]["non_closure_" + closure_corr] = corr
 
                         if corr_config["generate_json"]:
                             cs.generate_corr_cs_json(
-                                corr_config, save_path_ffs, corrections, for_DRtoSR=False
+                                corr_config,
+                                save_path_ffs,
+                                corrections,
+                                for_DRtoSR=False,
                             )
                         n_processed += 1
 
@@ -442,7 +448,7 @@ if __name__ == "__main__":
                             evaluator,
                             corr_evaluator,
                         )
-                    
+
                     corrections[process]["non_closure_" + closure_corr] = corr
 
                     if corr_config["generate_json"]:
