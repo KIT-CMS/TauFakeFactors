@@ -168,6 +168,7 @@ if __name__ == "__main__":
                             sample_path_list,
                             save_path_plots,
                             evaluator,
+                            None,
                             for_DRtoSR=True,
                         )
                         DR_SR_corrections[process]["non_closure_" + closure_corr] = corr
@@ -204,6 +205,7 @@ if __name__ == "__main__":
                             sample_path_list,
                             save_path_plots,
                             evaluator,
+                            None,
                             for_DRtoSR=True,
                         )
                         DR_SR_corrections[process]["non_closure_" + closure_corr] = corr
@@ -311,6 +313,7 @@ if __name__ == "__main__":
                         config, process, for_DRtoSR=False
                     )
 
+                    n_processed = 0
                     for closure_corr in corr_config["target_process"]["Wjets"][
                         "non_closure"
                     ]:
@@ -329,17 +332,39 @@ if __name__ == "__main__":
                             ],
                             for_AR_SR=False,
                         )
-
-                        corr = FF_Wjets.non_closure_correction(
-                            temp_conf,
-                            corr_config,
-                            closure_corr,
-                            sample_path_list,
-                            save_path_plots,
-                            evaluator,
-                            for_DRtoSR=False,
-                        )
+                        if n_processed == 0:
+                            corr = FF_Wjets.non_closure_correction(
+                                temp_conf,
+                                corr_config,
+                                closure_corr,
+                                sample_path_list,
+                                save_path_plots,
+                                evaluator,
+                                None,
+                                for_DRtoSR=False,
+                            )
+                        else:
+                            corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                                config, process, for_DRtoSR=False
+                            )
+                            corr = FF_Wjets.non_closure_correction(
+                                temp_conf,
+                                corr_config,
+                                closure_corr,
+                                sample_path_list,
+                                save_path_plots,
+                                evaluator,
+                                corr_evaluator,
+                                for_DRtoSR=False,
+                            )
+                        
                         corrections[process]["non_closure_" + closure_corr] = corr
+
+                        if corr_config["generate_json"]:
+                            cs.generate_corr_cs_json(
+                                corr_config, save_path_ffs, corrections, for_DRtoSR=False
+                            )
+                        n_processed += 1
 
                 if "DR_SR" in corr_config["target_process"]["Wjets"]:
                     evaluator = func.FakeFactorEvaluator(
@@ -375,6 +400,7 @@ if __name__ == "__main__":
             ):
                 evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=False)
 
+                n_processed = 0
                 for closure_corr in corr_config["target_process"]["ttbar"][
                     "non_closure"
                 ]:
@@ -393,16 +419,37 @@ if __name__ == "__main__":
                         ],
                         for_AR_SR=False,
                     )
-
-                    corr = FF_ttbar.non_closure_correction(
-                        temp_conf,
-                        corr_config,
-                        closure_corr,
-                        sample_path_list,
-                        save_path_plots,
-                        evaluator,
-                    )
+                    if n_processed == 0:
+                        corr = FF_ttbar.non_closure_correction(
+                            temp_conf,
+                            corr_config,
+                            closure_corr,
+                            sample_path_list,
+                            save_path_plots,
+                            evaluator,
+                            None,
+                        )
+                    else:
+                        corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                            config, process, for_DRtoSR=False
+                        )
+                        corr = FF_ttbar.non_closure_correction(
+                            temp_conf,
+                            corr_config,
+                            closure_corr,
+                            sample_path_list,
+                            save_path_plots,
+                            evaluator,
+                            corr_evaluator,
+                        )
+                    
                     corrections[process]["non_closure_" + closure_corr] = corr
+
+                    if corr_config["generate_json"]:
+                        cs.generate_corr_cs_json(
+                            corr_config, save_path_ffs, corrections, for_DRtoSR=False
+                        )
+                    n_processed += 1
 
             else:
                 sys.exit(
