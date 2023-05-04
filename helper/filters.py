@@ -224,18 +224,29 @@ def had_tau_id_vsJet_cut(rdf, channel, config):
 
 def lep_iso_cut(rdf, channel, config):
     if channel == "et":
-        rdf = rdf.Filter(
-            "iso_1 {}".format(config["lep_iso"]),
-            "cut electron isolation {}".format(config["lep_iso"]),
-        )
+        # check if lep_iso is a list
+        if isinstance(config["lep_iso"], list):
+            rdf = rdf.Filter(
+                "(iso_1 {}) && (iso_1 {})".format(
+                    config["lep_iso"][0], config["lep_iso"][1]
+                ),
+                "cut muon isolation {} and {}".format(
+                    config["lep_iso"][0], config["lep_iso"][1]
+                ),
+            )
+        else:
+            rdf = rdf.Filter(
+                "iso_1 {}".format(config["lep_iso"]),
+                "cut muon isolation {}".format(config["lep_iso"]),
+            )
     elif channel == "mt":
         # check if lep_iso is a list
         if isinstance(config["lep_iso"], list):
             rdf = rdf.Filter(
-                "(iso_1 > {}) && (iso_1 < {})".format(
+                "(iso_1 {}) && (iso_1 {})".format(
                     config["lep_iso"][0], config["lep_iso"][1]
                 ),
-                "cut muon isolation between {} and {}".format(
+                "cut muon isolation {} and {}".format(
                     config["lep_iso"][0], config["lep_iso"][1]
                 ),
             )
@@ -501,14 +512,14 @@ def tau_origin_split(rdf, channel, tau_gen_mode):
 def emb_tau_gen_match(rdf, channel):
     if channel == "et":
         rdf = rdf.Filter(
-            # "(gen_match_1 == 3) && (gen_match_2 == 5)",
-            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
+            "(gen_match_1 == 3) && (gen_match_2 == 5)",
+            # "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "mt":
         rdf = rdf.Filter(
-            # "(gen_match_1 == 4) && (gen_match_2 == 5)",
-            "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
+            "(gen_match_1 == 4) && (gen_match_2 == 5)",
+            # "((gen_match_1 > 2 && gen_match_1 < 6) && (gen_match_2 > 2 && gen_match_2 < 6))",
             "embedding tau gen. matching",
         )
     elif channel == "tt":

@@ -15,10 +15,6 @@ from io import StringIO
 from wurlitzer import pipes, STDOUT
 
 
-def check_for_empty_file(path, tree):
-    f = ROOT.TFile.Open(path)
-    return bool(f.Get(tree))
-
 def check_for_empty_tree(path, tree):
     # check if tree is empty
     f = ROOT.TFile.Open(path)
@@ -34,6 +30,7 @@ def rdf_is_empty(rdf):
     except:
         return True
     return False
+
 
 def check_inputfiles(sample_path):
     # additional function to check if the input files are empty, if yes, they are skipped
@@ -54,11 +51,10 @@ def check_inputfiles(sample_path):
     return selected_files
 
 
-
-
-
 def get_ntuples(config, sample):
-    sample_paths = os.path.join(config["ntuple_path"], config["era"], sample, config["channel"])
+    sample_paths = os.path.join(
+        config["ntuple_path"], config["era"], sample, config["channel"]
+    )
     print(
         "The following files are loaded for era: {}, channel: {}, sample {}".format(
             config["era"], config["channel"], sample
@@ -71,18 +67,12 @@ def get_ntuples(config, sample):
     # now check, if the files exist
     selected_files = check_inputfiles(sample_paths)
 
-
     return selected_files
 
 
 def get_samples(config):
-    sample_paths = (
-        config["file_path"]
-        + "/preselection/"
-        + config["era"]
-        + "/"
-        + config["channel"]
-        + "/*.root"
+    sample_paths = os.path.join(
+        config["file_path"], "preselection", config["era"], config["channel"], "*.root"
     )
     print(
         "The following files are loaded for era: {}, channel: {} from {}".format(
@@ -319,9 +309,6 @@ def fit_function(ff_hist, bin_edges):
     error_y_up = array.array("d", error_y_up)
     error_y_down = array.array("d", error_y_down)
 
-    # Nbins = 448
-    # x_arr, resampling_y, resampling_y_up, resampling_y_down = resample(x, y, error_y_up, n=200, bins=Nbins)
-
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
     out = StringIO()
@@ -417,9 +404,7 @@ def fit_function(ff_hist, bin_edges):
         fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
             len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
         )
-    # resampled_fit_graph = ROOT.TGraphAsymmErrors(
-    #     Nbins, x_arr, resampling_y, 0, 0, resampling_y_down, resampling_y_up
-    # )
+
     if do_mc_subtr_unc:
         return {
             "fit_graph_slope": fit_graph_slope,
@@ -521,7 +506,7 @@ def calculate_non_closure_correction(SRlike, ARlike):
         bincontent = corr.GetBinContent(x)
         if bincontent <= 0.0:
             corr.SetBinContent(x, 1.0)
-            corr.SetBinError(x, 0.3)
+            corr.SetBinError(x, 0.6)
     return corr, frac
 
 
@@ -564,9 +549,9 @@ class FakeFactorEvaluator:
 
         self.process = process
         correctionlib.register_pyroot_binding()
-        print(f"Loading fake factor file {self.ff_path} for process {process}")
-        if process not in ["QCD", "Wjets", "ttbar"]:
-            raise ValueError(f"Unknown process {process}")
+        print(f"Loading fake factor file {self.ff_path} for process {self.process}")
+        if self.process not in ["QCD", "Wjets", "ttbar"]:
+            raise ValueError(f"Unknown process {self.process}")
         ROOT.gInterpreter.Declare(
             f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
         )
@@ -612,12 +597,12 @@ class FakeFactorCorrectionEvaluator:
         self.process = process
         correctionlib.register_pyroot_binding()
         print(
-            f"Loading fake factor correction file {self.corr_path} for process {process}"
+            f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
         if process not in ["QCD", "Wjets", "ttbar"]:
-            raise ValueError(f"Unknown process {process}")
+            raise ValueError(f"Unknown process {self.process}")
         ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{process}_non_closure_lep_pt_correction");'
+            f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_lep_pt_correction");'
         )
 
     def evaluate_lep_pt(self, rdf):

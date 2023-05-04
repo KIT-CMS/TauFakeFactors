@@ -147,7 +147,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
-            if sample == "ttbar_J":
+            if sample in ["ttbar_J"]:
                 print(
                     "Processing {sample} for the {cat} category.".format(
                         sample=sample,
@@ -258,6 +258,8 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 "ttbar_L",
                 "DYjets_J",
                 "DYjets_L",
+                "ST_J",
+                "ST_L",
                 "embedding",
             ]
         else:
@@ -273,6 +275,9 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 "DYjets_J",
                 "DYjets_L",
                 "DYjets_T",
+                "ST_J",
+                "ST_L",
+                "ST_T",
             ]
 
         plotting.plot_data_mc_ratio(
@@ -329,7 +334,13 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
 
 
 def non_closure_correction(
-    config, corr_config, closure_variable, sample_path_list, save_path, evaluator
+    config,
+    corr_config,
+    closure_variable,
+    sample_path_list,
+    save_path,
+    evaluator,
+    corr_evaluator,
 ):
     # init histogram dict for FF measurement
     SR_hists = dict()
@@ -381,7 +392,13 @@ def non_closure_correction(
 
             # evaluate the measured fake factors for the specific processes
             rdf_AR = evaluator.evaluate_tau_pt_njets(rdf_AR)
-            rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
+            if corr_evaluator == None:
+                rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
+            else:
+                rdf_AR = corr_evaluator.evaluate_lep_pt(rdf_AR)
+                rdf_AR = rdf_AR.Define(
+                    "weight_ff", "weight * ttbar_fake_factor * ttbar_ff_corr"
+                )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()

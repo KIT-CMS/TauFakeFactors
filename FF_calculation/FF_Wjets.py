@@ -221,6 +221,8 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
                 "ttbar_L",
                 "DYjets_J",
                 "DYjets_L",
+                "ST_J",
+                "ST_L",
                 "embedding",
             ]
         else:
@@ -236,6 +238,9 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
                 "DYjets_J",
                 "DYjets_L",
                 "DYjets_T",
+                "ST_J",
+                "ST_L",
+                "ST_T",
             ]
 
         plotting.plot_data_mc_ratio(
@@ -298,6 +303,7 @@ def non_closure_correction(
     sample_path_list,
     save_path,
     evaluator,
+    corr_evaluator,
     for_DRtoSR=False,
 ):
     # init histogram dict for FF measurement
@@ -377,7 +383,16 @@ def non_closure_correction(
                 rdf_ARlike = evaluator.evaluate_tau_pt_njets_deltaR(rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * Wjets_fake_factor")
+            # additionally evaluate the first correction, if this is the second correction
+            if corr_evaluator == None:
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor"
+                )
+            else:
+                rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -511,6 +526,8 @@ def non_closure_correction(
         "ttbar_L",
         "DYjets_J",
         "DYjets_L",
+        "ST_J",
+        "ST_L",
         "embedding",
     ]
     plotting.plot_data_mc(

@@ -164,6 +164,8 @@ def calculation_QCD_FFs(config, sample_path_list, save_path):
                 "ttbar_L",
                 "DYjets_J",
                 "DYjets_L",
+                "ST_J",
+                "ST_L",
                 "embedding",
             ]
         else:
@@ -178,6 +180,9 @@ def calculation_QCD_FFs(config, sample_path_list, save_path):
                 "DYjets_J",
                 "DYjets_L",
                 "DYjets_T",
+                "ST_J",
+                "ST_L",
+                "ST_T",
             ]
 
         plotting.plot_data_mc(
@@ -214,6 +219,7 @@ def non_closure_correction(
     sample_path_list,
     save_path,
     evaluator,
+    corr_evaluator,
     for_DRtoSR=False,
 ):
     # init histogram dict for FF measurement
@@ -271,7 +277,13 @@ def non_closure_correction(
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+            if corr_evaluator == None:
+                rdf_ARlike = rdf_ARlike.Define("weight_ff", "weight * QCD_fake_factor")
+            else:
+                rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * QCD_fake_factor * QCD_ff_corr"
+                )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -376,9 +388,6 @@ def DR_SR_correction(
 
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["QCD"])
-    # change cuts from SRlike/ARlike to SR/AR
-    process_conf["SRlike_cuts"]["tau_pair_sign"] = "opposite"
-    process_conf["ARlike_cuts"]["tau_pair_sign"] = "opposite"
     correction_conf = corr_config["target_process"]["QCD"]["DR_SR"]
 
     for sample_path in sample_path_list:

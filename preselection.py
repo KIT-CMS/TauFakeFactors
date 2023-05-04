@@ -93,6 +93,7 @@ def run_preselection(args):
         if func.rdf_is_empty(rdf):
             print("WARNING: Sample {} is empty. Skipping...".format(sample))
             continue
+
         # apply wanted event filters
         selection_conf = config["event_selection"]
         if "had_tau_pt" in selection_conf:
@@ -149,7 +150,7 @@ def run_preselection(args):
                     rdf, config["channel"], selection_conf
                 )
             if "trigger" in mc_weight_conf:
-                rdf = weights.trigger_weight(rdf, config["channel"], process)
+                rdf = weights.trigger_weight(rdf, config["channel"])
             if "Z_pt_reweight" in mc_weight_conf:
                 rdf = weights.Z_pt_reweight(rdf, process)
             if "Top_pt_reweight" in mc_weight_conf:
@@ -164,7 +165,7 @@ def run_preselection(args):
             if "lep_id" in emb_weight_conf:
                 rdf = weights.lep_id_weight(rdf, config["channel"])
             if "trigger" in emb_weight_conf:
-                rdf = weights.trigger_weight(rdf, config["channel"], process)
+                rdf = weights.trigger_weight(rdf, config["channel"])
 
         # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
         if process == "data" or process == "embedding":
@@ -284,12 +285,8 @@ if __name__ == "__main__":
         datasets = yaml.load(file, yaml.FullLoader)
 
     # define output path for the preselected samples
-    output_path = (
-        config["output_path"]
-        + "/preselection/"
-        + config["era"]
-        + "/"
-        + config["channel"]
+    output_path = os.path.join(
+        config["output_path"], "preselection", config["era"], config["channel"]
     )
     func.check_output_path(output_path)
 

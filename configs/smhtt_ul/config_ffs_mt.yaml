@@ -23,14 +23,14 @@ target_process:
         SRlike_cuts:
             tau_pair_sign: "same"
             lep_mt: "<50"
-            lep_iso: [0.05, 0.15]
+            lep_iso: [">0.05", "<0.15"]
             no_extra_lep: True
             had_tau_id_vs_jet: "Tight"
 
         ARlike_cuts:
             tau_pair_sign: "same"
             lep_mt: "<50"
-            lep_iso: [0.05, 0.15]
+            lep_iso: [">0.05", "<0.15"]
             no_extra_lep: True
             had_tau_id_vs_jet: ["VLoose","Tight"]
         
