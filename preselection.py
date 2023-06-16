@@ -85,10 +85,7 @@ def run_preselection(args):
 
     # going through all contributing samples for the process
     for idx, sample in enumerate(config["processes"][process]["samples"]):
-        # all_samples = func.get_ntuples(config, sample)
-        # print(all_samples)
-        # # remove all samples with empty ttrees
-        # samples = [sample for sample in all_samples if func.check_for_empty_file(sample, "ntuple") is not None]
+        # loading ntuple files
         rdf = ROOT.RDataFrame(config["tree"], func.get_ntuples(config, sample))
         if func.rdf_is_empty(rdf):
             print("WARNING: Sample {} is empty. Skipping...".format(sample))

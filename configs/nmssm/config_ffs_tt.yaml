@@ -1,0 +1,93 @@
+# This is an example config containing information for the FF calculation
+
+file_path: "/ceph/nshadskiy/FFmethod/nmssm_05_2023_embSFs_v2"
+era: "2018"
+channel: "tt" # options are et, mt, tt
+tree: "ntuple"
+
+workdir_name: "tt_05_2023_v4_btag"
+
+use_embedding: True
+generate_json: True
+
+target_process: 
+    QCD: 
+        split_categories: 
+            nbtag: 
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            nbtag: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "same" 
+            no_extra_lep: True
+            #nbtag: ">=1"
+            had_tau_id_vs_jet_1: "Medium"
+            had_tau_id_vs_jet_2: "Medium"
+
+        ARlike_cuts:
+            tau_pair_sign: "same" 
+            no_extra_lep: True
+            #nbtag: ">=1"
+            had_tau_id_vs_jet_1: ["VVVLoose","Medium"]
+            had_tau_id_vs_jet_2: "Medium"
+        
+        var_dependence: "pt_1"
+        var_bins: [40,42.5,45,50,55,60,65,100]
+
+    QCD_subleading: 
+        split_categories: 
+            nbtag: 
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            nbtag: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "same" 
+            no_extra_lep: True
+            #nbtag: ">=1"
+            had_tau_id_vs_jet_1: "Medium"
+            had_tau_id_vs_jet_2: "Medium"
+
+        ARlike_cuts:
+            tau_pair_sign: "same" 
+            no_extra_lep: True
+            #nbtag: ">=1"
+            had_tau_id_vs_jet_1: "Medium"
+            had_tau_id_vs_jet_2: ["VVVLoose","Medium"]
+            
+        
+        var_dependence: "pt_2"
+        var_bins: [40,42.5,45,50,55,60,65,100]
+
+process_fractions:
+    processes: ["QCD", "Wjets", "ttbar_J"]
+
+    split_categories:
+        nbtag:
+            - "==0"
+            - "==1"
+            - ">=2"
+    split_categories_binedges:
+        nbtag: [-0.5,0.5,1.5,2.5]
+
+    AR_cuts:
+        lep_iso: "<0.15"
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet_1: ["VVVLoose","Medium"]
+        had_tau_id_vs_jet_2: ["VVVLoose","Medium"]
+
+    SR_cuts:
+        lep_iso: "<0.15"
+        tau_pair_sign: "opposite"  
+        no_extra_lep: True
+        had_tau_id_vs_jet_1: "Medium"
+        had_tau_id_vs_jet_2: "Medium"
+
+    var_dependence: "m_vis"
+    var_bins: [20,30,40,50,60,70,80,90,100,110,120]

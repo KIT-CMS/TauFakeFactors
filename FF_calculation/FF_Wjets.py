@@ -380,9 +380,9 @@ def non_closure_correction(
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_tau_pt_njets_deltaR(rdf_ARlike)
+                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(rdf_ARlike)
             else:
-                rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
+                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
             # additionally evaluate the first correction, if this is the second correction
             if corr_evaluator == None:
                 rdf_ARlike = rdf_ARlike.Define(
@@ -596,9 +596,9 @@ def DR_SR_correction(
 
             # evaluate the measured fake factors for the specific processes
             if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_tau_pt_njets_deltaR(rdf_ARlike)
+                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(rdf_ARlike)
             else:
-                rdf_ARlike = evaluator.evaluate_tau_pt_njets(rdf_ARlike)
+                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
             rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"

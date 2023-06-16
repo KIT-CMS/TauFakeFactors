@@ -64,11 +64,11 @@ if __name__ == "__main__":
 
     if "target_process" in config:
         for process in config["target_process"]:
-            if process == "QCD":
-                print("Calculating fake factors for the QCD process.")
+            if process in ["QCD", "QCD_subleading"]:
+                print("Calculating fake factors for the {} process.".format(process))
                 print("-" * 50)
                 cs_expressions = FF_QCD.calculation_QCD_FFs(
-                    config, sample_path_list, save_path_plots
+                    config, sample_path_list, save_path_plots, process
                 )
                 processes.append(process)
             elif process == "Wjets":

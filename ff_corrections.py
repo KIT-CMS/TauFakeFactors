@@ -96,7 +96,24 @@ if __name__ == "__main__":
                         for_AR_SR=False,
                     )
                     cs_expressions = FF_QCD.calculation_QCD_FFs(
-                        temp_conf, sample_path_list, save_path_plots
+                        temp_conf, sample_path_list, save_path_plots, process
+                    )
+                    fake_factors[process] = cs_expressions
+                    processes.append(process)
+                elif process == "QCD_subleading" and "DR_SR" in corr_config["target_process"]["QCD_subleading"]:
+                    print(
+                        "Calculating fake factors for the SR-DR correction for the QCD(subleading) process."
+                    )
+                    print("-" * 50)
+                    temp_conf = copy.deepcopy(config)
+                    func.modify_config(
+                        temp_conf,
+                        process,
+                        corr_config["target_process"]["QCD_subleading"]["DR_SR"],
+                        for_AR_SR=False,
+                    )
+                    cs_expressions = FF_QCD.calculation_QCD_FFs(
+                        temp_conf, sample_path_list, save_path_plots, process
                     )
                     fake_factors[process] = cs_expressions
                     processes.append(process)
@@ -132,7 +149,7 @@ if __name__ == "__main__":
                 for_corrections=True,
             )
 
-        DR_SR_corrections = {"QCD": dict(), "Wjets": dict(), "ttbar": dict()}
+        DR_SR_corrections = {"QCD": dict(), "QCD_subleading": dict(), "Wjets": dict(), "ttbar": dict()}
 
         if "target_process" in corr_config:
             for process in corr_config["target_process"]:
@@ -164,6 +181,45 @@ if __name__ == "__main__":
                         corr = FF_QCD.non_closure_correction(
                             temp_conf,
                             corr_config,
+                            process,
+                            closure_corr,
+                            sample_path_list,
+                            save_path_plots,
+                            evaluator,
+                            None,
+                            for_DRtoSR=True,
+                        )
+                        DR_SR_corrections[process]["non_closure_" + closure_corr] = corr
+                
+                elif (
+                    process == "QCD_subleading"
+                    and "DR_SR" in corr_config["target_process"]["QCD_subleading"]
+                    and "non_closure" in corr_config["target_process"]["QCD_subleading"]["DR_SR"]
+                ):
+                    evaluator = func.FakeFactorEvaluator(
+                        config, process, for_DRtoSR=True
+                    )
+                    for closure_corr in corr_config["target_process"]["QCD_subleading"]["DR_SR"][
+                        "non_closure"
+                    ]:
+                        print(
+                            "Calculating closure correction for the DR to SR correction of the QCD(subleading) process dependent on {}.".format(
+                                closure_corr
+                            )
+                        )
+                        print("-" * 50)
+                        temp_conf = copy.deepcopy(config)
+                        func.modify_config(
+                            temp_conf,
+                            process,
+                            corr_config["target_process"]["QCD_subleading"]["DR_SR"],
+                            for_AR_SR=False,
+                        )
+
+                        corr = FF_QCD.non_closure_correction(
+                            temp_conf,
+                            corr_config,
+                            process,
                             closure_corr,
                             sample_path_list,
                             save_path_plots,
@@ -217,7 +273,7 @@ if __name__ == "__main__":
 
     ########### final corrections ###########
 
-    corrections = {"QCD": dict(), "Wjets": dict(), "ttbar": dict()}
+    corrections = {"QCD": dict(), "QCD_subleading": dict(), "Wjets": dict(), "ttbar": dict()}
 
     if "target_process" in corr_config:
         for process in corr_config["target_process"]:
@@ -249,6 +305,7 @@ if __name__ == "__main__":
                             corr = FF_QCD.non_closure_correction(
                                 temp_conf,
                                 corr_config,
+                                process,
                                 closure_corr,
                                 sample_path_list,
                                 save_path_plots,
@@ -263,6 +320,7 @@ if __name__ == "__main__":
                             corr = FF_QCD.non_closure_correction(
                                 temp_conf,
                                 corr_config,
+                                process,
                                 closure_corr,
                                 sample_path_list,
                                 save_path_plots,
@@ -303,6 +361,99 @@ if __name__ == "__main__":
                     corr = FF_QCD.DR_SR_correction(
                         temp_conf,
                         corr_config,
+                        process,
+                        sample_path_list,
+                        save_path_plots,
+                        evaluator,
+                        corr_evaluator,
+                    )
+                    corrections[process]["DR_SR"] = corr
+
+            elif process == "QCD_subleading":
+                if "non_closure" in corr_config["target_process"]["QCD_subleading"]:
+                    evaluator = func.FakeFactorEvaluator(
+                        config, process, for_DRtoSR=False
+                    )
+                    n_processed = 0
+                    for closure_corr in corr_config["target_process"]["QCD_subleading"][
+                        "non_closure"
+                    ]:
+                        print(
+                            "Calculating closure correction for the QCD(subleading) process dependent on {}.".format(
+                                closure_corr
+                            )
+                        )
+                        print("-" * 50)
+                        temp_conf = copy.deepcopy(config)
+                        func.modify_config(
+                            temp_conf,
+                            process,
+                            corr_config["target_process"]["QCD_subleading"]["non_closure"][
+                                closure_corr
+                            ],
+                            for_AR_SR=False,
+                        )
+                        if n_processed == 0:
+                            corr = FF_QCD.non_closure_correction(
+                                temp_conf,
+                                corr_config,
+                                process,
+                                closure_corr,
+                                sample_path_list,
+                                save_path_plots,
+                                evaluator,
+                                None,
+                                for_DRtoSR=False,
+                            )
+                        else:
+                            corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                                config, process, for_DRtoSR=False
+                            )
+                            corr = FF_QCD.non_closure_correction(
+                                temp_conf,
+                                corr_config,
+                                process,
+                                closure_corr,
+                                sample_path_list,
+                                save_path_plots,
+                                evaluator,
+                                corr_evaluator,
+                                for_DRtoSR=False,
+                            )
+
+                        corrections[process]["non_closure_" + closure_corr] = corr
+
+                        if corr_config["generate_json"]:
+                            cs.generate_corr_cs_json(
+                                corr_config,
+                                save_path_ffs,
+                                corrections,
+                                for_DRtoSR=False,
+                            )
+                        n_processed += 1
+
+                if "DR_SR" in corr_config["target_process"]["QCD_subleading"]:
+                    evaluator = func.FakeFactorEvaluator(
+                        config, process, for_DRtoSR=True
+                    )
+                    corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                        config, process, for_DRtoSR=True
+                    )
+
+                    print("Calculating DR to SR correction for the QCD(subleading) process.")
+                    print("-" * 50)
+                    temp_conf = copy.deepcopy(config)
+                    func.modify_config(
+                        temp_conf,
+                        process,
+                        corr_config["target_process"]["QCD_subleading"]["DR_SR"],
+                        for_AR_SR=True,
+                    )
+
+                    corr = FF_QCD.DR_SR_correction(
+                        temp_conf,
+                        corr_config,
+                        process,
                         sample_path_list,
                         save_path_plots,
                         evaluator,
