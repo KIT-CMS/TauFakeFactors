@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "full_set_v16"
+workdir_name: "05_2023_v1"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 
@@ -9,7 +9,7 @@ generate_json: True
 target_process:
     QCD:
         non_closure:
-            lep_pt:
+            leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
             lep_iso:
@@ -29,22 +29,22 @@ target_process:
             AR_SR_cuts:
                 tau_pair_sign: "opposite" 
             non_closure:
-                lep_pt:
+                leading_lep_pt:
                     var_dependence: "pt_1"
                     var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
     Wjets:
         non_closure:
-            lep_pt:
+            leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-            lep_iso:
-                var_dependence: "iso_1"
-                var_bins: [0.,0.02,0.05,0.1,0.15,0.2,0.25,0.31]
-                SRlike_cuts:
-                    lep_iso: ">=0.0"
-                ARlike_cuts:
-                    lep_iso: ">=0.0"
+            # lep_iso:
+            #     var_dependence: "iso_1"
+            #     var_bins: [0.,0.02,0.05,0.1,0.15,0.2,0.25,0.31]
+            #     SRlike_cuts:
+            #         lep_iso: ">=0.0"
+            #     ARlike_cuts:
+            #         lep_iso: ">=0.0"
         DR_SR:
             var_dependence: "m_vis"
             var_bins: [0,40,70,100,140,180,250]
@@ -55,15 +55,15 @@ target_process:
             AR_SR_cuts:
                 nbtag: ">=1"
             non_closure:
-                lep_pt:
+                leading_lep_pt:
                     var_dependence: "pt_1"
                     var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
     ttbar:
         non_closure:
-            lep_pt:
+            leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-            b_pt:
-                var_dependence: "bpt_1"
-                var_bins: [20,30,40,50,60,70,80,90,100,110,120,130,140,150]
+            # b_pt:
+            #     var_dependence: "bpt_1"
+            #     var_bins: [20,30,40,50,60,70,80,90,100,110,120,130,140,150]

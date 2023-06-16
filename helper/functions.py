@@ -463,7 +463,7 @@ def smooth_function(ff_hist, bin_edges):
         y_arr = array.array("d", sampled_y[:, sample])
         graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", (bin_range / 3.0), n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", (bin_range / 5.0), n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
@@ -550,20 +550,27 @@ class FakeFactorEvaluator:
         self.process = process
         correctionlib.register_pyroot_binding()
         print(f"Loading fake factor file {self.ff_path} for process {self.process}")
-        if self.process not in ["QCD", "Wjets", "ttbar"]:
+        if self.process not in ["QCD", "QCD_subleading", "Wjets", "ttbar"]:
             raise ValueError(f"Unknown process {self.process}")
         ROOT.gInterpreter.Declare(
             f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
         )
 
-    def evaluate_tau_pt_njets(self, rdf):
+    def evaluate_subleading_lep_pt_njets(self, rdf):
         rdf = rdf.Define(
             f"{self.process}_fake_factor",
             f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, "nominal"}})',
         )
         return rdf
 
-    def evaluate_tau_pt_njets_deltaR(self, rdf):
+    def evaluate_leading_lep_pt_njets(self, rdf):
+        rdf = rdf.Define(
+            f"{self.process}_fake_factor",
+            f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_1, (float)njets, "nominal"}})',
+        )
+        return rdf
+
+    def evaluate_subleading_lep_pt_njets_deltaR(self, rdf):
         rdf = rdf.Define(
             f"{self.process}_fake_factor",
             f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
@@ -583,7 +590,7 @@ class FakeFactorCorrectionEvaluator:
                 + "/FF_corrections_{}.json".format(config["channel"])
             )
         else:
-            self.for_DRtoSR = "for_DRtoSR_v2"
+            self.for_DRtoSR = "for_DRtoSR"
             self.corr_path = (
                 "workdir/"
                 + config["workdir_name"]
@@ -599,15 +606,27 @@ class FakeFactorCorrectionEvaluator:
         print(
             f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
-        if process not in ["QCD", "Wjets", "ttbar"]:
+        if process not in ["QCD", "QCD_subleading", "Wjets", "ttbar"]:
             raise ValueError(f"Unknown process {self.process}")
-        ROOT.gInterpreter.Declare(
-            f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_lep_pt_correction");'
-        )
+        if process != "QCD_subleading":
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_subleading_lep_pt_correction");'
+            )
+        else:
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_leading_lep_pt_correction");'
+            )
 
-    def evaluate_lep_pt(self, rdf):
+    def evaluate_leading_lep_pt(self, rdf):
         rdf = rdf.Define(
             f"{self.process}_ff_corr",
             f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_1, "nominal"}})',
+        )
+        return rdf
+
+    def evaluate_subleading_lep_pt(self, rdf):
+        rdf = rdf.Define(
+            f"{self.process}_ff_corr",
+            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_2, "nominal"}})',
         )
         return rdf
