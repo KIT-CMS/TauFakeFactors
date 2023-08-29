@@ -37,29 +37,29 @@ parser.add_argument(
     help="Number of threads to use for the preselection step.",
 )
 
-tau_wps = ["VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight"]
+tau_wps = ["VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"]
 output_feature = [
     "weight",
     "btag_weight",
     "njets",
     "nbtag",
-    "q_1",
-    "pt_2",
-    "q_2",
-    "gen_match_2",
-    "m_vis",
-    "mt_1",
+    "boosted_q_1",
+    "boosted_pt_2",
+    "boosted_q_2",
+    "boosted_gen_match_2",
+    "boosted_m_vis",
+    "boosted_mt_1",
     "no_extra_lep",
-    "deltaR_ditaupair",
-    "pt_1",
-    "iso_1",
+    "boosted_deltaR_ditaupair",
+    "boosted_pt_1",
     "metphi",
     # following variables are not directly needed for the FF calculation
-    "eta_1",
-    "phi_1",
-    "eta_2",
-    "phi_2",
-    "iso_2",
+    "boosted_eta_1",
+    "boosted_phi_1",
+    "boosted_eta_2",
+    "boosted_phi_2",
+    "boosted_iso_1",
+    "boosted_iso_2",
     "bpt_1",
     "beta_1",
     "bphi_1",
@@ -69,8 +69,8 @@ output_feature = [
 ]
 
 for wp in tau_wps:
-    output_feature.append("id_tau_vsJet_" + wp + "_2")
-    output_feature.append("id_wgt_tau_vsJet_" + wp + "_2")
+    output_feature.append("id_boostedtau_iso_" + wp + "_2")
+    output_feature.append("id_wgt_boostedtau_iso_" + wp + "_2")
 
 
 def run_preselection(args):
@@ -93,23 +93,21 @@ def run_preselection(args):
 
         # apply wanted event filters
         selection_conf = config["event_selection"]
-        if "had_tau_pt" in selection_conf:
-            rdf = filters.had_tau_pt_cut(rdf, config["channel"], selection_conf)
-        if "had_tau_eta" in selection_conf:
-            rdf = filters.had_tau_eta_cut(rdf, config["channel"], selection_conf)
-        if "had_tau_decay_mode" in selection_conf:
-            rdf = filters.had_tau_decay_mode_cut(rdf, config["channel"], selection_conf)
-        if "had_tau_id_vs_ele" in selection_conf:
-            rdf = filters.had_tau_id_vsEle_cut(rdf, config["channel"], selection_conf)
-        if "had_tau_id_vs_mu" in selection_conf:
-            rdf = filters.had_tau_id_vsMu_cut(rdf, config["channel"], selection_conf)
-        if "lep_iso" in selection_conf:
-            rdf = filters.lep_iso_cut(rdf, config["channel"], selection_conf)
+        if "had_boostedtau_pt" in selection_conf:
+            rdf = filters.had_boostedtau_pt_cut(rdf, config["channel"], selection_conf)
+        if "had_boostedtau_eta" in selection_conf:
+            rdf = filters.had_boostedtau_eta_cut(rdf, config["channel"], selection_conf)
+        if "had_boostedtau_decay_mode" in selection_conf:
+            rdf = filters.had_boostedtau_decay_mode_cut(rdf, config["channel"], selection_conf)
+        if "had_boostedtau_id_antiEle" in selection_conf:
+            rdf = filters.had_boostedtau_id_antiEle_cut(rdf, config["channel"], selection_conf)
+        if "had_boostedtau_id_antiMu" in selection_conf:
+            rdf = filters.had_boostedtau_id_antiMu_cut(rdf, config["channel"], selection_conf)
         if "trigger" in selection_conf:
-            rdf = filters.trigger_cut(rdf, config["channel"])
+            rdf = filters.boosted_trigger_cut(rdf, config["channel"])
 
         if process == "embedding":
-            rdf = filters.emb_tau_gen_match(rdf, config["channel"])
+            rdf = filters.emb_boostedtau_gen_match(rdf, config["channel"]) 
 
         # calculate event weights for plotting
         mc_weight_conf = config["mc_weights"]
@@ -136,14 +134,14 @@ def run_preselection(args):
                 rdf = weights.lumi_weight(rdf, config["era"])
             if "pileup" in mc_weight_conf:
                 rdf = weights.pileup_weight(rdf)
-            if "lep_iso" in mc_weight_conf:
-                rdf = weights.lep_iso_weight(rdf, config["channel"])
-            if "lep_id" in mc_weight_conf:
-                rdf = weights.lep_id_weight(rdf, config["channel"])
-            if "had_tau_id_vs_mu" in mc_weight_conf:
-                rdf = weights.tau_id_vsMu_weight(rdf, config["channel"], selection_conf)
-            if "had_tau_id_vs_ele" in mc_weight_conf:
-                rdf = weights.tau_id_vsEle_weight(
+            if "boosted_lep_iso" in mc_weight_conf:
+                rdf = weights.boosted_lep_iso_weight(rdf, config["channel"])
+            if "boosted_lep_id" in mc_weight_conf:
+                rdf = weights.boosted_lep_id_weight(rdf, config["channel"])
+            if "had_boostedtau_id_antiMu" in mc_weight_conf:
+                rdf = weights.boostedtau_id_antiMu_weight(rdf, config["channel"], selection_conf)
+            if "had_boostedtau_id_antiEle" in mc_weight_conf:
+                rdf = weights.boostedtau_id_antiEle_weight(
                     rdf, config["channel"], selection_conf
                 )
             if "trigger" in mc_weight_conf:
@@ -157,41 +155,42 @@ def run_preselection(args):
         if process == "embedding":
             if "generator" in emb_weight_conf:
                 rdf = weights.emb_gen_weight(rdf, config["channel"])
-            if "lep_iso" in emb_weight_conf:
-                rdf = weights.lep_iso_weight(rdf, config["channel"])
-            if "lep_id" in emb_weight_conf:
-                rdf = weights.lep_id_weight(rdf, config["channel"])
+            if "boosted_lep_iso" in emb_weight_conf:
+                rdf = weights.boosted_lep_iso_weight(rdf, config["channel"])
+            if "boosted_lep_id" in emb_weight_conf:
+                rdf = weights.boosted_lep_id_weight(rdf, config["channel"])
             if "trigger" in emb_weight_conf:
                 rdf = weights.trigger_weight(rdf, config["channel"])
 
         # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
         if process == "data" or process == "embedding":
             rdf = rdf.Define("btag_weight", "1.")
+            rdf = rdf.Define("btag_weight_boosted", "1.")
             for wp in tau_wps:
-                weightname = "id_wgt_tau_vsJet_" + wp + "_2"
+                weightname = "id_wgt_boostedtau_iso_" + wp + "_2"
                 if weightname not in rdf.GetColumnNames():
                     rdf = rdf.Define(weightname, "1.")
             if config["channel"] == "tt":
                 for wp in tau_wps:
-                    weightname = "id_wgt_tau_vsJet_" + wp + "_1"
+                    weightname = "id_wgt_boostedtau_iso_" + wp + "_1"
                     if weightname not in rdf.GetColumnNames():
                         rdf = rdf.Define(weightname, "1.")
         # for data set gen_match to -1
         if process == "data":
-            rdf = rdf.Define("gen_match_2", "-1.")
+            rdf = rdf.Define("boosted_gen_match_2", "-1.")
             if config["channel"] == "tt":
-                rdf = rdf.Define("gen_match_1", "-1.")
+                rdf = rdf.Define("boosted_gen_match_1", "-1.")
 
         # calculate additional variables
         if config["channel"] == "et":
             rdf = rdf.Define(
                 "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
+                "(extramuon_veto < 0.5) && (boosted_extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
             )
         elif config["channel"] == "mt":
             rdf = rdf.Define(
                 "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
+                "(boosted_extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
             )
         elif config["channel"] == "tt":
             rdf = rdf.Define(
@@ -204,12 +203,18 @@ def run_preselection(args):
                     config["channel"]
                 )
             )
+        
+        # Redefinitions for boosted tau pairs
+        rdf = rdf.Redefine("btag_weight", "btag_weight_boosted")
+        rdf = rdf.Redefine("njets", "njets_boosted")
+        rdf = rdf.Redefine("nbtag", "nbtag_boosted")
+        rdf = rdf.Redefine("metphi", "metphi_boosted")
 
         # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
         for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
             tmp_rdf = rdf
             if tau_gen_mode != "all":
-                tmp_rdf = filters.tau_origin_split(
+                tmp_rdf = filters.boostedtau_origin_split(
                     tmp_rdf, config["channel"], tau_gen_mode
                 )
 
@@ -291,10 +296,10 @@ if __name__ == "__main__":
     sys.stdout = Logger(output_path + "/preselection.log")
     # these variables are no defined in et, mt ntuples
     if config["channel"] == "tt":
-        output_feature.append("gen_match_1")
+        output_feature.append("boosted_gen_match_1")
         for wp in tau_wps:
-            output_feature.append("id_tau_vsJet_" + wp + "_1")
-            output_feature.append("id_wgt_tau_vsJet_" + wp + "_1")
+            output_feature.append("id_boostedtau_iso_" + wp + "_1")
+            output_feature.append("id_wgt_boostedtau_iso_" + wp + "_1")
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config) for process in config["processes"]]
