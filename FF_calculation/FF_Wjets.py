@@ -65,7 +65,12 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
             print("-" * 50)
 
             # QCD estimation from same sign in signal-like region
-            region_cut_conf["tau_pair_sign"] = "same"
+            if "tau_pair_sign" in region_cut_conf:
+                region_cut_conf["tau_pair_sign"] = "same"
+            elif "boostedtau_pair_sign" in region_cut_conf:
+                region_cut_conf["boostedtau_pair_sign"] = "same"
+            else:
+                raise ValueError("No tau pair sign split defined for the QCD estimation in the Wjets config.")
             rdf_SRlike_qcd = region_filter(
                 rdf, config["channel"], region_cut_conf, sample
             )
@@ -97,7 +102,12 @@ def calculation_Wjets_FFs(config, sample_path_list, save_path):
             print("-" * 50)
 
             # QCD estimation from same sign in application-like region
-            region_cut_conf["tau_pair_sign"] = "same"
+            if "tau_pair_sign" in region_cut_conf:
+                region_cut_conf["tau_pair_sign"] = "same"
+            elif "boostedtau_pair_sign" in region_cut_conf:
+                region_cut_conf["boostedtau_pair_sign"] = "same"
+            else:
+                raise ValueError("No tau pair sign split defined for the QCD estimation in the Wjets config.")
             rdf_ARlike_qcd = region_filter(
                 rdf, config["channel"], region_cut_conf, sample
             )
@@ -324,6 +334,7 @@ def non_closure_correction(
         correction_conf = corr_config["target_process"]["Wjets"]["non_closure"][
             closure_variable
         ]
+    boosted = True if "boosted" in process_conf["var_dependence"] else False
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -354,7 +365,12 @@ def non_closure_correction(
         print("-" * 50)
 
         # QCD estimation from same sign in signal-like region
-        region_cut_conf["tau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_cut_conf:
+            region_cut_conf["tau_pair_sign"] = "same"
+        elif "boostedtau_pair_sign" in region_cut_conf:
+            region_cut_conf["boostedtau_pair_sign"] = "same"
+        else:
+            raise ValueError("No tau pair sign split defined for the QCD estimation in the Wjets correction config.")
         rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
@@ -378,7 +394,7 @@ def non_closure_correction(
         )
 
         # evaluate the measured fake factors for the specific processes
-        if sample == "data":
+        if sample == "data" and not boosted:
             if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(rdf_ARlike)
             else:
@@ -389,7 +405,22 @@ def non_closure_correction(
                     "weight_ff", "weight * Wjets_fake_factor"
                 )
             else:
-                rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                )
+        elif sample == "data" and boosted:
+            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
+                rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets_deltaR(rdf_ARlike)
+            else:
+                rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets(rdf_ARlike)
+            # additionally evaluate the first correction, if this is the second correction
+            if corr_evaluator == None:
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor"
+                )
+            else:
+                rdf_ARlike = corr_evaluator.evaluate_leading_boosted_lep_pt(rdf_ARlike)
                 rdf_ARlike = rdf_ARlike.Define(
                     "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
                 )
@@ -402,7 +433,12 @@ def non_closure_correction(
         print("-" * 50)
 
         # QCD estimation from same sign in application-like region
-        region_cut_conf["tau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_cut_conf:
+            region_cut_conf["tau_pair_sign"] = "same"
+        elif "boostedtau_pair_sign" in region_cut_conf:
+            region_cut_conf["boostedtau_pair_sign"] = "same"
+        else:
+            raise ValueError("No tau pair sign split defined for the QCD estimation in the Wjets correction config.")
         rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
@@ -429,7 +465,7 @@ def non_closure_correction(
         SRlike_hists[sample] = h.GetValue()
 
         h = rdf_ARlike.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
@@ -455,7 +491,7 @@ def non_closure_correction(
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
         h_qcd = rdf_ARlike_qcd.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
@@ -555,6 +591,7 @@ def DR_SR_correction(
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"]["Wjets"])
     correction_conf = corr_config["target_process"]["Wjets"]["DR_SR"]
+    boosted = True if "boosted" in process_conf["var_dependence"] else False
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -595,14 +632,24 @@ def DR_SR_correction(
             )
 
             # evaluate the measured fake factors for the specific processes
-            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(rdf_ARlike)
-            else:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
-            rdf_ARlike = corr_evaluator.evaluate_lep_pt(rdf_ARlike)
-            rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
-            )
+            if not boosted:
+                if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
+                    rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(rdf_ARlike)
+                else:
+                    rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                )
+            elif boosted:
+                if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
+                    rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets_deltaR(rdf_ARlike)
+                else:
+                    rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets(rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_leading_boosted_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()

@@ -7,10 +7,15 @@ import rich
 
 var_dict = {
     "pt_2": "subleading_lep_pt",
+    "boosted_pt_2": "subleading_lep_pt",
     "pt_1": "leading_lep_pt",
+    "boosted_pt_1": "leading_lep_pt",
     "mt_1": "lep_mt",
+    "boosted_mt_1": "lep_mt",
     "iso_1": "lep_iso",
+    "boosted_iso_1": "lep_iso",
     "m_vis": "m_vis",
+    "boosted_m_vis": "m_vis",
     "bpt_1": "b_pt",
     "njets": "njets",
     "nbtag": "nbtags",
@@ -21,10 +26,15 @@ var_dict = {
 }
 var_type = {
     "pt_2": "real",
+    "boosted_pt_2": "real",
     "pt_1": "real",
+    "boosted_pt_1": "real",
     "mt_1": "real",
+    "boosted_mt_1": "real",
     "iso_1": "real",
+    "boosted_iso_1": "real",
     "m_vis": "real",
+    "boosted_m_vis": "real",
     "bpt_1": "real",
     "njets": "real",
     "nbtag": "real",
@@ -32,10 +42,15 @@ var_type = {
 }
 var_discription = {
     "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "boosted_pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "boosted_pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
+    "boosted_iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
     "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+    "boosted_mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
     "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
+    "boosted_m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
     "bpt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
@@ -48,6 +63,7 @@ corr_unc_dict = {
     "non_closure_m_vis": "nonClosureMvis",
     "non_closure_b_pt": "nonClosureBPt",
     "non_closure_lep_iso": "nonClosureLepIso",
+    "non_closure_lep_mt": "nonClosureLepMT",
     "DR_SR": "DRtoSR",
 }
 

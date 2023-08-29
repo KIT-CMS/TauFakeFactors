@@ -1,0 +1,131 @@
+# This is an example config containing information for the FF calculation
+
+file_path: "/ceph/nshadskiy/FFmethod/08_2023_v2_boosted"
+era: "2018"
+channel: "mt" # options are et, mt, tt
+tree: "ntuple"
+
+workdir_name: "08_2023_v8_boosted"
+
+use_embedding: True
+generate_json: True
+
+target_process: 
+    QCD: 
+        split_categories: 
+            njets: 
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            boosted_lep_mt: "<50"
+            boosted_deltaR_ditaupair: ">0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: "Loose"
+
+        ARlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            boosted_lep_mt: "<50" 
+            boosted_deltaR_ditaupair: ">0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: ["","Loose"]
+        
+        var_dependence: "boosted_pt_2"
+        var_bins: [40,50,60,75,100]
+
+    Wjets: 
+        split_categories: 
+            njets:  
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            nbtag: "==0" 
+            boosted_lep_mt: ">70"
+            boosted_deltaR_ditaupair: ">0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: "Loose"
+
+        ARlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            nbtag: "==0"
+            boosted_lep_mt: ">70" 
+            boosted_deltaR_ditaupair: ">0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: ["","Loose"]
+        
+        var_dependence: "boosted_pt_2"
+        var_bins: [40,48,60,80,100]
+
+    ttbar: 
+        split_categories: 
+            njets:  
+                - "<=1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,1.5,2.5]
+
+        SR_cuts:
+            boostedtau_pair_sign: "opposite"  
+            nbtag: ">=1" 
+            boosted_deltaR_ditaupair: "<=0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: "Loose"
+
+        AR_cuts:
+            boostedtau_pair_sign: "opposite"  
+            nbtag: ">=1"
+            boosted_deltaR_ditaupair: "<=0.8"
+            no_extra_lep: True
+            had_boostedtau_id_iso: ["","Loose"]
+
+        SRlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            nbtag: ">=1" 
+            boosted_deltaR_ditaupair: "<=0.8"
+            no_extra_lep: False
+            had_boostedtau_id_iso: "Loose"
+
+        ARlike_cuts:
+            boostedtau_pair_sign: "opposite" 
+            nbtag: ">=1"
+            boosted_deltaR_ditaupair: "<=0.8"
+            no_extra_lep: False
+            had_boostedtau_id_iso: ["","Loose"]
+        
+        var_dependence: "boosted_pt_2"
+        var_bins: [40,45,50,60,80,100]
+
+process_fractions:
+    processes: ["QCD", "Wjets", "ttbar_J"]
+
+    split_categories:
+        nbtag:
+            - "==0"
+            - "==1"
+            - ">=2"
+    split_categories_binedges:
+        nbtag: [-0.5,0.5,1.5,2.5]
+
+    AR_cuts:
+        boostedtau_pair_sign: "opposite"  
+        boosted_deltaR_ditaupair: "<=0.8"
+        no_extra_lep: True
+        had_boostedtau_id_iso: ["","Loose"]
+
+    SR_cuts:
+        boostedtau_pair_sign: "opposite"  
+        boosted_deltaR_ditaupair: "<=0.8"
+        no_extra_lep: True
+        had_boostedtau_id_iso: "Loose"
+
+    var_dependence: "boosted_mt_1"
+    var_bins: [0,10,25,40,55,70,85,100]

@@ -1,12 +1,11 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_06_2023_v1/CROWNRun"
-# ntuple_path: "/ceph/nshadskiy/nmssm_ul/nmssm_tt_05_2023_v2/ntuples"
+ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_07_2023_boostedtau_v7/CROWNRun"
 era: "2018"
-channel: "tt"
+channel: "et"
 tree: "ntuple"
 
-output_path: "/ceph/nshadskiy/FFmethod/nmssm_06_2023_v1"
+output_path: "/ceph/nshadskiy/FFmethod/07_2023_v2"
 
 stitching: True
 
@@ -19,9 +18,6 @@ processes:
         samples:
             - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "DYJetsToLL_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "DYJetsToLL_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "DYJetsToLL_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
@@ -47,14 +43,8 @@ processes:
     Wjets:
         tau_gen_modes:
             - "all"
-            # - "J"
-            # - "T"
-            # - "L"
         samples:
             - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            # - "WJetsToLNu_2J_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "W1JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
@@ -73,24 +63,24 @@ processes:
         tau_gen_modes:
             - "all"
         samples:
-            - "TauEmbedding-TauTauFinalState_Run2018A-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018B-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018C-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018D-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
     data:
         tau_gen_modes:
             - "all"
         samples:
-            - "Tau_Run2018A-UL2018"
-            - "Tau_Run2018B-UL2018"
-            - "Tau_Run2018C-UL2018"
-            - "Tau_Run2018D-UL2018"
+            - "EGamma_Run2018A-UL2018"
+            - "EGamma_Run2018B-UL2018"
+            - "EGamma_Run2018C-UL2018"
+            - "EGamma_Run2018D-UL2018"
 
 event_selection:
-    had_tau_pt: ">40"
-    had_tau_eta: "<2.1"
+    had_tau_pt: ">30"
+    had_tau_eta: "<2.3"
     had_tau_decay_mode: ["0","1","10","11"] # has to be a list
-    had_tau_id_vs_ele: "VVLoose"
+    had_tau_id_vs_ele: "Tight"
     had_tau_id_vs_mu: "VLoose"
     # lep_iso: "<0.15"
     trigger: True
@@ -99,6 +89,8 @@ mc_weights:
     - "generator"
     - "lumi"
     - "pileup"
+    - "lep_iso"
+    - "lep_id"
     - "had_tau_id_vs_ele"
     - "had_tau_id_vs_mu"
     - "trigger"
