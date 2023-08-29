@@ -82,7 +82,7 @@ def run_preselection(args):
     process_file_dict = dict()
     for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
         process_file_dict[tau_gen_mode] = list()
-
+    print("Considered samples for process {}: {}".format(process, config["processes"][process]["samples"]))
     # going through all contributing samples for the process
     for idx, sample in enumerate(config["processes"][process]["samples"]):
         # all_samples = func.get_ntuples(config, sample)
@@ -189,12 +189,12 @@ def run_preselection(args):
         if config["channel"] == "et":
             rdf = rdf.Define(
                 "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
+                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)",
             )
         elif config["channel"] == "mt":
             rdf = rdf.Define(
                 "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
+                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)",
             )
         elif config["channel"] == "tt":
             rdf = rdf.Define(
@@ -256,12 +256,17 @@ def run_preselection(args):
             sum_rdf.Snapshot(config["tree"], out_file_name, output_feature)
             print("-" * 50)
         else:
+            # sum_rdf = ROOT.RDataFrame(config["tree"])
             print(
                 "No processed files for the {} process. An empty data frame will be saved to {}".format(
                     process, out_file_name
                 )
             )
-            sum_rdf.Snapshot(config["tree"], out_file_name, [])
+            # create an empty root file and save it
+            f = ROOT.TFile(out_file_name, "RECREATE")
+            t = ROOT.TTree(config["tree"], config["tree"])
+            t.Write()
+            f.Close()
             print("-" * 50)
 
         # delete not needed sample files after combination
