@@ -148,33 +148,13 @@ def had_tau_id_vsMu_cut(rdf, channel, config):
 
 
 def had_tau_id_vsJet_cut(rdf, channel, config):
-    if isinstance(config["had_tau_id_vs_jet"], str):
-        if channel == "et":
+    if channel in ["et", "mt"]: 
+        if isinstance(config["had_tau_id_vs_jet"], str):
             rdf = rdf.Filter(
                 "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
                 "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
             )
-        elif channel == "mt":
-            rdf = rdf.Filter(
-                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet"]),
-                "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
-            )
-        elif channel == "tt":
-            rdf = rdf.Filter(
-                "(id_tau_vsJet_{WP}_1 > 0.5) && (id_tau_vsJet_{WP}_2 > 0.5)".format(
-                    WP=config["had_tau_id_vs_jet"]
-                ),
-                "cut on {WP} tau vs jets id".format(WP=config["had_tau_id_vs_jet"]),
-            )
-        else:
-            sys.exit(
-                "Eventfilter: tau id vs jet: Such a channel is not defined: {}".format(
-                    channel
-                )
-            )
-
-    elif isinstance(config["had_tau_id_vs_jet"], list):
-        if channel == "et":
+        elif isinstance(config["had_tau_id_vs_jet"], list):
             rdf = rdf.Filter(
                 "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
                     lower_WP=config["had_tau_id_vs_jet"][0],
@@ -185,38 +165,45 @@ def had_tau_id_vsJet_cut(rdf, channel, config):
                     upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
-        elif channel == "mt":
+            
+    elif channel == "tt":
+        if isinstance(config["had_tau_id_vs_jet_1"], str):
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{WP}_1 > 0.5)".format(WP=config["had_tau_id_vs_jet_1"]),
+                "cut on {WP} tau vs jets id 1".format(WP=config["had_tau_id_vs_jet_1"]),
+            )
+        elif isinstance(config["had_tau_id_vs_jet_1"], list):
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{lower_WP}_1 > 0.5) && (id_tau_vsJet_{upper_WP}_1 < 0.5)".format(
+                    lower_WP=config["had_tau_id_vs_jet_1"][0],
+                    upper_WP=config["had_tau_id_vs_jet_1"][1],
+                ),
+                "cut on tau vs jets id 1 between {lower_WP} and {upper_WP}".format(
+                    lower_WP=config["had_tau_id_vs_jet_1"][0],
+                    upper_WP=config["had_tau_id_vs_jet_1"][1],
+                ),
+            )
+        
+        if isinstance(config["had_tau_id_vs_jet_2"], str):
+            rdf = rdf.Filter(
+                "(id_tau_vsJet_{WP}_2 > 0.5)".format(WP=config["had_tau_id_vs_jet_2"]),
+                "cut on {WP} tau vs jets id 2".format(WP=config["had_tau_id_vs_jet_2"]),
+            )
+        elif isinstance(config["had_tau_id_vs_jet_2"], list):
             rdf = rdf.Filter(
                 "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5)".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
+                    lower_WP=config["had_tau_id_vs_jet_2"][0],
+                    upper_WP=config["had_tau_id_vs_jet_2"][1],
                 ),
-                "cut on tau vs jets id between {lower_WP} and {upper_WP}".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
+                "cut on tau vs jets id 2 between {lower_WP} and {upper_WP}".format(
+                    lower_WP=config["had_tau_id_vs_jet_2"][0],
+                    upper_WP=config["had_tau_id_vs_jet_2"][1],
                 ),
-            )
-        elif channel == "tt":
-            rdf = rdf.Filter(
-                "(id_tau_vsJet_{lower_WP}_2 > 0.5) && (id_tau_vsJet_{upper_WP}_2 < 0.5) && (id_tau_vsJet_{lower_WP}_1 > 0.5) && (id_tau_vsJet_{upper_WP}_1 < 0.5)".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
-                ),
-                "cut on tau vs jets id between {lower_WP} and {upper_WP}".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
-                ),
-            )
-        else:
-            sys.exit(
-                "Eventfilter: tau id vs jet: Such a channel is not defined: {}".format(
-                    channel
-                )
             )
     else:
         sys.exit(
-            "Eventfilter: tau id vs jet: Such a type is not defined: {}".format(
-                config["had_tau_id_vs_jet"]
+            "Eventfilter: tau id vs jet: Such a channel is not defined: {}".format(
+                channel
             )
         )
     return rdf

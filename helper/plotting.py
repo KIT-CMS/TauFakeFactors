@@ -5,7 +5,7 @@ from wurlitzer import pipes, STDOUT
 
 from . import functions as func
 
-FF_YAxis = {"ttbar": "FF_{t#bar{t}}", "Wjets": "FF_{Wjets}", "QCD": "FF_{QCD}"}
+FF_YAxis = {"ttbar": "FF_{t#bar{t}}", "Wjets": "FF_{Wjets}", "QCD": "FF_{QCD}", "QCD_subleading": "FF_{QCD}"}
 channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
 era_dict = {
     "2017": "41.48 fb^{-1} (2017, 13 TeV)",
@@ -61,14 +61,21 @@ label_dict = {
     "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
 }
 var_dict = {
-    "pt_1": "p_{T}(e/#mu) (GeV)",
-    "pt_2": "p_{T}(#tau_{h}) (GeV)",
+    "pt_1": {
+        "et": "p_{T}(e) (GeV)",
+        "mt": "p_{T}(#mu) (GeV)",
+        "tt": "leading p_{T}(#tau_{h}) (GeV)",
+    },
+    "pt_2": "subleading p_{T}(#tau_{h}) (GeV)",
     "eta_1": "#eta(e/#mu)",
     "eta_2": "#eta(#tau_{h})",
     "phi_1": "#phi(e/#mu)",
     "phi_2": "#phi(#tau_{h})",
     "iso_1": "isolation (e/#mu)",
-    "mt_1": "m_{T}(e/#mu) (GeV)",
+    "mt_1": {
+        "et": "m_{T}(e, #slash{E}_{T}) (GeV)",
+        "mt": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
+    }, 
     "m_vis": "m_{vis} (GeV)",
     "mjj": "m_{jj} (GeV)",
     "met": "MET (GeV)",
@@ -111,9 +118,14 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     ff_ratio.GetXaxis().SetMoreLogLabels()
     ff_ratio.GetXaxis().SetNoExponent()
     ff_ratio.GetYaxis().SetTitle(FF_YAxis[process])
-    ff_ratio.GetXaxis().SetTitle(
-        var_dict[config["target_process"][process]["var_dependence"]]
-    )
+    if config["target_process"][process]["var_dependence"] not in ["pt_1", "mt_1"]:
+        ff_ratio.GetXaxis().SetTitle(
+            var_dict[config["target_process"][process]["var_dependence"]]
+        )
+    else:
+        ff_ratio.GetXaxis().SetTitle(
+            var_dict[config["target_process"][process]["var_dependence"]][config["channel"]]
+        )
     ff_ratio.GetYaxis().SetLabelSize(0.04)
     ff_ratio.GetXaxis().SetLabelSize(0.04)
     ff_ratio.GetYaxis().SetTitleSize(0.05)
@@ -205,7 +217,10 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     mc.SetFillColor(ROOT.kGray + 2)
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("N_{Events}")
-    stack.GetXaxis().SetTitle(var_dict[var])
+    if var not in ["pt_1", "mt_1"]:
+        stack.GetXaxis().SetTitle(var_dict[var])
+    else:
+        stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -331,6 +346,10 @@ def plot_data_mc_ratio(
     # Adjust x-axis settings
     x = ratio.GetXaxis()
     x.SetTitle(var_dict[var])
+    if var not in ["pt_1", "mt_1"]:
+        x.SetTitle(var_dict[var])
+    else:
+        x.SetTitle(var_dict[var][config["channel"]])
     x.SetTitleSize(0.12)
     x.SetLabelSize(0.1)
 
@@ -447,7 +466,10 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     stack.SetTitle("")
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Fraction")
-    stack.GetXaxis().SetTitle(var_dict[var])
+    if var not in ["pt_1", "mt_1"]:
+        stack.GetXaxis().SetTitle(var_dict[var])
+    else:
+        stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -524,7 +546,10 @@ def plot_correction(
     corr_ratio.GetXaxis().SetMoreLogLabels()
     corr_ratio.GetXaxis().SetNoExponent()
     corr_ratio.GetYaxis().SetTitle("Correction")
-    corr_ratio.GetXaxis().SetTitle(var_dict[var])
+    if var not in ["pt_1", "mt_1"]:
+        corr_ratio.GetXaxis().SetTitle(var_dict[var])
+    else:
+        corr_ratio.GetXaxis().SetTitle(var_dict[var][config["channel"]])
     corr_ratio.GetYaxis().SetLabelSize(0.04)
     corr_ratio.GetXaxis().SetLabelSize(0.04)
     corr_ratio.GetYaxis().SetTitleSize(0.05)

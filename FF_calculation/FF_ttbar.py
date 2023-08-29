@@ -391,7 +391,7 @@ def non_closure_correction(
             )
 
             # evaluate the measured fake factors for the specific processes
-            rdf_AR = evaluator.evaluate_tau_pt_njets(rdf_AR)
+            rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf_AR)
             if corr_evaluator == None:
                 rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
             else:

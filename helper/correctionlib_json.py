@@ -6,8 +6,8 @@ import rich
 
 
 var_dict = {
-    "pt_2": "tau_pt",
-    "pt_1": "lep_pt",
+    "pt_2": "subleading_lep_pt",
+    "pt_1": "leading_lep_pt",
     "mt_1": "lep_mt",
     "iso_1": "lep_iso",
     "m_vis": "m_vis",
@@ -31,10 +31,10 @@ var_type = {
     "deltaR_ditaupair": "real",
 }
 var_discription = {
-    "pt_2": "transverse momentum of the hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "pt_1": "transverse momentum of the leptonic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+    "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
-    "mt_1": "transverse mass of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+    "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
     "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
     "bpt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "njets": "number of jets in an event; the defined categories are ",
@@ -43,7 +43,9 @@ var_discription = {
 }
 
 corr_unc_dict = {
-    "non_closure_lep_pt": "nonClosureLepPt",
+    "non_closure_subleading_lep_pt": "nonClosureSubleadingLepPt",
+    "non_closure_leading_lep_pt": "nonClosureLeadingLepPt",
+    "non_closure_m_vis": "nonClosureMvis",
     "non_closure_b_pt": "nonClosureBPt",
     "non_closure_lep_iso": "nonClosureLepIso",
     "DR_SR": "DRtoSR",
@@ -93,6 +95,35 @@ def generate_ff_cs_json(
                 ff_unc_order,
             )
         cs_corrections.append(QCD_ff)
+
+    if "QCD_subleading" in processes:
+        var = config["target_process"]["QCD_subleading"]["var_dependence"]
+        binning = config["target_process"]["QCD_subleading"]["var_bins"]
+        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
+            "FFslopeUncUp": 1,
+            "FFslopeUncDown": 2,
+            "FFnormUncUp": 3,
+            "FFnormUncDown": 4,
+            "FFmcSubUncUp": 5,
+            "FFmcSubUncDown": 6,
+        }
+        if len(config["target_process"]["QCD_subleading"]["split_categories"]) == 1:
+            QCD_sub_ff = make_1D_ff(
+                "QCD_subleading",
+                (var, binning),
+                ff_functions["QCD_subleading"],
+                config["target_process"]["QCD_subleading"],
+                ff_unc_order,
+            )
+        elif len(config["target_process"]["QCD_subleading"]["split_categories"]) == 2:
+            QCD_sub_ff = make_2D_ff(
+                "QCD_subleading",
+                (var, binning),
+                ff_functions["QCD_subleading"],
+                config["target_process"]["QCD_subleading"],
+                ff_unc_order,
+            )
+        cs_corrections.append(QCD_sub_ff)
 
     if "Wjets" in processes:
         var = config["target_process"]["Wjets"]["var_dependence"]

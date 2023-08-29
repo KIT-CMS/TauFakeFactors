@@ -1,11 +1,11 @@
 # This is an example config containing information for the FF calculation
 
-file_path: "/ceph/nshadskiy/FFmethod/04_2023_v9"
+file_path: "/ceph/nshadskiy/FFmethod/05_2023_v1"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "full_set_v16"
+workdir_name: "05_2023_v1"
 
 use_embedding: True
 generate_json: True

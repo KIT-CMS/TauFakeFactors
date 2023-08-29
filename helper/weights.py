@@ -61,85 +61,67 @@ def apply_btag_weight(rdf):
 
 
 def apply_tau_id_vsJet_weight(rdf, channel, config):
-    if isinstance(config["had_tau_id_vs_jet"], str):
-        if channel == "et":
+    if channel in ["et", "mt"]:
+        if isinstance(config["had_tau_id_vs_jet"], str):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
                     WP=config["had_tau_id_vs_jet"]
                 ),
             )
-        elif channel == "mt":
+        elif isinstance(config["had_tau_id_vs_jet"], list):
             rdf = rdf.Redefine(
                 "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    WP=config["had_tau_id_vs_jet"]
+                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
+                    lower_WP=config["had_tau_id_vs_jet"][0],
+                    upper_WP=config["had_tau_id_vs_jet"][1],
                 ),
             )
-        elif channel == "tt":
+        else:
+            sys.exit(
+                "Weight calc: tau id vs jet: Such a type is not defined: {}".format(
+                    config["had_tau_id_vs_jet"]
+                )
+            )
+
+    elif channel == "tt":
+        if isinstance(config["had_tau_id_vs_jet_1"], str):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_1==5) * ((id_tau_vsJet_{WP}_1>0.5)*id_wgt_tau_vsJet_{WP}_1 + (id_tau_vsJet_{WP}_1<0.5)) + (gen_match_1!=5))".format(
-                    WP=config["had_tau_id_vs_jet"]
+                    WP=config["had_tau_id_vs_jet_1"]
                 ),
             )
-            rdf = rdf.Redefine(
-                "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    WP=config["had_tau_id_vs_jet"]
-                ),
-            )
-        else:
-            sys.exit(
-                "Weight calc: tau id vs jet: Such a channel is not defined: {}".format(
-                    channel
-                )
-            )
-    elif isinstance(config["had_tau_id_vs_jet"], list):
-        if channel == "et":
-            rdf = rdf.Redefine(
-                "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
-                ),
-            )
-        elif channel == "mt":
-            rdf = rdf.Redefine(
-                "weight",
-                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
-                ),
-            )
-        elif channel == "tt":
+        elif isinstance(config["had_tau_id_vs_jet_1"], list):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_1==5) * ((id_tau_vsJet_{upper_WP}_1>0.5) + (id_tau_vsJet_{upper_WP}_1<0.5)*(id_tau_vsJet_{lower_WP}_1>0.5)*id_wgt_tau_vsJet_{lower_WP}_1 + (id_tau_vsJet_{lower_WP}_1<0.5)) + (gen_match_1!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
+                    lower_WP=config["had_tau_id_vs_jet_1"][0],
+                    upper_WP=config["had_tau_id_vs_jet_1"][1],
                 ),
             )
+
+        if isinstance(config["had_tau_id_vs_jet_2"], str):
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ((gen_match_2==5) * ((id_tau_vsJet_{WP}_2>0.5)*id_wgt_tau_vsJet_{WP}_2 + (id_tau_vsJet_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+                    WP=config["had_tau_id_vs_jet_2"]
+                ),
+            )
+        elif isinstance(config["had_tau_id_vs_jet_2"], list):
             rdf = rdf.Redefine(
                 "weight",
                 "weight * ((gen_match_2==5) * ((id_tau_vsJet_{upper_WP}_2>0.5) + (id_tau_vsJet_{upper_WP}_2<0.5)*(id_tau_vsJet_{lower_WP}_2>0.5)*id_wgt_tau_vsJet_{lower_WP}_2 + (id_tau_vsJet_{lower_WP}_2<0.5)) + (gen_match_2!=5))".format(
-                    lower_WP=config["had_tau_id_vs_jet"][0],
-                    upper_WP=config["had_tau_id_vs_jet"][1],
+                    lower_WP=config["had_tau_id_vs_jet_2"][0],
+                    upper_WP=config["had_tau_id_vs_jet_2"][1],
                 ),
-            )
-        else:
-            sys.exit(
-                "Weight calc: tau id vs jet: Such a channel is not defined: {}".format(
-                    channel
-                )
             )
     else:
         sys.exit(
-            "Weight calc: tau id vs jet: Such a type is not defined: {}".format(
-                config["had_tau_id_vs_jet"]
+            "Weight calc: tau id vs jet: Such a channel is not defined: {}".format(
+                channel
             )
         )
-
     return rdf
 
 
@@ -244,7 +226,7 @@ def trigger_weight(rdf, channel):
     elif channel == "mt":
         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
     elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight * trg_wgt_tau_1 * trg_wgt_tau_2")
+        rdf = rdf.Redefine("weight", "weight")
     else:
         sys.exit(
             "Weight calc: trigger: Such a channel is not defined: {}".format(channel)
@@ -326,5 +308,5 @@ def Top_pt_reweight(rdf, process):
 def emb_gen_weight(rdf):
     return rdf.Redefine(
         "weight",
-        "weight * emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt",
+        "weight * emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt * emb_trg_wgt_1 * emb_trg_wgt_2",
     )
