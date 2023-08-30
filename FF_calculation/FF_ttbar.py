@@ -60,7 +60,12 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         print("-" * 50)
 
         # QCD estimation from same sign in signal-like region
-        region_cut_conf["tau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_cut_conf:
+            region_cut_conf["tau_pair_sign"] = "same"
+        elif "boostedtau_pair_sign" in region_cut_conf:
+            region_cut_conf["boostedtau_pair_sign"] = "same"
+        else:
+            raise ValueError("No tau pair sign split defined for the QCD estimation in the ttbar config.")
         rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
@@ -90,7 +95,12 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         print("-" * 50)
 
         # QCD estimation from same sign in application-like region
-        region_cut_conf["tau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_cut_conf:
+            region_cut_conf["tau_pair_sign"] = "same"
+        elif "boostedtau_pair_sign" in region_cut_conf:
+            region_cut_conf["boostedtau_pair_sign"] = "same"
+        else:
+            raise ValueError("No tau pair sign split defined for the QCD estimation in the ttbar config.")
         rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
         print(
             "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
@@ -106,23 +116,23 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
 
         # make yield histograms for FF data correction
         h = rdf_SRlike.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists[sample] = h.GetValue()
 
         h = rdf_ARlike.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         # make yield histograms for QCD estimation
         h_qcd = rdf_SRlike_qcd.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
         h_qcd = rdf_ARlike_qcd.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
@@ -283,7 +293,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         plotting.plot_data_mc_ratio(
             SRlike_hists,
             config,
-            "phi_2",
+            "metphi",
             "ttbar",
             "SR_like",
             data,
@@ -294,7 +304,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         plotting.plot_data_mc_ratio(
             ARlike_hists,
             config,
-            "phi_2",
+            "metphi",
             "ttbar",
             "AR_like",
             data,
@@ -309,7 +319,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         plotting.plot_data_mc_ratio(
             SRlike_hists,
             config,
-            "phi_2",
+            "metphi",
             "ttbar",
             "SR_like",
             data,
@@ -320,7 +330,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
         plotting.plot_data_mc_ratio(
             ARlike_hists,
             config,
-            "phi_2",
+            "metphi",
             "ttbar",
             "AR_like",
             data,
@@ -351,6 +361,7 @@ def non_closure_correction(
     correction_conf = corr_config["target_process"]["ttbar"]["non_closure"][
         closure_variable
     ]
+    boosted = True if "boosted" in process_conf["var_dependence"] else False
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -391,14 +402,24 @@ def non_closure_correction(
             )
 
             # evaluate the measured fake factors for the specific processes
-            rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf_AR)
-            if corr_evaluator == None:
-                rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
-            else:
-                rdf_AR = corr_evaluator.evaluate_lep_pt(rdf_AR)
-                rdf_AR = rdf_AR.Define(
-                    "weight_ff", "weight * ttbar_fake_factor * ttbar_ff_corr"
-                )
+            if not boosted:
+                rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf_AR)
+                if corr_evaluator == None:
+                    rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
+                else:
+                    rdf_AR = corr_evaluator.evaluate_leading_lep_pt(rdf_AR)
+                    rdf_AR = rdf_AR.Define(
+                        "weight_ff", "weight * ttbar_fake_factor * ttbar_ff_corr"
+                    )
+            elif boosted:
+                rdf_AR = evaluator.evaluate_subleading_boosted_lep_pt_njets(rdf_AR)
+                if corr_evaluator == None:
+                    rdf_AR = rdf_AR.Define("weight_ff", "weight * ttbar_fake_factor")
+                else:
+                    rdf_AR = corr_evaluator.evaluate_leading_boosted_lep_pt(rdf_AR)
+                    rdf_AR = rdf_AR.Define(
+                        "weight_ff", "weight * ttbar_fake_factor * ttbar_ff_corr"
+                    )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()

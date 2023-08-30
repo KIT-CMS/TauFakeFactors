@@ -237,6 +237,7 @@ def non_closure_correction(
         correction_conf = corr_config["target_process"][process]["non_closure"][
             closure_variable
         ]
+    boosted = True if "boosted" in process_conf["var_dependence"] else False
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -276,7 +277,7 @@ def non_closure_correction(
         )
 
         # evaluate the measured fake factors for the specific processes
-        if sample == "data":
+        if sample == "data" and not boosted:
             if config["channel"] != "tt" or process == "QCD_subleading":
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
             else:
@@ -288,6 +289,22 @@ def non_closure_correction(
                     rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf_ARlike)
                 else:
                     rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(rdf_ARlike)
+                rdf_ARlike = rdf_ARlike.Define(
+                    "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+                )
+        elif sample == "data" and boosted:
+            if config["channel"] != "tt" or process == "QCD_subleading":
+                rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets(rdf_ARlike)
+            else:
+                rdf_ARlike = evaluator.evaluate_leading_boosted_lep_pt_njets(rdf_ARlike)
+            if corr_evaluator == None:
+                rdf_ARlike = rdf_ARlike.Define("weight_ff", f"weight * {process}_fake_factor")
+            else:
+                if config["channel"] != "tt" or process == "QCD_subleading":
+                    print("----- eval leading lep pt correction -----")
+                    rdf_ARlike = corr_evaluator.evaluate_leading_boosted_lep_pt(rdf_ARlike)
+                else:
+                    rdf_ARlike = corr_evaluator.evaluate_subleading_boosted_lep_pt(rdf_ARlike)
                 rdf_ARlike = rdf_ARlike.Define(
                     "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
                 )
@@ -312,7 +329,7 @@ def non_closure_correction(
         SRlike_hists[sample] = h.GetValue()
 
         h = rdf_ARlike.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
@@ -382,6 +399,50 @@ def non_closure_correction(
         {"incl": ""},
         save_path,
     )
+
+    data = "data"
+    if config["use_embedding"]:
+        samples = [
+            "diboson_J",
+            "diboson_L",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "DYjets_J",
+            "DYjets_L",
+            "ST_J",
+            "ST_L",
+            "embedding",
+        ]
+    else:
+        samples = [
+            "diboson_J",
+            "diboson_L",
+            "diboson_T",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "ttbar_T",
+            "DYjets_J",
+            "DYjets_L",
+            "DYjets_T",
+            "ST_J",
+            "ST_L",
+            "ST_T",
+        ]
+
+    plotting.plot_data_mc(
+        SRlike_hists,
+        config,
+        correction_conf["var_dependence"],
+        process,
+        "non_closure_" + closure_variable + add_str,
+        data,
+        samples,
+        {"incl": ""},
+        save_path,
+    )
+    
     return corr_def
 
 
@@ -395,6 +456,7 @@ def DR_SR_correction(
     # get process specific config information
     process_conf = copy.deepcopy(config["target_process"][process])
     correction_conf = corr_config["target_process"][process]["DR_SR"]
+    boosted = True if "boosted" in process_conf["var_dependence"] else False
 
     for sample_path in sample_path_list:
         # getting the name of the process from the sample path
@@ -434,13 +496,23 @@ def DR_SR_correction(
         )
 
         # evaluate the measured fake factors for the specific processes
-        if sample == "data":
+        if sample == "data" and not boosted:
             if config["channel"] != "tt" or process == "QCD_subleading":
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf_ARlike)
                 rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf_ARlike)
                 rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(rdf_ARlike)
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+            )
+        elif sample == "data" and boosted:
+            if config["channel"] != "tt" or process == "QCD_subleading":
+                rdf_ARlike = evaluator.evaluate_subleading_boosted_lep_pt_njets(rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_leading_boosted_lep_pt(rdf_ARlike)
+            else:
+                rdf_ARlike = evaluator.evaluate_leading_boosted_lep_pt_njets(rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_subleading_boosted_lep_pt(rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
             )
@@ -465,7 +537,7 @@ def DR_SR_correction(
         SRlike_hists[sample] = h.GetValue()
 
         h = rdf_ARlike.Histo1D(
-            ("#phi(#tau_{h})", "{}".format(sample), 1, -3.5, 3.5), "phi_2", "weight"
+            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 

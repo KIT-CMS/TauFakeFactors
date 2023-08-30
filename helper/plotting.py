@@ -66,17 +66,43 @@ var_dict = {
         "mt": "p_{T}(#mu) (GeV)",
         "tt": "leading p_{T}(#tau_{h}) (GeV)",
     },
-    "pt_2": "subleading p_{T}(#tau_{h}) (GeV)",
+    "boosted_pt_1": {
+        "et": "p_{T}(e) (GeV)",
+        "mt": "p_{T}(#mu) (GeV)",
+        "tt": "leading p_{T}(#tau_{h}) (GeV)",
+    },
+    "pt_2": {
+        "et": "p_{T}(#tau_{h}) (GeV)",
+        "mt": "p_{T}(#tau_{h}) (GeV)",
+        "tt": "subleading p_{T}(#tau_{h}) (GeV)",
+    },
+    "boosted_pt_2": {
+        "et": "p_{T}(#tau_{h}) (GeV)",
+        "mt": "p_{T}(#tau_{h}) (GeV)",
+        "tt": "subleading p_{T}(#tau_{h}) (GeV)",
+    },
     "eta_1": "#eta(e/#mu)",
     "eta_2": "#eta(#tau_{h})",
     "phi_1": "#phi(e/#mu)",
     "phi_2": "#phi(#tau_{h})",
-    "iso_1": "isolation (e/#mu)",
+    "iso_1": {
+        "et": "isolation (e)",
+        "mt": "isolation (#mu)",
+    },
+    "boosted_iso_1": {
+        "et": "isolation (e)",
+        "mt": "isolation (#mu)",
+    }, 
     "mt_1": {
         "et": "m_{T}(e, #slash{E}_{T}) (GeV)",
         "mt": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
     }, 
+    "boosted_mt_1": {
+        "et": "m_{T}(e, #slash{E}_{T}) (GeV)",
+        "mt": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
+    }, 
     "m_vis": "m_{vis} (GeV)",
+    "boosted_m_vis": "m_{vis} (GeV)",
     "mjj": "m_{jj} (GeV)",
     "met": "MET (GeV)",
     "metphi": "MET #phi",
@@ -118,7 +144,7 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     ff_ratio.GetXaxis().SetMoreLogLabels()
     ff_ratio.GetXaxis().SetNoExponent()
     ff_ratio.GetYaxis().SetTitle(FF_YAxis[process])
-    if config["target_process"][process]["var_dependence"] not in ["pt_1", "mt_1"]:
+    if config["target_process"][process]["var_dependence"] not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
         ff_ratio.GetXaxis().SetTitle(
             var_dict[config["target_process"][process]["var_dependence"]]
         )
@@ -217,7 +243,7 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     mc.SetFillColor(ROOT.kGray + 2)
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("N_{Events}")
-    if var not in ["pt_1", "mt_1"]:
+    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
         stack.GetXaxis().SetTitle(var_dict[var])
     else:
         stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
@@ -345,8 +371,7 @@ def plot_data_mc_ratio(
 
     # Adjust x-axis settings
     x = ratio.GetXaxis()
-    x.SetTitle(var_dict[var])
-    if var not in ["pt_1", "mt_1"]:
+    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
         x.SetTitle(var_dict[var])
     else:
         x.SetTitle(var_dict[var][config["channel"]])
@@ -466,7 +491,7 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     stack.SetTitle("")
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Fraction")
-    if var not in ["pt_1", "mt_1"]:
+    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
         stack.GetXaxis().SetTitle(var_dict[var])
     else:
         stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
@@ -546,7 +571,7 @@ def plot_correction(
     corr_ratio.GetXaxis().SetMoreLogLabels()
     corr_ratio.GetXaxis().SetNoExponent()
     corr_ratio.GetYaxis().SetTitle("Correction")
-    if var not in ["pt_1", "mt_1"]:
+    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
         corr_ratio.GetXaxis().SetTitle(var_dict[var])
     else:
         corr_ratio.GetXaxis().SetTitle(var_dict[var][config["channel"]])

@@ -1,11 +1,11 @@
 # This is an example config containing information for the FF calculation
 
-file_path: "/work/nshadskiy/FFmethod/02_2023_v2"
+file_path: "/ceph/nshadskiy/FFmethod/07_2023_v2"
 era: "2018"
 channel: "et" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "full_set_v7"
+workdir_name: "07_2023_v2"
 
 use_embedding: True
 generate_json: True
@@ -43,12 +43,8 @@ target_process:
                 - "==0" 
                 - "==1"
                 - ">=2"
-            # deltaR_ditaupair:
-            #     - "<3"
-            #     - ">=3"
         split_categories_binedges:
             njets: [-0.5,0.5,1.5,2.5]
-            # deltaR_ditaupair: [0.,3.,10.]
 
         SRlike_cuts:
             tau_pair_sign: "opposite" 

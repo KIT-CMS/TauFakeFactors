@@ -135,6 +135,16 @@ def fraction_calculation(config, sample_path_list, save_path):
             frac_hists, config["process_fractions"]["processes"]
         )
 
+        SR_frac_hists = dict()
+
+        for p in config["process_fractions"]["processes"]:
+            SR_frac_hists[p] = func.calc_fraction(
+                SR_hists, p, config["process_fractions"]["processes"]
+            )
+        SR_frac_hists = func.add_fraction_variations(
+            SR_frac_hists, config["process_fractions"]["processes"]
+        )
+
         cat = "#".join(["{}#{}".format(split[var], var) for var in split_vars])
         fractions[cat] = frac_hists
 
@@ -155,6 +165,15 @@ def fraction_calculation(config, sample_path_list, save_path):
             "AR",
             data,
             samples,
+            split,
+            save_path,
+        )
+        plotting.fraction_plot(
+            SR_frac_hists["nominal"],
+            config,
+            process_conf["var_dependence"],
+            "SR",
+            config["process_fractions"]["processes"],
             split,
             save_path,
         )

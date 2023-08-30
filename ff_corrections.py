@@ -15,6 +15,7 @@ import FF_calculation.FF_ttbar as FF_ttbar
 from helper.Logger import Logger
 import helper.correctionlib_json as cs
 import helper.functions as func
+from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
 
 parser = argparse.ArgumentParser()
 
@@ -158,7 +159,7 @@ if __name__ == "__main__":
                     and "DR_SR" in corr_config["target_process"]["QCD"]
                     and "non_closure" in corr_config["target_process"]["QCD"]["DR_SR"]
                 ):
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
                     for closure_corr in corr_config["target_process"]["QCD"]["DR_SR"][
@@ -196,7 +197,7 @@ if __name__ == "__main__":
                     and "DR_SR" in corr_config["target_process"]["QCD_subleading"]
                     and "non_closure" in corr_config["target_process"]["QCD_subleading"]["DR_SR"]
                 ):
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
                     for closure_corr in corr_config["target_process"]["QCD_subleading"]["DR_SR"][
@@ -234,7 +235,7 @@ if __name__ == "__main__":
                     and "DR_SR" in corr_config["target_process"]["Wjets"]
                     and "non_closure" in corr_config["target_process"]["Wjets"]["DR_SR"]
                 ):
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
                     for closure_corr in corr_config["target_process"]["Wjets"]["DR_SR"][
@@ -279,7 +280,7 @@ if __name__ == "__main__":
         for process in corr_config["target_process"]:
             if process == "QCD":
                 if "non_closure" in corr_config["target_process"]["QCD"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=False
                     )
                     n_processed = 0
@@ -314,7 +315,7 @@ if __name__ == "__main__":
                                 for_DRtoSR=False,
                             )
                         else:
-                            corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                            corr_evaluator = FakeFactorCorrectionEvaluator(
                                 config, process, for_DRtoSR=False
                             )
                             corr = FF_QCD.non_closure_correction(
@@ -341,10 +342,10 @@ if __name__ == "__main__":
                         n_processed += 1
 
                 if "DR_SR" in corr_config["target_process"]["QCD"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
-                    corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                    corr_evaluator = FakeFactorCorrectionEvaluator(
                         config, process, for_DRtoSR=True
                     )
 
@@ -371,7 +372,7 @@ if __name__ == "__main__":
 
             elif process == "QCD_subleading":
                 if "non_closure" in corr_config["target_process"]["QCD_subleading"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=False
                     )
                     n_processed = 0
@@ -406,7 +407,7 @@ if __name__ == "__main__":
                                 for_DRtoSR=False,
                             )
                         else:
-                            corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                            corr_evaluator = FakeFactorCorrectionEvaluator(
                                 config, process, for_DRtoSR=False
                             )
                             corr = FF_QCD.non_closure_correction(
@@ -433,10 +434,10 @@ if __name__ == "__main__":
                         n_processed += 1
 
                 if "DR_SR" in corr_config["target_process"]["QCD_subleading"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
-                    corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                    corr_evaluator = FakeFactorCorrectionEvaluator(
                         config, process, for_DRtoSR=True
                     )
 
@@ -463,7 +464,7 @@ if __name__ == "__main__":
 
             elif process == "Wjets":
                 if "non_closure" in corr_config["target_process"]["Wjets"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=False
                     )
 
@@ -498,7 +499,7 @@ if __name__ == "__main__":
                                 for_DRtoSR=False,
                             )
                         else:
-                            corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                            corr_evaluator = FakeFactorCorrectionEvaluator(
                                 config, process, for_DRtoSR=False
                             )
                             corr = FF_Wjets.non_closure_correction(
@@ -524,10 +525,10 @@ if __name__ == "__main__":
                         n_processed += 1
 
                 if "DR_SR" in corr_config["target_process"]["Wjets"]:
-                    evaluator = func.FakeFactorEvaluator(
+                    evaluator = FakeFactorEvaluator(
                         config, process, for_DRtoSR=True
                     )
-                    corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                    corr_evaluator = FakeFactorCorrectionEvaluator(
                         config, process, for_DRtoSR=True
                     )
 
@@ -555,7 +556,7 @@ if __name__ == "__main__":
                 process == "ttbar"
                 and "non_closure" in corr_config["target_process"]["ttbar"]
             ):
-                evaluator = func.FakeFactorEvaluator(config, process, for_DRtoSR=False)
+                evaluator = FakeFactorEvaluator(config, process, for_DRtoSR=False)
 
                 n_processed = 0
                 for closure_corr in corr_config["target_process"]["ttbar"][
@@ -587,7 +588,7 @@ if __name__ == "__main__":
                             None,
                         )
                     else:
-                        corr_evaluator = func.FakeFactorCorrectionEvaluator(
+                        corr_evaluator = FakeFactorCorrectionEvaluator(
                             config, process, for_DRtoSR=False
                         )
                         corr = FF_ttbar.non_closure_correction(

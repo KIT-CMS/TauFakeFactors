@@ -10,7 +10,20 @@ def lep_iso_weight(rdf, channel):
     elif channel == "tt":
         rdf = rdf.Redefine("weight", "weight")
     else:
-        sys.exit("Weight calc: iso: Such a channel is not defined: {}".format(channel))
+        sys.exit("Weight calc: lep iso: Such a channel is not defined: {}".format(channel))
+
+    return rdf
+
+
+def boosted_lep_iso_weight(rdf, channel):
+    if channel == "et":
+        rdf = rdf.Redefine("weight", "weight * iso_wgt_ele_boosted_1")
+    elif channel == "mt":
+        rdf = rdf.Redefine("weight", "weight * iso_wgt_mu_boosted_1")
+    elif channel == "tt":
+        rdf = rdf.Redefine("weight", "weight")
+    else:
+        sys.exit("Weight calc: boosted lep iso: Such a channel is not defined: {}".format(channel))
 
     return rdf
 
@@ -23,7 +36,20 @@ def lep_id_weight(rdf, channel):
     elif channel == "tt":
         rdf = rdf.Redefine("weight", "weight")
     else:
-        sys.exit("Weight calc: id: Such a channel is not defined: {}".format(channel))
+        sys.exit("Weight calc: lep id: Such a channel is not defined: {}".format(channel))
+
+    return rdf
+
+
+def boosted_lep_id_weight(rdf, channel):
+    if channel == "et":
+        rdf = rdf.Redefine("weight", "weight * id_wgt_ele_boosted_1")
+    elif channel == "mt":
+        rdf = rdf.Redefine("weight", "weight * id_wgt_mu_boosted_1")
+    elif channel == "tt":
+        rdf = rdf.Redefine("weight", "weight")
+    else:
+        sys.exit("Weight calc: boostedlep id: Such a channel is not defined: {}".format(channel))
 
     return rdf
 
@@ -125,6 +151,80 @@ def apply_tau_id_vsJet_weight(rdf, channel, config):
     return rdf
 
 
+def apply_boostedtau_id_iso_weight(rdf, channel, config):
+    if channel in ["et", "mt"]:
+        if isinstance(config["had_boostedtau_id_iso"], str):
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_iso_{WP}_2>0.5)*id_wgt_boostedtau_iso_{WP}_2 + (id_boostedtau_iso_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                    WP=config["had_boostedtau_id_iso"]
+                ),
+            )
+        elif isinstance(config["had_boostedtau_id_iso"], list):
+            if config["had_boostedtau_id_iso"][0] != "":
+                rdf = rdf.Redefine(
+                    "weight",
+                    "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_iso_{upper_WP}_2>0.5) + (id_boostedtau_iso_{upper_WP}_2<0.5)*(id_boostedtau_iso_{lower_WP}_2>0.5)*id_wgt_boostedtau_iso_{lower_WP}_2 + (id_boostedtau_iso_{lower_WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                        lower_WP=config["had_boostedtau_id_iso"][0],
+                        upper_WP=config["had_boostedtau_id_iso"][1],
+                    ),
+                )
+            else:
+                pass
+        else:
+            sys.exit(
+                "Weight calc: boosted tau id iso: Such a type is not defined: {}".format(
+                    config["had_boostedtau_id_iso"]
+                )
+            )
+
+    elif channel == "tt":
+        if isinstance(config["had_boostedtau_id_iso_1"], str):
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_iso_{WP}_1>0.5)*id_wgt_boostedtau_iso_{WP}_1 + (id_boostedtau_iso_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+                    WP=config["had_boostedtau_id_iso_1"]
+                ),
+            )
+        elif isinstance(config["had_boostedtau_id_iso_1"], list):
+            if config["had_boostedtau_id_iso"][0] != "":
+                rdf = rdf.Redefine(
+                    "weight",
+                    "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_iso_{upper_WP}_1>0.5) + (id_boostedtau_iso_{upper_WP}_1<0.5)*(id_boostedtau_iso_{lower_WP}_1>0.5)*id_wgt_boostedtau_iso_{lower_WP}_1 + (id_boostedtau_iso_{lower_WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+                        lower_WP=config["had_boostedtau_id_iso_1"][0],
+                        upper_WP=config["had_boostedtau_id_iso_1"][1],
+                    ),
+                )
+            else:
+                pass
+
+        if isinstance(config["had_boostedtau_id_iso_2"], str):
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_iso_{WP}_2>0.5)*id_wgt_boostedtau_iso_{WP}_2 + (id_boostedtau_iso_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                    WP=config["had_boostedtau_id_iso_2"]
+                ),
+            )
+        elif isinstance(config["had_boostedtau_id_iso_2"], list):
+            if config["had_boostedtau_id_iso"][0] != "":
+                rdf = rdf.Redefine(
+                    "weight",
+                    "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_iso_{upper_WP}_2>0.5) + (id_boostedtau_iso_{upper_WP}_2<0.5)*(id_boostedtau_iso_{lower_WP}_2>0.5)*id_wgt_boostedtau_iso_{lower_WP}_2 + (id_boostedtau_iso_{lower_WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                        lower_WP=config["had_boostedtau_id_iso_2"][0],
+                        upper_WP=config["had_boostedtau_id_iso_2"][1],
+                    ),
+                )
+            else:
+                pass
+    else:
+        sys.exit(
+            "Weight calc: boosted tau id iso: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+    return rdf
+
+
 def tau_id_vsMu_weight(rdf, channel, config):
     if channel == "et":
         rdf = rdf.Redefine(
@@ -163,6 +263,44 @@ def tau_id_vsMu_weight(rdf, channel, config):
     return rdf
 
 
+def boostedtau_id_antiMu_weight(rdf, channel, config):
+    if channel == "et":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiMu"]
+            ),
+        )
+    elif channel == "mt":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiMu"]
+            ),
+        )
+    elif channel == "tt":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiMu_{WP}_1>0.5)*id_wgt_boostedtau_antiMu_{WP}_1 + (id_boostedtau_antiMu_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+                WP=config["had_boostedtau_id_antiMu"]
+            ),
+        )
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boosted_tau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiMu"]
+            ),
+        )
+    else:
+        sys.exit(
+            "Weight calc: boosted tau id anti muon: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+
+    return rdf
+
+
 def tau_id_vsEle_weight(rdf, channel, config):
     if channel == "et":
         rdf = rdf.Redefine(
@@ -194,6 +332,44 @@ def tau_id_vsEle_weight(rdf, channel, config):
     else:
         sys.exit(
             "Weight calc: tau id vs electron: Such a channel is not defined: {}".format(
+                channel
+            )
+        )
+
+    return rdf
+
+
+def boostedtau_id_antiEle_weight(rdf, channel, config):
+    if channel == "et":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiEle"]
+            ),
+        )
+    elif channel == "mt":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiEle"]
+            ),
+        )
+    elif channel == "tt":
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiEle_{WP}_1>0.5)*id_wgt_boostedtau_antiEle_{WP}_1 + (id_boostedtau_antiEle_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+                WP=config["had_boostedtau_id_antiEle"]
+            ),
+        )
+        rdf = rdf.Redefine(
+            "weight",
+            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+                WP=config["had_boostedtau_id_antiEle"]
+            ),
+        )
+    else:
+        sys.exit(
+            "Weight calc: boosted tau id anti electron: Such a channel is not defined: {}".format(
                 channel
             )
         )
@@ -305,8 +481,14 @@ def Top_pt_reweight(rdf, process):
         return rdf
 
 
-def emb_gen_weight(rdf):
-    return rdf.Redefine(
-        "weight",
-        "weight * emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt * emb_trg_wgt_1 * emb_trg_wgt_2",
-    )
+def emb_gen_weight(rdf, channel):
+    if channel == "tt":
+        return rdf.Redefine(
+            "weight",
+            "weight * emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt * emb_trg_wgt_1 * emb_trg_wgt_2",
+        )
+    else:
+        return rdf.Redefine(
+            "weight",
+            "weight * emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt",
+        )
