@@ -1,57 +1,161 @@
 import sys
 import array
+from typing import Dict
 
 
-def lep_iso_weight(rdf, channel):
-    if channel == "et":
-        rdf = rdf.Redefine("weight", "weight * iso_wgt_ele_1")
-    elif channel == "mt":
-        rdf = rdf.Redefine("weight", "weight * iso_wgt_mu_1")
-    elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
+def gen_weight(rdf, sample_info: Dict[str, str]):
+    '''
+    Function to apply the generator weight and cross section.
+
+    Args:
+        rdf: root DataFrame object
+        sample_info: Dictionary with information about a sample 
+    
+    Return:
+        root DataFrame object with the applied weight
+    '''
+    number_generated_events_weight = 1.0 / float(sample_info["nevents"])
+    cross_section_per_event_weight = float(sample_info["xsec"])
+    negative_events_fraction = float(sample_info["generator_weight"])
+    rdf = rdf.Define(
+        "numberGeneratedEventsWeight", f"(float){number_generated_events_weight}"
+    )
+    rdf = rdf.Define(
+        "crossSectionPerEventWeight", f"(float){cross_section_per_event_weight}"
+    )
+    rdf = rdf.Define(
+        "negativeEventsFraction", f"(float){negative_events_fraction}"
+    )
+
+    return rdf.Redefine(
+        "weight",
+        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1)))",
+    )
+
+
+def stitching_gen_weight(rdf, era: str, process: str, sample_info: Dict[str, str]):
+    '''
+    Function to apply the generator weight and cross section. This is specific for samples where stitching is used, like "DYjets" or "Wjets" 
+
+    Args:
+        rdf: root DataFrame object
+        era: Stitching weights depend on the data-taking period
+        process: Stitching weights depend on the process e.g. "DYjets" or "Wjets" 
+        sample_info: Dictionary with information about a sample 
+    
+    Return:
+        root DataFrame object with the applied weight
+    '''
+    number_generated_events_weight = 1.0 / float(sample_info["nevents"])
+    cross_section_per_event_weight = float(sample_info["xsec"])
+    negative_events_fraction = float(sample_info["generator_weight"])
+    rdf = rdf.Define(
+        "numberGeneratedEventsWeight", f"(float){number_generated_events_weight}"
+    )
+    rdf = rdf.Define(
+        "crossSectionPerEventWeight", f"(float){cross_section_per_event_weight}"
+    )
+    rdf = rdf.Define(
+        "negativeEventsFraction", f"(float){negative_events_fraction}"
+    )
+
+    if era == "2018":
+        if process == "Wjets":
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * (0.0007590865*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2191273680 + (npartons==2)*0.1335837379 + (npartons==3)*0.0636217909 + (npartons==4)*0.0823135765 ))",
+            )
+        elif process == "DYjets":
+            rdf = rdf.Redefine(
+                "weight",
+                "weight * ( (genbosonmass>=50.0)*0.0000631493*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2056921342 + (npartons==2)*0.1664121306 + (npartons==3)*0.0891121485 + (npartons==4)*0.0843396952 ) + (genbosonmass<50.0) * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1))))",
+            )
+        else:
+            raise ValueError(
+                f"No stitching weights for this process: {process}"
+            )
     else:
-        sys.exit("Weight calc: lep iso: Such a channel is not defined: {}".format(channel))
+        raise ValueError(f"No stitching weights defined for this era: {era}")
+    
+    return rdf
+
+
+def lumi_weight(rdf, era: str):
+    '''
+    Function to apply the luminosity depending on the era.
+
+    Args:
+        rdf: root DataFrame object
+        era: Luminosity is depended on the data-taking period
+    
+    Return:
+        root DataFrame object with the applied weight
+    '''
+    if era == "2016preVFP":
+        rdf = rdf.Redefine("weight", "weight * 19.52 * 1000.")
+    elif era == "2016postVFP":
+        rdf = rdf.Redefine("weight", "weight * 16.81 * 1000.")
+    elif era == "2017":
+        rdf = rdf.Redefine("weight", "weight * 41.48 * 1000.")
+    elif era == "2018":
+        rdf = rdf.Redefine("weight", "weight * 59.83 * 1000.")
+    else:
+        raise ValueError(f"Weight calc: lumi: Era is not defined: {era}")
 
     return rdf
 
 
-def boosted_lep_iso_weight(rdf, channel):
-    if channel == "et":
-        rdf = rdf.Redefine("weight", "weight * iso_wgt_ele_boosted_1")
-    elif channel == "mt":
-        rdf = rdf.Redefine("weight", "weight * iso_wgt_mu_boosted_1")
-    elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
-    else:
-        sys.exit("Weight calc: boosted lep iso: Such a channel is not defined: {}".format(channel))
 
-    return rdf
+# def lep_iso_weight(rdf, channel):
+#     if channel == "et":
+#         rdf = rdf.Redefine("weight", "weight * iso_wgt_ele_1")
+#     elif channel == "mt":
+#         rdf = rdf.Redefine("weight", "weight * iso_wgt_mu_1")
+#     elif channel == "tt":
+#         rdf = rdf.Redefine("weight", "weight")
+#     else:
+#         sys.exit("Weight calc: lep iso: Such a channel is not defined: {}".format(channel))
 
-
-def lep_id_weight(rdf, channel):
-    if channel == "et":
-        rdf = rdf.Redefine("weight", "weight * id_wgt_ele_1")
-    elif channel == "mt":
-        rdf = rdf.Redefine("weight", "weight * id_wgt_mu_1")
-    elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
-    else:
-        sys.exit("Weight calc: lep id: Such a channel is not defined: {}".format(channel))
-
-    return rdf
+#     return rdf
 
 
-def boosted_lep_id_weight(rdf, channel):
-    if channel == "et":
-        rdf = rdf.Redefine("weight", "weight * id_wgt_ele_boosted_1")
-    elif channel == "mt":
-        rdf = rdf.Redefine("weight", "weight * id_wgt_mu_boosted_1")
-    elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
-    else:
-        sys.exit("Weight calc: boostedlep id: Such a channel is not defined: {}".format(channel))
+# def boosted_lep_iso_weight(rdf, channel):
+#     if channel == "et":
+#         rdf = rdf.Redefine("weight", "weight * iso_wgt_ele_boosted_1")
+#     elif channel == "mt":
+#         rdf = rdf.Redefine("weight", "weight * iso_wgt_mu_boosted_1")
+#     elif channel == "tt":
+#         rdf = rdf.Redefine("weight", "weight")
+#     else:
+#         sys.exit("Weight calc: boosted lep iso: Such a channel is not defined: {}".format(channel))
 
-    return rdf
+#     return rdf
+
+
+# def lep_id_weight(rdf, channel):
+#     if channel == "et":
+#         rdf = rdf.Redefine("weight", "weight * id_wgt_ele_1")
+#     elif channel == "mt":
+#         rdf = rdf.Redefine("weight", "weight * id_wgt_mu_1")
+#     elif channel == "tt":
+#         rdf = rdf.Redefine("weight", "weight")
+#     else:
+#         sys.exit("Weight calc: lep id: Such a channel is not defined: {}".format(channel))
+
+#     return rdf
+
+
+# def boosted_lep_id_weight(rdf, channel):
+#     if channel == "et":
+#         rdf = rdf.Redefine("weight", "weight * id_wgt_ele_boosted_1")
+#     elif channel == "mt":
+#         rdf = rdf.Redefine("weight", "weight * id_wgt_mu_boosted_1")
+#     elif channel == "tt":
+#         rdf = rdf.Redefine("weight", "weight")
+#     else:
+#         sys.exit("Weight calc: boostedlep id: Such a channel is not defined: {}".format(channel))
+
+#     return rdf
 
 
 def apply_btag_weight(rdf):
@@ -225,260 +329,192 @@ def apply_boostedtau_id_iso_weight(rdf, channel, config):
     return rdf
 
 
-def tau_id_vsMu_weight(rdf, channel, config):
-    if channel == "et":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_mu"]
-            ),
-        )
-    elif channel == "mt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_mu"]
-            ),
-        )
-    elif channel == "tt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_1==5) * ((id_tau_vsMu_{WP}_1>0.5)*id_wgt_tau_vsMu_{WP}_1 + (id_tau_vsMu_{WP}_1<0.5)) + (gen_match_1!=5))".format(
-                WP=config["had_tau_id_vs_mu"]
-            ),
-        )
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_mu"]
-            ),
-        )
-    else:
-        sys.exit(
-            "Weight calc: tau id vs muon: Such a channel is not defined: {}".format(
-                channel
-            )
-        )
+# def tau_id_vsMu_weight(rdf, channel, config):
+#     if channel == "et":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_mu"]
+#             ),
+#         )
+#     elif channel == "mt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_mu"]
+#             ),
+#         )
+#     elif channel == "tt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_1==5) * ((id_tau_vsMu_{WP}_1>0.5)*id_wgt_tau_vsMu_{WP}_1 + (id_tau_vsMu_{WP}_1<0.5)) + (gen_match_1!=5))".format(
+#                 WP=config["had_tau_id_vs_mu"]
+#             ),
+#         )
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsMu_{WP}_2>0.5)*id_wgt_tau_vsMu_{WP}_2 + (id_tau_vsMu_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_mu"]
+#             ),
+#         )
+#     else:
+#         sys.exit(
+#             "Weight calc: tau id vs muon: Such a channel is not defined: {}".format(
+#                 channel
+#             )
+#         )
 
-    return rdf
-
-
-def boostedtau_id_antiMu_weight(rdf, channel, config):
-    if channel == "et":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiMu"]
-            ),
-        )
-    elif channel == "mt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiMu"]
-            ),
-        )
-    elif channel == "tt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiMu_{WP}_1>0.5)*id_wgt_boostedtau_antiMu_{WP}_1 + (id_boostedtau_antiMu_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
-                WP=config["had_boostedtau_id_antiMu"]
-            ),
-        )
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boosted_tau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiMu"]
-            ),
-        )
-    else:
-        sys.exit(
-            "Weight calc: boosted tau id anti muon: Such a channel is not defined: {}".format(
-                channel
-            )
-        )
-
-    return rdf
+#     return rdf
 
 
-def tau_id_vsEle_weight(rdf, channel, config):
-    if channel == "et":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_ele"]
-            ),
-        )
-    elif channel == "mt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_ele"]
-            ),
-        )
-    elif channel == "tt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_1==5) * ((id_tau_vsEle_{WP}_1>0.5)*id_wgt_tau_vsEle_{WP}_1 + (id_tau_vsEle_{WP}_1<0.5)) + (gen_match_1!=5))".format(
-                WP=config["had_tau_id_vs_ele"]
-            ),
-        )
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
-                WP=config["had_tau_id_vs_ele"]
-            ),
-        )
-    else:
-        sys.exit(
-            "Weight calc: tau id vs electron: Such a channel is not defined: {}".format(
-                channel
-            )
-        )
+# def boostedtau_id_antiMu_weight(rdf, channel, config):
+#     if channel == "et":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiMu"]
+#             ),
+#         )
+#     elif channel == "mt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boostedtau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiMu"]
+#             ),
+#         )
+#     elif channel == "tt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiMu_{WP}_1>0.5)*id_wgt_boostedtau_antiMu_{WP}_1 + (id_boostedtau_antiMu_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+#                 WP=config["had_boostedtau_id_antiMu"]
+#             ),
+#         )
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiMu_{WP}_2>0.5)*id_wgt_boostedtau_antiMu_{WP}_2 + (id_boosted_tau_antiMu_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiMu"]
+#             ),
+#         )
+#     else:
+#         sys.exit(
+#             "Weight calc: boosted tau id anti muon: Such a channel is not defined: {}".format(
+#                 channel
+#             )
+#         )
 
-    return rdf
-
-
-def boostedtau_id_antiEle_weight(rdf, channel, config):
-    if channel == "et":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiEle"]
-            ),
-        )
-    elif channel == "mt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiEle"]
-            ),
-        )
-    elif channel == "tt":
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiEle_{WP}_1>0.5)*id_wgt_boostedtau_antiEle_{WP}_1 + (id_boostedtau_antiEle_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
-                WP=config["had_boostedtau_id_antiEle"]
-            ),
-        )
-        rdf = rdf.Redefine(
-            "weight",
-            "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
-                WP=config["had_boostedtau_id_antiEle"]
-            ),
-        )
-    else:
-        sys.exit(
-            "Weight calc: boosted tau id anti electron: Such a channel is not defined: {}".format(
-                channel
-            )
-        )
-
-    return rdf
+#     return rdf
 
 
-def lumi_weight(rdf, era):
-    if era == "2016preVFP":
-        rdf = rdf.Redefine("weight", "weight * 19.52 * 1000.")
-    elif era == "2016postVFP":
-        rdf = rdf.Redefine("weight", "weight * 16.81 * 1000.")
-    elif era == "2017":
-        rdf = rdf.Redefine("weight", "weight * 41.48 * 1000.")
-    elif era == "2018":
-        rdf = rdf.Redefine("weight", "weight * 59.83 * 1000.")
-    else:
-        sys.exit("Weight calc: lumi: Such an era is not defined: {}".format(era))
+# def tau_id_vsEle_weight(rdf, channel, config):
+#     if channel == "et":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_ele"]
+#             ),
+#         )
+#     elif channel == "mt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_ele"]
+#             ),
+#         )
+#     elif channel == "tt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_1==5) * ((id_tau_vsEle_{WP}_1>0.5)*id_wgt_tau_vsEle_{WP}_1 + (id_tau_vsEle_{WP}_1<0.5)) + (gen_match_1!=5))".format(
+#                 WP=config["had_tau_id_vs_ele"]
+#             ),
+#         )
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((gen_match_2==5) * ((id_tau_vsEle_{WP}_2>0.5)*id_wgt_tau_vsEle_{WP}_2 + (id_tau_vsEle_{WP}_2<0.5)) + (gen_match_2!=5))".format(
+#                 WP=config["had_tau_id_vs_ele"]
+#             ),
+#         )
+#     else:
+#         sys.exit(
+#             "Weight calc: tau id vs electron: Such a channel is not defined: {}".format(
+#                 channel
+#             )
+#         )
 
-    return rdf
-
-
-def pileup_weight(rdf):
-    return rdf.Redefine("weight", "weight * puweight")
-
-
-def trigger_weight(rdf, channel):
-    if channel == "et":
-        rdf = rdf.Redefine("weight", "weight * trg_wgt_single_ele32orele35")
-    elif channel == "mt":
-        rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
-    elif channel == "tt":
-        rdf = rdf.Redefine("weight", "weight")
-    else:
-        sys.exit(
-            "Weight calc: trigger: Such a channel is not defined: {}".format(channel)
-        )
-
-    return rdf
-
-
-def gen_weight(rdf, sample):
-    number_generated_events_weight = 1.0 / float(sample["nevents"])
-    cross_section_per_event_weight = float(sample["xsec"])
-    negative_events_fraction = float(sample["generator_weight"])
-    rdf = rdf.Define(
-        "numberGeneratedEventsWeight",
-        "(float){}".format(number_generated_events_weight),
-    )
-    rdf = rdf.Define(
-        "crossSectionPerEventWeight", "(float){}".format(cross_section_per_event_weight)
-    )
-    rdf = rdf.Define(
-        "negativeEventsFraction", "(float){}".format(negative_events_fraction)
-    )
-
-    return rdf.Redefine(
-        "weight",
-        "weight * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1)))",
-    )
+#     return rdf
 
 
-def stitching_weight(rdf, era, process, sample):
-    number_generated_events_weight = 1.0 / float(sample["nevents"])
-    cross_section_per_event_weight = float(sample["xsec"])
-    negative_events_fraction = float(sample["generator_weight"])
-    rdf = rdf.Define(
-        "numberGeneratedEventsWeight",
-        "(float){}".format(number_generated_events_weight),
-    )
-    rdf = rdf.Define(
-        "crossSectionPerEventWeight", "(float){}".format(cross_section_per_event_weight)
-    )
-    rdf = rdf.Define(
-        "negativeEventsFraction", "(float){}".format(negative_events_fraction)
-    )
+# def boostedtau_id_antiEle_weight(rdf, channel, config):
+#     if channel == "et":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiEle"]
+#             ),
+#         )
+#     elif channel == "mt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiEle"]
+#             ),
+#         )
+#     elif channel == "tt":
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_1==5) * ((id_boostedtau_antiEle_{WP}_1>0.5)*id_wgt_boostedtau_antiEle_{WP}_1 + (id_boostedtau_antiEle_{WP}_1<0.5)) + (boosted_gen_match_1!=5))".format(
+#                 WP=config["had_boostedtau_id_antiEle"]
+#             ),
+#         )
+#         rdf = rdf.Redefine(
+#             "weight",
+#             "weight * ((boosted_gen_match_2==5) * ((id_boostedtau_antiEle_{WP}_2>0.5)*id_wgt_boostedtau_antiEle_{WP}_2 + (id_boostedtau_antiEle_{WP}_2<0.5)) + (boosted_gen_match_2!=5))".format(
+#                 WP=config["had_boostedtau_id_antiEle"]
+#             ),
+#         )
+#     else:
+#         sys.exit(
+#             "Weight calc: boosted tau id anti electron: Such a channel is not defined: {}".format(
+#                 channel
+#             )
+#         )
 
-    if era == "2018":
-        if process == "Wjets":
-            rdf = rdf.Redefine(
-                "weight",
-                "weight * (0.0007590865*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2191273680 + (npartons==2)*0.1335837379 + (npartons==3)*0.0636217909 + (npartons==4)*0.0823135765 ))",
-            )
-        elif process == "DYjets":
-            rdf = rdf.Redefine(
-                "weight",
-                "weight * ( (genbosonmass>=50.0)*0.0000631493*( ((npartons<=0) || (npartons>=5))*1.0 + (npartons==1)*0.2056921342 + (npartons==2)*0.1664121306 + (npartons==3)*0.0891121485 + (npartons==4)*0.0843396952 ) + (genbosonmass<50.0) * numberGeneratedEventsWeight * crossSectionPerEventWeight * (( 1.0 / negativeEventsFraction) * ( ((genWeight<0) * -1) + ((genWeight>=0) * 1))))",
-            )
-        else:
-            raise ValueError(
-                "No stitching weights for this process: {}".format(process)
-            )
-    else:
-        raise ValueError("No stitching weights for this era: {}".format(era))
-    return rdf
-
-
-def Z_pt_reweight(rdf, process):
-    if process == "DYjets":
-        return rdf.Redefine("weight", "weight * ZPtMassReweightWeight")
-    else:
-        return rdf
+#     return rdf
 
 
-def Top_pt_reweight(rdf, process):
-    if process == "ttbar":
-        return rdf.Redefine("weight", "weight * topPtReweightWeight")
-    else:
-        return rdf
+# def pileup_weight(rdf):
+#     return rdf.Redefine("weight", "weight * puweight")
+
+
+# def trigger_weight(rdf, channel):
+#     if channel == "et":
+#         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_ele32orele35")
+#     elif channel == "mt":
+#         rdf = rdf.Redefine("weight", "weight * trg_wgt_single_mu24ormu27")
+#     elif channel == "tt":
+#         rdf = rdf.Redefine("weight", "weight")
+#     else:
+#         sys.exit(
+#             "Weight calc: trigger: Such a channel is not defined: {}".format(channel)
+#         )
+
+#     return rdf
+
+
+
+
+
+# def Z_pt_reweight(rdf, process):
+#     if process == "DYjets":
+#         return rdf.Redefine("weight", "weight * ZPtMassReweightWeight")
+#     else:
+#         return rdf
+
+
+# def Top_pt_reweight(rdf, process):
+#     if process == "ttbar":
+#         return rdf.Redefine("weight", "weight * topPtReweightWeight")
+#     else:
+#         return rdf
 
 
 def emb_gen_weight(rdf, channel):
