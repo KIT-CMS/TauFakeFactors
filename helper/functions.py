@@ -7,13 +7,11 @@ import os
 import glob
 import array
 import numpy as np
+import logging
+from typing import List, Dict, Union, Any
+
 import ROOT
 from XRootD import client
-
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import List, Dict, Union
 
 
 def check_path(path: str) -> None:
@@ -169,7 +167,7 @@ def rdf_is_empty(rdf: ROOT.RDataFrame) -> bool:
     return False
 
 
-def get_output_name(path: str, process: str, tau_gen_mode: str, idx: Union[int, None]=None) -> str:
+def get_output_name(path: str, process: str, tau_gen_mode: str, idx: Union[int, None] = None) -> str:
     '''
     Function to generate a file output path where the file will be stored.
 
@@ -188,12 +186,12 @@ def get_output_name(path: str, process: str, tau_gen_mode: str, idx: Union[int, 
         tau_gen_mode = "_" + tau_gen_mode
 
     if idx is not None:
-        return path + "/" + process + tau_gen_mode + "_" + str(idx) + ".root"
+        return os.path.join(path, f"{process}{tau_gen_mode}_{idx}.root")
     else:
-        return path + "/" + process + tau_gen_mode + ".root"
+        return os.path.join(path, f"{process}{tau_gen_mode}.root")
 
 
-def rename_boosted_variables(rdf, channel: str):
+def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     '''
     Function to redefine variables to the boosted tau pair information. Redefining only variables 
     which are written out for the fake factor measurement. Due to the hardcoded naming and redifinitions 
@@ -235,344 +233,115 @@ def rename_boosted_variables(rdf, channel: str):
         else:
             rdf = rdf.Define("boosted_gen_match_1", "-1.")
             rdf = rdf.Redefine("gen_match_1", "boosted_gen_match_1")
+    
+    if channel == "et":
+        rdf = rdf.Redefine("extraelec_veto", "boosted_extraelec_veto")
+    if channel == "mt":
+        rdf = rdf.Redefine("extramuon_veto", "boosted_extramuon_veto")
 
     return rdf
 
 
+def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
+    '''
+    Function to get a list of all sample paths which will be used for the fake factor calculation. 
+    This function assumes that the preselection step was already finished and takes into account 
+    if embedded events or MC events should be used.
 
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
 
+    Return:
+        List of all paths to the relevant samples
+    '''
+    log = logging.getLogger("ff_calc")
 
-def get_samples(config):
-    sample_paths = os.path.join(
+    general_sample_path = os.path.join(
         config["file_path"], "preselection", config["era"], config["channel"], "*.root"
     )
-    print(
-        "The following files are loaded for era: {}, channel: {} from {}".format(
-            config["era"], config["channel"], sample_paths
-        )
+    log.info(
+        f"The following files are loaded for era: {config['era']}, channel: {config['channel']} from {general_sample_path}"
     )
-    print("-" * 50)
-    sample_path_list = glob.glob(sample_paths)
-    tmp_list = glob.glob(sample_paths)
+    log.info("-" * 50)
+    sample_paths = glob.glob(general_sample_path)
+    tmp_list = glob.glob(general_sample_path)
 
     for f in tmp_list:
         sample = f.rsplit("/")[-1].rsplit(".")[0]
         if config["use_embedding"] and "_T" in sample:
-            sample_path_list.remove(f)
+            sample_paths.remove(f)
         elif not config["use_embedding"] and sample == "embedding":
-            sample_path_list.remove(f)
+            sample_paths.remove(f)
 
-    for f in sample_path_list:
-        print(f)
-    print("-" * 50)
+    for f in sample_paths:
+        log.info(f)
+    log.info("-" * 50)
 
-    return sample_path_list
-
-
+    return sample_paths
 
 
+def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
+    '''
+    A function to check if the categories in the configuration file are defined properly. 
+    Categories are defined by to parameters, the first one are the orthogonal cuts which split the data 
+    into the categories and the second one is a binning corresponding to this categories. 
+    The binning is needed to write a correct correctionlib file. The number of categories and bins have to match.
 
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
 
-
-
-def check_categories(config):
-    for process in config["target_process"]:
-        cats = config["target_process"][process]["split_categories"]
-        cat_edges = config["target_process"][process]["split_categories_binedges"]
-        for cat in cats:
-            if len(cats[cat]) != (len(cat_edges[cat]) - 1):
-                sys.exit(
-                    "Categories and binning for the categories does not match up for {}, {}.".format(
-                        process, cat
+    Return:
+        None
+    '''
+    if "target_processes" in config:
+        for process in config["target_processes"]:
+            categories = config["target_processes"][process]["split_categories"]
+            category_edges = config["target_processes"][process]["split_categories_binedges"]
+            for cat in categories:
+                if len(categories[cat]) != (len(category_edges[cat]) - 1):
+                    raise Exception(
+                        f"Categories and binning for the categories does not match up for {process}, {cat}."
                     )
+                
+    if "process_fractions" in config:
+        fraction_categories = config["process_fractions"]["split_categories"]
+        fraction_categories_edges = config["process_fractions"]["split_categories_binedges"]
+        for cat in fraction_categories:
+            if len(fraction_categories[cat]) != (len(fraction_categories_edges[cat]) - 1):
+                raise Exception(
+                    "Categories and binning for the categories does not match up for {cat} for fractions."
                 )
 
-    frac_cats = config["process_fractions"]["split_categories"]
-    frac_cat_edges = config["process_fractions"]["split_categories_binedges"]
-    for cat in frac_cats:
-        if len(frac_cats[cat]) != (len(frac_cat_edges[cat]) - 1):
-            sys.exit(
-                "Categories and binning for the categories does not match up for {} for fractions.".format(
-                    cat
-                )
-            )
+
+
+
+
+
+
+
+
 
 
 def modify_config(config, process, corr_config, for_AR_SR=False):
     if "SRlike_cuts" in corr_config:
         for mod in corr_config["SRlike_cuts"]:
-            config["target_process"][process]["SRlike_cuts"][mod] = corr_config[
+            config["target_processes"][process]["SRlike_cuts"][mod] = corr_config[
                 "SRlike_cuts"
             ][mod]
     if "ARlike_cuts" in corr_config:
         for mod in corr_config["ARlike_cuts"]:
-            config["target_process"][process]["ARlike_cuts"][mod] = corr_config[
+            config["target_processes"][process]["ARlike_cuts"][mod] = corr_config[
                 "ARlike_cuts"
             ][mod]
     if "AR_SR_cuts" in corr_config and for_AR_SR:
         for mod in corr_config["AR_SR_cuts"]:
-            config["target_process"][process]["ARlike_cuts"][mod] = corr_config[
+            config["target_processes"][process]["ARlike_cuts"][mod] = corr_config[
                 "AR_SR_cuts"
             ][mod]
-            config["target_process"][process]["SRlike_cuts"][mod] = corr_config[
+            config["target_processes"][process]["SRlike_cuts"][mod] = corr_config[
                 "AR_SR_cuts"
             ][mod]
 
-
-def get_split_combinations(categories):
-    combinations = list()
-    split_vars = list(categories.keys())
-
-    if len(split_vars) == 1:
-        for n in categories[split_vars[0]]:
-            combinations.append({split_vars[0]: n})
-    elif len(split_vars) == 2:
-        for n in categories[split_vars[0]]:
-            for m in categories[split_vars[1]]:
-                combinations.append({split_vars[0]: n, split_vars[1]: m})
-    else:
-        sys.exit("Category splitting is only defined up to 2 dimensions.")
-
-    return tuple(split_vars), combinations
-
-
-def QCD_SS_estimate(hists):
-    qcd = hists["data"].Clone()
-
-    for sample in hists:
-        if sample not in ["data", "data_subtracted", "data_ff", "QCD"]:
-            qcd.Add(hists[sample], -1)
-    # check for negative bins
-    for i in range(qcd.GetNbinsX()):
-        if qcd.GetBinContent(i) < 0.0:
-            qcd.SetBinContent(i, 0.0)
-    return qcd
-
-
-def calculate_QCD_FF(SRlike, ARlike):
-    ratio = SRlike["data_subtracted"].Clone()
-    ratio.Divide(ARlike["data_subtracted"])
-    ratio_up = SRlike["data_subtracted_up"].Clone()
-    ratio_up.Divide(ARlike["data_subtracted_up"])
-    ratio_down = SRlike["data_subtracted_down"].Clone()
-    ratio_down.Divide(ARlike["data_subtracted_down"])
-    return ratio, ratio_up, ratio_down
-
-
-def calculate_Wjets_FF(SRlike, ARlike):
-    ratio = SRlike["data_subtracted"].Clone()
-    ratio.Divide(ARlike["data_subtracted"])
-    ratio_up = SRlike["data_subtracted_up"].Clone()
-    ratio_up.Divide(ARlike["data_subtracted_up"])
-    ratio_down = SRlike["data_subtracted_down"].Clone()
-    ratio_down.Divide(ARlike["data_subtracted_down"])
-    return ratio, ratio_up, ratio_down
-
-
-def calculate_ttbar_FF(SR, AR, SRlike, ARlike):
-    ratio_mc = SR["ttbar_J"].Clone()
-    ratio_mc.Divide(AR["ttbar_J"])
-
-    ratio_DR_data = SRlike["data_subtracted"].Clone()
-    ratio_DR_data.Divide(ARlike["data_subtracted"])
-
-    ratio_DR_mc = SRlike["ttbar_J"].Clone()
-    ratio_DR_mc.Divide(ARlike["ttbar_J"])
-
-    sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
-    ratio_mc.Scale(sf)
-
-    return ratio_mc
-
-
-def calc_fraction(hists, target, processes):
-    mc = hists[target].Clone()
-    for p in processes:
-        if p != target:
-            mc.Add(hists[p])
-    frac = hists[target].Clone()
-    frac.Divide(mc)
-    return frac
-
-
-def add_fraction_variations(hists, processes):
-    variations = dict()
-    variations["nominal"] = dict(hists)
-
-    for p in processes:
-        hists_up = dict(hists)
-        for hist in hists_up:
-            hists_up[hist] = hists_up[hist].Clone()
-            if p == hist:
-                hists_up[hist].Scale(1.07)
-            else:
-                hists_up[hist].Scale(0.93)
-        variations["frac_{}_up".format(p)] = hists_up
-
-    for p in processes:
-        hists_down = dict(hists)
-        for hist in hists_down:
-            hists_down[hist] = hists_down[hist].Clone()
-            if p == hist:
-                hists_down[hist].Scale(0.93)
-            else:
-                hists_down[hist].Scale(1.07)
-        variations["frac_{}_down".format(p)] = hists_down
-
-    return variations
-
-
-def get_yields_from_hists(hists, processes):
-    fracs = dict()
-    categories = hists.keys()
-    for cat in categories:
-        v_fracs = dict()
-        for var in hists[cat]:
-            p_fracs = dict()
-            for p in processes:
-                h = hists[cat][var][p]
-                l = list()
-                for b in range(h.GetNbinsX()):
-                    l.append(h.GetBinContent(b + 1))
-                p_fracs[p] = l
-            v_fracs[var] = p_fracs
-        fracs[cat] = v_fracs
-
-    return fracs
-
-
-def fit_function(ff_hist, bin_edges):
-    do_mc_subtr_unc = False
-    if isinstance(ff_hist, list):
-        do_mc_subtr_unc = True
-        ff_hist_up = ff_hist[1]
-        ff_hist_down = ff_hist[2]
-        ff_hist = ff_hist[0]
-
-    nbins = ff_hist.GetNbinsX()
-
-    x = list()
-    y = list()
-    error_y_up = list()
-    error_y_down = list()
-    for nbin in range(nbins):
-        x.append(ff_hist.GetBinCenter(nbin + 1))
-        y.append(ff_hist.GetBinContent(nbin + 1))
-        error_y_up.append(ff_hist.GetBinErrorUp(nbin + 1))
-        error_y_down.append(ff_hist.GetBinErrorLow(nbin + 1))
-
-    x = array.array("d", x)
-    y = array.array("d", y)
-    error_y_up = array.array("d", error_y_up)
-    error_y_down = array.array("d", error_y_down)
-
-    graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
-
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        fit = graph.Fit("pol1", "SFN")
-        if do_mc_subtr_unc:
-            fit_up = ff_hist_up.Fit("pol1", "SFN")
-            fit_down = ff_hist_down.Fit("pol1", "SFN")
-    print(out.getvalue())
-    print("-" * 50)
-
-    fit_func = lambda pt: (fit.Parameter(1) * pt + fit.Parameter(0))
-    fit_func_slope_up = lambda pt: (
-        (fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_slope_down = lambda pt: (
-        (fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_norm_up = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0))
-    )
-    fit_func_norm_down = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0))
-    )
-    if do_mc_subtr_unc:
-        fit_func_up = lambda pt: (fit_up.Parameter(1) * pt + fit_up.Parameter(0))
-        fit_func_down = lambda pt: (fit_down.Parameter(1) * pt + fit_down.Parameter(0))
-
-    cs_expressions = list()
-    # best fit
-    cs_expressions.append("{}*x+{}".format(fit.Parameter(1), fit.Parameter(0)))
-    # slope parameter up/down
-    cs_expressions.append(
-        "{}*x+{}".format((fit.Parameter(1) + fit.ParError(1)), fit.Parameter(0))
-    )
-    cs_expressions.append(
-        "{}*x+{}".format((fit.Parameter(1) - fit.ParError(1)), fit.Parameter(0))
-    )
-    # normalization parameter up/down
-    cs_expressions.append(
-        "{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) + fit.ParError(0)))
-    )
-    cs_expressions.append(
-        "{}*x+{}".format(fit.Parameter(1), (fit.Parameter(0) - fit.ParError(0)))
-    )
-    # MC subtraction uncertainty up/down
-    if do_mc_subtr_unc:
-        cs_expressions.append(
-            "{}*x+{}".format(fit_up.Parameter(1), fit_up.Parameter(0))
-        )
-        cs_expressions.append(
-            "{}*x+{}".format(fit_down.Parameter(1), fit_down.Parameter(0))
-        )
-
-    y_fit = list()
-    y_fit_slope_up = list()
-    y_fit_slope_down = list()
-    y_fit_norm_up = list()
-    y_fit_norm_down = list()
-    if do_mc_subtr_unc:
-        y_fit_up = list()
-        y_fit_down = list()
-
-    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
-
-    for val in x_fit:
-        y_fit.append(fit_func(val))
-        y_fit_slope_up.append(abs(fit_func_slope_up(val) - fit_func(val)))
-        y_fit_slope_down.append(abs(fit_func_slope_down(val) - fit_func(val)))
-        y_fit_norm_up.append(abs(fit_func_norm_up(val) - fit_func(val)))
-        y_fit_norm_down.append(abs(fit_func_norm_down(val) - fit_func(val)))
-        if do_mc_subtr_unc:
-            y_fit_up.append(abs(fit_func_up(val) - fit_func(val)))
-            y_fit_down.append(abs(fit_func_down(val) - fit_func(val)))
-
-    x_fit = array.array("d", x_fit)
-    y_fit = array.array("d", y_fit)
-    y_fit_slope_up = array.array("d", y_fit_slope_up)
-    y_fit_slope_down = array.array("d", y_fit_slope_down)
-    y_fit_norm_up = array.array("d", y_fit_norm_up)
-    y_fit_norm_down = array.array("d", y_fit_norm_down)
-    if do_mc_subtr_unc:
-        y_fit_up = array.array("d", y_fit_up)
-        y_fit_down = array.array("d", y_fit_down)
-
-    fit_graph_slope = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_slope_down, y_fit_slope_up
-    )
-    fit_graph_norm = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_norm_down, y_fit_norm_up
-    )
-    if do_mc_subtr_unc:
-        fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
-            len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
-        )
-
-    if do_mc_subtr_unc:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-            "fit_graph_mc_sub": fit_graph_mc_sub,
-        }, cs_expressions
-    else:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-        }, cs_expressions
 
 
 def smooth_function(ff_hist, bin_edges):

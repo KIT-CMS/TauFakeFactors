@@ -1,128 +1,31 @@
-import os
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
+import logging
+from typing import Any, Dict, List
 
-from . import functions as func
-
-FF_YAxis = {"ttbar": "FF_{t#bar{t}}", "Wjets": "FF_{Wjets}", "QCD": "FF_{QCD}", "QCD_subleading": "FF_{QCD}"}
-channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
-era_dict = {
-    "2017": "41.48 fb^{-1} (2017, 13 TeV)",
-    "2018": "59.83 fb^{-1} (2018, 13 TeV)",
-}
-color_dict = {
-    "QCD": (204, 204, 204),
-    "diboson_J": (100, 192, 232),
-    "diboson_L": (100, 232, 232),
-    "diboson_T": (100, 232, 202),
-    "Wjets": (137, 160, 44),
-    "ttbar_J": (155, 152, 204),
-    "ttbar_L": (195, 152, 204),
-    "ttbar_T": (195, 152, 174),
-    "DYjets_J": (191, 34, 41),
-    "DYjets_L": (231, 34, 41),
-    "DYjets_T": (231, 34, 11),
-    "ST_J": (184, 207, 92),
-    "ST_L": (184, 237, 92),
-    "ST_T": (214, 237, 92),
-    "embedding": (255, 204, 0),
-    "tau_fakes": (137, 160, 44),
-    "data_ff": (255, 204, 0),
-}
-unc_color_dict = {
-    "fit_graph_slope": ROOT.kBlue,
-    "fit_graph_norm": ROOT.kRed,
-    "fit_graph_mc_sub": ROOT.kGreen,
-}
-
-label_dict = {
-    "QCD": "QCD multijet",
-    "diboson_J": "Diboson (jet#rightarrow#tau_{h})",
-    "diboson_L": "Diboson (lep#rightarrow#tau_{h})",
-    "diboson_T": "Diboson (genuine #tau_{h})",
-    "Wjets": "W+jets",
-    "ttbar_J": "t#bar{t} (jet#rightarrow#tau_{h})",
-    "ttbar_L": "t#bar{t} (lep#rightarrow#tau_{h})",
-    "ttbar_T": "t#bar{t} (genuine #tau_{h})",
-    "DYjets_J": "Z#rightarrow ll (jet#rightarrow#tau_{h})",
-    "DYjets_L": "Z#rightarrow ll (lep#rightarrow#tau_{h})",
-    "DYjets_T": "Z#rightarrow ll (genuine #tau_{h})",
-    "ST_J": "ST (jet#rightarrow#tau_{h})",
-    "ST_L": "ST (lep#rightarrow#tau_{h})",
-    "ST_T": "ST (genuine #tau_{h})",
-    "embedding": "#tau embedded",
-    "data": "Data",
-    "data_subtracted": "reduced Data",
-    "data_ff": "Data with FFs",
-    "tau_fakes": "jet#rightarrow#tau_{h}",
-    "fit_graph_slope": "best fit (slope unc.)",
-    "fit_graph_norm": "best fit (normalization unc.)",
-    "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
-}
-var_dict = {
-    "pt_1": {
-        "et": "p_{T}(e) (GeV)",
-        "mt": "p_{T}(#mu) (GeV)",
-        "tt": "leading p_{T}(#tau_{h}) (GeV)",
-    },
-    "boosted_pt_1": {
-        "et": "p_{T}(e) (GeV)",
-        "mt": "p_{T}(#mu) (GeV)",
-        "tt": "leading p_{T}(#tau_{h}) (GeV)",
-    },
-    "pt_2": {
-        "et": "p_{T}(#tau_{h}) (GeV)",
-        "mt": "p_{T}(#tau_{h}) (GeV)",
-        "tt": "subleading p_{T}(#tau_{h}) (GeV)",
-    },
-    "boosted_pt_2": {
-        "et": "p_{T}(#tau_{h}) (GeV)",
-        "mt": "p_{T}(#tau_{h}) (GeV)",
-        "tt": "subleading p_{T}(#tau_{h}) (GeV)",
-    },
-    "eta_1": "#eta(e/#mu)",
-    "eta_2": "#eta(#tau_{h})",
-    "phi_1": "#phi(e/#mu)",
-    "phi_2": "#phi(#tau_{h})",
-    "iso_1": {
-        "et": "isolation (e)",
-        "mt": "isolation (#mu)",
-    },
-    "boosted_iso_1": {
-        "et": "isolation (e)",
-        "mt": "isolation (#mu)",
-    }, 
-    "mt_1": {
-        "et": "m_{T}(e, #slash{E}_{T}) (GeV)",
-        "mt": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
-    }, 
-    "boosted_mt_1": {
-        "et": "m_{T}(e, #slash{E}_{T}) (GeV)",
-        "mt": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
-    }, 
-    "m_vis": "m_{vis} (GeV)",
-    "boosted_m_vis": "m_{vis} (GeV)",
-    "mjj": "m_{jj} (GeV)",
-    "met": "MET (GeV)",
-    "metphi": "MET #phi",
-    "bpt_1": "p_{T}(leading b) (GeV)",
-    "beta_1": "#eta (leading b)",
-    "bphi_1": "#phi (leading b)",
-    "bpt_2": "p_{T}(second b) (GeV)",
-    "njets": "number of jets",
-    "nbtag": "number of b-tagged jets",
-}
-
-cat_dict = {
-    "incl": "incl.",
-    "njets": "jets",
-    "nbtag": "b-jets",
-    "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
-}
+import configs.general_definitions as gd
 
 
-def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
+def plot_FFs(variable: str, ff_ratio: Any, uncertainties: Dict[str, Any], era: str, channel: str, process: str, category: Dict[str, str], output_path: str) -> None:
+    '''
+    Function which produces a fake factor plot.
+
+    Args:
+        variable: Name of the variable the fake factor is measured in
+        ff_ratio: Histogram of the ratio (fake factor)
+        uncertainties: Dictionary with graphs for each uncertainty/variation corresponding to "ff_ratio"
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        process: Information about the process is added to the plot 
+        category: Information about the category split is added to the plot 
+        output_path: Path where the plot should be stored
+
+    Return:
+        None
+    '''
+    log = logging.getLogger("ff_calculation")
+
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 700, 700)
@@ -143,15 +46,8 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     ff_ratio.SetTitle("")
     ff_ratio.GetXaxis().SetMoreLogLabels()
     ff_ratio.GetXaxis().SetNoExponent()
-    ff_ratio.GetYaxis().SetTitle(FF_YAxis[process])
-    if config["target_process"][process]["var_dependence"] not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
-        ff_ratio.GetXaxis().SetTitle(
-            var_dict[config["target_process"][process]["var_dependence"]]
-        )
-    else:
-        ff_ratio.GetXaxis().SetTitle(
-            var_dict[config["target_process"][process]["var_dependence"]][config["channel"]]
-        )
+    ff_ratio.GetYaxis().SetTitle(gd.FF_YAxis[process])
+    ff_ratio.GetXaxis().SetTitle(gd.variable_dict[channel][variable])
     ff_ratio.GetYaxis().SetLabelSize(0.04)
     ff_ratio.GetXaxis().SetLabelSize(0.04)
     ff_ratio.GetYaxis().SetTitleSize(0.05)
@@ -160,8 +56,8 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     ff_ratio.Draw()
     for unc in uncertainties:
         uncertainties[unc].SetLineWidth(2)
-        uncertainties[unc].SetLineColor(unc_color_dict[unc])
-        uncertainties[unc].SetFillColorAlpha(unc_color_dict[unc], 0.35)
+        uncertainties[unc].SetLineColor(gd.color_dict[unc])
+        uncertainties[unc].SetFillColorAlpha(gd.color_dict[unc], 0.35)
         uncertainties[unc].Draw("E3 L SAME")
 
     legend = ROOT.TLegend(0.2, 0.68, 0.5, 0.88)
@@ -171,7 +67,7 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     legend.SetTextAlign(12)
     legend.AddEntry(ff_ratio, "measured", "lep")
     for unc in uncertainties:
-        legend.AddEntry(uncertainties[unc], label_dict[unc], "fl")
+        legend.AddEntry(uncertainties[unc], gd.label_dict[unc], "fl")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -180,41 +76,44 @@ def plot_FFs(ff_ratio, uncertainties, process, config, split, save_path):
     text.DrawLatex(
         0.165,
         0.917,
-        "channel: {}, {}".format(
-            channel_dict[config["channel"]],
-            ", ".join(
-                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
-            ),
-        ),
+        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
     )
     text.SetTextSize(0.035)
-    text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
-    # text.SetTextSize(0.035)
-    # text.DrawLatex(
-    #     0.62, 0.8, "{} = {} / {}".format("#chi^{2} / N_{dof}", round(chi2, 2), dof)
-    # )
+    text.DrawLatex(0.6, 0.915, f"{gd.era_dict[era]}")
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "{}/ff_{}_{}.png".format(
-                save_path,
-                process,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
         )
         c.SaveAs(
-            "{}/ff_{}_{}.pdf".format(
-                save_path,
-                process,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
         )
-    print(out.getvalue())
+    log.info(out.getvalue())
     c.Close()
 
 
-def plot_data_mc(hists, config, var, process, region, data, samples, split, save_path):
+def plot_data_mc(variable: str, hists: Dict[str, Any], era: str, channel: str, process: str, region: str, data: str, samples: List[str], category: Dict[str, str], output_path: str) -> None:
+    '''
+    Function which produces a data to MC control plot.
+
+    Args:
+        variable: Name of the variable the fake factor is measured in
+        hists: Dictionary with histogram for all processes and data
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        process: Information about the process is added to the plot 
+        region: Information about the fake factor calculation region is added to the plot name
+        data: Name of the data process in "hists"
+        samples: List of processes to be considered from "hists" for MC
+        category: Information about the category split is added to the plot 
+        output_path: Path where the plot should be stored
+    
+    Return:
+        None
+    '''
+    log = logging.getLogger("ff_calculation")
+
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 850, 700)
@@ -233,7 +132,7 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
         hists[sample].SetLineWidth(1)
         hists[sample].SetFillStyle(1001)
         hists[sample].SetLineColor(ROOT.kBlack)
-        color = color_dict[sample]
+        color = gd.color_dict[sample]
         hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
         stack.Add(hists[sample])
         if sample != samples[0]:
@@ -243,10 +142,7 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     mc.SetFillColor(ROOT.kGray + 2)
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("N_{Events}")
-    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
-        stack.GetXaxis().SetTitle(var_dict[var])
-    else:
-        stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
+    stack.GetXaxis().SetTitle(gd.variable_dict[channel][variable])
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -271,9 +167,9 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     legend.SetBorderSize(0)
     legend.SetTextSize(0.035)
     legend.SetTextAlign(12)
-    legend.AddEntry(obs, label_dict[data], "lep")
+    legend.AddEntry(obs, gd.label_dict[data], "lep")
     for sample in samples:
-        legend.AddEntry(hists[sample], label_dict[sample], "f")
+        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -282,15 +178,10 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     text.DrawLatex(
         0.23,
         0.917,
-        "channel: {}, {}".format(
-            channel_dict[config["channel"]],
-            ", ".join(
-                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
-            ),
-        ),
+        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
     )
     text.SetTextSize(0.035)
-    text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
+    text.DrawLatex(0.66, 0.915, "{}".format(gd.era_dict[era]))
 
     if data == "data_subtracted":
         hist_str = "reduced"
@@ -300,32 +191,36 @@ def plot_data_mc(hists, config, var, process, region, data, samples, split, save
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "{}/hist_{}_{}_{}_{}_{}.png".format(
-                save_path,
-                hist_str,
-                var,
-                process,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
         )
         c.SaveAs(
-            "{}/hist_{}_{}_{}_{}_{}.pdf".format(
-                save_path,
-                hist_str,
-                var,
-                process,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
         )
-    print(out.getvalue())
+    log.info(out.getvalue())
     c.Close()
 
 
-def plot_data_mc_ratio(
-    hists, config, var, process, region, data, samples, split, save_path
-):
+def plot_data_mc_ratio(variable: str, hists: Dict[str, Any], era: str, channel: str, process: str, region: str, data: str, samples: List[str], category: Dict[str, str], output_path: str) -> None:
+    '''
+    Function which produces a data to MC control plot with a ratio plot.
+
+    Args:
+        variable: Name of the variable the fake factor is measured in
+        hists: Dictionary with histogram for all processes and data
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        process: Information about the process is added to the plot 
+        region: Information about the fake factor calculation region is added to the plot name
+        data: Name of the data process in "hists"
+        samples: List of processes to be considered from "hists" for MC
+        category: Information about the category split is added to the plot 
+        output_path: Path where the plot should be stored
+    
+    Return:
+        None
+    '''
+    log = logging.getLogger("ff_calculation")
+
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
@@ -338,7 +233,7 @@ def plot_data_mc_ratio(
         hists[sample].SetLineWidth(1)
         hists[sample].SetFillStyle(1001)
         hists[sample].SetLineColor(ROOT.kBlack)
-        color = color_dict[sample]
+        color = gd.color_dict[sample]
         hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
         stack.Add(hists[sample])
         if sample != samples[0]:
@@ -371,10 +266,7 @@ def plot_data_mc_ratio(
 
     # Adjust x-axis settings
     x = ratio.GetXaxis()
-    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
-        x.SetTitle(var_dict[var])
-    else:
-        x.SetTitle(var_dict[var][config["channel"]])
+    x.SetTitle(gd.variable_dict[channel][variable])
     x.SetTitleSize(0.12)
     x.SetLabelSize(0.1)
 
@@ -412,9 +304,9 @@ def plot_data_mc_ratio(
     legend.SetBorderSize(0)
     legend.SetTextSize(0.035)
     legend.SetTextAlign(12)
-    legend.AddEntry(obs, label_dict[data], "lep")
+    legend.AddEntry(obs, gd.label_dict[data], "lep")
     for sample in samples:
-        legend.AddEntry(hists[sample], label_dict[sample], "f")
+        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -423,15 +315,10 @@ def plot_data_mc_ratio(
     text.DrawLatex(
         0.23,
         0.917,
-        "channel: {}, {}".format(
-            channel_dict[config["channel"]],
-            ", ".join(
-                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
-            ),
-        ),
+        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
     )
     text.SetTextSize(0.035)
-    text.DrawLatex(0.65, 0.915, "{}".format(era_dict[config["era"]]))
+    text.DrawLatex(0.65, 0.915, "{}".format(gd.era_dict[era]))
 
     pad2.cd()
     ratio.Draw("ep")
@@ -444,30 +331,35 @@ def plot_data_mc_ratio(
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "{}/hist_ratio_{}_{}_{}_{}_{}.png".format(
-                save_path,
-                hist_str,
-                var,
-                process,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
         )
         c.SaveAs(
-            "{}/hist_ratio_{}_{}_{}_{}_{}.pdf".format(
-                save_path,
-                hist_str,
-                var,
-                process,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
         )
-    print(out.getvalue())
+    log.info(out.getvalue())
     c.Close()
 
 
-def fraction_plot(hists, config, var, region, samples, split, save_path):
+def plot_fractions(variable: str, hists: Dict[str, Any], era: str, channel: str, region: str, processes: List[str], category: Dict[str, str], output_path: str) -> None:
+    '''
+    Function which produces a fraction plot where the sum of all considered process contributions 
+    results to 1 for each bin in the fraction histogram.
+
+    Args:
+        variable: Name of the variable the fraction is measured in
+        hists: Dictionary with fraction histograms for all considered "processes"
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        region: Information about the fraction calculation region is added to the plot name
+        processes: List of processes which are considered for the fraction calculation
+        category: Information about the category split is added to the plot 
+        output_path: Path where the plot should be stored
+    
+    Return:
+        None
+    '''
+    log = logging.getLogger("ff_calculation")
+
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("c", "", 750, 700)
@@ -481,20 +373,17 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
     stack = ROOT.THStack()
-    for sample in samples:
+    for sample in processes:
         hists[sample].SetLineWidth(1)
         hists[sample].SetFillStyle(1001)
         hists[sample].SetLineColor(ROOT.kBlack)
-        color = color_dict[sample]
+        color = gd.color_dict[sample]
         hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
         stack.Add(hists[sample])
     stack.SetTitle("")
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Fraction")
-    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
-        stack.GetXaxis().SetTitle(var_dict[var])
-    else:
-        stack.GetXaxis().SetTitle(var_dict[var][config["channel"]])
+    stack.GetXaxis().SetTitle(gd.variable_dict[channel][variable])
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -505,8 +394,8 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     legend.SetBorderSize(0)
     legend.SetTextSize(0.035)
     legend.SetTextAlign(32)
-    for sample in samples:
-        legend.AddEntry(hists[sample], label_dict[sample], "f")
+    for sample in processes:
+        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -515,35 +404,20 @@ def fraction_plot(hists, config, var, region, samples, split, save_path):
     text.DrawLatex(
         0.23,
         0.915,
-        "channel: {}, {}".format(
-            channel_dict[config["channel"]],
-            ", ".join(
-                ["{} {}".format(split[var], cat_dict[var]) for var in split.keys()]
-            ),
-        ),
+        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
     )
     text.SetTextSize(0.035)
-    text.DrawLatex(0.66, 0.915, "{}".format(era_dict[config["era"]]))
+    text.DrawLatex(0.66, 0.915, f"{gd.era_dict[era]}")
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            "{}/fraction_{}_{}_{}.png".format(
-                save_path,
-                var,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/fraction_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
         )
         c.SaveAs(
-            "{}/fraction_{}_{}_{}.pdf".format(
-                save_path,
-                var,
-                region,
-                "_".join(["{}_{}".format(split[var], var) for var in split.keys()]),
-            )
+            f"{output_path}/fraction_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
         )
-    print(out.getvalue())
+    log.info(out.getvalue())
     c.Close()
 
 

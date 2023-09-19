@@ -2,20 +2,33 @@
 Function for calculating fake factors for the ttbar process
 """
 
-import sys
 import array
 import copy
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
+import logging
+from typing import Union, Dict, List
 
-import helper.functions as func
+import helper.ff_functions as func
 import helper.plotting as plotting
 
-from FF_calculation.FF_region_filters import region_filter
 
+def calculation_ttbar_FFs(config: Dict[str, Union[str, Dict, List]], sample_paths: List[str], output_path: str) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
+    '''
+    This function calculates fake factors for ttbar.
 
-def calculation_ttbar_FFs(config, sample_path_list, save_path):
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+    
+    Return:
+        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
+        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+    '''
+    log = logging.getLogger("ff_calculation")
+
     # init histogram dict for FF measurement from MC
     SR_hists = dict()
     AR_hists = dict()
@@ -26,119 +39,113 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
     # init dictionary for the FF functions for correctionlib
-    cs_expressions = dict()
+    corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_process"]["ttbar"]
+    process_conf = config["target_processes"]["ttbar"]
 
-    split_vars, split_combinations = func.get_split_combinations(
-        process_conf["split_categories"]
+    split_variables, split_combinations = func.get_split_combinations(
+        categories=process_conf["split_categories"]
     )
 
     # calculating global histograms for the data/mc scale factor
-    for sample_path in sample_path_list:
+    for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        print("Processing {} for the ttbar global data/mc scale factor.".format(sample))
-        print("-" * 50)
+        log.info(f"Processing {sample} for the ttbar global data/mc scale factor.")
+        log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for ttbar signal-like region
-        region_cut_conf = {**process_conf["SRlike_cuts"]}
-        rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
-        print(
-            "Filtering events for the signal-like region. Target process: {}\n".format(
-                "ttbar"
-            )
+        region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
+        rdf_SRlike = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=None, region_cuts=region_conf)
+
+        log.info(
+            "Filtering events for the signal-like region. Target process: ttbar"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
             rdf_SRlike.Report().Print()
-        print(out.getvalue())
-        print("-" * 50)
+        log.info(out.getvalue())
+        log.info("-" * 50)
 
         # QCD estimation from same sign in signal-like region
-        if "tau_pair_sign" in region_cut_conf:
-            region_cut_conf["tau_pair_sign"] = "same"
-        elif "boostedtau_pair_sign" in region_cut_conf:
-            region_cut_conf["boostedtau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_conf:
+            region_conf["tau_pair_sign"] = "(q_1*q_2) > 0" # same sign
         else:
-            raise ValueError("No tau pair sign split defined for the QCD estimation in the ttbar config.")
-        rdf_SRlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
-        print(
-            "Filtering events for QCD estimation in the signal-like region. Target process: {}\n".format(
-                "ttbar"
-            )
+            raise ValueError("No tau pair sign cut defined in the ttbar config. Is needed for the QCD estimation.")
+        
+        rdf_SRlike_qcd = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=None, region_cuts=region_conf)
+
+        log.info(
+            "Filtering events for QCD estimation in the signal-like region. Target process: ttbar"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
             rdf_SRlike_qcd.Report().Print()
-        print(out.getvalue())
-        print("-" * 50)
+        log.info(out.getvalue())
+        log.info("-" * 50)
 
         # event filter for ttbar application-like region
-        region_cut_conf = {**process_conf["ARlike_cuts"]}
-        rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
-        print(
-            "Filtering events for the application-like region. Target process: {}\n".format(
-                "ttbar"
-            )
+        region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
+        rdf_ARlike = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=None, region_cuts=region_conf)
+
+        log.info(
+            "Filtering events for the application-like region. Target process: ttbar"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
             rdf_ARlike.Report().Print()
-        print(out.getvalue())
-        print("-" * 50)
+        log.info(out.getvalue())
+        log.info("-" * 50)
 
         # QCD estimation from same sign in application-like region
-        if "tau_pair_sign" in region_cut_conf:
-            region_cut_conf["tau_pair_sign"] = "same"
-        elif "boostedtau_pair_sign" in region_cut_conf:
-            region_cut_conf["boostedtau_pair_sign"] = "same"
+        if "tau_pair_sign" in region_conf:
+            region_conf["tau_pair_sign"] = "(q_1*q_2) > 0" # same sign
         else:
-            raise ValueError("No tau pair sign split defined for the QCD estimation in the ttbar config.")
-        rdf_ARlike_qcd = region_filter(rdf, config["channel"], region_cut_conf, sample)
-        print(
-            "Filtering events for QCD estimation in the application-like region. Target process: {}\n".format(
-                "Wjets"
-            )
+            raise ValueError("No tau pair sign cut defined in the ttbar config. Is needed for the QCD estimation.")
+        
+        rdf_ARlike_qcd = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=None, region_cuts=region_conf)
+
+        log.info(
+            "Filtering events for QCD estimation in the application-like region. Target process: ttbar"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
             rdf_ARlike_qcd.Report().Print()
-        print(out.getvalue())
-        print("-" * 50)
+        log.info(out.getvalue())
+        log.info("-" * 50)
 
         # make yield histograms for FF data correction
         h = rdf_SRlike.Histo1D(
-            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists[sample] = h.GetValue()
 
         h = rdf_ARlike.Histo1D(
-            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         # make yield histograms for QCD estimation
         h_qcd = rdf_SRlike_qcd.Histo1D(
-            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
         h_qcd = rdf_ARlike_qcd.Histo1D(
-            ("#phi(#slash{E}_{T})", "{}".format(sample), 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
 
     # calculate QCD estimation
-    SRlike_hists["QCD"] = func.QCD_SS_estimate(SRlike_hists_qcd)
-    ARlike_hists["QCD"] = func.QCD_SS_estimate(ARlike_hists_qcd)
+    SRlike_hists["QCD"] = func.QCD_SS_estimate(hists=SRlike_hists_qcd)
+    ARlike_hists["QCD"] = func.QCD_SS_estimate(hists=ARlike_hists_qcd)
 
     # calculate ttbar enriched data by subtraction all there backgrould sample
     SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
@@ -153,52 +160,44 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
 
     # splitting between different categories for mc-based FF calculation
     for split in split_combinations:
-        for sample_path in sample_path_list:
+        for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
             if sample in ["ttbar_J"]:
-                print(
-                    "Processing {sample} for the {cat} category.".format(
-                        sample=sample,
-                        cat=", ".join(
-                            ["{} {}".format(var, split[var]) for var in split_vars]
-                        ),
-                    )
+                log.info(
+                    f"Processing {sample} for the {', '.join([f'{var} {split[var]}'for var in split_variables])} category."
                 )
-                print("-" * 50)
+                log.info("-" * 50)
 
                 rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
                 # event filter for ttbar signal region
-                region_cut_conf = {**split, **process_conf["SR_cuts"]}
-                rdf_SR = region_filter(rdf, config["channel"], region_cut_conf, sample)
-                print(
-                    "Filtering events for the signal region. Target process: {}\n".format(
-                        "ttbar"
-                    )
+                region_conf = copy.deepcopy(process_conf["SR_cuts"])
+                rdf_SR = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=region_conf)
+                
+                log.info(
+                    "Filtering events for the signal region. Target process: ttbar"
                 )
                 # redirecting C++ stdout for Report() to python stdout
                 out = StringIO()
                 with pipes(stdout=out, stderr=STDOUT):
                     rdf_SR.Report().Print()
-                print(out.getvalue())
-                print("-" * 50)
+                log.info(out.getvalue())
+                log.info("-" * 50)
 
                 # event filter for ttbar application region
-                region_cut_conf = {**split, **process_conf["AR_cuts"]}
-                rdf_AR = region_filter(rdf, config["channel"], region_cut_conf, sample)
-                print(
-                    "Filtering events for the application region. Target process: {}\n".format(
-                        "ttbar"
-                    )
+                region_conf = copy.deepcopy(process_conf["AR_cuts"])
+                rdf_AR = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=region_conf)
+                log.info(
+                    "Filtering events for the application region. Target process: ttbar"
                 )
                 # redirecting C++ stdout for Report() to python stdout
                 out = StringIO()
                 with pipes(stdout=out, stderr=STDOUT):
                     rdf_AR.Report().Print()
-                print(out.getvalue())
-                print("-" * 50)
+                log.info(out.getvalue())
+                log.info("-" * 50)
 
                 # get binning of the dependent variable
                 xbinning = array.array("d", process_conf["var_bins"])
@@ -208,7 +207,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 h = rdf_SR.Histo1D(
                     (
                         process_conf["var_dependence"],
-                        "{}".format(sample),
+                        f"{sample}",
                         nbinsx,
                         xbinning,
                     ),
@@ -220,7 +219,7 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
                 h = rdf_AR.Histo1D(
                     (
                         process_conf["var_dependence"],
-                        "{}".format(sample),
+                        f"{sample}",
                         nbinsx,
                         xbinning,
                     ),
@@ -231,30 +230,35 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
 
         # Start of the FF calculation
         FF_hist = func.calculate_ttbar_FF(
-            SR_hists, AR_hists, SRlike_hists, ARlike_hists
+            SR=SR_hists, AR=AR_hists, SRlike=SRlike_hists, ARlike=ARlike_hists
         )
         # performing the fit and calculating the uncertainties
-        fit_graphs, cs_exp = func.fit_function(
-            FF_hist.Clone(), process_conf["var_bins"]
+        fit_graphs, corrlib_exp = func.fit_function(
+            ff_hists=FF_hist.Clone(), 
+            bin_edges=process_conf["var_bins"],
         )
 
-        plotting.plot_FFs(FF_hist, fit_graphs, "ttbar", config, split, save_path)
+        plotting.plot_FFs(
+            variable=process_conf["var_dependence"], 
+            ff_ratio=FF_hist, 
+            uncertainties=fit_graphs, 
+            era=config["era"],
+            channel=config["channel"],
+            process="ttbar", 
+            category=split, 
+            output_path=output_path,
+        )
 
         if len(split) == 1:
-            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = corrlib_exp
         elif len(split) == 2:
-            if (
-                "{}#{}".format(split_vars[0], split[split_vars[0]])
-                not in cs_expressions
-            ):
-                cs_expressions[
-                    "{}#{}".format(split_vars[0], split[split_vars[0]])
-                ] = dict()
-            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])][
-                "{}#{}".format(split_vars[1], split[split_vars[1]])
-            ] = cs_exp
+            if f"{split_variables[0]}#{split[split_variables[0]]}" not in corrlib_expressions:
+                corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = dict()
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"][
+                f"{split_variables[1]}#{split[split_variables[1]]}"
+            ] = corrlib_exp
         else:
-            sys.exit("Category splitting is only defined up to 2 dimensions.")
+            raise Exception("Category splitting is only defined up to 2 dimensions.")
 
         # doing some control plots
         data = "data"
@@ -291,56 +295,61 @@ def calculation_ttbar_FFs(config, sample_path_list, save_path):
             ]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists,
-            config,
-            "metphi",
-            "ttbar",
-            "SR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable="metphi",
+            hists=SRlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process="ttbar", 
+            region="SR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
+
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists,
-            config,
-            "metphi",
-            "ttbar",
-            "AR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable="metphi",
+            hists=ARlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process="ttbar", 
+            region="AR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
         )
 
         data = "data_subtracted"
         samples = ["ttbar_J"]
 
         plotting.plot_data_mc_ratio(
-            SRlike_hists,
-            config,
-            "metphi",
-            "ttbar",
-            "SR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable="metphi",
+            hists=SRlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process="ttbar", 
+            region="SR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
         )
         plotting.plot_data_mc_ratio(
-            ARlike_hists,
-            config,
-            "metphi",
-            "ttbar",
-            "AR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable="metphi",
+            hists=ARlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process="ttbar", 
+            region="AR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
         )
-        print("-" * 50)
+        log.info("-" * 50)
 
-    return cs_expressions
+    return corrlib_expressions
 
 
 def non_closure_correction(

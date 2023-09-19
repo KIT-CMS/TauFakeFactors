@@ -92,6 +92,7 @@ mc_weights:
     lep_id: "id_wgt_mu_boosted_1"
     had_tau_id_vs_ele: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)) + (boosted_gen_match_2!=5)
     had_tau_id_vs_mu: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: "stitching"

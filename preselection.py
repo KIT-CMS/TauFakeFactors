@@ -41,11 +41,13 @@ output_features = [
     "gen_match_2",
     "m_vis",
     "mt_1",
-    "no_extra_lep",
     "deltaR_ditaupair",
     "pt_1",
     "iso_1",
     "metphi",
+    "extramuon_veto",
+    "extraelec_veto",
+    "dilepton_veto",
 ]
 
 tau_wps = ["VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight"]
@@ -132,27 +134,6 @@ def run_preselection(args):
             if config["channel"] == "tt":
                 rdf = rdf.Define("gen_match_1", "-1.")
 
-        # calculate additional variables 
-        if config["channel"] == "et":
-            rdf = rdf.Define(
-                "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
-            )
-        elif config["channel"] == "mt":
-            rdf = rdf.Define(
-                "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)",
-            )
-        elif config["channel"] == "tt":
-            rdf = rdf.Define(
-                "no_extra_lep",
-                "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) ",
-            )
-        else:
-            raise ValueError(
-                f"Extra lepton veto: Such a channel is not defined: {config['channel']}"
-            )
-
         # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
         for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
             tmp_rdf = rdf
@@ -238,6 +219,7 @@ if __name__ == "__main__":
     # these variables are not defined in et, mt ntuples
     if config["channel"] == "tt":
         output_features.append("gen_match_1")
+        output_features.remove("dilepton_veto")
         for wp in tau_wps:
             output_features.append("id_tau_vsJet_" + wp + "_1")
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")

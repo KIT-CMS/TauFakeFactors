@@ -2,79 +2,84 @@
 Function for calculating fake factors for the QCD process
 """
 
-import sys
 import array
 import copy
 import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
+import logging
+from typing import Union, Dict, List
 
-import helper.functions as func
+import helper.ff_functions as func
 import helper.plotting as plotting
 
-from FF_calculation.FF_region_filters import region_filter
 
+def calculation_QCD_FFs(config: Dict[str, Union[str, Dict, List]], sample_paths: List[str], output_path: str, process: str) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
+    '''
+    This function calculates fake factors for QCD.
 
-def calculation_QCD_FFs(config, sample_path_list, save_path, process):
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
+    
+    Return:
+        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations) 
+        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+    '''
+    log = logging.getLogger("ff_calculation")
+
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
     # init dictionary for the FF functions for correctionlib
-    cs_expressions = dict()
+    corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_process"][process]
+    process_conf = config["target_processes"][process]
 
-    split_vars, split_combinations = func.get_split_combinations(
-        process_conf["split_categories"]
+    split_variables, split_combinations = func.get_split_combinations(
+        categories=process_conf["split_categories"]
     )
 
     # splitting between different categories
     for split in split_combinations:
-        for sample_path in sample_path_list:
+        for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            print(
-                "Processing {sample} for the {cat} category.".format(
-                    sample=sample,
-                    cat=", ".join(
-                        ["{} {}".format(var, split[var]) for var in split_vars]
-                    ),
-                )
+            log.info(
+                f"Processing {sample} for the {', '.join(['{} {}'.format(var, split[var]) for var in split_variables])} category."
             )
-            print("-" * 50)
+            log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for QCD signal-like region
-            region_cut_conf = {**split, **process_conf["SRlike_cuts"]}
-            rdf_SRlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
-            print(
-                "Filtering events for the signal-like region. Target process: {}\n".format(
-                    process
-                )
+            rdf_SRlike = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=process_conf["SRlike_cuts"])
+
+            log.info(
+                f"Filtering events for the signal-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
                 rdf_SRlike.Report().Print()
-            print(out.getvalue())
-            print("-" * 50)
+            log.info(out.getvalue())
+            log.info("-" * 50)
 
             # event filter for QCD application-like region
-            region_cut_conf = {**split, **process_conf["ARlike_cuts"]}
-            rdf_ARlike = region_filter(rdf, config["channel"], region_cut_conf, sample)
-            print(
-                "Filtering events for the application-like region. Target process: {}\n".format(
-                    process
-                )
+            rdf_ARlike = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=process_conf["ARlike_cuts"])
+
+            log.info(
+                f"Filtering events for the application-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
                 rdf_ARlike.Report().Print()
-            print(out.getvalue())
-            print("-" * 50)
+            log.info(out.getvalue())
+            log.info("-" * 50)
 
             # get binning of the dependent variable
             xbinning = array.array("d", process_conf["var_bins"])
@@ -82,14 +87,14 @@ def calculation_QCD_FFs(config, sample_path_list, save_path, process):
 
             # making the histograms
             h = rdf_SRlike.Histo1D(
-                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 process_conf["var_dependence"],
                 "weight",
             )
             SRlike_hists[sample] = h.GetValue()
 
             h = rdf_ARlike.Histo1D(
-                (process_conf["var_dependence"], "{}".format(sample), nbinsx, xbinning),
+                (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 process_conf["var_dependence"],
                 "weight",
             )
@@ -128,32 +133,37 @@ def calculation_QCD_FFs(config, sample_path_list, save_path, process):
 
         # Start of the FF calculation
         FF_hist, FF_hist_up, FF_hist_down = func.calculate_QCD_FF(
-            SRlike_hists, ARlike_hists
+            SRlike=SRlike_hists, ARlike=ARlike_hists
         )
-        # performing the fit and calculating the uncertainties
-        fit_graphs, cs_exp = func.fit_function(
-            [FF_hist.Clone(), FF_hist_up, FF_hist_down], process_conf["var_bins"]
+        # performing the fit and calculating the fit uncertainties
+        fit_graphs, corrlib_exp = func.fit_function(
+            ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down], 
+            bin_edges=process_conf["var_bins"],
         )
 
-        plotting.plot_FFs(FF_hist, fit_graphs, process, config, split, save_path)
+        plotting.plot_FFs(
+            variable=process_conf["var_dependence"], 
+            ff_ratio=FF_hist, 
+            uncertainties=fit_graphs, 
+            era=config["era"],
+            channel=config["channel"],
+            process=process, 
+            category=split, 
+            output_path=output_path,
+        )
 
         if len(split) == 1:
-            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])] = cs_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = corrlib_exp
         elif len(split) == 2:
-            if (
-                "{}#{}".format(split_vars[0], split[split_vars[0]])
-                not in cs_expressions
-            ):
-                cs_expressions[
-                    "{}#{}".format(split_vars[0], split[split_vars[0]])
-                ] = dict()
-            cs_expressions["{}#{}".format(split_vars[0], split[split_vars[0]])][
-                "{}#{}".format(split_vars[1], split[split_vars[1]])
-            ] = cs_exp
+            if f"{split_variables[0]}#{split[split_variables[0]]}" not in corrlib_expressions:
+                corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = dict()
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"][
+                f"{split_variables[1]}#{split[split_variables[1]]}"
+            ] = corrlib_exp
         else:
-            sys.exit("Category splitting is only defined up to 2 dimensions.")
+            raise Exception("Category splitting is only defined up to 2 dimensions.")
 
-        # doing some control plots
+        # producing some control plots
         data = "data"
         if config["use_embedding"]:
             samples = [
@@ -186,30 +196,32 @@ def calculation_QCD_FFs(config, sample_path_list, save_path, process):
             ]
 
         plotting.plot_data_mc(
-            SRlike_hists,
-            config,
-            process_conf["var_dependence"],
-            process,
-            "SR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable=process_conf["var_dependence"],
+            hists=SRlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process, 
+            region="SR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
         )
         plotting.plot_data_mc(
-            ARlike_hists,
-            config,
-            process_conf["var_dependence"],
-            process,
-            "AR_like",
-            data,
-            samples,
-            split,
-            save_path,
+            variable=process_conf["var_dependence"],
+            hists=ARlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process, 
+            region="AR_like",
+            data=data,
+            samples=samples,
+            category=split,
+            output_path=output_path,
         )
-        print("-" * 50)
+        log.info("-" * 50)
 
-    return cs_expressions
+    return corrlib_expressions
 
 
 def non_closure_correction(

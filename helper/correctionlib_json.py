@@ -1,278 +1,129 @@
 import os
-import sys
 import gzip
 import correctionlib.schemav2 as cs
 import rich
+import logging
+from typing import List, Dict, Union, Tuple
+
+import configs.general_definitions as gd
 
 
-var_dict = {
-    "pt_2": "subleading_lep_pt",
-    "boosted_pt_2": "subleading_lep_pt",
-    "pt_1": "leading_lep_pt",
-    "boosted_pt_1": "leading_lep_pt",
-    "mt_1": "lep_mt",
-    "boosted_mt_1": "lep_mt",
-    "iso_1": "lep_iso",
-    "boosted_iso_1": "lep_iso",
-    "m_vis": "m_vis",
-    "boosted_m_vis": "m_vis",
-    "bpt_1": "b_pt",
-    "njets": "njets",
-    "nbtag": "nbtags",
-    "deltaR_ditaupair": "dR_tau_pair",
-    "QCD": "QCD",
-    "Wjets": "Wjets",
-    "ttbar_J": "ttbar",
-}
-var_type = {
-    "pt_2": "real",
-    "boosted_pt_2": "real",
-    "pt_1": "real",
-    "boosted_pt_1": "real",
-    "mt_1": "real",
-    "boosted_mt_1": "real",
-    "iso_1": "real",
-    "boosted_iso_1": "real",
-    "m_vis": "real",
-    "boosted_m_vis": "real",
-    "bpt_1": "real",
-    "njets": "real",
-    "nbtag": "real",
-    "deltaR_ditaupair": "real",
-}
-var_discription = {
-    "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "boosted_pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "boosted_pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
-    "boosted_iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
-    "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
-    "boosted_mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
-    "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
-    "boosted_m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
-    "bpt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "njets": "number of jets in an event; the defined categories are ",
-    "nbtag": "number of b-tagged jets in an event; the defined categories are ",
-    "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
-}
+def generate_ff_corrlib_json(
+    config: Dict[str, Union[str, Dict, List]], ff_functions: Dict[str, Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]], fractions: Dict[str, Dict[str, Dict[str, List[float]]]], output_path: str, for_corrections: bool = False
+) -> None:
+    '''
+    Function which produces a correctionlib file based on the measured fake factors and fractions (including variations).
 
-corr_unc_dict = {
-    "non_closure_subleading_lep_pt": "nonClosureSubleadingLepPt",
-    "non_closure_leading_lep_pt": "nonClosureLeadingLepPt",
-    "non_closure_m_vis": "nonClosureMvis",
-    "non_closure_b_pt": "nonClosureBPt",
-    "non_closure_lep_iso": "nonClosureLepIso",
-    "non_closure_lep_mt": "nonClosureLepMT",
-    "DR_SR": "DRtoSR",
-}
+    Args:
+        config: A dictionary with all the relevant information for the fake factors
+        ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+        fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS] 
+        output_path: Path where the generated correctionlib files should be stored
+        for_corrections: Boolean which decides where the produced correctionlib file is stored, this is needed because additional fake factors are needed to calculate some corrections and therefore they are stored in a different place (default: False)
 
+    Return:
+        None
+    '''
+    log = logging.getLogger("ff_calculation")
 
-def cat_transalator(c):
-    strings = c.split("#")
-    if len(strings) == 2:
-        return (strings[0], strings[1])
-    elif len(strings) == 4:
-        return ((strings[0], strings[2]), (strings[1], strings[3]))
-    else:
-        sys.exit("Category splitting is only defined up to 2 dimensions.")
+    corrlib_corrections = list()
 
+    for process in config["target_processes"]:
+        var = config["target_processes"][process]["var_dependence"]
+        binning = config["target_processes"][process]["var_bins"]
 
-def generate_ff_cs_json(
-    config, save_path, ff_functions, fractions=None, processes=[], for_corrections=False
-):
-    cs_corrections = list()
-
-    if "QCD" in processes:
-        var = config["target_process"]["QCD"]["var_dependence"]
-        binning = config["target_process"]["QCD"]["var_bins"]
-        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
-            "FFslopeUncUp": 1,
-            "FFslopeUncDown": 2,
-            "FFnormUncUp": 3,
-            "FFnormUncDown": 4,
-            "FFmcSubUncUp": 5,
-            "FFmcSubUncDown": 6,
-        }
-        if len(config["target_process"]["QCD"]["split_categories"]) == 1:
-            QCD_ff = make_1D_ff(
-                "QCD",
-                (var, binning),
-                ff_functions["QCD"],
-                config["target_process"]["QCD"],
-                ff_unc_order,
+        if len(config["target_processes"][process]["split_categories"]) == 1:
+            process_ff = make_1D_ff(
+                process=process,
+                process_conf=config["target_processes"][process],
+                variable_info=(var, binning),
+                ff_functions=ff_functions[process],
+                # ff_unc_order,
             )
-        elif len(config["target_process"]["QCD"]["split_categories"]) == 2:
-            QCD_ff = make_2D_ff(
-                "QCD",
-                (var, binning),
-                ff_functions["QCD"],
-                config["target_process"]["QCD"],
-                ff_unc_order,
+        elif len(config["target_processes"][process]["split_categories"]) == 2:
+            process_ff = make_2D_ff(
+                process=process,
+                process_conf=config["target_processes"][process],
+                variable_info=(var, binning),
+                ff_functions=ff_functions[process],
+                # ff_unc_order,
             )
-        cs_corrections.append(QCD_ff)
+        corrlib_corrections.append(process_ff)
 
-    if "QCD_subleading" in processes:
-        var = config["target_process"]["QCD_subleading"]["var_dependence"]
-        binning = config["target_process"]["QCD_subleading"]["var_bins"]
-        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
-            "FFslopeUncUp": 1,
-            "FFslopeUncDown": 2,
-            "FFnormUncUp": 3,
-            "FFnormUncDown": 4,
-            "FFmcSubUncUp": 5,
-            "FFmcSubUncDown": 6,
-        }
-        if len(config["target_process"]["QCD_subleading"]["split_categories"]) == 1:
-            QCD_sub_ff = make_1D_ff(
-                "QCD_subleading",
-                (var, binning),
-                ff_functions["QCD_subleading"],
-                config["target_process"]["QCD_subleading"],
-                ff_unc_order,
-            )
-        elif len(config["target_process"]["QCD_subleading"]["split_categories"]) == 2:
-            QCD_sub_ff = make_2D_ff(
-                "QCD_subleading",
-                (var, binning),
-                ff_functions["QCD_subleading"],
-                config["target_process"]["QCD_subleading"],
-                ff_unc_order,
-            )
-        cs_corrections.append(QCD_sub_ff)
-
-    if "Wjets" in processes:
-        var = config["target_process"]["Wjets"]["var_dependence"]
-        binning = config["target_process"]["Wjets"]["var_bins"]
-        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
-            "FFslopeUncUp": 1,
-            "FFslopeUncDown": 2,
-            "FFnormUncUp": 3,
-            "FFnormUncDown": 4,
-            "FFmcSubUncUp": 5,
-            "FFmcSubUncDown": 6,
-        }
-        if len(config["target_process"]["Wjets"]["split_categories"]) == 1:
-            Wjets_ff = make_1D_ff(
-                "Wjets",
-                (var, binning),
-                ff_functions["Wjets"],
-                config["target_process"]["Wjets"],
-                ff_unc_order,
-            )
-        elif len(config["target_process"]["Wjets"]["split_categories"]) == 2:
-            Wjets_ff = make_2D_ff(
-                "Wjets",
-                (var, binning),
-                ff_functions["Wjets"],
-                config["target_process"]["Wjets"],
-                ff_unc_order,
-            )
-        cs_corrections.append(Wjets_ff)
-
-    if "ttbar" in processes:
-        var = config["target_process"]["ttbar"]["var_dependence"]
-        binning = config["target_process"]["ttbar"]["var_bins"]
-        ff_unc_order = {  # the order has to match the one used in helper/functions.py -> fit_function()
-            "FFslopeUncUp": 1,
-            "FFslopeUncDown": 2,
-            "FFnormUncUp": 3,
-            "FFnormUncDown": 4,
-        }
-        if len(config["target_process"]["ttbar"]["split_categories"]) == 1:
-            ttbar_ff = make_1D_ff(
-                "ttbar",
-                (var, binning),
-                ff_functions["ttbar"],
-                config["target_process"]["ttbar"],
-                ff_unc_order,
-            )
-        elif len(config["target_process"]["ttbar"]["split_categories"]) == 2:
-            ttbar_ff = make_2D_ff(
-                "ttbar",
-                (var, binning),
-                ff_functions["ttbar"],
-                config["target_process"]["ttbar"],
-                ff_unc_order,
-            )
-        cs_corrections.append(ttbar_ff)
-
-    if "process_fractions" in config and fractions != None:
+    if "process_fractions" in config:
         var = config["process_fractions"]["var_dependence"]
         binning = config["process_fractions"]["var_bins"]
-        frac_unc = (
-            {}
-        )  # the naming has to match the one used in helper/functions.py -> add_fraction_variations()
-        if "QCD" in processes:
-            frac_unc["fracQCDUncUp"] = "frac_QCD_up"
-            frac_unc["fracQCDUncDown"] = "frac_QCD_down"
-        if "Wjets" in processes:
-            frac_unc["fracWjetsUncUp"] = "frac_Wjets_up"
-            frac_unc["fracWjetsUncDown"] = "frac_Wjets_down"
-        if "ttbar" in processes:
-            frac_unc["fracTTbarUncUp"] = "frac_ttbar_J_up"
-            frac_unc["fracTTbarUncDown"] = "frac_ttbar_J_down"
+        
+        frac_unc = dict()  
+        for process in config["process_fractions"]["processes"]:
+            frac_unc.update(gd.frac_variation_dict[process])
+
         fraction = make_1D_fractions(
-            (var, binning), fractions, config["process_fractions"], frac_unc
+            fraction_conf=config["process_fractions"],
+            variable_info=(var, binning), 
+            fractions=fractions, 
+            uncertainties=frac_unc,
         )
-        cs_corrections.append(fraction)
+        corrlib_corrections.append(fraction)
 
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Fake factors for tau analysis",
-        corrections=cs_corrections,
+        corrections=corrlib_corrections,
     )
 
     if not for_corrections:
-        with open(
-            save_path + "/fake_factors_{}.json".format(config["channel"]), "w"
-        ) as fout:
+        with open(os.path.join(output_path, f"fake_factors_{config['channel']}.json"), "w") as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
-        with gzip.open(
-            save_path + "/fake_factors_{}.json.gz".format(config["channel"]), "wt"
-        ) as fout:
+        with gzip.open(os.path.join(output_path, f"fake_factors_{config['channel']}.json.gz"), "wt") as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
+        
+        log.info("Correctionlib file saved to " + os.path.join(output_path, f"fake_factors_{config['channel']}.json"))
 
     elif for_corrections:
-        with open(
-            save_path
-            + "/fake_factors_{}_for_corrections.json".format(config["channel"]),
-            "w",
-        ) as fout:
+        with open(os.path.join(output_path, f"fake_factors_{config['channel']}_for_corrections.json"), "w") as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
-        with gzip.open(
-            save_path
-            + "/fake_factors_{}_for_corrections.json.gz".format(config["channel"]),
-            "wt",
-        ) as fout:
+        with gzip.open(os.path.join(output_path, f"fake_factors_{config['channel']}_for_corrections.json.gz"), "wt") as fout:
             fout.write(cset.json(exclude_unset=True, indent=4))
 
+        log.info("Correctionlib file saved to " + os.path.join(output_path, f"fake_factors_{config['channel']}_for_corrections.json"))
 
-def make_1D_ff(process, variable, ff_functions, config, uncertainties):
+
+def make_1D_ff(process: str, process_conf: Dict[str, Union[Dict, List, str]], variable_info: Tuple[str, List[float]], ff_functions: Dict[str, Dict[str, str]]) -> cs.Correction:
+    '''
+    Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 1D categories.
+
+    Args:
+        process: Name of the process for which the Correction is produced 
+        process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
+        variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
+        ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION] 
+
+    Return:
+        Correction object from correcionlib
+    '''
     # get categories from config
-    cat_inputs = list(config["split_categories"].keys())
-    cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
+    cat_inputs = list(process_conf["split_categories"].keys())
+    cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
 
     ff = cs.Correction(
-        name="{}_fake_factors".format(process),
-        description="Calculation of the {} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.".format(
-            process
-        ),
+        name=f"{process}_fake_factors",
+        description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
         inputs=[
             cs.Variable(
-                name=var_dict[variable[0]],
-                type=var_type[variable[0]],
-                description=var_discription[variable[0]]
-                .replace("#var_min", str(min(variable[1])))
-                .replace("#var_max", str(max(variable[1]))),
+                name=gd.variable_translator[variable_info[0]],
+                type=gd.variable_type[variable_info[0]],
+                description=gd.variable_discription[variable_info[0]]
+                .replace("#var_min", str(min(variable_info[1])))
+                .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=var_dict[cat_inputs[0]],
-                type=var_type[cat_inputs[0]],
-                description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
+                name=gd.variable_translator[cat_inputs[0]],
+                type=gd.variable_type[cat_inputs[0]],
+                description=gd.variable_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name="syst",
@@ -281,45 +132,45 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
             ),
         ],
         output=cs.Variable(
-            name="{}_ff".format(process),
+            name=f"{process}_ff",
             type="real",
-            description="{} part of the fake factor".format(process),
+            description=f"{process} part of the fake factor",
         ),
         data=cs.Category(
             nodetype="category",
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + unc,
+                    key=process+unc_name,
                     value=cs.Binning(
                         nodetype="binning",
-                        input=var_dict[cat_inputs[0]],
-                        edges=config["split_categories_binedges"][cat_inputs[0]],
+                        input=gd.variable_translator[cat_inputs[0]],
+                        edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=var_dict[variable[0]],
+                                input=gd.variable_translator[variable_info[0]],
                                 edges=[
                                     0,
-                                    min(variable[1]),
-                                    max(variable[1]),
-                                    (max(variable[1]) + 1),
+                                    min(variable_info[1]),
+                                    max(variable_info[1]),
+                                    (max(variable_info[1]) + 1),
                                 ],
                                 content=[
                                     eval(
-                                        ff_functions[cat1][idx].replace(
-                                            "x", str(min(variable[1]))
+                                        ff_functions[cat1][unc].replace(
+                                            "x", str(min(variable_info[1]))
                                         )
                                     ),
                                     cs.Formula(
                                         nodetype="formula",
-                                        variables=[var_dict[variable[0]]],
+                                        variables=[gd.variable_translator[variable_info[0]]],
                                         parser="TFormula",
-                                        expression=ff_functions[cat1][idx],
+                                        expression=ff_functions[cat1][unc],
                                     ),
                                     eval(
-                                        ff_functions[cat1][idx].replace(
-                                            "x", str(max(variable[1]))
+                                        ff_functions[cat1][unc].replace(
+                                            "x", str(max(variable_info[1]))
                                         )
                                     ),
                                 ],
@@ -330,37 +181,37 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
                         flow="clamp",
                     ),
                 )
-                for unc, idx in uncertainties.items()
+                for unc, unc_name in gd.ff_variation_dict[process].items()
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=var_dict[cat_inputs[0]],
-                edges=config["split_categories_binedges"][cat_inputs[0]],
+                input=gd.variable_translator[cat_inputs[0]],
+                edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
                     cs.Binning(
                         nodetype="binning",
-                        input=var_dict[variable[0]],
+                        input=gd.variable_translator[variable_info[0]],
                         edges=[
                             0,
-                            min(variable[1]),
-                            max(variable[1]),
-                            (max(variable[1]) + 1),
+                            min(variable_info[1]),
+                            max(variable_info[1]),
+                            (max(variable_info[1]) + 1),
                         ],
                         content=[
                             eval(
-                                ff_functions[cat1][0].replace(
-                                    "x", str(min(variable[1]))
+                                ff_functions[cat1]["nominal"].replace(
+                                    "x", str(min(variable_info[1]))
                                 )
                             ),
                             cs.Formula(
                                 nodetype="formula",
-                                variables=[var_dict[variable[0]]],
+                                variables=[gd.variable_translator[variable_info[0]]],
                                 parser="TFormula",
-                                expression=ff_functions[cat1][0],
+                                expression=ff_functions[cat1]["nominal"],
                             ),
                             eval(
-                                ff_functions[cat1][0].replace(
-                                    "x", str(max(variable[1]))
+                                ff_functions[cat1]["nominal"].replace(
+                                    "x", str(max(variable_info[1]))
                                 )
                             ),
                         ],
@@ -377,34 +228,44 @@ def make_1D_ff(process, variable, ff_functions, config, uncertainties):
     return ff
 
 
-def make_2D_ff(process, variable, ff_functions, config, uncertainties):
+def make_2D_ff(process: str, process_conf: Dict[str, Union[Dict, List, str]], variable_info: Tuple[str, List[float]], ff_functions: Dict[str, Dict[str, Dict[str, str]]]) -> cs.Correction:
+    '''
+    Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 2D categories.
+
+    Args:
+        process: Name of the process for which the Correction is produced 
+        process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
+        variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
+        ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION] 
+
+    Return:
+        Correction object from correcionlib
+    '''
     # get categories from config
-    cat_inputs = list(config["split_categories"].keys())
-    cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
+    cat_inputs = list(process_conf["split_categories"].keys())
+    cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
 
     ff = cs.Correction(
-        name="{}_fake_factors".format(process),
-        description="Calculation of the {} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.".format(
-            process
-        ),
+        name=f"{process}_fake_factors",
+        description="Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
         inputs=[
             cs.Variable(
-                name=var_dict[variable[0]],
-                type=var_type[variable[0]],
-                description=var_discription[variable[0]]
-                .replace("#var_min", str(min(variable[1])))
-                .replace("#var_max", str(max(variable[1]))),
+                name=gd.variable_translator[variable_info[0]],
+                type=gd.variable_type[variable_info[0]],
+                description=gd.variable_discription[variable_info[0]]
+                .replace("#var_min", str(min(variable_info[1])))
+                .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=var_dict[cat_inputs[0]],
-                type=var_type[cat_inputs[0]],
-                description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
+                name=gd.variable_translator[cat_inputs[0]],
+                type=gd.variable_type[cat_inputs[0]],
+                description=gd.variable_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
             cs.Variable(
-                name=var_dict[cat_inputs[1]],
-                type=var_type[cat_inputs[1]],
-                description=var_discription[cat_inputs[1]] + ", ".join(cat_values[1]),
+                name=gd.variable_translator[cat_inputs[1]],
+                type=gd.variable_type[cat_inputs[1]],
+                description=gd.variable_discription[cat_inputs[1]] + ", ".join(cat_values[1]),
             ),
             cs.Variable(
                 name="syst",
@@ -413,54 +274,54 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
             ),
         ],
         output=cs.Variable(
-            name="{}_ff".format(process),
+            name=f"{process}_ff",
             type="real",
-            description="{} part of the fake factor".format(process),
+            description=f"{process} part of the fake factor",
         ),
         data=cs.Category(
             nodetype="category",
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + unc,
+                    key=process+unc_name,
                     value=cs.Binning(
                         nodetype="binning",
-                        input=var_dict[cat_inputs[0]],
-                        edges=config["split_categories_binedges"][cat_inputs[0]],
+                        input=gd.variable_translator[cat_inputs[0]],
+                        edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=var_dict[cat_inputs[1]],
-                                edges=config["split_categories_binedges"][
+                                input=gd.variable_translator[cat_inputs[1]],
+                                edges=process_conf["split_categories_binedges"][
                                     cat_inputs[1]
                                 ],
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
-                                        input=var_dict[variable[0]],
+                                        input=gd.variable_translator[variable_info[0]],
                                         edges=[
                                             0,
-                                            min(variable[1]),
-                                            max(variable[1]),
-                                            (max(variable[1]) + 1),
+                                            min(variable_info[1]),
+                                            max(variable_info[1]),
+                                            (max(variable_info[1]) + 1),
                                         ],
                                         content=[
                                             eval(
-                                                ff_functions[cat1][cat2][idx].replace(
-                                                    "x", str(min(variable[1]))
+                                                ff_functions[cat1][cat2][unc].replace(
+                                                    "x", str(min(variable_info[1]))
                                                 )
                                             ),
                                             cs.Formula(
                                                 nodetype="formula",
-                                                variables=[var_dict[variable[0]]],
+                                                variables=[gd.variable_translator[variable_info[0]]],
                                                 parser="TFormula",
                                                 expression=ff_functions[cat1][cat2][
-                                                    idx
+                                                    unc
                                                 ],
                                             ),
                                             eval(
-                                                ff_functions[cat1][cat2][idx].replace(
-                                                    "x", str(max(variable[1]))
+                                                ff_functions[cat1][cat2][unc].replace(
+                                                    "x", str(max(variable_info[1]))
                                                 )
                                             ),
                                         ],
@@ -475,42 +336,42 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
                         flow="clamp",
                     ),
                 )
-                for unc, idx in uncertainties.items()
+                for unc, unc_name in gd.ff_variation_dict[process].items()
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=var_dict[cat_inputs[0]],
-                edges=config["split_categories_binedges"][cat_inputs[0]],
+                input=gd.variable_translator[cat_inputs[0]],
+                edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
                     cs.Binning(
                         nodetype="binning",
-                        input=var_dict[cat_inputs[1]],
-                        edges=config["split_categories_binedges"][cat_inputs[1]],
+                        input=gd.variable_translator[cat_inputs[1]],
+                        edges=process_conf["split_categories_binedges"][cat_inputs[1]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=var_dict[variable[0]],
+                                input=gd.variable_translator[variable_info[0]],
                                 edges=[
                                     0,
-                                    min(variable[1]),
-                                    max(variable[1]),
-                                    (max(variable[1]) + 1),
+                                    min(variable_info[1]),
+                                    max(variable_info[1]),
+                                    (max(variable_info[1]) + 1),
                                 ],
                                 content=[
                                     eval(
-                                        ff_functions[cat1][cat2][0].replace(
-                                            "x", str(min(variable[1]))
+                                        ff_functions[cat1][cat2]["nominal"].replace(
+                                            "x", str(min(variable_info[1]))
                                         )
                                     ),
                                     cs.Formula(
                                         nodetype="formula",
-                                        variables=[var_dict[variable[0]]],
+                                        variables=[gd.variable_translator[variable_info[0]]],
                                         parser="TFormula",
-                                        expression=ff_functions[cat1][cat2][0],
+                                        expression=ff_functions[cat1][cat2]["nominal"],
                                     ),
                                     eval(
-                                        ff_functions[cat1][cat2][0].replace(
-                                            "x", str(max(variable[1]))
+                                        ff_functions[cat1][cat2]["nominal"].replace(
+                                            "x", str(max(variable_info[1]))
                                         )
                                     ),
                                 ],
@@ -531,10 +392,21 @@ def make_2D_ff(process, variable, ff_functions, config, uncertainties):
     return ff
 
 
-def make_1D_fractions(variable, fractions, config, uncertainties):
+def make_1D_fractions(fraction_conf: Dict[str, Union[Dict, List, str]], variable_info: Tuple[str, List[float]], fractions: Dict[str, Dict[str, Dict[str, List[float]]]], uncertainties: Dict[str, str]) -> cs.Correction:
+    '''
+    Function which produces a correctionlib Correction based on the measured fractions (including variations).
+
+    Args:
+        fraction_conf: A dictionary with all the relevant information for the fraction calculation
+        variable_info: Tuple with information (name and binning) about the variable the fractions depends on
+        fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS]
+
+    Return:
+        Correction object from correcionlib
+    '''
     # get categories from config
-    cat_inputs = list(config["split_categories"].keys())
-    cat_values = [config["split_categories"][cat] for cat in config["split_categories"]]
+    cat_inputs = list(fraction_conf["split_categories"].keys())
+    cat_values = [fraction_conf["split_categories"][cat] for cat in fraction_conf["split_categories"]]
 
     frac = cs.Correction(
         name="process_fractions",
@@ -545,16 +417,16 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                 name="process", type="string", description="name of the process"
             ),
             cs.Variable(
-                name=var_dict[variable[0]],
-                type=var_type[variable[0]],
-                description=var_discription[variable[0]]
-                .replace("#var_min", str(min(variable[1])))
-                .replace("#var_max", str(max(variable[1]))),
+                name=gd.variable_translator[variable_info[0]],
+                type=gd.variable_type[variable_info[0]],
+                description=gd.variable_discription[variable_info[0]]
+                .replace("#var_min", str(min(variable_info[1])))
+                .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=var_dict[cat_inputs[0]],
-                type=var_type[cat_inputs[0]],
-                description=var_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
+                name=gd.variable_translator[cat_inputs[0]],
+                type=gd.variable_type[cat_inputs[0]],
+                description=gd.variable_discription[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name="syst",
@@ -570,25 +442,25 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=unc,
+                    key=unc_name,
                     value=cs.Category(
                         nodetype="category",
                         input="process",
                         content=[
                             cs.CategoryItem(
-                                key=var_dict[p],
+                                key=gd.variable_translator[p],
                                 value=cs.Binning(
                                     nodetype="binning",
-                                    input=var_dict[cat_inputs[0]],
-                                    edges=config["split_categories_binedges"][
+                                    input=gd.variable_translator[cat_inputs[0]],
+                                    edges=fraction_conf["split_categories_binedges"][
                                         cat_inputs[0]
                                     ],
                                     content=[
                                         cs.Binning(
                                             nodetype="binning",
-                                            input=var_dict[variable[0]],
-                                            edges=variable[1],
-                                            content=fractions[cat][unc_name][p],
+                                            input=gd.variable_translator[variable_info[0]],
+                                            edges=variable_info[1],
+                                            content=fractions[cat][unc][p],
                                             flow="clamp",
                                         )
                                         for cat in fractions
@@ -596,7 +468,7 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                                     flow="clamp",
                                 ),
                             )
-                            for p in config["processes"]
+                            for p in fraction_conf["processes"]
                         ],
                     ),
                 )
@@ -607,16 +479,16 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                 input="process",
                 content=[
                     cs.CategoryItem(
-                        key=var_dict[p],
+                        key=gd.variable_translator[p],
                         value=cs.Binning(
                             nodetype="binning",
-                            input=var_dict[cat_inputs[0]],
-                            edges=config["split_categories_binedges"][cat_inputs[0]],
+                            input=gd.variable_translator[cat_inputs[0]],
+                            edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
                             content=[
                                 cs.Binning(
                                     nodetype="binning",
-                                    input=var_dict[variable[0]],
-                                    edges=variable[1],
+                                    input=gd.variable_translator[variable_info[0]],
+                                    edges=variable_info[1],
                                     content=fractions[cat]["nominal"][p],
                                     flow="clamp",
                                 )
@@ -625,7 +497,7 @@ def make_1D_fractions(variable, fractions, config, uncertainties):
                             flow="clamp",
                         ),
                     )
-                    for p in config["processes"]
+                    for p in fraction_conf["processes"]
                 ],
             ),
         ),
@@ -700,9 +572,9 @@ def make_1D_correction(process, variable, correction, corr_dict):
         version=1,
         inputs=[
             cs.Variable(
-                name=var_dict[variable],
-                type=var_type[variable],
-                description=var_discription[variable]
+                name=gd.variable_translator[variable],
+                type=gd.variable_type[variable],
+                description=gd.variable_discription[variable]
                 .replace("#var_min", str(min(corr_dict["edges"])))
                 .replace("#var_max", str(max(corr_dict["edges"]))),
             ),
@@ -722,20 +594,20 @@ def make_1D_correction(process, variable, correction, corr_dict):
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + "{}CorrUp".format(corr_unc_dict[correction]),
+                    key=process + "{}CorrUp".format(gd.corr_variation_dict[correction]),
                     value=cs.Binning(
                         nodetype="binning",
-                        input=var_dict[variable],
+                        input=gd.variable_translator[variable],
                         edges=list(corr_dict["edges"]),
                         content=list(corr_dict["up"]),
                         flow="clamp",
                     ),
                 ),
                 cs.CategoryItem(
-                    key=process + "{}CorrDown".format(corr_unc_dict[correction]),
+                    key=process + "{}CorrDown".format(gd.corr_variation_dict[correction]),
                     value=cs.Binning(
                         nodetype="binning",
-                        input=var_dict[variable],
+                        input=gd.variable_translator[variable],
                         edges=list(corr_dict["edges"]),
                         content=list(corr_dict["down"]),
                         flow="clamp",
@@ -744,7 +616,7 @@ def make_1D_correction(process, variable, correction, corr_dict):
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=var_dict[variable],
+                input=gd.variable_translator[variable],
                 edges=list(corr_dict["edges"]),
                 content=list(corr_dict["down"]),
                 flow="clamp",

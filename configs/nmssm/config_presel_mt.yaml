@@ -93,6 +93,7 @@ mc_weights:
     had_tau_id_vs_ele: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
     had_tau_id_vs_mu: (gen_match_2==5) * ((id_tau_vsMu_Tight_2>0.5)*id_wgt_tau_vsMu_Tight_2 + (id_tau_vsMu_Tight_2<0.5)) + (gen_match_2!=5)
     single_trigger: "trg_wgt_single_mu24ormu27"
+    
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: "stitching"

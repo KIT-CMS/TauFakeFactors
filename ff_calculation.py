@@ -4,108 +4,105 @@ Main script initializing the fake factor calculation
 
 import argparse
 import yaml
-import sys
 import os
+import logging
 
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_Wjets as FF_Wjets
 import FF_calculation.FF_ttbar as FF_ttbar
 from FF_calculation.fractions import fraction_calculation
-from helper.Logger import Logger
-import helper.correctionlib_json as cs
+import helper.correctionlib_json as corrlib
 import helper.functions as func
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    "--config",
-    default="hist_config",
-    help="Name of a config file in configs/ which contains information for the fake factor calculation step.",
-)
-parser.add_argument(
     "--config-file",
     default=None,
-    help="path to the config file",
+    help="Path to the config file which contains information for the fake factor calculation step.",
 )
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    # loading of the chosen config file
-    if args.config_file is not None:
-        with open(args.config_file, "r") as file:
-            config = yaml.load(file, yaml.FullLoader)
-    else:
-        # loading of the chosen config file
-        with open("configs/" + args.config + ".yaml", "r") as file:
-            config = yaml.load(file, yaml.FullLoader)
 
-    save_path_ffs = "workdir/{}/{}".format(config["workdir_name"], config["era"])
-    func.check_output_path(os.getcwd() + "/" + save_path_ffs)
-    save_path_plots = "workdir/{}/{}/fake_factors/{}".format(
-        config["workdir_name"], config["era"], config["channel"]
-    )
-    func.check_output_path(os.getcwd() + "/" + save_path_plots)
+    # loading of the chosen config file
+    with open(args.config_file, "r") as file:
+        config = yaml.load(file, yaml.FullLoader)
+
+    save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"]) 
+    func.check_path(path=os.path.join(os.getcwd(), save_path_ffs))
+    save_path_plots = os.path.join("workdir", config["workdir_name"], config["era"], "fake_factors", config["channel"])  
+    func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
 
     # start output logging
-    sys.stdout = Logger(save_path_plots + "/ff_calculation.log")
+    func.setup_logger(log_file=save_path_plots+"/ff_calculation.log", log_name="ff_calculation")
+    log = logging.getLogger("ff_calculation")
 
     # getting all the input files
-    sample_path_list = func.get_samples(config)
-    if len(sample_path_list) == 0:
+    sample_paths = func.get_samples(config=config)
+    if len(sample_paths) == 0:
         raise Exception("No input files found!")
 
     # check binning of defined categories in the config
-    func.check_categories(config)
+    func.check_categories(config=config)
 
     # initializing the fake factor calculation
     fake_factors = dict()
-    processes = list()
 
-    if "target_process" in config:
-        for process in config["target_process"]:
+    if "target_processes" in config:
+        for process in config["target_processes"]:            
             if process in ["QCD", "QCD_subleading"]:
-                print("Calculating fake factors for the {} process.".format(process))
-                print("-" * 50)
-                cs_expressions = FF_QCD.calculation_QCD_FFs(
-                    config, sample_path_list, save_path_plots, process
+                log.info(f"Calculating fake factors for the {process} process.")
+                log.info("-" * 50)
+                corrlib_expressions = FF_QCD.calculation_QCD_FFs(
+                    config=config, 
+                    sample_paths=sample_paths, 
+                    output_path=save_path_plots, 
+                    process=process,
                 )
-                processes.append(process)
             elif process == "Wjets":
-                print("Calculating fake factors for the Wjets process.")
-                print("-" * 50)
-                cs_expressions = FF_Wjets.calculation_Wjets_FFs(
-                    config, sample_path_list, save_path_plots
+                log.info("Calculating fake factors for the Wjets process.")
+                log.info("-" * 50)
+                corrlib_expressions = FF_Wjets.calculation_Wjets_FFs(
+                    config=config, 
+                    sample_paths=sample_paths, 
+                    output_path=save_path_plots, 
                 )
-                processes.append(process)
             elif process == "ttbar":
-                print("Calculating fake factors for the ttbar process.")
-                print("-" * 50)
-                cs_expressions = FF_ttbar.calculation_ttbar_FFs(
-                    config, sample_path_list, save_path_plots
+                log.info("Calculating fake factors for the ttbar process.")
+                log.info("-" * 50)
+                corrlib_expressions = FF_ttbar.calculation_ttbar_FFs(
+                    config=config, 
+                    sample_paths=sample_paths, 
+                    output_path=save_path_plots, 
                 )
-                processes.append(process)
             else:
-                sys.exit(
-                    "Target process: Such a process is not defined: {}".format(process)
+                raise Exception(
+                    f"Target process: Such a process is not known: {process}"
                 )
-            fake_factors[process] = cs_expressions
+            fake_factors[process] = corrlib_expressions
+
+    else:
+        raise Exception("No target processes are defined!")
 
     if "process_fractions" in config:
-        print("Calculating the process fractions for the FF application.")
-        print("-" * 50)
-        fractions = fraction_calculation(config, sample_path_list, save_path_plots)
-        fractions = func.get_yields_from_hists(
-            fractions, config["process_fractions"]["processes"]
+        log.info("Calculating the process fractions for the FF application.")
+        log.info("-" * 50)
+        fractions = fraction_calculation(
+            config=config, 
+            sample_paths=sample_paths, 
+            output_path=save_path_plots,
         )
+    else:
+        raise Exception("The process fraction calculation is needed but not defined.")
 
     if config["generate_json"]:
-        cs.generate_ff_cs_json(
-            config,
-            save_path_ffs,
-            fake_factors,
+        corrlib.generate_ff_corrlib_json(
+            config=config, 
+            ff_functions=fake_factors,
             fractions=fractions,
-            processes=processes,
+            output_path=save_path_ffs,
             for_corrections=False,
         )
 
