@@ -7,8 +7,18 @@ from typing import Any, Dict, List
 import configs.general_definitions as gd
 
 
-def plot_FFs(variable: str, ff_ratio: Any, uncertainties: Dict[str, Any], era: str, channel: str, process: str, category: Dict[str, str], output_path: str) -> None:
-    '''
+def plot_FFs(
+    variable: str,
+    ff_ratio: Any,
+    uncertainties: Dict[str, Any],
+    era: str,
+    channel: str,
+    process: str,
+    category: Dict[str, str],
+    output_path: str,
+    logger: str,
+) -> None:
+    """
     Function which produces a fake factor plot.
 
     Args:
@@ -17,14 +27,15 @@ def plot_FFs(variable: str, ff_ratio: Any, uncertainties: Dict[str, Any], era: s
         uncertainties: Dictionary with graphs for each uncertainty/variation corresponding to "ff_ratio"
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
-        process: Information about the process is added to the plot 
-        category: Information about the category split is added to the plot 
+        process: Information about the process is added to the plot
+        category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
+        logger: Name of the logger that should be used
 
     Return:
         None
-    '''
-    log = logging.getLogger("ff_calculation")
+    """
+    log = logging.getLogger(logger)
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -93,8 +104,20 @@ def plot_FFs(variable: str, ff_ratio: Any, uncertainties: Dict[str, Any], era: s
     c.Close()
 
 
-def plot_data_mc(variable: str, hists: Dict[str, Any], era: str, channel: str, process: str, region: str, data: str, samples: List[str], category: Dict[str, str], output_path: str) -> None:
-    '''
+def plot_data_mc(
+    variable: str,
+    hists: Dict[str, Any],
+    era: str,
+    channel: str,
+    process: str,
+    region: str,
+    data: str,
+    samples: List[str],
+    category: Dict[str, str],
+    output_path: str,
+    logger: str,
+) -> None:
+    """
     Function which produces a data to MC control plot.
 
     Args:
@@ -102,17 +125,18 @@ def plot_data_mc(variable: str, hists: Dict[str, Any], era: str, channel: str, p
         hists: Dictionary with histogram for all processes and data
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
-        process: Information about the process is added to the plot 
+        process: Information about the process is added to the plot
         region: Information about the fake factor calculation region is added to the plot name
         data: Name of the data process in "hists"
         samples: List of processes to be considered from "hists" for MC
-        category: Information about the category split is added to the plot 
+        category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
-    
+        logger: Name of the logger that should be used
+
     Return:
         None
-    '''
-    log = logging.getLogger("ff_calculation")
+    """
+    log = logging.getLogger(logger)
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -200,8 +224,20 @@ def plot_data_mc(variable: str, hists: Dict[str, Any], era: str, channel: str, p
     c.Close()
 
 
-def plot_data_mc_ratio(variable: str, hists: Dict[str, Any], era: str, channel: str, process: str, region: str, data: str, samples: List[str], category: Dict[str, str], output_path: str) -> None:
-    '''
+def plot_data_mc_ratio(
+    variable: str,
+    hists: Dict[str, Any],
+    era: str,
+    channel: str,
+    process: str,
+    region: str,
+    data: str,
+    samples: List[str],
+    category: Dict[str, str],
+    output_path: str,
+    logger: str,
+) -> None:
+    """
     Function which produces a data to MC control plot with a ratio plot.
 
     Args:
@@ -209,17 +245,18 @@ def plot_data_mc_ratio(variable: str, hists: Dict[str, Any], era: str, channel: 
         hists: Dictionary with histogram for all processes and data
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
-        process: Information about the process is added to the plot 
+        process: Information about the process is added to the plot
         region: Information about the fake factor calculation region is added to the plot name
         data: Name of the data process in "hists"
         samples: List of processes to be considered from "hists" for MC
-        category: Information about the category split is added to the plot 
+        category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
-    
+        logger: Name of the logger that should be used
+
     Return:
         None
-    '''
-    log = logging.getLogger("ff_calculation")
+    """
+    log = logging.getLogger(logger)
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -340,9 +377,19 @@ def plot_data_mc_ratio(variable: str, hists: Dict[str, Any], era: str, channel: 
     c.Close()
 
 
-def plot_fractions(variable: str, hists: Dict[str, Any], era: str, channel: str, region: str, processes: List[str], category: Dict[str, str], output_path: str) -> None:
-    '''
-    Function which produces a fraction plot where the sum of all considered process contributions 
+def plot_fractions(
+    variable: str,
+    hists: Dict[str, Any],
+    era: str,
+    channel: str,
+    region: str,
+    processes: List[str],
+    category: Dict[str, str],
+    output_path: str,
+    logger: str,
+) -> None:
+    """
+    Function which produces a fraction plot where the sum of all considered process contributions
     results to 1 for each bin in the fraction histogram.
 
     Args:
@@ -352,13 +399,14 @@ def plot_fractions(variable: str, hists: Dict[str, Any], era: str, channel: str,
         channel: Information about the channel is added to the plot
         region: Information about the fraction calculation region is added to the plot name
         processes: List of processes which are considered for the fraction calculation
-        category: Information about the category split is added to the plot 
+        category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
-    
+        logger: Name of the logger that should be used
+
     Return:
         None
-    '''
-    log = logging.getLogger("ff_calculation")
+    """
+    log = logging.getLogger(logger)
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -422,8 +470,36 @@ def plot_fractions(variable: str, hists: Dict[str, Any], era: str, channel: str,
 
 
 def plot_correction(
-    corr_ratio, uncertainty, var, process, correction, config, save_path
-):
+    variable: str,
+    corr_hist: Any,
+    corr_graph: Any,
+    corr_name: str,
+    era: str,
+    channel: str,
+    process: str,
+    output_path: str,
+    logger: str,
+) -> None:
+    """
+    Function which produces a plot of the correction including the correction histogram
+    and the TGraph (with variations) from a smoothed fit which is derived from the histogram.
+
+    Args:
+        variable: Name of the variable the correction is measured in
+        corr_hist: Histogram of the measured correction
+        corr_graph: TGraph of the measured correction which is a smoothed function of "corr_hist" (includes variation)
+        corr_name: Name of the correction
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        process: Name of the target process the correction is calculated for
+        output_path: Path where the plot should be stored
+        logger: Name of the logger that should be used
+
+    Return:
+        None
+    """
+    log = logging.getLogger(logger)
+
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     c = ROOT.TCanvas("can", "", 700, 700)
@@ -436,39 +512,36 @@ def plot_correction(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
-    corr_ratio.SetAxisRange(0, 2, "Y")
-    corr_ratio.SetMarkerStyle(20)
-    corr_ratio.SetMarkerSize(1.2)
-    corr_ratio.SetLineWidth(2)
-    corr_ratio.SetLineColor(ROOT.kBlack)
-    corr_ratio.SetTitle("")
-    corr_ratio.GetXaxis().SetMoreLogLabels()
-    corr_ratio.GetXaxis().SetNoExponent()
-    corr_ratio.GetYaxis().SetTitle("Correction")
-    if var not in ["pt_1", "pt_2", "mt_1", "boosted_pt_1", "boosted_pt_2", "boosted_mt_1", "iso_1", "boosted_iso_1"]:
-        corr_ratio.GetXaxis().SetTitle(var_dict[var])
-    else:
-        corr_ratio.GetXaxis().SetTitle(var_dict[var][config["channel"]])
-    corr_ratio.GetYaxis().SetLabelSize(0.04)
-    corr_ratio.GetXaxis().SetLabelSize(0.04)
-    corr_ratio.GetYaxis().SetTitleSize(0.05)
-    corr_ratio.GetXaxis().SetTitleSize(0.05)
+    corr_hist.SetAxisRange(0, 2, "Y")
+    corr_hist.SetMarkerStyle(20)
+    corr_hist.SetMarkerSize(1.2)
+    corr_hist.SetLineWidth(2)
+    corr_hist.SetLineColor(ROOT.kBlack)
+    corr_hist.SetTitle("")
+    corr_hist.GetXaxis().SetMoreLogLabels()
+    corr_hist.GetXaxis().SetNoExponent()
+    corr_hist.GetYaxis().SetTitle("Correction")
+    corr_hist.GetXaxis().SetTitle(gd.variable_dict[channel][variable])
+    corr_hist.GetYaxis().SetLabelSize(0.04)
+    corr_hist.GetXaxis().SetLabelSize(0.04)
+    corr_hist.GetYaxis().SetTitleSize(0.05)
+    corr_hist.GetXaxis().SetTitleSize(0.05)
 
-    corr_ratio.Draw()
+    corr_hist.Draw()
 
-    uncertainty.SetLineWidth(2)
-    uncertainty.SetLineColor(ROOT.kOrange)
-    uncertainty.SetFillColorAlpha(ROOT.kOrange, 0.35)
+    corr_graph.SetLineWidth(2)
+    corr_graph.SetLineColor(ROOT.kOrange)
+    corr_graph.SetFillColorAlpha(ROOT.kOrange, 0.35)
 
-    uncertainty.Draw("E3 L SAME")
+    corr_graph.Draw("E3 L SAME")
 
     legend = ROOT.TLegend(0.65, 0.68, 0.9, 0.88)
     legend.SetFillStyle(0)
     legend.SetBorderSize(0)
     legend.SetTextSize(0.03)
     legend.SetTextAlign(12)
-    legend.AddEntry(corr_ratio, "measured", "lep")
-    legend.AddEntry(uncertainty, "smoothed curve", "fl")
+    legend.AddEntry(corr_hist, "measured", "lep")
+    legend.AddEntry(corr_graph, "smoothed curve", "fl")
 
     legend.Draw("SAME")
 
@@ -478,19 +551,19 @@ def plot_correction(
     text.DrawLatex(
         0.165,
         0.917,
-        "channel: {}, {}".format(channel_dict[config["channel"]], process),
+        f"channel: {gd.channel_dict[channel]}, {process}",
     )
     text.SetTextSize(0.035)
-    text.DrawLatex(0.6, 0.915, "{}".format(era_dict[config["era"]]))
+    text.DrawLatex(0.6, 0.915, "{}".format(gd.era_dict[era]))
     text.SetTextSize(0.035)
-    if "non_closure" in correction:
+    if "non_closure" in corr_name:
         text.DrawLatex(0.2, 0.8, "non closure correction")
-    elif "DR_SR" in correction:
+    elif "DR_SR" in corr_name:
         text.DrawLatex(0.2, 0.8, "DR to SR correction")
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs("{}/corr_{}_{}.png".format(save_path, process, correction))
-        c.SaveAs("{}/corr_{}_{}.pdf".format(save_path, process, correction))
-    print(out.getvalue())
+        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.png")
+        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.pdf")
+    log.info(out.getvalue())
     c.Close()

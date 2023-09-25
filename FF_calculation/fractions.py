@@ -14,21 +14,27 @@ import helper.ff_functions as func
 import helper.plotting as plotting
 
 
-def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths: List[str], output_path: str) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
-    '''
-    This function calculates fractions of processes for the application of fake factors. 
-    In general fake factors are calculated for more than one process and therefore an estimation 
+def fraction_calculation(
+    config: Dict[str, Union[str, Dict, List]],
+    sample_paths: List[str],
+    output_path: str,
+    logger: str,
+) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
+    """
+    This function calculates fractions of processes for the application of fake factors.
+    In general fake factors are calculated for more than one process and therefore an estimation
     for the contribution of each process is needed.
 
     Args:
         config: A dictionary with all the relevant information for the fraction calculation
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
-    
+        logger: Name of the logger that should be used
+
     Return:
-        Dictionary where the categories are defined as keys and and the values are the 
-    '''
-    log = logging.getLogger("ff_calculation")
+        Dictionary where the categories are defined as keys and the values are fractions of a process
+    """
+    log = logging.getLogger(logger)
 
     # init histogram dict for the fraction calculation
     AR_hists = dict()
@@ -56,7 +62,13 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
 
             # event filter for application region
             region_conf = copy.deepcopy(process_conf["AR_cuts"])
-            rdf_AR = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=region_conf)
+            rdf_AR = func.apply_region_filters(
+                rdf=rdf,
+                channel=config["channel"],
+                sample=sample,
+                category_cuts=split,
+                region_cuts=region_conf,
+            )
 
             log.info(
                 "Filtering events for the fraction calculation in the application region."
@@ -70,7 +82,13 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
 
             # event filter for signal region; this is not needed for the FF calculation, just for control plots
             region_conf = copy.deepcopy(process_conf["SR_cuts"])
-            rdf_SR = func.apply_region_filters(rdf=rdf, channel=config["channel"], sample=sample, category_cuts=split, region_cuts=region_conf)
+            rdf_SR = func.apply_region_filters(
+                rdf=rdf,
+                channel=config["channel"],
+                sample=sample,
+                category_cuts=split,
+                region_cuts=region_conf,
+            )
 
             log.info(
                 "Filtering events for the fraction calculation in the signal region."
@@ -109,12 +127,12 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
 
         for p in config["process_fractions"]["processes"]:
             frac_hists[p] = func.calc_fraction(
-                hists=AR_hists, 
-                target=p, 
+                hists=AR_hists,
+                target=p,
                 processes=config["process_fractions"]["processes"],
             )
         frac_hists = func.add_fraction_variations(
-            hists=frac_hists, 
+            hists=frac_hists,
             processes=config["process_fractions"]["processes"],
         )
 
@@ -122,20 +140,22 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
 
         for p in config["process_fractions"]["processes"]:
             SR_frac_hists[p] = func.calc_fraction(
-                hists=SR_hists, 
-                target=p, 
+                hists=SR_hists,
+                target=p,
                 processes=config["process_fractions"]["processes"],
             )
         SR_frac_hists = func.add_fraction_variations(
-            hists=SR_frac_hists, 
+            hists=SR_frac_hists,
             processes=config["process_fractions"]["processes"],
         )
 
         try:
             cat_string = f"{split_variables[0]}#{split[split_variables[0]]}"
         except:
-            raise Exception("Category splitting for fractions is only defined up to 1 dimensions.")
-        
+            raise Exception(
+                "Category splitting for fractions is only defined up to 1 dimensions."
+            )
+
         fractions[cat_string] = frac_hists
 
         plotting.plot_fractions(
@@ -147,6 +167,7 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
             processes=config["process_fractions"]["processes"],
             category=split,
             output_path=output_path,
+            logger=logger,
         )
         plotting.plot_fractions(
             variable=process_conf["var_dependence"],
@@ -157,6 +178,7 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
             processes=config["process_fractions"]["processes"],
             category=split,
             output_path=output_path,
+            logger=logger,
         )
 
         data = "data"
@@ -197,30 +219,32 @@ def fraction_calculation(config: Dict[str, Union[str, Dict, List]], sample_paths
             hists=AR_hists,
             era=config["era"],
             channel=config["channel"],
-            process="fraction", 
+            process="fraction",
             region="AR",
             data=data,
             samples=samples,
             category=split,
             output_path=output_path,
+            logger=logger,
         )
         plotting.plot_data_mc_ratio(
             variable=process_conf["var_dependence"],
             hists=SR_hists,
             era=config["era"],
             channel=config["channel"],
-            process="fraction", 
+            process="fraction",
             region="SR",
             data=data,
             samples=samples,
             category=split,
             output_path=output_path,
+            logger=logger,
         )
         log.info("-" * 50)
 
     # transform histograms to fraction values for correctionlib
     fractions = func.get_yields_from_hists(
-        hists=fractions, 
+        hists=fractions,
         processes=config["process_fractions"]["processes"],
     )
 

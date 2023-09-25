@@ -1,5 +1,6 @@
 from typing import Any
 
+
 def emb_tau_gen_match(rdf: Any, channel: str) -> Any:
     """
     Function to make sure the tau pair final state objects originated for genuine taus for embedded events.

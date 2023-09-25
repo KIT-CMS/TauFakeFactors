@@ -5,12 +5,11 @@ era: "2018"
 channel: "et" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "09_2023_test"
+workdir_name: "09_2023_multitest"
 
 use_embedding: True
-generate_json: True
 
-target_process: 
+target_processes: 
     QCD: 
         split_categories: 
             njets: 

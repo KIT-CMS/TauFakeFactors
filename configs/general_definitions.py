@@ -1,16 +1,12 @@
 import ROOT
 
 FF_YAxis = {
-    "ttbar": "FF_{t#bar{t}}", 
-    "Wjets": "FF_{Wjets}", 
-    "QCD": "FF_{QCD}", 
-    "QCD_subleading": "FF_{QCD}"
+    "ttbar": "FF_{t#bar{t}}",
+    "Wjets": "FF_{Wjets}",
+    "QCD": "FF_{QCD}",
+    "QCD_subleading": "FF_{QCD}",
 }
-channel_dict = {
-    "et": "e#tau_{h}", 
-    "mt": "#mu#tau_{h}", 
-    "tt": "#tau_{h}#tau_{h}"
-}
+channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
 era_dict = {
     "2017": "41.48 fb^{-1} (2017, 13 TeV)",
     "2018": "59.83 fb^{-1} (2018, 13 TeV)",
@@ -110,7 +106,7 @@ category_dict = {
     "incl": "incl.",
     "njets": "N_{jets}",
     "nbtag": "N_{b-jets}",
-    "deltaR_ditaupair": "#Delta"+"R(l#tau_{h})",
+    "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
 }
 
 # For correctionlib

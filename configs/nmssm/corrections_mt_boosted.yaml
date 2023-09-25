@@ -1,59 +1,57 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "08_2023_v8_boosted"
+workdir_name: "09_2023_test_boosted"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 
-generate_json: True
-
-target_process:
+target_processes:
     QCD:
         non_closure:
             leading_lep_pt:
-                var_dependence: "boosted_pt_1"
+                var_dependence: "pt_1"
                 var_bins: [55,60,65,70,75,80,85,90,95,100]
             lep_mt:
-                var_dependence: "boosted_mt_1"
+                var_dependence: "mt_1"
                 var_bins: [0,5,10,15,20,25,30,35,40,45,50]
         DR_SR:
-            var_dependence: "boosted_m_vis"
+            var_dependence: "m_vis"
             var_bins: [0,10,20,30,40,50,60,70]
             SRlike_cuts:
-                boostedtau_pair_sign: "same"
+                tau_pair_sign: "(q_1*q_2) > 0" 
             ARlike_cuts:
-                boostedtau_pair_sign: "same"
+                tau_pair_sign: "(q_1*q_2) > 0" 
             AR_SR_cuts:
-                boosted_deltaR_ditaupair: "<=0.8"
+                deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
             non_closure:
                 leading_lep_pt:
-                    var_dependence: "boosted_pt_1"
+                    var_dependence: "pt_1"
                     var_bins: [55,60,65,70,75,80,85,90,95,100]
 
     Wjets:
         non_closure:
             leading_lep_pt:
-                var_dependence: "boosted_pt_1"
+                var_dependence: "pt_1"
                 var_bins: [55,60,65,70,75,80,85,90,95,100]
         DR_SR:
-            var_dependence: "boosted_m_vis"
+            var_dependence: "m_vis"
             var_bins: [0,20,40,60,80,120]
             SRlike_cuts:
-                boosted_lep_mt: ">=0.0"
+                lep_mt: "mt_1 >= 0.0"
             ARlike_cuts:
-                boosted_lep_mt: ">=0.0"
+                lep_mt: "mt_1 >= 0.0"
             AR_SR_cuts:
-                nbtag: ">=0"
-                boosted_deltaR_ditaupair: "<=0.8"
+                nbtag: "nbtag >= 0"
+                deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
             non_closure:
                 leading_lep_pt:
-                    var_dependence: "boosted_pt_1"
+                    var_dependence: "pt_1"
                     var_bins: [55,60,65,70,75,80,85,90,95,100]
 
     ttbar:
         non_closure:
             leading_lep_pt:
-                var_dependence: "boosted_pt_1"
+                var_dependence: "pt_1"
                 var_bins: [55,60,65,70,75,80,85,90,95,100]
             m_vis:
-                var_dependence: "boosted_m_vis"
+                var_dependence: "m_vis"
                 var_bins: [0,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]

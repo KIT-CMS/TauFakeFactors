@@ -6,6 +6,8 @@ import argparse
 import yaml
 import os
 import logging
+import concurrent.futures
+from typing import Dict, Union, List, Tuple
 
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_Wjets as FF_Wjets
@@ -23,6 +25,64 @@ parser.add_argument(
 )
 
 
+def run_ff_calculation(
+    args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
+) -> Dict:
+    """
+    This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process.
+
+    Args:
+        args: Tuple with a process name, a configuration for this process, a list of all sample paths and a path for the output
+
+    Return:
+        Depending on the "process" either a dictionary with fake factor function expressions or a dictionary with process fraction values
+    """
+    process, config, sample_paths, output_path = args
+    log = logging.getLogger(f"ff_calculation.{process}")
+
+    if process in ["QCD", "QCD_subleading"]:
+        log.info(f"Calculating fake factors for the {process} process.")
+        log.info("-" * 50)
+        result = FF_QCD.calculation_QCD_FFs(
+            config=config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            process=process,
+            logger=f"ff_calculation.{process}",
+        )
+    elif process == "Wjets":
+        log.info("Calculating fake factors for the Wjets process.")
+        log.info("-" * 50)
+        result = FF_Wjets.calculation_Wjets_FFs(
+            config=config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            logger=f"ff_calculation.{process}",
+        )
+    elif process == "ttbar":
+        log.info("Calculating fake factors for the ttbar process.")
+        log.info("-" * 50)
+        result = FF_ttbar.calculation_ttbar_FFs(
+            config=config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            logger=f"ff_calculation.{process}",
+        )
+    elif process == "fractions":
+        log.info("Calculating the process fractions for the FF application.")
+        log.info("-" * 50)
+        result = fraction_calculation(
+            config=config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            logger=f"ff_calculation.{process}",
+        )
+    else:
+        raise Exception(f"Target process: Such a process is not known: {process}")
+
+    return result
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -30,14 +90,28 @@ if __name__ == "__main__":
     with open(args.config_file, "r") as file:
         config = yaml.load(file, yaml.FullLoader)
 
-    save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"]) 
+    save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])
     func.check_path(path=os.path.join(os.getcwd(), save_path_ffs))
-    save_path_plots = os.path.join("workdir", config["workdir_name"], config["era"], "fake_factors", config["channel"])  
+    save_path_plots = os.path.join(
+        "workdir",
+        config["workdir_name"],
+        config["era"],
+        "fake_factors",
+        config["channel"],
+    )
     func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
 
     # start output logging
-    func.setup_logger(log_file=save_path_plots+"/ff_calculation.log", log_name="ff_calculation")
-    log = logging.getLogger("ff_calculation")
+    if "process_fractions" in config:
+        subcategories = list(config["target_processes"].keys()) + ["fractions"]
+    else:
+        subcategories = config["target_processes"].keys()
+
+    func.setup_logger(
+        log_file=save_path_plots + "/ff_calculation.log",
+        log_name="ff_calculation",
+        subcategories=subcategories,
+    )
 
     # getting all the input files
     sample_paths = func.get_samples(config=config)
@@ -49,62 +123,34 @@ if __name__ == "__main__":
 
     # initializing the fake factor calculation
     fake_factors = dict()
+    fractions = None
 
     if "target_processes" in config:
-        for process in config["target_processes"]:            
-            if process in ["QCD", "QCD_subleading"]:
-                log.info(f"Calculating fake factors for the {process} process.")
-                log.info("-" * 50)
-                corrlib_expressions = FF_QCD.calculation_QCD_FFs(
-                    config=config, 
-                    sample_paths=sample_paths, 
-                    output_path=save_path_plots, 
-                    process=process,
-                )
-            elif process == "Wjets":
-                log.info("Calculating fake factors for the Wjets process.")
-                log.info("-" * 50)
-                corrlib_expressions = FF_Wjets.calculation_Wjets_FFs(
-                    config=config, 
-                    sample_paths=sample_paths, 
-                    output_path=save_path_plots, 
-                )
-            elif process == "ttbar":
-                log.info("Calculating fake factors for the ttbar process.")
-                log.info("-" * 50)
-                corrlib_expressions = FF_ttbar.calculation_ttbar_FFs(
-                    config=config, 
-                    sample_paths=sample_paths, 
-                    output_path=save_path_plots, 
-                )
-            else:
-                raise Exception(
-                    f"Target process: Such a process is not known: {process}"
-                )
-            fake_factors[process] = corrlib_expressions
+        args_list = [
+            (process, config, sample_paths, save_path_plots)
+            for process in config["target_processes"]
+        ]
+        if "process_fractions" in config:
+            args_list.append(("fractions", config, sample_paths, save_path_plots))
 
+        with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
+            for args, result in zip(
+                args_list, executor.map(run_ff_calculation, args_list)
+            ):
+                if args[0] in config["target_processes"]:
+                    fake_factors[args[0]] = result
+                elif args[0] == "fractions":
+                    fractions = result
     else:
         raise Exception("No target processes are defined!")
 
-    if "process_fractions" in config:
-        log.info("Calculating the process fractions for the FF application.")
-        log.info("-" * 50)
-        fractions = fraction_calculation(
-            config=config, 
-            sample_paths=sample_paths, 
-            output_path=save_path_plots,
-        )
-    else:
-        raise Exception("The process fraction calculation is needed but not defined.")
-
-    if config["generate_json"]:
-        corrlib.generate_ff_corrlib_json(
-            config=config, 
-            ff_functions=fake_factors,
-            fractions=fractions,
-            output_path=save_path_ffs,
-            for_corrections=False,
-        )
+    corrlib.generate_ff_corrlib_json(
+        config=config,
+        ff_functions=fake_factors,
+        fractions=fractions,
+        output_path=save_path_ffs,
+        for_corrections=False,
+    )
 
     # dumping config to output directory for documentation
     with open(save_path_plots + "/config.yaml", "w") as config_file:

@@ -10,6 +10,8 @@ import multiprocessing
 from io import StringIO
 from wurlitzer import pipes, STDOUT
 import logging
+from typing import Tuple, Dict, List, Union
+import ROOT
 
 import helper.filters as filters
 import helper.weights as weights
@@ -55,9 +57,16 @@ for wp in tau_wps:
     output_features.append("id_wgt_boostedtau_iso_" + wp + "_2")
 
 
-def run_preselection(args):
-    import ROOT
+def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> None:
+    """
+    This function can be used for multiprocessing. It runs the preselection step for a specified process.
 
+    Args:
+        args: Tuple with a process name and a configuration for this process
+
+    Return:
+        None
+    """
     process, config = args
     log = logging.getLogger(f"preselection.{process}")
 
@@ -66,12 +75,17 @@ def run_preselection(args):
     process_file_dict = dict()
     for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
         process_file_dict[tau_gen_mode] = list()
-    log.info(f"Considered samples for process {process}: {config['processes'][process]['samples']}")
+    log.info(
+        f"Considered samples for process {process}: {config['processes'][process]['samples']}"
+    )
 
     # going through all contributing samples for the process
     for idx, sample in enumerate(config["processes"][process]["samples"]):
         # loading ntuple files
-        rdf = ROOT.RDataFrame(config["tree"], func.get_ntuples(config=config, process=process, sample=sample))
+        rdf = ROOT.RDataFrame(
+            config["tree"],
+            func.get_ntuples(config=config, process=process, sample=sample),
+        )
         if func.rdf_is_empty(rdf=rdf):
             log.info(f"WARNING: Sample {sample} is empty. Skipping...")
             continue
@@ -92,9 +106,15 @@ def run_preselection(args):
             for weight in mc_weight_conf:
                 if weight == "generator":
                     # calculating generator weight (including cross section weight)
-                    if process in ["DYjets", "Wjets"] and mc_weight_conf["generator"] == "stitching":
+                    if (
+                        process in ["DYjets", "Wjets"]
+                        and mc_weight_conf["generator"] == "stitching"
+                    ):
                         rdf = weights.stitching_gen_weight(
-                            rdf=rdf, era=config["era"], process=process, sample_info=datasets[sample]
+                            rdf=rdf,
+                            era=config["era"],
+                            process=process,
+                            sample_info=datasets[sample],
                         )
                     else:
                         rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
@@ -102,10 +122,14 @@ def run_preselection(args):
                     rdf = weights.lumi_weight(rdf=rdf, era=config["era"])
                 elif weight == "Z_pt_reweighting":
                     if process == "DYjets":
-                        rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
+                        rdf = rdf.Redefine(
+                            "weight", f"weight * ({mc_weight_conf[weight]})"
+                        )
                 elif weight == "Top_pt_reweighting":
                     if process == "ttbar":
-                        rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
+                        rdf = rdf.Redefine(
+                            "weight", f"weight * ({mc_weight_conf[weight]})"
+                        )
                 else:
                     rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
 
@@ -149,21 +173,21 @@ def run_preselection(args):
             log.info("-" * 50)
 
             # WARNING: cross check this function is something changes in the list of output features
-            tmp_rdf = func.rename_boosted_variables(rdf=tmp_rdf, channel=config["channel"]) 
+            tmp_rdf = func.rename_boosted_variables(
+                rdf=tmp_rdf, channel=config["channel"]
+            )
 
             tmp_file_name = func.get_output_name(
                 path=output_path, process=process, tau_gen_mode=tau_gen_mode, idx=idx
             )
             # check for empty data frame -> only save/calculate if event number is not zero
             if tmp_rdf.Count().GetValue() != 0:
-                log.info(
-                    f"The current data frame will be saved to {tmp_file_name}"
-                )
+                log.info(f"The current data frame will be saved to {tmp_file_name}")
                 cols = tmp_rdf.GetColumnNames()
                 missing_cols = [x for x in output_features if x not in cols]
                 if len(missing_cols) != 0:
                     raise ValueError(f"Missing columns: {missing_cols}")
-                
+
                 tmp_rdf.Snapshot(config["tree"], tmp_file_name, output_features)
                 log.info("-" * 50)
                 process_file_dict[tau_gen_mode].append(tmp_file_name)
@@ -173,7 +197,9 @@ def run_preselection(args):
 
     # combining all files of a process and tau origin
     for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
-        out_file_name = func.get_output_name(path=output_path, process=process, tau_gen_mode=tau_gen_mode)
+        out_file_name = func.get_output_name(
+            path=output_path, process=process, tau_gen_mode=tau_gen_mode
+        )
         # combining sample files to a single process file, if there are any
         if len(process_file_dict[tau_gen_mode]) != 0:
             sum_rdf = ROOT.RDataFrame(config["tree"], process_file_dict[tau_gen_mode])
@@ -205,7 +231,7 @@ if __name__ == "__main__":
     # loading of the chosen config file
     with open(args.config_file, "r") as file:
         config = yaml.load(file, yaml.FullLoader)
-   
+
     # loading general dataset info file for xsec and event number
     with open("datasets/datasets.yaml", "r") as file:
         datasets = yaml.load(file, yaml.FullLoader)
@@ -216,7 +242,11 @@ if __name__ == "__main__":
     )
     func.check_path(path=output_path)
 
-    func.setup_logger(log_file=output_path+"/preselection.log", log_name="preselection", subcategories=config["processes"])
+    func.setup_logger(
+        log_file=output_path + "/preselection.log",
+        log_name="preselection",
+        subcategories=config["processes"],
+    )
 
     # these variables are not defined in et, mt ntuples
     if config["channel"] == "tt":
@@ -227,7 +257,7 @@ if __name__ == "__main__":
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config) for process in config["processes"]]
-   
+
     with multiprocessing.Pool(
         processes=min(len(config["processes"]), int(args.nthreads))
     ) as pool:
