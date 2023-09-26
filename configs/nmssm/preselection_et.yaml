@@ -7,8 +7,6 @@ tree: "ntuple"
 
 output_path: "/ceph/nshadskiy/FFmethod/09_2023_test"
 
-stitching: True
-
 processes:
     DYjets:
         tau_gen_modes:
