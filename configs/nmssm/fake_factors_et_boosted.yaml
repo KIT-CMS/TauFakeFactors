@@ -1,0 +1,131 @@
+# This is an example config containing information for the FF calculation
+
+file_path: "/ceph/nshadskiy/FFmethod/09_2023_test_boosted"
+era: "2018"
+channel: "et" # options are et, mt, tt
+tree: "ntuple"
+
+workdir_name: "09_2023_test_boosted"
+
+use_embedding: True
+generate_json: True
+
+target_process: 
+    QCD: 
+        split_categories: 
+            njets: 
+                - ">=0" 
+                #- ">=1"
+                #- ">=2"
+        split_categories_binedges:
+            njets: [-0.5,0.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_mt: "mt_1 < 50"
+            deltaR_ditaupair: "deltaR_ditaupair > 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 > 0.5"
+
+        ARlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_mt: "mt_1 < 50"
+            deltaR_ditaupair: "deltaR_ditaupair > 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 < 0.5"
+        
+        var_dependence: "pt_2"
+        var_bins: [40,50,60,75,100,120]
+
+    Wjets: 
+        split_categories: 
+            njets:  
+                - "==0" 
+                - "==1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,0.5,1.5,2.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0"  
+            nbtag: "nbtag == 0"
+            lep_mt: "mt_1 > 70" 
+            deltaR_ditaupair: "deltaR_ditaupair > 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 > 0.5"
+
+        ARlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0"
+            nbtag: "nbtag == 0"
+            lep_mt: "mt_1 > 70" 
+            deltaR_ditaupair: "deltaR_ditaupair > 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 < 0.5"
+        
+        var_dependence: "pt_2"
+        var_bins: [40,48,60,80,100,120]
+
+    ttbar: 
+        split_categories: 
+            njets:  
+                - "<=1"
+                - ">=2"
+        split_categories_binedges:
+            njets: [-0.5,1.5,2.5]
+
+        SR_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0"  
+            nbtag: "nbtag >= 1"
+            deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 > 0.5"
+
+        AR_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0"  
+            nbtag: "nbtag >= 1"
+            deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 < 0.5"
+
+        SRlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0"
+            nbtag: "nbtag >= 1" 
+            deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 > 0.5"
+
+        ARlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            nbtag: "nbtag >= 1"
+            deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+            had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 < 0.5"
+        
+        var_dependence: "pt_2"
+        var_bins: [40,45,50,60,80,100,120]
+
+process_fractions:
+    processes: ["QCD", "Wjets", "ttbar_J"]
+
+    split_categories:
+        nbtag:
+            - "==0"
+            - "==1"
+            - ">=2"
+    split_categories_binedges:
+        nbtag: [-0.5,0.5,1.5,2.5]
+
+    AR_cuts:
+        tau_pair_sign: "(q_1*q_2) < 0" 
+        deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+        had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 < 0.5"
+
+    SR_cuts:
+        tau_pair_sign: "(q_1*q_2) < 0" 
+        deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
+        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+        had_boostedtau_id_iso: "id_boostedtau_iso_Loose_2 > 0.5"
+
+    var_dependence: "mt_1"
+    var_bins: [0,30,60,90,120]

@@ -1,12 +1,10 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "tt_05_2023_v4_btag"
+workdir_name: "09_2023_multitest"
 era: "2018"
 channel: "tt" # options are et, mt, tt
 
-generate_json: True
-
-target_process:
+target_processes:
     QCD:
         non_closure:
             subleading_lep_pt:
@@ -20,11 +18,11 @@ target_process:
             var_dependence: "m_vis"
             var_bins: [0,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,200,250]
             SRlike_cuts:
-                had_tau_id_vs_jet_2: ["VVVLoose","Medium"]
+                had_tau_id_vs_jet_2: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
             ARlike_cuts:
-                had_tau_id_vs_jet_2: ["VVVLoose","Medium"]
+                had_tau_id_vs_jet_2: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
             AR_SR_cuts:
-                tau_pair_sign: "opposite" 
+                tau_pair_sign: "(q_1*q_2) < 0"
             non_closure:
                 subleading_lep_pt:
                     var_dependence: "pt_2"
@@ -43,11 +41,11 @@ target_process:
             var_dependence: "m_vis"
             var_bins: [0,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,200,250]
             SRlike_cuts:
-                had_tau_id_vs_jet_1: ["VVVLoose","Medium"]
+                had_tau_id_vs_jet_1: "(id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)"
             ARlike_cuts:
-                had_tau_id_vs_jet_1: ["VVVLoose","Medium"]
+                had_tau_id_vs_jet_1: "(id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)"
             AR_SR_cuts:
-                tau_pair_sign: "opposite" 
+                tau_pair_sign: "(q_1*q_2) < 0"
             non_closure:
                 leading_lep_pt:
                     var_dependence: "pt_1"
