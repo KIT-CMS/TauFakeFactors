@@ -26,6 +26,7 @@ The preselection config has the following parameters:
     `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
+    `analysis` | `string` | analysis name, needed to get the output features which are saved/needed for the later steps e.g. `"smhtt_ul"`
 
 * The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
     parameter | type | description
@@ -180,3 +181,8 @@ python ff_corrections.py --config-file PATH/CONFIG.yaml
 ```
 An optional parameter is `--only-main-corrections`. By using this parameter the precalculation step for the DR to SR corrections is skipped. This is helpful is the precalculations step is already done.
 </details>
+
+## Hints
+
+* check out `configs/general_definitions.py`, this file has many relevant definition for preselection, plotting or correctionlib output information
+* check `ntuple_path` and `output_path` (preselection) or `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs 

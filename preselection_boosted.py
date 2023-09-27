@@ -16,6 +16,7 @@ import ROOT
 import helper.filters as filters
 import helper.weights as weights
 import helper.functions as func
+import configs.general_definitions as gd
 
 
 parser = argparse.ArgumentParser()
@@ -30,31 +31,6 @@ parser.add_argument(
     default=8,
     help="Number of threads to use for the preselection step. (default: 8)",
 )
-
-
-output_features = [
-    "weight",
-    "btag_weight",
-    "njets",
-    "nbtag",
-    "q_1",
-    "pt_2",
-    "q_2",
-    "gen_match_2",
-    "m_vis",
-    "mt_1",
-    "deltaR_ditaupair",
-    "pt_1",
-    "metphi",
-    "extramuon_veto",
-    "extraelec_veto",
-    "dilepton_veto",
-]
-
-tau_wps = ["VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"]
-for wp in tau_wps:
-    output_features.append("id_boostedtau_iso_" + wp + "_2")
-    output_features.append("id_wgt_boostedtau_iso_" + wp + "_2")
 
 
 def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> None:
@@ -140,13 +116,14 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> Non
 
         # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
         if process in ["data", "embedding"]:
-            rdf = rdf.Define("btag_weight", "1.")
-            for wp in tau_wps:
+            if "btag_weight" not in rdf.GetColumnNames():
+                rdf = rdf.Define("btag_weight", "1.")
+            for wp in tau_iso_wps:
                 weightname = "id_wgt_boostedtau_iso_" + wp + "_2"
                 if weightname not in rdf.GetColumnNames():
                     rdf = rdf.Define(weightname, "1.")
             if config["channel"] == "tt":
-                for wp in tau_wps:
+                for wp in tau_iso_wps:
                     weightname = "id_wgt_boostedtau_iso_" + wp + "_1"
                     if weightname not in rdf.GetColumnNames():
                         rdf = rdf.Define(weightname, "1.")
@@ -248,10 +225,16 @@ if __name__ == "__main__":
         subcategories=config["processes"],
     )
 
-    # these variables are not defined in et, mt ntuples
+    # get needed features for fake factor calculation
+    output_features = gd.output_features[config["analysis"]][config["channel"]]
+
+    tau_iso_wps = ["VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight"]
+    for wp in tau_iso_wps:
+        output_features.append("id_boostedtau_iso_" + wp + "_2")
+        output_features.append("id_wgt_boostedtau_iso_" + wp + "_2")
+
     if config["channel"] == "tt":
-        output_features.append("gen_match_1")
-        for wp in tau_wps:
+        for wp in tau_iso_wps:
             output_features.append("id_boostedtau_iso_" + wp + "_1")
             output_features.append("id_wgt_boostedtau_iso_" + wp + "_1")
 

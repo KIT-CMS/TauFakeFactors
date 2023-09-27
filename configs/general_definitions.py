@@ -1,16 +1,43 @@
 import ROOT
 
+### for preselection ###
+
+# list of output features, they can change depending on the analysis or channel
+output_features = {
+    "nmssm": {
+        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto"],
+        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto"],
+        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+    },
+    "nmssm_boosted": {
+        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto"],
+        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto"],
+        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+    },
+    "smhtt_ul": {
+        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto"],
+        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+    },
+}
+
+### For plotting ###
+
+# label definitions for y-axis
 FF_YAxis = {
     "ttbar": "FF_{t#bar{t}}",
     "Wjets": "FF_{Wjets}",
     "QCD": "FF_{QCD}",
     "QCD_subleading": "FF_{QCD}",
 }
+# definitions for channels
 channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
+# definitions for era and luminosity TODO: 2016
 era_dict = {
     "2017": "41.48 fb^{-1} (2017, 13 TeV)",
     "2018": "59.83 fb^{-1} (2018, 13 TeV)",
 }
+# definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
     "QCD": (204, 204, 204),
     "diboson_J": (100, 192, 232),
@@ -33,6 +60,7 @@ color_dict = {
     "fit_graph_norm": ROOT.kRed,
     "fit_graph_mc_sub": ROOT.kGreen,
 }
+# definitions for process labels on the plots
 label_dict = {
     "QCD": "QCD multijet",
     "diboson_J": "Diboson (jet#rightarrow#tau_{h})",
@@ -57,6 +85,7 @@ label_dict = {
     "fit_graph_norm": "best fit (normalization unc.)",
     "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
 }
+# definitions to translate variable to readable language, channel dependent
 variable_dict = {
     "et": {
         "pt_1": "p_{T}(e) (GeV)",
@@ -102,6 +131,7 @@ variable_dict = {
         "nbtag": "number of b-tagged jets",
     },
 }
+# definitions to translate category cuts to readable language
 category_dict = {
     "incl": "incl.",
     "njets": "N_{jets}",
@@ -109,7 +139,9 @@ category_dict = {
     "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
 }
 
-# For correctionlib
+### For correctionlib ###
+
+# intern naming translation helper for variables
 variable_translator = {
     "pt_2": "subleading_lep_pt",
     "pt_1": "leading_lep_pt",
@@ -124,6 +156,7 @@ variable_translator = {
     "Wjets": "Wjets",
     "ttbar_J": "ttbar",
 }
+# definitions for the variable type, needed for correctionlib
 variable_type = {
     "pt_2": "real",
     "pt_1": "real",
@@ -135,7 +168,8 @@ variable_type = {
     "nbtag": "real",
     "deltaR_ditaupair": "real",
 }
-variable_discription = {
+# definitions for variable descriptions, needed for correctionlib, #var_max and #var_min are replaced later by using the variable binning
+variable_description = {
     "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
     "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
@@ -146,6 +180,7 @@ variable_discription = {
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
 }
+# intern naming translation helper for fit uncertainties
 # naming has to match the one used in helper/ff_functions.py -> fit_function()
 ff_variation_dict = {
     "QCD": {
@@ -179,6 +214,7 @@ ff_variation_dict = {
         "normalization_unc_down": "FFnormUncDown",
     },
 }
+# intern naming translation helper for fraction uncertainties
 # naming has to match the one used in helper/ff_functions.py -> add_fraction_variations()
 frac_variation_dict = {
     "QCD": {
@@ -194,6 +230,7 @@ frac_variation_dict = {
         "frac_ttbar_J_down": "fracTTbarUncDown",
     },
 }
+# intern naming translation helper for correction uncertainties
 corr_variation_dict = {
     "non_closure_subleading_lep_pt": "nonClosureSubleadingLepPt",
     "non_closure_leading_lep_pt": "nonClosureLeadingLepPt",

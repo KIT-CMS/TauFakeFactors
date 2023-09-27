@@ -4,6 +4,7 @@ ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples
 era: "2018"
 channel: "mt"
 tree: "ntuple"
+analysis: "nmssm_boosted"
 
 output_path: "/ceph/nshadskiy/FFmethod/09_2023_test_boosted"
 
