@@ -137,14 +137,14 @@ def make_1D_ff(
             cs.Variable(
                 name=gd.variable_translator[variable_info[0]],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_discription[variable_info[0]]
+                description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
                 name=gd.variable_translator[cat_inputs[0]],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_discription[cat_inputs[0]]
+                description=gd.variable_description[cat_inputs[0]]
                 + ", ".join(cat_values[0]),
             ),
             cs.Variable(
@@ -285,20 +285,20 @@ def make_2D_ff(
             cs.Variable(
                 name=gd.variable_translator[variable_info[0]],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_discription[variable_info[0]]
+                description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
                 name=gd.variable_translator[cat_inputs[0]],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_discription[cat_inputs[0]]
+                description=gd.variable_description[cat_inputs[0]]
                 + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name=gd.variable_translator[cat_inputs[1]],
                 type=gd.variable_type[cat_inputs[1]],
-                description=gd.variable_discription[cat_inputs[1]]
+                description=gd.variable_description[cat_inputs[1]]
                 + ", ".join(cat_values[1]),
             ),
             cs.Variable(
@@ -467,14 +467,14 @@ def make_1D_fractions(
             cs.Variable(
                 name=gd.variable_translator[variable_info[0]],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_discription[variable_info[0]]
+                description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
                 name=gd.variable_translator[cat_inputs[0]],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_discription[cat_inputs[0]]
+                description=gd.variable_description[cat_inputs[0]]
                 + ", ".join(cat_values[0]),
             ),
             cs.Variable(
@@ -662,7 +662,7 @@ def make_1D_correction(
             cs.Variable(
                 name=gd.variable_translator[variable],
                 type=gd.variable_type[variable],
-                description=gd.variable_discription[variable]
+                description=gd.variable_description[variable]
                 .replace("#var_min", str(min(correction["edges"])))
                 .replace("#var_max", str(max(correction["edges"]))),
             ),
