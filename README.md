@@ -184,5 +184,5 @@ An optional parameter is `--only-main-corrections`. By using this parameter the 
 
 ## Hints
 
-* check out `configs/general_definitions.py`, this file has many relevant definition for preselection, plotting or correctionlib output information
+* check out `configs/general_definitions.py`, this file has many relevant definition for preselection (which variables to save), plotting (dictionaries for names) or correctionlib output information
 * check `ntuple_path` and `output_path` (preselection) or `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs 
