@@ -2,7 +2,7 @@ import ROOT
 
 ### for preselection ###
 
-# list of output features, they can change depending on the analysis or channel
+# list of output features, they can change depending on the analysis or channel (tau vs jet ID is added internally)
 output_features = {
     "nmssm": {
         "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto"],
