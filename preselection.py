@@ -109,8 +109,8 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> Non
                 else:
                     rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
 
-        emb_weight_conf = config["emb_weights"]
         if process == "embedding":
+            emb_weight_conf = config["emb_weights"]
             for weight in emb_weight_conf:
                 rdf = rdf.Redefine("weight", f"weight * ({emb_weight_conf[weight]})")
 
@@ -224,13 +224,16 @@ if __name__ == "__main__":
     output_features = gd.output_features[config["analysis"]][config["channel"]]
 
     tau_vs_jet_wps = ["VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight"]
+    tau_vs_jet_wgt_wps = ["Loose", "Medium", "Tight", "VTight"]
     for wp in tau_vs_jet_wps:
         output_features.append("id_tau_vsJet_" + wp + "_2")
+    for wp in tau_vs_jet_wgt_wps:
         output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
 
     if config["channel"] == "tt":
         for wp in tau_vs_jet_wps:
             output_features.append("id_tau_vsJet_" + wp + "_1")
+        for wp in tau_vs_jet_wgt_wps:
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers

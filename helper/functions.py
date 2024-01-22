@@ -114,7 +114,7 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     """
     log = logging.getLogger(f"preselection.{process}")
 
-    fsname = "root://cmsxrootd-kit.gridka.de/"
+    fsname = "root://cmsxrootd-kit-disk.gridka.de/"
     xrdclient = client.FileSystem(fsname)
     status, listing = xrdclient.dirlist(path.replace(fsname, ""))
 
@@ -218,8 +218,15 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     rdf = rdf.Redefine("pt_2", "boosted_pt_2")
     rdf = rdf.Redefine("q_2", "boosted_q_2")
     rdf = rdf.Redefine("mt_1", "boosted_mt_1")
+    rdf = rdf.Redefine("iso_1", "boosted_iso_1")
     rdf = rdf.Redefine("deltaR_ditaupair", "boosted_deltaR_ditaupair")
     rdf = rdf.Redefine("m_vis", "boosted_m_vis")
+    rdf = rdf.Redefine("fj_Xbb_pt", "fj_Xbb_pt_boosted")
+    rdf = rdf.Redefine("fj_Xbb_eta", "fj_Xbb_eta_boosted")
+    rdf = rdf.Redefine("bpair_pt_1", "bpair_pt_1_boosted")
+    rdf = rdf.Redefine("bpair_pt_2", "bpair_pt_2_boosted")
+    rdf = rdf.Redefine("bpair_btag_value_2", "bpair_btag_value_2_boosted")
+    rdf = rdf.Redefine("bpair_eta_2", "bpair_eta_2_boosted")
 
     if "boosted_gen_match_2" in rdf.GetColumnNames():
         rdf = rdf.Redefine("gen_match_2", "boosted_gen_match_2")
@@ -332,7 +339,7 @@ def modify_config(
     to_AR_SR: bool = False,
 ) -> None:
     """
-    This functions modifies the cut in the general configuration based on the cut changes
+    This function modifies or adds cuts in the general configuration based on the cut changes
     defined in the corresponding correction configuration for a specific process.
 
     Args:

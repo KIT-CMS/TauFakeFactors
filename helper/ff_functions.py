@@ -72,11 +72,11 @@ def apply_region_filters(
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:
-        if cut != "nbtag":
+        if cut not in ["nbtag", "bb_selection"]:
             if "had_tau_id_vs_jet" in cut:
                 wps = get_wps(cut_string=sum_cuts[cut])
                 try:
-                    idx = cut.rsplit("_")[4]
+                    idx = cut.rsplit("_")[5]
                 except:
                     idx = None
                 if sample not in ["data"]:
@@ -90,7 +90,7 @@ def apply_region_filters(
             ):  # this is only relevant for an analysis with boosted tau pairs
                 wp = get_wps(cut_string=sum_cuts[cut])
                 try:
-                    idx = cut.rsplit("_")[3]
+                    idx = cut.rsplit("_")[4]
                 except:
                     idx = None
                 if sample not in ["data"]:
@@ -110,6 +110,8 @@ def apply_region_filters(
         if sample not in ["data", "embedding"]:
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
+    if "bb_selection" in sum_cuts.keys():
+        rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
 
     return rdf
 
@@ -237,7 +239,9 @@ def calculate_ttbar_FF(
     ratio_DR_data.Divide(ARlike["data_subtracted"])
 
     ratio_DR_mc = SRlike["ttbar_J"].Clone()
+    print("ratio_DR_mc 1:",ratio_DR_mc.Integral())
     ratio_DR_mc.Divide(ARlike["ttbar_J"])
+    print("ratio_DR_mc 2:",ratio_DR_mc.Integral())
 
     sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
     ratio_mc.Scale(sf)

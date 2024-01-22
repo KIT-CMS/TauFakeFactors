@@ -639,6 +639,7 @@ def non_closure_correction(
     data = "data"
     if config["use_embedding"]:
         samples = [
+            "QCD",
             "diboson_J",
             "diboson_L",
             "Wjets",
@@ -652,6 +653,7 @@ def non_closure_correction(
         ]
     else:
         samples = [
+            "QCD",
             "diboson_J",
             "diboson_L",
             "diboson_T",

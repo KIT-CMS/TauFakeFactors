@@ -4,7 +4,6 @@ Main script initializing the fake factor correction calculation
 
 import argparse
 import yaml
-import sys
 import os
 import copy
 import logging
@@ -29,6 +28,11 @@ parser.add_argument(
     "--only-main-corrections",
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
+)
+parser.add_argument(
+    "--skip-DRtoSR-ffs",
+    action="store_true",
+    help="Using this argument means to skip the calculation of the fake factors for the DR to SR correction and directly calculate the corrections. This is useful if you already calculated the needed additional fake factors.",
 )
 
 
@@ -148,9 +152,16 @@ def run_non_closure_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
+        
         closure_correction = list(
             corr_config["target_processes"][process]["DR_SR"]["non_closure"]
         )[0]
+        func.modify_config(
+            config=temp_conf,
+            corr_config=corr_config["target_processes"][process]["DR_SR"]["non_closure"][closure_correction],
+            process=process,
+            to_AR_SR=False,
+        )
 
         if process == "QCD":
             log.info(
@@ -267,30 +278,31 @@ if __name__ == "__main__":
 
     if not args.only_main_corrections:
         # initializing the fake factor calculation for DR to SR corrections
-        fake_factors = dict()
+        if not args.skip_DRtoSR_ffs:
+            fake_factors = dict()
 
-        if "target_processes" in corr_config:
-            args_list = [
-                (process, config, corr_config, sample_paths, save_path_plots)
-                for process in corr_config["target_processes"]
-            ]
+            if "target_processes" in corr_config:
+                args_list = [
+                    (process, config, corr_config, sample_paths, save_path_plots)
+                    for process in corr_config["target_processes"]
+                ]
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
-                for args, result in zip(
-                    args_list, executor.map(run_ff_calculation_for_DRtoSR, args_list)
-                ):
-                    if result is not None:
-                        fake_factors[args[0]] = result
-        else:
-            raise Exception("No target processes are defined!")
+                with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
+                    for args, result in zip(
+                        args_list, executor.map(run_ff_calculation_for_DRtoSR, args_list)
+                    ):
+                        if result is not None:
+                            fake_factors[args[0]] = result
+            else:
+                raise Exception("No target processes are defined!")
 
-        corrlib.generate_ff_corrlib_json(
-            config=config,
-            ff_functions=fake_factors,
-            fractions=None,
-            output_path=save_path_plots,
-            for_corrections=True,
-        )
+            corrlib.generate_ff_corrlib_json(
+                config=config,
+                ff_functions=fake_factors,
+                fractions=None,
+                output_path=save_path_plots,
+                for_corrections=True,
+            )
 
         DR_SR_corrections = {
             "QCD": dict(),

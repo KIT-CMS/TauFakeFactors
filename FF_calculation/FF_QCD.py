@@ -694,4 +694,49 @@ def DR_SR_correction(
         logger=logger,
     )
 
+    data = "data"
+    if config["use_embedding"]:
+        samples = [
+            "diboson_J",
+            "diboson_L",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "DYjets_J",
+            "DYjets_L",
+            "ST_J",
+            "ST_L",
+            "embedding",
+        ]
+    else:
+        samples = [
+            "diboson_J",
+            "diboson_L",
+            "diboson_T",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "ttbar_T",
+            "DYjets_J",
+            "DYjets_L",
+            "DYjets_T",
+            "ST_J",
+            "ST_L",
+            "ST_T",
+        ]
+
+    plotting.plot_data_mc(
+        variable=correction_conf["var_dependence"],
+        hists=SRlike_hists,
+        era=config["era"],
+        channel=config["channel"],
+        process=process,
+        region="DR_SR" + "_SRlike_hist",
+        data=data,
+        samples=samples,
+        category={"incl": ""},
+        output_path=output_path,
+        logger=logger,
+    )
+
     return correction_dict

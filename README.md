@@ -2,6 +2,10 @@
 FakeFactor framework for the estimation of jets misidentified taus with pyROOT.
 
 ## Setup
+Clone the repository via
+```bash
+git clone --recurse-submodules https://github.com/KIT-CMS/TauFakeFactors.git
+```
 The environment can be set up with conda via
 ```bash
 conda env create --file environment.yaml
@@ -26,7 +30,7 @@ The preselection config has the following parameters:
     `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
-    `analysis` | `string` | analysis name, needed to get the output features which are saved/needed for the later steps e.g. `"smhtt_ul"`
+    `analysis` | `string` | analysis name, needed to get the output features which are saved/needed for the later steps e.g. `"smhtt_ul"`. The output features are defined in `configs/general_definitions.py`.
 
 * The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
     parameter | type | description

@@ -28,17 +28,17 @@ class FakeFactorEvaluator:
         """
         log = logging.getLogger(logger)
 
-        if not for_DRtoSR:
-            self.for_DRtoSR = ""
-            self.ff_path = os.path.join(
-                "workdir",
-                config["workdir_name"],
-                config["era"],
-                f"fake_factors_{config['channel']}.json",
-            )
-        else:
+        self.for_DRtoSR = ""
+        self.ff_path = os.path.join(
+            "workdir",
+            config["workdir_name"],
+            config["era"],
+            f"fake_factors_{config['channel']}.json",
+        )
+
+        if for_DRtoSR:
             self.for_DRtoSR = "for_DRtoSR"
-            self.ff_path = os.path.join(
+            self.ff_path_for_DRtoSR = os.path.join(
                 "workdir",
                 config["workdir_name"],
                 config["era"],
@@ -48,9 +48,21 @@ class FakeFactorEvaluator:
         self.process = process
 
         correctionlib.register_pyroot_binding()
-        log.info(f"Loading fake factor file {self.ff_path} for process {self.process}")
+        
+        if for_DRtoSR:
+            log.info(f"Loading fake factor for file {self.ff_path_for_DRtoSR} for process {self.process}")
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path_for_DRtoSR}")->at("{self.process}_fake_factors");'
+            )
+        else:
+            log.info(f"Loading fake factor file {self.ff_path} for process {self.process}")
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_ = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
+            )
+
+        # loading process fractions
         ROOT.gInterpreter.Declare(
-            f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
+            f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions");'
         )
 
     def evaluate_subleading_lep_pt_njets(self, rdf: Any) -> Any:
@@ -103,6 +115,37 @@ class FakeFactorEvaluator:
             f"{self.process}_fake_factor",
             f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
         )
+        return rdf
+    
+    def evaluate_fraction_lep_mt_nbtag(self, rdf: Any) -> Any:
+        """
+        Evaluating the fractions based on the variables it depends on.
+        In this function it is the transverse mass of the leading lepton and MET and the number of b-tagged jets.
+
+        Args:
+            rdf: root DataFrame object
+
+        Return:
+            root DataFrame object with a new column with the evaluated fractions
+        """
+        if self.process == "Wjets":
+            rdf = rdf.Define(
+                f"{self.process}_fraction",
+                f'{self.process}_fraction->evaluate({{"Wjets", mt_1, (float)nbtag, "nominal"}})',
+            )
+        elif self.process == "QCD":
+            rdf = rdf.Define(
+                f"{self.process}_fraction",
+                f'{self.process}_fraction->evaluate({{"QCD", mt_1, (float)nbtag, "nominal"}})',
+            )
+        elif self.process == "ttbar":
+            rdf = rdf.Define(
+                f"{self.process}_fraction",
+                f'{self.process}_fraction->evaluate({{"ttbar", mt_1, (float)nbtag, "nominal"}})',
+            )
+        else:
+            raise ValueError(f"Fraction not defined for process {self.process}")
+
         return rdf
 
 

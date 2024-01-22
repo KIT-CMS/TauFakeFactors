@@ -109,8 +109,8 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> Non
                 else:
                     rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
 
-        emb_weight_conf = config["emb_weights"]
         if process == "embedding":
+            emb_weight_conf = config["emb_weights"]
             for weight in emb_weight_conf:
                 rdf = rdf.Redefine("weight", f"weight * ({emb_weight_conf[weight]})")
 

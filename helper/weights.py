@@ -166,7 +166,7 @@ def apply_tau_id_vsJet_weight(
         elif isinstance(wps, list):
             rdf = rdf.Redefine(
                 "weight",
-                f"weight * ((gen_match_2==5) * ((id_tau_vsJet_{wps[1]}_2>0.5) + (id_tau_vsJet_{wps[1]}_2<0.5)*(id_tau_vsJet_{wps[0]}_2>0.5)*id_wgt_tau_vsJet_{wps[0]}_2 + (id_tau_vsJet_{wps[0]}_2<0.5)) + (gen_match_2!=5))",
+                f"weight * ((gen_match_2==5) * ((id_tau_vsJet_{wps[1]}_2>0.5) + (id_tau_vsJet_{wps[1]}_2<0.5)*(id_tau_vsJet_{wps[0]}_2>0.5)*id_wgt_tau_vsJet_{wps[1]}_2 + (id_tau_vsJet_{wps[0]}_2<0.5)) + (gen_match_2!=5))",
             )
         else:
             raise TypeError(
@@ -182,7 +182,7 @@ def apply_tau_id_vsJet_weight(
         elif isinstance(wps, list) and idx is not None:
             rdf = rdf.Redefine(
                 "weight",
-                f"weight * ((gen_match_{idx}==5) * ((id_tau_vsJet_{wps[1]}_{idx}>0.5) + (id_tau_vsJet_{wps[1]}_{idx}<0.5)*(id_tau_vsJet_{wps[0]}_{idx}>0.5)*id_wgt_tau_vsJet_{wps[0]}_{idx} + (id_tau_vsJet_{wps[0]}_{idx}<0.5)) + (gen_match_{idx}!=5))",
+                f"weight * ((gen_match_{idx}==5) * ((id_tau_vsJet_{wps[1]}_{idx}>0.5) + (id_tau_vsJet_{wps[1]}_{idx}<0.5)*(id_tau_vsJet_{wps[0]}_{idx}>0.5)*id_wgt_tau_vsJet_{wps[1]}_{idx} + (id_tau_vsJet_{wps[0]}_{idx}<0.5)) + (gen_match_{idx}!=5))",
             )
         else:
             raise TypeError(
