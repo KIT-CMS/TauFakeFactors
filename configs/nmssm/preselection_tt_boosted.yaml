@@ -2,7 +2,7 @@
 
 ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
 era: "2018"
-channel: "mt"
+channel: "tt"
 tree: "ntuple"
 analysis: "nmssm_boosted"
 
@@ -62,36 +62,37 @@ processes:
     #     tau_gen_modes:
     #         - "all"
     #     samples:
-    #         - "TauEmbedding-MuTauFinalState_Run2018A-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018B-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018C-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018D-UL2018"
+    #         - "TauEmbedding-TauTauFinalState_Run2018A-UL2018"
+    #         - "TauEmbedding-TauTauFinalState_Run2018B-UL2018"
+    #         - "TauEmbedding-TauTauFinalState_Run2018C-UL2018"
+    #         - "TauEmbedding-TauTauFinalState_Run2018D-UL2018"
     data:
         tau_gen_modes:
             - "all"
         samples:
-            - "SingleMuon_Run2018A-UL2018_GT36"
-            - "SingleMuon_Run2018B-UL2018_GT36"
-            - "SingleMuon_Run2018C-UL2018_GT36"
-            - "SingleMuon_Run2018D-UL2018_GT36"
+            - "JetHT_Run2018A-UL2018"
+            - "JetHT_Run2018B-UL2018"
+            - "JetHT_Run2018C-UL2018"
+            - "JetHT_Run2018D-UL2018"
 
 event_selection:
-    # lep_pt: "boosted_pt_1 > 55"
-    had_tau_pt: "boosted_pt_2 > 40"
-    had_tau_eta: "abs(boosted_eta_2) < 2.3"
-    had_tau_decay_mode: "(boosted_tau_decaymode_2 == 0) || (boosted_tau_decaymode_2 == 1) || (boosted_tau_decaymode_2 == 10)"
-    had_tau_id_anti_ele: "id_boostedtau_antiEle_VLoose_2 > 0.5"
-    had_tau_id_anti_mu: "id_boostedtau_antiMu_Loose_2 > 0.5"
-    single_trigger: "((trg_single_mu50_boosted > 0.5) && (boosted_pt_1 >= 55)) || ((trg_single_mu24_boosted > 0.5) && (boosted_iso_1 < 0.3) && (boosted_pt_1 >= 25) && (boosted_pt_1 < 55))"
+    # met: "(met_boosted > 120)"
+    had_tau_pt: "(boosted_pt_1 > 40) && (boosted_pt_2 > 40)"
+    had_tau_eta: "(abs(boosted_eta_1) < 2.3) && (abs(boosted_eta_2) < 2.3)"
+    had_tau_decay_mode_1: "(boosted_tau_decaymode_1 == 0) || (boosted_tau_decaymode_1 == 1) || (boosted_tau_decaymode_1 == 10)"
+    had_tau_decay_mode_2: "(boosted_tau_decaymode_2 == 0) || (boosted_tau_decaymode_2 == 1) || (boosted_tau_decaymode_2 == 10)"
+    # had_tau_id_anti_ele: "(id_boostedtau_antiEle_VLoose_1 > 0.5) && (id_boostedtau_antiEle_VLoose_2 > 0.5)"
+    # had_tau_id_anti_mu: "(id_boostedtau_antiMu_Loose_1 > 0.5) && (id_boostedtau_antiMu_Loose_2 > 0.5)"
+    single_trigger: "(trg_ak8pfjet400_trimmass30 > 0.5) || (trg_pfht500_pfmet100_pfmht100_idtight > 0.5)"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    lep_iso: "iso_wgt_mu_boosted_1"
-    lep_id: "id_wgt_mu_boosted_1"
-    had_tau_id_anti_ele: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)) + (boosted_gen_match_2!=5)
-    had_tau_id_anti_mu: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
-    single_trigger: "trg_wgt_single_mu50_boosted * (boosted_pt_1 >= 55) + trg_wgt_single_mu24_boosted * ((boosted_pt_1 >= 25) && (boosted_pt_1 < 55))"
+    # had_tau_id_anti_ele_1: (boosted_gen_match_1==5) * ((id_boostedtau_antiEle_VLoose_1>0.5)*id_wgt_boostedtau_antiEle_VLoose_1 + (id_boostedtau_antiEle_VLoose_1<0.5)) + (boosted_gen_match_1!=5)
+    # had_tau_id_anti_ele_2: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)) + (boosted_gen_match_2!=5)
+    # had_tau_id_anti_mu_1: (boosted_gen_match_1==5) * ((id_boostedtau_antiMu_Loose_1>0.5)*id_wgt_boostedtau_antiMu_Loose_1 + (id_boostedtau_antiMu_Loose_1<0.5)) + (boosted_gen_match_1!=5)
+    # had_tau_id_anti_mu_2: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    trigger: "trg_wgt_fatjet * (trg_ak8pfjet400_trimmass30 > 0.5) + (trg_ak8pfjet400_trimmass30 < 0.5)"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
@@ -105,5 +106,4 @@ mc_weights:
 # emb_weights:
 #     # general weights (for embedding): string is passed directly as weight
 #     generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-#     lep_iso: "emb_iso_wgt_mu_boosted_1"
-#     lep_id: "emb_id_wgt_mu_boosted_1"
+#     # double_trigger: "emb_trg_wgt_1 * emb_trg_wgt_2"

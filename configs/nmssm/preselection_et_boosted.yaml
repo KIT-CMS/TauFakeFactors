@@ -1,14 +1,12 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_08_2023_boostedtau_v9/CROWNRun"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
 era: "2018"
 channel: "et"
 tree: "ntuple"
 analysis: "nmssm_boosted"
 
-output_path: "/ceph/nshadskiy/FFmethod/09_2023_test_boosted"
-
-stitching: True
+output_path: "/ceph/nshadskiy/FFmethod/05_2024_v1_boosted"
 
 processes:
     DYjets:
@@ -17,12 +15,12 @@ processes:
             - "T"
             - "L"
         samples:
-            - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-0To50_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-50To100_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-100To250_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-250To400_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-400To650_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-650ToInf_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
     diboson:
         tau_gen_modes:
             - "J"
@@ -60,14 +58,14 @@ processes:
             - "ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    embedding:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
+    # embedding:
+    #     tau_gen_modes:
+    #         - "all"
+    #     samples:
+    #         - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
     data:
         tau_gen_modes:
             - "all"
@@ -78,31 +76,34 @@ processes:
             - "EGamma_Run2018D-UL2018"
 
 event_selection:
-    lep_pt: "boosted_pt_1 > 120"
+    # lep_pt: "boosted_pt_1 > 120"
     had_tau_pt: "boosted_pt_2 > 40"
     had_tau_eta: "abs(boosted_eta_2) < 2.3"
     had_tau_decay_mode: "(boosted_tau_decaymode_2 == 0) || (boosted_tau_decaymode_2 == 1) || (boosted_tau_decaymode_2 == 10)"
     had_tau_id_anti_ele: "id_boostedtau_antiEle_Loose_2 > 0.5"
     # had_tau_id_anti_mu: "id_boostedtau_antiMu_Loose_2 > 0.5"
-    single_trigger: "trg_single_ele115_boosted > 0.5"
+    single_trigger: "((trg_single_ele115_boosted > 0.5 || trg_single_photon200_boosted > 0.5) && (boosted_pt_1 >= 120)) || ((trg_single_ele32_boosted > 0.5) && (boosted_iso_1 < 0.3) && (boosted_pt_1 > 33) && (boosted_pt_1 < 120))"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
     lep_iso: "iso_wgt_ele_boosted_1"
     lep_id: "id_wgt_ele_boosted_1"
-    had_tau_id_vs_ele: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_Loose_2>0.5)*id_wgt_boostedtau_antiEle_Loose_2 + (id_boostedtau_antiEle_Loose_2<0.5)) + (boosted_gen_match_2!=5)
-    # had_tau_id_vs_mu: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
-   
+    had_tau_id_anti_ele: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_Loose_2>0.5)*id_wgt_boostedtau_antiEle_Loose_2 + (id_boostedtau_antiEle_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    # had_tau_id_anti_mu: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    single_trigger: "trg_wgt_single_ele_boosted"
+
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
-    generator: "stitching"
+    generator: 
+        stitching:
+            - "Wjets"
     lumi: ""
-    Z_pt_reweighting: "ZPtMassReweightWeight"
+    # Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight" 
 
-emb_weights:
-    # general weights (for embedding): string is passed directly as weight
-    generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-    lep_iso: "iso_wgt_ele_boosted_1"
-    lep_id: "id_wgt_ele_boosted_1"
+# emb_weights:
+#     # general weights (for embedding): string is passed directly as weight
+#     generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
+#     lep_iso: "iso_wgt_ele_boosted_1"
+#     lep_id: "id_wgt_ele_boosted_1"
