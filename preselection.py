@@ -5,6 +5,7 @@ Script for preprocessing n-tuples for the fake factor calculation
 import os
 import argparse
 import yaml
+import json
 import multiprocessing
 
 from io import StringIO
@@ -29,22 +30,28 @@ parser.add_argument(
 parser.add_argument(
     "--nthreads",
     default=8,
-    help="Number of threads to use for the preselection step. (default: 8)",
+    help="Number of threads to use for the multiprocessing pool in the preselection step. (default: 8)",
+)
+parser.add_argument(
+    "--ncores",
+    default=4,
+    help="Number of cores to use for each pool the preselection step. (default: 4)",
 )
 
 
-def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> None:
+def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -> None:
     """
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
 
     Args:
-        args: Tuple with a process name and a configuration for this process
+        args: Tuple with a process name, a configuration for this process and number of threads to use
 
     Return:
         None
     """
-    process, config = args
+    process, config, ncores = args
     log = logging.getLogger(f"preselection.{process}")
+    ROOT.EnableImplicitMT(ncores)
 
     log.info(f"Processing process: {process}")
     # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
@@ -82,22 +89,22 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> Non
             for weight in mc_weight_conf:
                 if weight == "generator":
                     # calculating generator weight (including cross section weight)
-                    if (
-                        process in ["DYjets", "Wjets"]
-                        and mc_weight_conf["generator"] == "stitching"
-                    ):
-                        rdf = weights.stitching_gen_weight(
-                            rdf=rdf,
-                            era=config["era"],
-                            process=process,
-                            sample_info=datasets[sample],
-                        )
+                    if "stitching" in mc_weight_conf["generator"]: 
+                        if process in mc_weight_conf["generator"]["stitching"]:
+                            rdf = weights.stitching_gen_weight(
+                                rdf=rdf,
+                                era=config["era"],
+                                process=process,
+                                sample_info=datasets[sample],
+                            )
+                        else:
+                            rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
                     else:
                         rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
                 elif weight == "lumi":
                     rdf = weights.lumi_weight(rdf=rdf, era=config["era"])
                 elif weight == "Z_pt_reweighting":
-                    if process == "DYjets":
+                    if process in ["DYjets"]:
                         rdf = rdf.Redefine(
                             "weight", f"weight * ({mc_weight_conf[weight]})"
                         )
@@ -205,8 +212,8 @@ if __name__ == "__main__":
         config = yaml.load(file, yaml.FullLoader)
 
     # loading general dataset info file for xsec and event number
-    with open("datasets/datasets.yaml", "r") as file:
-        datasets = yaml.load(file, yaml.FullLoader)
+    with open("datasets/datasets.json", "r") as file:
+        datasets = json.load(file)
 
     # define output path for the preselected samples
     output_path = os.path.join(
@@ -223,8 +230,8 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = gd.output_features[config["analysis"]][config["channel"]]
 
-    tau_vs_jet_wps = ["VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight"]
-    tau_vs_jet_wgt_wps = ["Loose", "Medium", "Tight", "VTight"]
+    tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"]
+    tau_vs_jet_wgt_wps = ["Medium", "Tight"]
     for wp in tau_vs_jet_wps:
         output_features.append("id_tau_vsJet_" + wp + "_2")
     for wp in tau_vs_jet_wgt_wps:
@@ -237,7 +244,7 @@ if __name__ == "__main__":
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers
-    args_list = [(process, config) for process in config["processes"]]
+    args_list = [(process, config, int(args.ncores)) for process in config["processes"]]
 
     with multiprocessing.Pool(
         processes=min(len(config["processes"]), int(args.nthreads))
