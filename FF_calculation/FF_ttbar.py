@@ -200,7 +200,7 @@ def calculation_ttbar_FFs(
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
             if sample in ["ttbar_J"]:
                 log.info(
-                    f"Processing {sample} for the {', '.join([f'{var} {split[var]}'for var in split_variables])} category."
+                    f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category."
                 )
                 log.info("-" * 50)
 

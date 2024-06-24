@@ -5,14 +5,14 @@ import ROOT
 # list of output features, they can change depending on the analysis or channel (tau vs jet ID is added internally)
 output_features = {
     "nmssm": {
-        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2"],
-        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2"],
-        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2"],
+        "et": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
+        "mt": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
+        "tt": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
     },
     "nmssm_boosted": {
-        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2"],
-        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2"],
-        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+        "et": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
+        "mt": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
+        "tt": ["weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2","met"],
     },
     "smhtt_ul": {
         "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
@@ -103,6 +103,7 @@ variable_dict = {
         "metphi": "MET #phi",
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
+        "deltaR_ditaupair": "#DeltaR(e#tau_{h})",
     },
     "mt": {
         "pt_1": "p_{T}(#mu) (GeV)",
@@ -118,6 +119,7 @@ variable_dict = {
         "metphi": "MET #phi",
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
+        "deltaR_ditaupair": "#DeltaR(#mu#tau_{h})",
     },
     "tt": {
         "pt_1": "leading p_{T}(#tau_{h}) (GeV)",
@@ -131,6 +133,7 @@ variable_dict = {
         "metphi": "MET #phi",
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
+        "deltaR_ditaupair": "#DeltaR(#tau_{h}#tau_{h})",
     },
 }
 # definitions to translate category cuts to readable language

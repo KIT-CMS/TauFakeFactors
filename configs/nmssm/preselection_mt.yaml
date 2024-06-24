@@ -1,12 +1,12 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_08_2023_boostedtau_v9/CROWNRun"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
 era: "2018"
 channel: "mt"
 tree: "ntuple"
 analysis: "nmssm"
 
-output_path: "/ceph/nshadskiy/FFmethod/09_2023_test"
+output_path: "/ceph/nshadskiy/FFmethod/05_2024_v1"
 
 processes:
     DYjets:
@@ -70,10 +70,10 @@ processes:
         tau_gen_modes:
             - "all"
         samples:
-            - "SingleMuon_Run2018A-UL2018"
-            - "SingleMuon_Run2018B-UL2018"
-            - "SingleMuon_Run2018C-UL2018"
-            - "SingleMuon_Run2018D-UL2018"
+            - "SingleMuon_Run2018A-UL2018_GT36"
+            - "SingleMuon_Run2018B-UL2018_GT36"
+            - "SingleMuon_Run2018C-UL2018_GT36"
+            - "SingleMuon_Run2018D-UL2018_GT36"
 
 event_selection:
     lep_pt: "pt_1 > 25"
@@ -83,19 +83,23 @@ event_selection:
     had_tau_id_vs_ele: "id_tau_vsEle_VVLoose_2 > 0.5"
     had_tau_id_vs_mu: "id_tau_vsMu_Tight_2 > 0.5"
     single_trigger: "(trg_single_mu24 > 0.5) || (trg_single_mu27 > 0.5)"
+    boosted_tau_veto: "(boosted_deltaR_ditaupair > 0.8) || (boosted_deltaR_ditaupair < 0.1)"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
     lep_iso: "iso_wgt_mu_1"
     lep_id: "id_wgt_mu_1"
-    had_tau_id_vs_ele: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
-    had_tau_id_vs_mu: (gen_match_2==5) * ((id_tau_vsMu_Tight_2>0.5)*id_wgt_tau_vsMu_Tight_2 + (id_tau_vsMu_Tight_2<0.5)) + (gen_match_2!=5)
+    had_tau_id_vs_ele: "(gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)"
+    had_tau_id_vs_mu: "(gen_match_2==5) * ((id_tau_vsMu_Tight_2>0.5)*id_wgt_tau_vsMu_Tight_2 + (id_tau_vsMu_Tight_2<0.5)) + (gen_match_2!=5)"
     single_trigger: "trg_wgt_single_mu24ormu27"
     
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
-    generator: "stitching"
+    generator: 
+        stitching:
+            - "DYjets"
+            - "Wjets"
     lumi: ""
     Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"

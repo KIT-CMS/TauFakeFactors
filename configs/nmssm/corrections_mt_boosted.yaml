@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "09_2023_test_boosted"
+workdir_name: "05_2024_v1_boosted"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 
@@ -9,49 +9,61 @@ target_processes:
         non_closure:
             leading_lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,35,40,45,50,55,70,80,90,110]
+            m_vis:
+                var_dependence: "m_vis"
+                var_bins: [0,40,50,60,70,80,90,100]
             lep_mt:
                 var_dependence: "mt_1"
-                var_bins: [0,5,10,15,20,25,30,35,40,45,50]
+                var_bins: [0,10,20,30,40,50]
+        
         DR_SR:
-            var_dependence: "m_vis"
-            var_bins: [0,10,20,30,40,50,60,70]
+            # var_dependence: "m_vis"
+            # var_bins: [0,10,20,30,40,50,60,70,100]
+            var_dependence: "deltaR_ditaupair"
+            var_bins: [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]
             SRlike_cuts:
-                tau_pair_sign: "(q_1*q_2) > 0" 
+                tau_pair_sign: "(q_1*q_2) > 0"
             ARlike_cuts:
-                tau_pair_sign: "(q_1*q_2) > 0" 
+                tau_pair_sign: "(q_1*q_2) > 0"
             AR_SR_cuts:
                 deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
             non_closure:
                 leading_lep_pt:
                     var_dependence: "pt_1"
-                    var_bins: [55,60,65,70,75,80,85,90,95,100]
+                    var_bins: [25,30,35,40,45,50,55,70,80,90,110]
 
     Wjets:
         non_closure:
             leading_lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+            m_vis:
+                var_dependence: "m_vis"
+                var_bins: [0,50,60,70,80,90,100]
+
         DR_SR:
-            var_dependence: "m_vis"
-            var_bins: [0,20,40,60,80,120]
+            # var_dependence: "m_vis"
+            # var_bins: [0,20,40,60,80,120]
+            var_dependence: "deltaR_ditaupair"
+            var_bins: [0.1,0.3,0.4,0.5,0.6,0.7,0.8]
             SRlike_cuts:
                 lep_mt: "mt_1 >= 0.0"
             ARlike_cuts:
                 lep_mt: "mt_1 >= 0.0"
             AR_SR_cuts:
-                nbtag: "nbtag >= 0"
+                # nbtag: "(nbtag >= 1) || (fj_Xbb_pt > 200)"
                 deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
             non_closure:
                 leading_lep_pt:
                     var_dependence: "pt_1"
-                    var_bins: [55,60,65,70,75,80,85,90,95,100]
+                    var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
 
     ttbar:
         non_closure:
             leading_lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [55,60,65,70,75,80,85,90,95,100]
+                var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
             m_vis:
                 var_dependence: "m_vis"
-                var_bins: [0,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+                var_bins: [0,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]

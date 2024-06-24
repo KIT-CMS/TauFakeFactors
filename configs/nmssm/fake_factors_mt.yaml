@@ -1,11 +1,11 @@
 # This is an example config containing information for the FF calculation
 
-file_path: "/ceph/nshadskiy/FFmethod/09_2023_test"
+file_path: "/ceph/nshadskiy/FFmethod/05_2024_v1"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 tree: "ntuple"
 
-workdir_name: "09_2023_multitest"
+workdir_name: "05_2024_v1"
 
 use_embedding: True
 
@@ -25,6 +25,7 @@ target_processes:
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            nbtag: "nbtag==0"
 
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) > 0" 
@@ -32,6 +33,7 @@ target_processes:
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            nbtag: "nbtag==0"
         
         var_dependence: "pt_2"
         var_bins: [30,32,35,40,48,70,100]
@@ -52,6 +54,7 @@ target_processes:
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            fatjet_veto: "fj_Xbb_pt < 0"
 
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
@@ -60,6 +63,7 @@ target_processes:
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            fatjet_veto: "fj_Xbb_pt < 0"
         
         var_dependence: "pt_2"
         var_bins: [30,32,38,47,60,100]
@@ -74,31 +78,35 @@ target_processes:
 
         SR_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag >= 1"
+            # nbtag: "nbtag >= 1"
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
         AR_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag >= 1"
+            # nbtag: "nbtag >= 1"
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
         SRlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag >= 1"
+            # nbtag: "nbtag >= 1"
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
             
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag >= 1"
+            # nbtag: "nbtag >= 1"
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
         
         var_dependence: "pt_2"
         var_bins: [30,32,35,38,41,44,52,70,100]
@@ -119,12 +127,14 @@ process_fractions:
         lep_iso: "iso_1 < 0.15"
         no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
         had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+        bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
     SR_cuts:
         tau_pair_sign: "(q_1*q_2) < 0" 
         lep_iso: "iso_1 < 0.15"
         no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
         had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+        bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
     var_dependence: "mt_1"
-    var_bins: [0,10,20,30,40,50,60,70,80,90,100]
+    var_bins: [0,10,20,30,40,50,60,70,80,90,100,110,120,130]
