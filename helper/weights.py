@@ -142,6 +142,21 @@ def apply_btag_weight(rdf: Any) -> Any:
     return rdf
 
 
+def apply_pNet_weight(rdf: Any) -> Any:
+    """
+    Function to apply the particleNet scale factor.
+
+    Args:
+        rdf: root DataFrame object
+
+    Return:
+        root DataFrame object with the applied weight
+    """
+    rdf = rdf.Redefine("weight", "weight * ((fj_Xbb_pt >= 0) * pNet_Xbb_weight + (fj_Xbb_pt < 0))")
+
+    return rdf
+
+
 def apply_tau_id_vsJet_weight(
     rdf: Any, channel: str, wps: Union[List[str], str], idx: str = None
 ) -> Any:
