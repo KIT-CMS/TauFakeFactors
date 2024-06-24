@@ -58,11 +58,11 @@ The preselection config has the following parameters:
 
 * In `mc_weights` all weights that should be applied for simulated samples are defined. \
   There are two types of weights.
-  1. Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `lep_id: "id_wgt_mu_1"`
-  2. Some weights are either sample specific or need additional information. Currently implemented options are:
+  1. Similar to `event_selection`, a weight can directly be specified and is then applied to all samples in the same way e.g. `lep_id: "id_wgt_mu_1"`
+  2. But some weights are either sample specific or need additional information. Currently implemented options are:
       parameter | type | description
       ---|---|---
-      `generator` | `string` | `""` if a normal generator weight should be applied to all samples, if `"stitching"` for DY+jets and W+jets a special stitching weights is applied
+      `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them. 
       `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string
       `Z_pt_reweight` | `string` | reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets
       `Top_pt_reweight` | `string` | reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar
@@ -76,6 +76,9 @@ To run the preselection step, execute the python script and specify the config f
 ```bash
 python preselection.py --config-file PATH/CONFIG.yaml
 ```
+Further there are additional optional parameters: 
+1. `--nthreads=SOME_INTEGER` to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).
+2.  `--ncores=SOME_INTEGER` to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 4.
 
 </details>
 
@@ -183,7 +186,10 @@ To run the FF correction step, execute the python script and specify the config 
 ```bash
 python ff_corrections.py --config-file PATH/CONFIG.yaml 
 ```
-An optional parameter is `--only-main-corrections`. By using this parameter the precalculation step for the DR to SR corrections is skipped. This is helpful is the precalculations step is already done.
+There are two optional parameters `--skip-DRtoSR-ffs` and `--only-main-corrections`. The correction caclulation is done in 3 steps.\
+The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using `--skip-DRtoSR-ffs`.\
+The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using `--only-main-corrections`.\
+The last step is to calculate all the specified corrections for the main fake factors.
 </details>
 
 ## Hints
