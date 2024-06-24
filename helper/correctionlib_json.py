@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import gzip
+import json
 import correctionlib.schemav2 as cs
 import rich
 from typing import List, Dict, Union, Tuple
@@ -73,18 +74,19 @@ def generate_ff_corrlib_json(
         schema_version=2,
         description="Fake factors for tau analysis",
         corrections=corrlib_corrections,
+        compound_corrections=None,
     )
 
     if not for_corrections:
         with open(
             os.path.join(output_path, f"fake_factors_{config['channel']}.json"), "w"
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
         with gzip.open(
             os.path.join(output_path, f"fake_factors_{config['channel']}.json.gz"), "wt"
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
     else:
         with open(
@@ -93,7 +95,7 @@ def generate_ff_corrlib_json(
             ),
             "w",
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
         with gzip.open(
             os.path.join(
@@ -101,7 +103,7 @@ def generate_ff_corrlib_json(
             ),
             "wt",
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
 
 def make_1D_ff(
@@ -133,6 +135,7 @@ def make_1D_ff(
         name=f"{process}_fake_factors",
         description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
+        generic_formulas=None,
         inputs=[
             cs.Variable(
                 name=gd.variable_translator[variable_info[0]],
@@ -191,6 +194,7 @@ def make_1D_ff(
                                         ],
                                         parser="TFormula",
                                         expression=ff_functions[cat1][unc],
+                                        parameters=None,
                                     ),
                                     eval(
                                         ff_functions[cat1][unc].replace(
@@ -232,6 +236,7 @@ def make_1D_ff(
                                 variables=[gd.variable_translator[variable_info[0]]],
                                 parser="TFormula",
                                 expression=ff_functions[cat1]["nominal"],
+                                parameters=None,
                             ),
                             eval(
                                 ff_functions[cat1]["nominal"].replace(
@@ -281,6 +286,7 @@ def make_2D_ff(
         name=f"{process}_fake_factors",
         description="Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
+        generic_formulas=None,
         inputs=[
             cs.Variable(
                 name=gd.variable_translator[variable_info[0]],
@@ -356,6 +362,7 @@ def make_2D_ff(
                                                 expression=ff_functions[cat1][cat2][
                                                     unc
                                                 ],
+                                                parameters=None,
                                             ),
                                             eval(
                                                 ff_functions[cat1][cat2][unc].replace(
@@ -408,6 +415,7 @@ def make_2D_ff(
                                         ],
                                         parser="TFormula",
                                         expression=ff_functions[cat1][cat2]["nominal"],
+                                        parameters=None,
                                     ),
                                     eval(
                                         ff_functions[cat1][cat2]["nominal"].replace(
@@ -460,6 +468,7 @@ def make_1D_fractions(
         name="process_fractions",
         description="Calculation of process contributions (fractions) for the fake factor calculation.",
         version=1,
+        generic_formulas=None,
         inputs=[
             cs.Variable(
                 name="process", type="string", description="name of the process"
@@ -521,6 +530,7 @@ def make_1D_fractions(
                             )
                             for p in fraction_conf["processes"]
                         ],
+                        default=None,
                     ),
                 )
                 for unc, unc_name in uncertainties.items()
@@ -552,6 +562,7 @@ def make_1D_fractions(
                     )
                     for p in fraction_conf["processes"]
                 ],
+                default=None,
             ),
         ),
     )
@@ -609,18 +620,19 @@ def generate_correction_corrlib_json(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",
         corrections=corrlib_ff_corrections,
+        compound_corrections=None,
     )
 
     if not for_DRtoSR:
         with open(
             os.path.join(output_path, f"FF_corrections_{config['channel']}.json"), "w"
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
         with gzip.open(
             os.path.join(output_path, f"FF_corrections_{config['channel']}.json.gz"),
             "wt",
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
     elif for_DRtoSR:
         with open(
@@ -629,14 +641,14 @@ def generate_correction_corrlib_json(
             ),
             "w",
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
         with gzip.open(
             os.path.join(
                 output_path, f"FF_corrections_{config['channel']}_for_DRtoSR.json.gz"
             ),
             "wt",
         ) as fout:
-            fout.write(cset.json(exclude_unset=True, indent=4))
+            fout.write(json.dumps(cset.model_dump(exclude_unset=True), indent=4))
 
 
 def make_1D_correction(
@@ -658,6 +670,7 @@ def make_1D_correction(
         name=f"{process}_{correction_name}_correction",
         description=f"Calculation of the {correction_name} correction for {process} for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
+        generic_formulas=None,
         inputs=[
             cs.Variable(
                 name=gd.variable_translator[variable],
