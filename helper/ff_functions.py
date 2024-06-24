@@ -111,7 +111,11 @@ def apply_region_filters(
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
     if "bb_selection" in sum_cuts.keys():
+        if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
+            rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
+        if sample not in ["data", "embedding"]:
+            rdf = weights.apply_pNet_weight(rdf=rdf)
 
     return rdf
 
@@ -239,9 +243,7 @@ def calculate_ttbar_FF(
     ratio_DR_data.Divide(ARlike["data_subtracted"])
 
     ratio_DR_mc = SRlike["ttbar_J"].Clone()
-    print("ratio_DR_mc 1:",ratio_DR_mc.Integral())
     ratio_DR_mc.Divide(ARlike["ttbar_J"])
-    print("ratio_DR_mc 2:",ratio_DR_mc.Integral())
 
     sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
     ratio_mc.Scale(sf)

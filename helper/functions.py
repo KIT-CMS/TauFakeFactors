@@ -114,7 +114,7 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     """
     log = logging.getLogger(f"preselection.{process}")
 
-    fsname = "root://cmsxrootd-kit-disk.gridka.de/"
+    fsname = "root://cmsdcache-kit-disk.gridka.de/"
     xrdclient = client.FileSystem(fsname)
     status, listing = xrdclient.dirlist(path.replace(fsname, ""))
 
@@ -147,6 +147,8 @@ def check_for_empty_tree(file_path: str, tree: str) -> bool:
     """
     f = ROOT.TFile.Open(file_path)
     t = f.Get(tree)
+    if not isinstance(t, ROOT.TTree):
+        return True
 
     return bool(t.GetEntries() == 0)
 
@@ -213,6 +215,7 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     rdf = rdf.Redefine("njets", "njets_boosted")
     rdf = rdf.Redefine("nbtag", "nbtag_boosted")
     rdf = rdf.Redefine("metphi", "metphi_boosted")
+    rdf = rdf.Redefine("met", "met_boosted")
     rdf = rdf.Redefine("pt_1", "boosted_pt_1")
     rdf = rdf.Redefine("q_1", "boosted_q_1")
     rdf = rdf.Redefine("pt_2", "boosted_pt_2")
@@ -239,6 +242,12 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     else:
         rdf = rdf.Define("btag_weight_boosted", "1.")
         rdf = rdf.Redefine("btag_weight", "btag_weight_boosted")
+    
+    if "pNet_Xbb_weight_boosted" in rdf.GetColumnNames():
+        rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
+    else:
+        rdf = rdf.Define("pNet_Xbb_weight_boosted", "1.")
+        rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
 
     if channel == "tt":
         if "boosted_gen_match_1" in rdf.GetColumnNames():
