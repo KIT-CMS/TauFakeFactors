@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = gd.output_features[config["analysis"]][config["channel"]]
 
-    tau_iso_wps = ["VLoose", "Loose", "Medium"]
+    tau_iso_wps = func.chainget(config, "wps", "tau_iso") or ["VLoose", "Loose", "Medium"]
     for wp in tau_iso_wps:
         output_features.append("id_boostedtau_iso_" + wp + "_2")
         output_features.append("id_wgt_boostedtau_iso_" + wp + "_2")

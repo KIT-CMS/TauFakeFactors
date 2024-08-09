@@ -12,6 +12,14 @@ import ROOT
 from XRootD import client
 
 
+def chainget(x: dict, *args: str):
+    from functools import reduce
+    try:
+        return reduce(getattr(dict, "get"), args, x)
+    except TypeError:
+        return None
+
+
 def check_path(path: str) -> None:
     """
     This function checks if a given path exist. If not, this path is created.

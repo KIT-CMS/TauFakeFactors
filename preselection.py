@@ -230,8 +230,8 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = gd.output_features[config["analysis"]][config["channel"]]
 
-    tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"]
-    tau_vs_jet_wgt_wps = ["Medium", "Tight"]
+    tau_vs_jet_wps = func.chainget(config, "wps", "tau_vs_jet", "wp") or ["VVVLoose", "Medium", "Tight"]
+    tau_vs_jet_wgt_wps = func.chainget(config, "wps", "tau_vs_jet", "wgt") or ["Medium", "Tight"]
     for wp in tau_vs_jet_wps:
         output_features.append("id_tau_vsJet_" + wp + "_2")
     for wp in tau_vs_jet_wgt_wps:
