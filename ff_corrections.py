@@ -344,6 +344,19 @@ if __name__ == "__main__":
         "ttbar": dict(),
     }
 
+    non_closure_corrections_function = {
+        "QCD": FF_QCD.non_closure_correction,
+        "QCD_subleading": FF_QCD.non_closure_correction,
+        "Wjets": FF_Wjets.non_closure_correction,
+        "ttbar": FF_ttbar.non_closure_correction,
+    }
+
+    DR_SR_corrections_function = {
+        "QCD": FF_QCD.DR_SR_correction,
+        "QCD_subleading": FF_QCD.DR_SR_correction,
+        "Wjets": FF_Wjets.DR_SR_correction,
+    }
+
     if "target_processes" in corr_config:
         for process in corr_config["target_processes"]:
             log = logging.getLogger(f"ff_corrections.{process}")
@@ -383,8 +396,8 @@ if __name__ == "__main__":
                             logger=f"ff_corrections.{process}",
                         )
 
-                    if process in ["QCD", "QCD_subleading"]:
-                        corr = FF_QCD.non_closure_correction(
+                    try:
+                        corr = non_closure_corrections_function[process](
                             config=temp_conf,
                             corr_config=corr_config,
                             sample_paths=sample_paths,
@@ -396,30 +409,7 @@ if __name__ == "__main__":
                             for_DRtoSR=False,
                             logger=f"ff_corrections.{process}",
                         )
-                    elif process == "Wjets":
-                        corr = FF_Wjets.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            for_DRtoSR=False,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    elif process == "ttbar":
-                        corr = FF_ttbar.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    else:
+                    except KeyError:
                         raise ValueError(f"Process {process} not known!")
 
                     corrections[process]["non_closure_" + closure_corr] = corr
@@ -455,8 +445,8 @@ if __name__ == "__main__":
                     to_AR_SR=True,
                 )
 
-                if process in ["QCD", "QCD_subleading"]:
-                    corr = FF_QCD.DR_SR_correction(
+                try:
+                    corr = DR_SR_corrections_function[process](
                         config=temp_conf,
                         corr_config=corr_config,
                         sample_paths=sample_paths,
@@ -466,17 +456,7 @@ if __name__ == "__main__":
                         corr_evaluator=corr_evaluator,
                         logger=f"ff_corrections.{process}",
                     )
-                elif process == "Wjets":
-                    corr = FF_Wjets.DR_SR_correction(
-                        config=temp_conf,
-                        corr_config=corr_config,
-                        sample_paths=sample_paths,
-                        output_path=save_path_plots,
-                        evaluator=evaluator,
-                        corr_evaluator=corr_evaluator,
-                        logger=f"ff_corrections.{process}",
-                    )
-                else:
+                except KeyError:
                     raise ValueError(
                         f"Process {process} not known or DR to SR correction not defined!"
                     )
