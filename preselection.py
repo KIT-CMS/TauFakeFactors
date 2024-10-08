@@ -218,8 +218,6 @@ if __name__ == "__main__":
 
     # loading of the chosen config file
     config = func.load_config(args.config_file, args.common_config_file)
-    
-    raise Error
 
     # loading general dataset info file for xsec and event number
     with open("datasets/datasets.json", "r") as file:
