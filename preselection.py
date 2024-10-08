@@ -28,6 +28,15 @@ parser.add_argument(
     help="Path to the config file which contains information for the preselection step.",
 )
 parser.add_argument(
+    "--common-config-file",
+    default=None,
+    help="""
+        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
+        Settings loaded here are overwritten by the settings in --config-file if present there.
+        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
+    """,
+)
+parser.add_argument(
     "--nthreads",
     default=8,
     help="Number of threads to use for the multiprocessing pool in the preselection step. (default: 8)",
@@ -208,8 +217,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    with open(args.config_file, "r") as file:
-        config = yaml.load(file, yaml.FullLoader)
+    config = func.load_config(args.config_file, args.common_config_file)
 
     # loading general dataset info file for xsec and event number
     with open("datasets/datasets.json", "r") as file:

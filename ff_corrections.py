@@ -25,6 +25,15 @@ parser.add_argument(
     help="Path to the config file which contains information for the fake factor corrections step.",
 )
 parser.add_argument(
+    "--common-config-file",
+    default=None,
+    help="""
+        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
+        Settings loaded here are overwritten by the settings in --config-file if present there.
+        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
+    """,
+)
+parser.add_argument(
     "--only-main-corrections",
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
@@ -235,8 +244,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    with open(args.config_file, "r") as file:
-        corr_config = yaml.load(file, yaml.FullLoader)
+    config = func.load_config(args.config_file, args.common_config_file)
 
     with open(
         os.path.join(
