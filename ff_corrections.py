@@ -244,7 +244,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    config = func.load_config(args.config_file, args.common_config_file)
+    corr_config = func.load_config(args.config_file, args.common_config_file)
 
     with open(
         os.path.join(
