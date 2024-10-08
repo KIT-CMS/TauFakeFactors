@@ -2,14 +2,70 @@
 Collection of helpful functions for other scripts
 """
 
-import sys
-import os
 import glob
 import logging
-from typing import List, Dict, Union, Any
+import os
+import sys
+from typing import Any, Dict, List, Union
 
 import ROOT
+import yaml
 from XRootD import client
+
+
+def load_config(config_file: str, common_config_file: Union[str, None] = None) -> Dict:
+    """
+    This function loads the configuration file. It first loads the common settings if a 
+    common config file is specified or is present in the same folder as the config file.
+    The common settings are overwritten by the specific settings in the config file.
+    (a warning is printed if the same keys are present in both files)
+
+    Args:
+        config_file: Path to the specific config file
+        common_config_file: Path to the common config file (default: None)
+    """
+
+    if common_config_file is None and os.path.exists(
+        os.path.join(
+            os.path.split(config_file)[0],
+            "common_settings.yaml",
+        ),
+    ):
+        print(f"Using common_settings.yaml as common config file found in {os.path.split(config_file)[0]}")
+        common_config_file = os.path.join(
+            os.path.split(config_file)[0],
+            "common_settings.yaml",
+        )
+    else:
+        print(f"No common config file found. Using common settings specified in the {config_file}.")
+
+    config = {}
+    if common_config_file is not None:
+        with open(common_config_file, "r") as file:
+            config.update(yaml.load(file, yaml.FullLoader))
+
+    # loading of the chosen config file
+    try:
+        with open(config_file, "r") as file:
+            _config = yaml.load(file, yaml.FullLoader)
+            repeating_keys = set(config.keys()).intersection(set(_config.keys()))
+            if repeating_keys:
+                _overwriting = "\n\t".join(f"{k}: {_config[k]}" for k in repeating_keys)
+                print(
+                    f"""
+    Warning: The following keys are present in both the common and the specific config file:
+        {repeating_keys}
+    and are overwritten by the ones in {config_file} to
+        {_overwriting}
+                    """
+                )
+                config.update(_config)
+
+    except FileNotFoundError:
+        print(f"Error: Config file {config_file} not found.")
+        sys.exit(1)
+
+    return config
 
 
 def check_path(path: str) -> None:
