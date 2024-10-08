@@ -111,6 +111,8 @@ def apply_region_filters(
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
     if "bb_selection" in sum_cuts.keys():
+        if sample not in ["data", "embedding"]:
+            rdf = weights.apply_pNet_weight(rdf=rdf)
         if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")

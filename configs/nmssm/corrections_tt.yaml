@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "05_2024_v1"
+workdir_name: "08_2024_v1"
 era: "2018"
 channel: "tt" # options are et, mt, tt
 
@@ -9,7 +9,10 @@ target_processes:
         non_closure:
             subleading_lep_pt:
                 var_dependence: "pt_2"
-                var_bins: [40,50,60,70,80,90,100,120]
+                var_bins: [40,50,60,70,100]
+            leading_lep_mass:
+                var_dependence: "mass_1"
+                var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
             # m_vis:
             #     var_dependence: "m_vis"
             #     var_bins: [0,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,200,250]
@@ -26,13 +29,16 @@ target_processes:
             non_closure:
                 subleading_lep_pt:
                     var_dependence: "pt_2"
-                    var_bins: [40,50,60,70,80,90,100,120]
+                    var_bins: [40,50,60,70,80,100]
 
     QCD_subleading:
         non_closure:
             leading_lep_pt:
                 var_dependence: "pt_1"
-                var_bins: [40,50,60,70,80,90,100,120]
+                var_bins: [40,55,70,85,100,120]
+            subleading_lep_mass:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
             # m_vis:
             #     var_dependence: "m_vis"
             #     var_bins: [0,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,200,250]
@@ -51,8 +57,20 @@ target_processes:
                     var_dependence: "pt_1"
                     var_bins: [40,50,60,70,80,90,100,120]
 
-    # ttbar:
-    #     non_closure:
-    #         leading_lep_pt:
-    #             var_dependence: "pt_1"
-    #             var_bins: [40,45,50,55,60,65,70,75,80,85,90,95,100,110,120]
+    ttbar:
+        non_closure:
+            subleading_lep_pt:
+                var_dependence: "pt_2"
+                var_bins: [40,50,60,70,80,100]
+            leading_lep_mass:
+                var_dependence: "mass_1"
+                var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
+    
+    ttbar_subleading:
+        non_closure:
+            leading_lep_pt:
+                var_dependence: "pt_1"
+                var_bins: [40,50,60,70,80,90,100]
+            subleading_lep_mass:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]

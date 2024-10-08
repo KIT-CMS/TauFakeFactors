@@ -6,7 +6,7 @@ channel: "tt"
 tree: "ntuple"
 analysis: "nmssm"
 
-output_path: "/ceph/nshadskiy/FFmethod/05_2024_v1"
+output_path: "/ceph/nshadskiy/FFmethod/07_2024_v1"
 
 processes:
     DYjets:
@@ -15,12 +15,12 @@ processes:
             - "T"
             - "L"
         samples:
-            - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-0To50_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-50To100_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-100To250_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-250To400_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-400To650_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
+            - "DYJetsToLL_LHEFilterPtZ-650ToInf_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X"
     diboson:
         tau_gen_modes:
             - "J"
@@ -82,26 +82,26 @@ event_selection:
     had_tau_decay_mode_2: "(tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)"
     had_tau_id_vs_ele: "(id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)"
     had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)"
-    double_trigger: "(trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)"
+    double_trigger: "((is_data>0.5) && ((run>=317509 && trg_double_tau35_mediumiso_hps>0.5) || (run<317509 && ((trg_double_tau35_tightiso_tightid>0.5) || (trg_double_tau40_mediumiso_tightid>0.5) || (trg_double_tau40_tightiso>0.5))))) || (is_data<0.5 && trg_double_tau35_mediumiso_hps>0.5)"
     boosted_tau_veto: "(boosted_deltaR_ditaupair > 0.8) || (boosted_deltaR_ditaupair < 0.1)"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    had_tau_id_vs_ele_1: "(gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)"
-    had_tau_id_vs_ele_2: "(gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)"
-    had_tau_id_vs_mu_1: "(gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)"
-    had_tau_id_vs_mu_2: "(gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)"
+    had_tau_id_vs_ele_1: "(id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)"
+    had_tau_id_vs_ele_2: "(id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)"
+    had_tau_id_vs_mu_1: "(id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)"
+    had_tau_id_vs_mu_2: "(id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)"
     double_trigger: "trg_wgt_double_tau_1 * trg_wgt_double_tau_2"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: 
         stitching:
-            - "DYjets"
+            # - "DYjets"
             - "Wjets"
     lumi: ""
-    Z_pt_reweighting: "ZPtMassReweightWeight"
+    # Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
 
 emb_weights:

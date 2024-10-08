@@ -49,7 +49,11 @@ def plot_FFs(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
-    ff_ratio.SetAxisRange(0, 0.5, "Y")
+    ff_ratio.SetMaximum(
+        max(ff_ratio.GetMaximum() + 0.4 * ff_ratio.GetMaximum(), 0.5)
+    )
+    ff_ratio.SetMinimum(0.)
+    # ff_ratio.SetAxisRange(0, 0.5, "Y")
     ff_ratio.SetMarkerStyle(20)
     ff_ratio.SetMarkerSize(1.2)
     ff_ratio.SetLineWidth(2)
@@ -383,6 +387,7 @@ def plot_fractions(
     era: str,
     channel: str,
     region: str,
+    fraction_name: str,
     processes: List[str],
     category: Dict[str, str],
     output_path: str,
@@ -398,6 +403,7 @@ def plot_fractions(
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
         region: Information about the fraction calculation region is added to the plot name
+        fraction_name: Name of the fraction, especially for tt channel relevant where 2 different fractions can be calculated
         processes: List of processes which are considered for the fraction calculation
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
@@ -460,10 +466,10 @@ def plot_fractions(
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            f"{output_path}/fraction_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
+            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
         )
         c.SaveAs(
-            f"{output_path}/fraction_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
+            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
         )
     log.info(out.getvalue())
     c.Close()
@@ -512,7 +518,11 @@ def plot_correction(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
-    corr_hist.SetAxisRange(0, 2, "Y")
+    # corr_hist.SetAxisRange(0, 2, "Y")
+    corr_hist.SetMaximum(
+        max(corr_hist.GetMaximum() + 0.4 * corr_hist.GetMaximum(), 2.)
+    )
+    corr_hist.SetMinimum(0.)
     corr_hist.SetMarkerStyle(20)
     corr_hist.SetMarkerSize(1.2)
     corr_hist.SetLineWidth(2)

@@ -1,6 +1,6 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "05_2024_v1"
+workdir_name: "08_2024_v1"
 era: "2018"
 channel: "mt" # options are et, mt, tt
 
@@ -10,27 +10,24 @@ target_processes:
             leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-                
-            lep_iso:
-                var_dependence: "iso_1"
-                var_bins: [0.,0.01,0.05,0.1,0.15,0.2,0.25,0.31]
-                SRlike_cuts:
-                    lep_iso: "iso_1 >= 0.0"
-                ARlike_cuts:
-                    lep_iso: "iso_1 >= 0.0"
+            subleading_lep_mass:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.] 
+            # lep_iso:
+            #     var_dependence: "iso_1"
+            #     var_bins: [0.,0.01,0.05,0.1,0.15,0.2,0.25,0.31]
+            #     SRlike_cuts:
+            #         lep_iso: "iso_1 >= 0.0"
+            #     ARlike_cuts:
+            #         lep_iso: "iso_1 >= 0.0"
                 
         DR_SR:
-            # var_dependence: "m_vis"
-            # var_bins: [0,50,75,100,120,140,160,180,250]
-            var_dependence: "deltaR_ditaupair"
-            var_bins: [2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8]
+            var_dependence: "m_vis"
+            var_bins: [0,50,75,100,120,140,160,180,250]
             SRlike_cuts:
                 lep_iso: "(iso_1 >= 0.15) && (iso_1 < 0.3)"
-                m_vis: "m_vis > 80."
             ARlike_cuts:
                 lep_iso: "(iso_1 >= 0.15) && (iso_1 < 0.3)"
-                m_vis: "m_vis > 80."
-                # deltaR_ditaupair: "deltaR_ditaupair > 3.2"
             AR_SR_cuts:
                 tau_pair_sign: "(q_1*q_2) < 0" 
             non_closure:
@@ -43,14 +40,16 @@ target_processes:
             leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-            
-            lep_iso:
-                var_dependence: "iso_1"
-                var_bins: [0.,0.01,0.05,0.1,0.15,0.2,0.25,0.31]
-                SRlike_cuts:
-                    lep_iso: "iso_1 >= 0.0"
-                ARlike_cuts:
-                    lep_iso: "iso_1 >= 0.0"
+            subleading_lep_mass:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.]
+            # lep_iso:
+            #     var_dependence: "iso_1"
+            #     var_bins: [0.,0.01,0.05,0.1,0.15,0.2,0.25,0.31]
+            #     SRlike_cuts:
+            #         lep_iso: "iso_1 >= 0.0"
+            #     ARlike_cuts:
+            #         lep_iso: "iso_1 >= 0.0"
                 
         DR_SR:
             var_dependence: "m_vis"
@@ -60,7 +59,7 @@ target_processes:
             ARlike_cuts:
                 lep_mt: "mt_1 >= 0.0"
             AR_SR_cuts:
-                nbtag: "(nbtag >= 1) || (fj_Xbb_pt > 200)"
+                nbtag: "(nbtag >= 1) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && fj_Xbb_pt > 200)"
             non_closure:
                 leading_lep_pt:
                     var_dependence: "pt_1"
@@ -71,3 +70,6 @@ target_processes:
             leading_lep_pt:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
+            subleading_lep_mass:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.]

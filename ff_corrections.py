@@ -300,6 +300,7 @@ if __name__ == "__main__":
                 config=config,
                 ff_functions=fake_factors,
                 fractions=None,
+                fractions_subleading=None,
                 output_path=save_path_plots,
                 for_corrections=True,
             )
@@ -342,6 +343,7 @@ if __name__ == "__main__":
         "QCD_subleading": dict(),
         "Wjets": dict(),
         "ttbar": dict(),
+        "ttbar_subleading": dict(),
     }
 
     if "target_processes" in corr_config:
@@ -408,12 +410,13 @@ if __name__ == "__main__":
                             for_DRtoSR=False,
                             logger=f"ff_corrections.{process}",
                         )
-                    elif process == "ttbar":
+                    elif process in ["ttbar", "ttbar_subleading"]:
                         corr = FF_ttbar.non_closure_correction(
                             config=temp_conf,
                             corr_config=corr_config,
                             sample_paths=sample_paths,
                             output_path=save_path_plots,
+                            process=process,
                             closure_variable=closure_corr,
                             evaluator=evaluator,
                             corr_evaluator=corr_evaluator,
