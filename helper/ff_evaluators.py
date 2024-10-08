@@ -61,9 +61,14 @@ class FakeFactorEvaluator:
             )
 
         # loading process fractions
-        ROOT.gInterpreter.Declare(
-            f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions");'
-        )
+        if "subleading" not in self.process:
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions");'
+            )
+        else:
+            ROOT.gInterpreter.Declare(
+                f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions_subleading");'
+            )
 
     def evaluate_subleading_lep_pt_njets(self, rdf: Any) -> Any:
         """
@@ -196,7 +201,7 @@ class FakeFactorCorrectionEvaluator:
         log.info(
             f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
-        if self.process == "QCD" and config["channel"] == "tt":
+        if self.process in ["QCD", "ttbar"] and config["channel"] == "tt":
             ROOT.gInterpreter.Declare(
                 f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_subleading_lep_pt_correction");'
             )

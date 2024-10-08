@@ -59,22 +59,24 @@ def run_ff_calculation(
             output_path=output_path,
             logger=f"ff_calculation.{process}",
         )
-    elif process == "ttbar":
-        log.info("Calculating fake factors for the ttbar process.")
+    elif process in ["ttbar", "ttbar_subleading"]:
+        log.info(f"Calculating fake factors for the {process} process.")
         log.info("-" * 50)
         result = FF_ttbar.calculation_ttbar_FFs(
             config=config,
             sample_paths=sample_paths,
             output_path=output_path,
+            process=process,
             logger=f"ff_calculation.{process}",
         )
-    elif process == "fractions":
-        log.info("Calculating the process fractions for the FF application.")
+    elif process in ["process_fractions", "process_fractions_subleading"]:
+        log.info(f"Calculating the process {process} for the FF application.")
         log.info("-" * 50)
         result = fraction_calculation(
             config=config,
             sample_paths=sample_paths,
             output_path=output_path,
+            process=process,
             logger=f"ff_calculation.{process}",
         )
     else:
@@ -102,10 +104,11 @@ if __name__ == "__main__":
     func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
 
     # start output logging
+    subcategories = list(config["target_processes"].keys())
     if "process_fractions" in config:
-        subcategories = list(config["target_processes"].keys()) + ["fractions"]
-    else:
-        subcategories = config["target_processes"].keys()
+        subcategories = subcategories + ["process_fractions"]
+    if "process_fractions_subleading" in config:
+        subcategories = subcategories + ["process_fractions_subleading"]
 
     func.setup_logger(
         log_file=save_path_plots + "/ff_calculation.log",
@@ -124,6 +127,7 @@ if __name__ == "__main__":
     # initializing the fake factor calculation
     fake_factors = dict()
     fractions = None
+    fractions_subleading = None
 
     if "target_processes" in config:
         args_list = [
@@ -131,7 +135,9 @@ if __name__ == "__main__":
             for process in config["target_processes"]
         ]
         if "process_fractions" in config:
-            args_list.append(("fractions", config, sample_paths, save_path_plots))
+            args_list.append(("process_fractions", config, sample_paths, save_path_plots))
+        if "process_fractions_subleading" in config:
+            args_list.append(("process_fractions_subleading", config, sample_paths, save_path_plots))
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
             for args, result in zip(
@@ -139,8 +145,10 @@ if __name__ == "__main__":
             ):
                 if args[0] in config["target_processes"]:
                     fake_factors[args[0]] = result
-                elif args[0] == "fractions":
+                elif args[0] == "process_fractions":
                     fractions = result
+                elif args[0] == "process_fractions_subleading":
+                    fractions_subleading = result
     else:
         raise Exception("No target processes are defined!")
 
@@ -148,6 +156,7 @@ if __name__ == "__main__":
         config=config,
         ff_functions=fake_factors,
         fractions=fractions,
+        fractions_subleading=fractions_subleading,
         output_path=save_path_ffs,
         for_corrections=False,
     )

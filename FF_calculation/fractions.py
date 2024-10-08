@@ -18,6 +18,7 @@ def fraction_calculation(
     config: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
     output_path: str,
+    process: str,
     logger: str,
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
@@ -29,6 +30,7 @@ def fraction_calculation(
         config: A dictionary with all the relevant information for the fraction calculation
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
+        process: This is relevant for fractions because for the tt channel two different fractions are calculated, one for each hadronic tau
         logger: Name of the logger that should be used
 
     Return:
@@ -42,7 +44,7 @@ def fraction_calculation(
     fractions = dict()
 
     # get config information for the fraction calculation
-    process_conf = config["process_fractions"]
+    process_conf = config[process]
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -125,28 +127,28 @@ def fraction_calculation(
 
         frac_hists = dict()
 
-        for p in config["process_fractions"]["processes"]:
+        for p in config[process]["processes"]:
             frac_hists[p] = func.calc_fraction(
                 hists=AR_hists,
                 target=p,
-                processes=config["process_fractions"]["processes"],
+                processes=config[process]["processes"],
             )
         frac_hists = func.add_fraction_variations(
             hists=frac_hists,
-            processes=config["process_fractions"]["processes"],
+            processes=config[process]["processes"],
         )
 
         SR_frac_hists = dict()
 
-        for p in config["process_fractions"]["processes"]:
+        for p in config[process]["processes"]:
             SR_frac_hists[p] = func.calc_fraction(
                 hists=SR_hists,
                 target=p,
-                processes=config["process_fractions"]["processes"],
+                processes=config[process]["processes"],
             )
         SR_frac_hists = func.add_fraction_variations(
             hists=SR_frac_hists,
-            processes=config["process_fractions"]["processes"],
+            processes=config[process]["processes"],
         )
 
         try:
@@ -164,7 +166,8 @@ def fraction_calculation(
             era=config["era"],
             channel=config["channel"],
             region="AR",
-            processes=config["process_fractions"]["processes"],
+            fraction_name=process,
+            processes=config[process]["processes"],
             category=split,
             output_path=output_path,
             logger=logger,
@@ -175,7 +178,8 @@ def fraction_calculation(
             era=config["era"],
             channel=config["channel"],
             region="SR",
-            processes=config["process_fractions"]["processes"],
+            fraction_name=process,
+            processes=config[process]["processes"],
             category=split,
             output_path=output_path,
             logger=logger,
@@ -219,7 +223,7 @@ def fraction_calculation(
             hists=AR_hists,
             era=config["era"],
             channel=config["channel"],
-            process="fraction",
+            process=process,
             region="AR",
             data=data,
             samples=samples,
@@ -232,7 +236,7 @@ def fraction_calculation(
             hists=SR_hists,
             era=config["era"],
             channel=config["channel"],
-            process="fraction",
+            process=process,
             region="SR",
             data=data,
             samples=samples,
@@ -245,7 +249,7 @@ def fraction_calculation(
     # transform histograms to fraction values for correctionlib
     fractions = func.get_yields_from_hists(
         hists=fractions,
-        processes=config["process_fractions"]["processes"],
+        processes=config[process]["processes"],
     )
 
     return fractions

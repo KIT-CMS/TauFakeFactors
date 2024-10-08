@@ -6,7 +6,7 @@ channel: "et"
 tree: "ntuple"
 analysis: "nmssm_boosted"
 
-output_path: "/ceph/nshadskiy/FFmethod/05_2024_v1_boosted"
+output_path: "/ceph/nshadskiy/FFmethod/07_2024_v1_boosted"
 
 processes:
     DYjets:
@@ -89,8 +89,8 @@ mc_weights:
     pileup: "puweight"
     lep_iso: "iso_wgt_ele_boosted_1"
     lep_id: "id_wgt_ele_boosted_1"
-    had_tau_id_anti_ele: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_Loose_2>0.5)*id_wgt_boostedtau_antiEle_Loose_2 + (id_boostedtau_antiEle_Loose_2<0.5)) + (boosted_gen_match_2!=5)
-    # had_tau_id_anti_mu: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    had_tau_id_anti_ele: "(id_boostedtau_antiEle_Loose_2>0.5)*id_wgt_boostedtau_antiEle_Loose_2 + (id_boostedtau_antiEle_Loose_2<0.5)"
+    # had_tau_id_anti_mu: "(id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)"
     single_trigger: "trg_wgt_single_ele_boosted"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era

@@ -6,7 +6,7 @@ channel: "tt"
 tree: "ntuple"
 analysis: "nmssm_boosted"
 
-output_path: "/ceph/nshadskiy/FFmethod/05_2024_v1_boosted"
+output_path: "/ceph/nshadskiy/FFmethod/07_2024_v1_boosted"
 
 processes:
     DYjets:
@@ -88,10 +88,10 @@ event_selection:
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    # had_tau_id_anti_ele_1: (boosted_gen_match_1==5) * ((id_boostedtau_antiEle_VLoose_1>0.5)*id_wgt_boostedtau_antiEle_VLoose_1 + (id_boostedtau_antiEle_VLoose_1<0.5)) + (boosted_gen_match_1!=5)
-    # had_tau_id_anti_ele_2: (boosted_gen_match_2==5) * ((id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)) + (boosted_gen_match_2!=5)
-    # had_tau_id_anti_mu_1: (boosted_gen_match_1==5) * ((id_boostedtau_antiMu_Loose_1>0.5)*id_wgt_boostedtau_antiMu_Loose_1 + (id_boostedtau_antiMu_Loose_1<0.5)) + (boosted_gen_match_1!=5)
-    # had_tau_id_anti_mu_2: (boosted_gen_match_2==5) * ((id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)) + (boosted_gen_match_2!=5)
+    # had_tau_id_anti_ele_1: "(id_boostedtau_antiEle_VLoose_1>0.5)*id_wgt_boostedtau_antiEle_VLoose_1 + (id_boostedtau_antiEle_VLoose_1<0.5)"
+    # had_tau_id_anti_ele_2: "(id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)"
+    # had_tau_id_anti_mu_1: "(id_boostedtau_antiMu_Loose_1>0.5)*id_wgt_boostedtau_antiMu_Loose_1 + (id_boostedtau_antiMu_Loose_1<0.5)"
+    # had_tau_id_anti_mu_2: "(id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)"
     trigger: "trg_wgt_fatjet * (trg_ak8pfjet400_trimmass30 > 0.5) + (trg_ak8pfjet400_trimmass30 < 0.5)"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era

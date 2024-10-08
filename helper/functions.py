@@ -222,10 +222,16 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     rdf = rdf.Redefine("q_2", "boosted_q_2")
     rdf = rdf.Redefine("mt_1", "boosted_mt_1")
     rdf = rdf.Redefine("iso_1", "boosted_iso_1")
+    rdf = rdf.Redefine("mass_2", "boosted_mass_2")
+    rdf = rdf.Redefine("tau_decaymode_2", "boosted_tau_decaymode_2")
     rdf = rdf.Redefine("deltaR_ditaupair", "boosted_deltaR_ditaupair")
     rdf = rdf.Redefine("m_vis", "boosted_m_vis")
     rdf = rdf.Redefine("fj_Xbb_pt", "fj_Xbb_pt_boosted")
     rdf = rdf.Redefine("fj_Xbb_eta", "fj_Xbb_eta_boosted")
+    rdf = rdf.Redefine("fj_Xbb_particleNet_XbbvsQCD", "fj_Xbb_particleNet_XbbvsQCD_boosted")
+    rdf = rdf.Redefine("fj_Xbb_hadflavor", "fj_Xbb_hadflavor_boosted")
+    rdf = rdf.Redefine("fj_Xbb_nBhad", "fj_Xbb_nBhad_boosted")
+    rdf = rdf.Redefine("fj_Xbb_nChad", "fj_Xbb_nChad_boosted")
     rdf = rdf.Redefine("bpair_pt_1", "bpair_pt_1_boosted")
     rdf = rdf.Redefine("bpair_pt_2", "bpair_pt_2_boosted")
     rdf = rdf.Redefine("bpair_btag_value_2", "bpair_btag_value_2_boosted")
@@ -250,6 +256,8 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
         rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
 
     if channel == "tt":
+        rdf = rdf.Redefine("mass_1", "boosted_mass_1")
+        rdf = rdf.Redefine("tau_decaymode_1", "boosted_tau_decaymode_1")
         if "boosted_gen_match_1" in rdf.GetColumnNames():
             rdf = rdf.Redefine("gen_match_1", "boosted_gen_match_1")
         else:

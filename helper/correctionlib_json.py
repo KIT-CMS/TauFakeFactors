@@ -14,7 +14,8 @@ def generate_ff_corrlib_json(
     ff_functions: Dict[
         str, Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]
     ],
-    fractions: Dict[str, Dict[str, Dict[str, List[float]]]],
+    fractions: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
+    fractions_subleading: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
     output_path: str,
     for_corrections: bool = False,
 ) -> None:
@@ -25,6 +26,7 @@ def generate_ff_corrlib_json(
         config: A dictionary with all the relevant information for the fake factors
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
         fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS]
+        fractions_subleading: Second dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS] (can be relvant for tt channel)
         output_path: Path where the generated correctionlib files should be stored
         for_corrections: Boolean which decides where the produced correctionlib file is stored, this is needed because additional fake factors are needed to calculate some corrections and therefore they are stored in a different place (default: False)
 
@@ -66,6 +68,24 @@ def generate_ff_corrlib_json(
             fraction_conf=config["process_fractions"],
             variable_info=(var, binning),
             fractions=fractions,
+            fraction_name="process_fractions",
+            uncertainties=frac_unc,
+        )
+        corrlib_corrections.append(fraction)
+    
+    if "process_fractions_subleading" in config and fractions_subleading is not None:
+        var = config["process_fractions_subleading"]["var_dependence"]
+        binning = config["process_fractions_subleading"]["var_bins"]
+
+        frac_unc = dict()
+        for process in config["process_fractions_subleading"]["processes"]:
+            frac_unc.update(gd.frac_variation_dict[process])
+
+        fraction = make_1D_fractions(
+            fraction_conf=config["process_fractions_subleading"],
+            variable_info=(var, binning),
+            fractions=fractions_subleading,
+            fraction_name="process_fractions_subleading",
             uncertainties=frac_unc,
         )
         corrlib_corrections.append(fraction)
@@ -284,7 +304,7 @@ def make_2D_ff(
 
     ff = cs.Correction(
         name=f"{process}_fake_factors",
-        description="Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
+        description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
         version=1,
         generic_formulas=None,
         inputs=[
@@ -444,6 +464,7 @@ def make_1D_fractions(
     fraction_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     fractions: Dict[str, Dict[str, Dict[str, List[float]]]],
+    fraction_name: str,
     uncertainties: Dict[str, str],
 ) -> cs.Correction:
     """
@@ -453,6 +474,8 @@ def make_1D_fractions(
         fraction_conf: A dictionary with all the relevant information for the fraction calculation
         variable_info: Tuple with information (name and binning) about the variable the fractions depends on
         fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS]
+        fraction_name: Name of the calculated fraction, relevant if more than one fraction should be added 
+        uncertainties: Dictionary of uncertainty names which should be added
 
     Return:
         Correction object from correcionlib
@@ -465,8 +488,8 @@ def make_1D_fractions(
     ]
 
     frac = cs.Correction(
-        name="process_fractions",
-        description="Calculation of process contributions (fractions) for the fake factor calculation.",
+        name=fraction_name,
+        description=f"Calculation of process contributions ({fraction_name}) for the fake factor calculation.",
         version=1,
         generic_formulas=None,
         inputs=[
@@ -500,7 +523,7 @@ def make_1D_fractions(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=unc_name,
+                    key=fraction_name + unc_name,
                     value=cs.Category(
                         nodetype="category",
                         input="process",
