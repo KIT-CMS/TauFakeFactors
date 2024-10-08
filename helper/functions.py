@@ -59,7 +59,7 @@ def load_config(config_file: str, common_config_file: Union[str, None] = None) -
         {_overwriting}
                     """
                 )
-                config.update(_config)
+            config.update(_config)
 
     except FileNotFoundError:
         print(f"Error: Config file {config_file} not found.")
