@@ -1,92 +1,98 @@
-# This is an example config containing information for the preselection
-
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/tautau_2018_v4/CROWNRun"
-era: "2018"
-channel: "tt"
-tree: "ntuple"
-analysis: "smhtt_ul"
-
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v2"
-
+channel: tt
+tree: ntuple
+analysis: smhtt_ul
 processes:
-    DYjets:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    diboson:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            # - WWTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
-            - WW_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
-            # - WZTo2Q2L_mllmin4p0_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X
-            # - WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv9-106X
-            - WZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
-            # - ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8_RunIISummer20UL18NanoAODv9-106X
-            # - ZZTo4L_TuneCP5_13TeV_powheg_pythia8_RunIISummer20UL18NanoAODv9-106X
-            - ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
-    ttbar:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "TTToHadronic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    Wjets:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    embedding:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "TauEmbedding-TauTauFinalState_Run2018A-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018B-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018C-UL2018"
-            - "TauEmbedding-TauTauFinalState_Run2018D-UL2018"
-    data:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "Tau_Run2018A-UL2018"
-            - "Tau_Run2018B-UL2018"
-            - "Tau_Run2018C-UL2018"
-            - "Tau_Run2018D-UL2018"
-
+  DYjets:
+    samples:
+      - DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ST:
+    samples:
+      - ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  Wjets:
+    samples:
+      - WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - all
+  data:
+    samples:
+      - Tau_Run2018A-UL2018
+      - Tau_Run2018B-UL2018
+      - Tau_Run2018C-UL2018
+      - Tau_Run2018D-UL2018
+    tau_gen_modes:
+      - all
+  diboson:
+    samples:
+      - WW_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - WZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  embedding:
+    samples:
+      - TauEmbedding-TauTauFinalState_Run2018A-UL2018
+      - TauEmbedding-TauTauFinalState_Run2018B-UL2018
+      - TauEmbedding-TauTauFinalState_Run2018C-UL2018
+      - TauEmbedding-TauTauFinalState_Run2018D-UL2018
+    tau_gen_modes:
+      - all
+  ttbar:
+    samples:
+      - TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - TTToHadronic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
 event_selection:
-    had_tau_pt: "(pt_1 > 40) && (pt_2 > 40)"
-    had_tau_eta: "(abs(eta_1) < 2.3) && (abs(eta_2) < 2.3)"
-    had_tau_decay_mode_1: "(tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)"
-    had_tau_decay_mode_2: "(tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)"
-    had_tau_id_vs_ele: "(id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)"
-    had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)"
-    double_trigger: "(trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)"
-
+  double_trigger: (trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)
+  had_tau_decay_mode_1: (tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)
+  had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
+  had_tau_eta: (abs(eta_1) < 2.3) && (abs(eta_2) < 2.3)
+  had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
+  had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
+  had_tau_pt: (pt_1 > 40) && (pt_2 > 40)
 mc_weights:
-    # general weights: string is passed directly as weight
-    pileup: "puweight"
-    had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
-    had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
-    had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)
-    had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
-
-    # special weights: these are not generally applied, e.g. only for a specific process or era
-    # here the string is a needed information to apply the weight -> see corresponding functions
-    generator: "stitching"
-    lumi: ""
-    Z_pt_reweighting: "ZPtMassReweightWeight"
-    Top_pt_reweighting: "topPtReweightWeight"
-
+  Top_pt_reweighting: topPtReweightWeight
+  Z_pt_reweighting: ZPtMassReweightWeight
+  generator:
+    stitching:
+      - DYjets
+      - Wjets
+  had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
+  lumi: ""
+  pileup: puweight
 emb_weights:
-    # general weights (for embedding): string is passed directly as weight
-    generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-    double_trigger: "emb_trg_wgt_1 * emb_trg_wgt_2"
+  double_trigger: emb_trg_wgt_1 * emb_trg_wgt_2
+  generator: emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt
+wps:
+  tau_vs_jet:
+    wgt:
+      - Medium
+      - Tight
+      - VTight
+    wp:
+      - VVLoose
+      - VLoose
+      - Loose
+      - Medium
+      - Tight
+      - VTight

@@ -1,108 +1,109 @@
-# This is an example config containing information for the preselection
-
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v4/CROWNRun"
-era: "2018"
-channel: "et"
-tree: "ntuple"
-analysis: "smhtt_ul"
-
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v5"
-
+channel: et
+tree: ntuple
+analysis: smhtt_ul
 processes:
-    DYjets:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    diboson:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "WW_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "WZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    ttbar:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "TTToHadronic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    Wjets:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "W1JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "W4JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    embedding:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
-            - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
-    data:
-        tau_gen_modes:
-            - "all"
-        samples:
-            - "EGamma_Run2018A-UL2018"
-            - "EGamma_Run2018B-UL2018"
-            - "EGamma_Run2018C-UL2018"
-            - "EGamma_Run2018D-UL2018"
-    ST:
-        tau_gen_modes:
-            - "J"
-            - "T"
-            - "L"
-        samples:
-            - "ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-            - "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-
+  DYjets:
+    samples:
+      - DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DY1JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DY2JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DY3JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - DY4JetsToLL_M-50_MatchEWPDG20_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ST:
+    samples:
+      - ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  Wjets:
+    samples:
+      - WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - W1JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - W4JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - all
+  data:
+    samples:
+      - EGamma_Run2018A-UL2018
+      - EGamma_Run2018B-UL2018
+      - EGamma_Run2018C-UL2018
+      - EGamma_Run2018D-UL2018
+    tau_gen_modes:
+      - all
+  diboson:
+    samples:
+      - ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - WW_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - WZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  embedding:
+    samples:
+      - TauEmbedding-ElTauFinalState_Run2018A-UL2018
+      - TauEmbedding-ElTauFinalState_Run2018B-UL2018
+      - TauEmbedding-ElTauFinalState_Run2018C-UL2018
+      - TauEmbedding-ElTauFinalState_Run2018D-UL2018
+    tau_gen_modes:
+      - all
+  ttbar:
+    samples:
+      - TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - TTToHadronic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+      - TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X
+    tau_gen_modes:
+      - J
+      - T
+      - L
 event_selection:
-    lep_pt: "pt_1 > 33"
-    had_tau_pt: "pt_2 > 30"
-    had_tau_eta: "abs(eta_2) < 2.3"
-    had_tau_decay_mode: "(tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)"
-    had_tau_id_vs_ele: "id_tau_vsEle_Tight_2 > 0.5"
-    had_tau_id_vs_mu: "id_tau_vsMu_VLoose_2 > 0.5"
-    single_trigger: "(trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)"
-
+  had_tau_decay_mode: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
+  had_tau_eta: abs(eta_2) < 2.3
+  had_tau_id_vs_ele: id_tau_vsEle_Tight_2 > 0.5
+  had_tau_id_vs_mu: id_tau_vsMu_VLoose_2 > 0.5
+  had_tau_pt: pt_2 > 30
+  lep_pt: pt_1 > 33
+  single_trigger: (trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)
 mc_weights:
-    # general weights: string is passed directly as weight
-    pileup: "puweight"
-    lep_iso: "iso_wgt_ele_1"
-    lep_id: "id_wgt_ele_1"
-    had_tau_id_vs_ele: (gen_match_2==5) * ((id_tau_vsEle_Tight_2>0.5)*id_wgt_tau_vsEle_Tight_2 + (id_tau_vsEle_Tight_2<0.5)) + (gen_match_2!=5)
-    had_tau_id_vs_mu: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
-    single_trigger: "trg_wgt_single_ele32orele35"
-
-    # special weights: these are not generally applied, e.g. only for a specific process or era
-    # here the string is a needed information to apply the weight -> see corresponding functions
-    generator: "stitching"
-    lumi: ""
-    Z_pt_reweighting: "ZPtMassReweightWeight"
-    Top_pt_reweighting: "topPtReweightWeight"
-
+  Top_pt_reweighting: topPtReweightWeight
+  Z_pt_reweighting: ZPtMassReweightWeight
+  generator:
+    stitching:
+      - DYjets
+      - Wjets
+  had_tau_id_vs_ele: (gen_match_2==5) * ((id_tau_vsEle_Tight_2>0.5)*id_wgt_tau_vsEle_Tight_2 + (id_tau_vsEle_Tight_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
+  lep_id: id_wgt_ele_1
+  lep_iso: iso_wgt_ele_1
+  lumi: ""
+  pileup: puweight
+  single_trigger: trg_wgt_single_ele32orele35
 emb_weights:
-    # general weights (for embedding): string is passed directly as weight
-    generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-    lep_iso: "iso_wgt_ele_1"
-    lep_id: "id_wgt_ele_1"
-    single_trigger: "trg_wgt_single_ele32orele35"
+  generator: emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt
+  lep_id: id_wgt_ele_1
+  lep_iso: iso_wgt_ele_1
+  single_trigger: trg_wgt_single_ele32orele35
+wps:
+  tau_vs_jet:
+    wgt:
+      - Medium
+      - Tight
+      - VTight
+    wp:
+      - VVLoose
+      - VLoose
+      - Loose
+      - Medium
+      - Tight
+      - VTight

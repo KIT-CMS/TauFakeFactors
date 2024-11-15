@@ -34,14 +34,14 @@ parser.add_argument(
     """,
 )
 parser.add_argument(
-    "--only-main-corrections",
-    action="store_true",
-    help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
-)
-parser.add_argument(
     "--skip-DRtoSR-ffs",
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for the DR to SR correction and directly calculate the corrections. This is useful if you already calculated the needed additional fake factors.",
+)
+parser.add_argument(
+    "--only-main-corrections",
+    action="store_true",
+    help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
 )
 
 
@@ -161,7 +161,7 @@ def run_non_closure_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-        
+
         closure_correction = list(
             corr_config["target_processes"][process]["DR_SR"]["non_closure"]
         )[0]
