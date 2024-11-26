@@ -4,6 +4,7 @@ Script for preprocessing n-tuples for the fake factor calculation
 
 import os
 import argparse
+import ipdb.stdout
 import yaml
 import json
 import multiprocessing
@@ -238,8 +239,8 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = gd.output_features[config["analysis"]][config["channel"]]
 
-    tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"]
-    tau_vs_jet_wgt_wps = ["Medium", "Tight"]
+    tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"] if not config.get("wps") else config["wps"]["tau_vs_jet"]["wp"]
+    tau_vs_jet_wgt_wps = ["Medium", "Tight"] if not config.get("wps") else config["wps"]["tau_vs_jet"]["wgt"]
     for wp in tau_vs_jet_wps:
         output_features.append("id_tau_vsJet_" + wp + "_2")
     for wp in tau_vs_jet_wgt_wps:

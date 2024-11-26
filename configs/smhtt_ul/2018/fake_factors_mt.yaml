@@ -1,6 +1,4 @@
 channel: mt
-tree: ntuple
-use_embedding: true
 target_processes:
   QCD:
     split_categories:

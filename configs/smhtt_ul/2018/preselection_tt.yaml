@@ -1,6 +1,4 @@
 channel: tt
-tree: ntuple
-analysis: smhtt_ul
 processes:
   DYjets:
     samples:

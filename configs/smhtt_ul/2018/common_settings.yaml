@@ -1,7 +1,14 @@
-ntuple_path: root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_production_2018UL_mt_et_tt__2024-09-27__v1/CROWNRun
-output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-09-27__v1
-file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-09-27__v1
-file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-09-27__v1
-workdir_name: ff_production_2018UL_mt_et_tt__2024-09-27__v1
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_production_2018UL_mt_et_tt__2024-11-21_v1/CROWNRun"
+output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
+
+file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
+file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
+
+workdir_name: ff_production_2018UL_mt_et_tt__2024-11-21_v1
+
 era: '2018'
+tree: ntuple
+analysis: smhtt_ul
+
+use_embedding: true
 
