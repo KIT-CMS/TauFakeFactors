@@ -58,13 +58,12 @@ processes:
       - T
       - L
 event_selection:
-  double_trigger: (trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)
   had_tau_decay_mode_1: (tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)
   had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
-  had_tau_eta: (abs(eta_1) < 2.3) && (abs(eta_2) < 2.3)
   had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
   had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
   had_tau_pt: (pt_1 > 40) && (pt_2 > 40)
+  double_trigger: (trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
   Z_pt_reweighting: ZPtMassReweightWeight
@@ -94,3 +93,12 @@ wps:
       - Medium
       - Tight
       - VTight
+
+additional_features:
+  - tau_decaymode_1
+  - tau_decaymode_2
+  - mass_1
+  - mass_2
+  - iso_1
+  - iso_2
+  - deltaR_ditaupair

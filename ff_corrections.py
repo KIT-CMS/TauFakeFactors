@@ -393,8 +393,15 @@ if __name__ == "__main__":
                             logger=f"ff_corrections.{process}",
                         )
 
-                    if process in ["QCD", "QCD_subleading"]:
-                        corr = FF_QCD.non_closure_correction(
+                    non_closure_correction_functions = {
+                        "QCD": FF_QCD.non_closure_correction,
+                        "QCD_subleading": FF_QCD.non_closure_correction,
+                        "Wjets": FF_Wjets.non_closure_correction,
+                        "ttbar": FF_ttbar.non_closure_correction,
+                        "ttbar_subleading": FF_ttbar.non_closure_correction,
+                    }
+                    try:
+                        corr = non_closure_correction_functions[process](
                             config=temp_conf,
                             corr_config=corr_config,
                             sample_paths=sample_paths,
@@ -406,31 +413,7 @@ if __name__ == "__main__":
                             for_DRtoSR=False,
                             logger=f"ff_corrections.{process}",
                         )
-                    elif process == "Wjets":
-                        corr = FF_Wjets.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            for_DRtoSR=False,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    elif process in ["ttbar", "ttbar_subleading"]:
-                        corr = FF_ttbar.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            process=process,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    else:
+                    except KeyError:
                         raise ValueError(f"Process {process} not known!")
 
                     corrections[process]["non_closure_" + closure_corr] = corr

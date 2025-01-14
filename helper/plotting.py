@@ -149,6 +149,8 @@ def plot_data_mc(
     c.SetLeftMargin(0.16)
     c.SetBottomMargin(0.12)
 
+    c.SetLogy()
+
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
         42
@@ -317,6 +319,7 @@ def plot_data_mc_ratio(
     pad1 = ROOT.TPad("pad1", "pad1", 0, 0.25, 1, 1.0)
     pad1.SetRightMargin(0.05)
     pad1.SetLeftMargin(0.16)
+    pad1.SetLogy()
     pad1.Draw()
     # Lower ratio plot is pad2
     c.cd()
@@ -368,6 +371,8 @@ def plot_data_mc_ratio(
         hist_str = "reduced"
     else:
         hist_str = "full"
+
+    c.SetLogy()
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):

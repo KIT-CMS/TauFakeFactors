@@ -8,7 +8,10 @@ import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
 import logging
-from typing import List, Dict, Union, Tuple, Any
+from typing import List, Dict, Union, Tuple, Any, Callable
+import itertools as itt
+import numdifftools as nd
+import helper.fitting_helper as fitting_helper
 
 import helper.weights as weights
 
@@ -407,6 +410,17 @@ def fit_function(
     log.info(out.getvalue())
     log.info("-" * 50)
 
+    # --------------------------------------------------------------------------------------
+    # _functions = fitting_helper.get_wrapped_functions_from_fits(
+    #     graph=graph,
+    #     bounds=(bin_edges[0], bin_edges[-1]),
+    #     do_mc_subtr_unc=do_mc_subtr_unc,
+    #     ff_hist_up=ff_hist_up,
+    #     ff_hist_down=ff_hist_down,
+    # )
+    # TODO: start from here
+
+    # --------------------------------------------------------------------------------------
     # producing correctionlib expressions for nominal and all variation
     corrlib_expressions = dict()
     # best fit

@@ -252,6 +252,11 @@ if __name__ == "__main__":
         for wp in tau_vs_jet_wgt_wps:
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
 
+    if "additional_features" in config:
+        for item in config["additional_features"]:
+            if item not in output_features:
+                output_features.append(item)
+
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config, int(args.ncores)) for process in config["processes"]]
 

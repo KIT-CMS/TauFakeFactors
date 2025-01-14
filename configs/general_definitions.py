@@ -15,9 +15,9 @@ output_features = {
         "tt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_1", "tau_decaymode_1", "mass_2", "tau_decaymode_2"],
     },
     "smhtt_ul": {
-        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
-        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto"],
-        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2"],
+        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto", "tau_decaymode_2"],
+        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2", "tau_decaymode_1"],
     },
 }
 
@@ -106,6 +106,7 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(e#tau_{h})",
+        "tau_decaymode_2": "#tau_{h}^{DM} ",
     },
     "mt": {
         "pt_1": "p_{T}(#mu) (GeV)",
@@ -123,6 +124,7 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(#mu#tau_{h})",
+        "tau_decaymode_2": "#tau_{h}^{DM}",
     },
     "tt": {
         "pt_1": "leading p_{T}(#tau_{h}) (GeV)",
@@ -139,6 +141,8 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(#tau_{h}#tau_{h})",
+        "tau_decaymode_1": "#tau_{h, 1}^{DM}",
+        "tau_decaymode_2": "#tau_{h, 2}^{DM}",
     },
 }
 # definitions to translate category cuts to readable language
@@ -147,6 +151,8 @@ category_dict = {
     "njets": "N_{jets}",
     "nbtag": "N_{b-jets}",
     "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
+    "tau_decaymode_1": "#tau_{h, 1}^{DM}",
+    "tau_decaymode_2": "#tau_{h, 2}^{DM}",
 }
 
 ### For correctionlib ###
@@ -167,6 +173,8 @@ variable_translator = {
     "QCD": "QCD",
     "Wjets": "Wjets",
     "ttbar_J": "ttbar",
+    "tau_decaymode_1": "leading_tau_decaymode",
+    "tau_decaymode_2": "subleading_tau_decaymode",
 }
 # definitions for the variable type, needed for correctionlib
 variable_type = {
@@ -181,6 +189,8 @@ variable_type = {
     "njets": "real",
     "nbtag": "real",
     "deltaR_ditaupair": "real",
+    "tau_decaymode_1": "int",
+    "tau_decaymode_2": "int",
 }
 # definitions for variable descriptions, needed for correctionlib, #var_max and #var_min are replaced later by using the variable binning
 variable_description = {
@@ -195,6 +205,8 @@ variable_description = {
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
+    "tau_decaymode_1": "decay mode of the leading tau in the tau pair; the defined categories are ",
+    "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",
 }
 # intern naming translation helper for fit uncertainties
 # naming has to match the one used in helper/ff_functions.py -> fit_function()

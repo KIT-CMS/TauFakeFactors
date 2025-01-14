@@ -67,12 +67,10 @@ processes:
       - L
 event_selection:
   had_tau_decay_mode: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
-  had_tau_eta: abs(eta_2) < 2.3
   had_tau_id_vs_ele: id_tau_vsEle_Tight_2 > 0.5
   had_tau_id_vs_mu: id_tau_vsMu_VLoose_2 > 0.5
   had_tau_pt: pt_2 > 30
-  lep_pt: pt_1 > 33
-  single_trigger: (trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)
+  lep_pt: ((pt_1 > 33) && ((trg_single_ele35  > 0.5) || (trg_single_ele32  > 0.5)))
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
   Z_pt_reweighting: ZPtMassReweightWeight
@@ -105,3 +103,12 @@ wps:
       - Medium
       - Tight
       - VTight
+
+additional_features:
+  - tau_decaymode_1
+  - tau_decaymode_2
+  - mass_1
+  - mass_2
+  - iso_1
+  - iso_2
+  - deltaR_ditaupair

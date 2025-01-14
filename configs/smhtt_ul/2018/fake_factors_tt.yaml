@@ -7,19 +7,26 @@ target_processes:
         - "==1"
         - ">=2"
     split_categories_binedges:
-      njets: [-0.5, 0.5, 1.5, 2.5]
+      njets: [-0.5, 0.5, 1.5, 12.5]
 
     SRlike_cuts:
-      tau_pair_sign: (q_1*q_2) > 0
       had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 > 0.5
       had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 > 0.5
-    ARlike_cuts:
+      # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+    ARlike_cuts:
       had_tau_id_vs_jet_1: (id_tau_vsJet_VLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
       had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 > 0.5
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
 
     var_dependence: pt_1
-    var_bins: [40, 48, 70, 100]
+    var_bins: [40, 50, 60, 70, 100]
 
   QCD_subleading:
     split_categories:
@@ -28,19 +35,26 @@ target_processes:
         - "==1"
         - ">=2"
     split_categories_binedges:
-      njets: [-0.5, 0.5, 1.5, 2.5]
+      njets: [-0.5, 0.5, 1.5, 12.5]
 
     SRlike_cuts:
-      tau_pair_sign: (q_1*q_2) > 0
       had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 > 0.5
       had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 > 0.5
-    ARlike_cuts:
+      # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+    ARlike_cuts:
       had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 > 0.5
       had_tau_id_vs_jet_2: (id_tau_vsJet_VLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
 
     var_dependence: pt_2
-    var_bins: [40, 48, 70, 100]
+    var_bins: [40, 50, 60, 70, 100]
 
 process_fractions:
   processes:
@@ -52,21 +66,26 @@ process_fractions:
       - "==1"
       - ">=2"
   split_categories_binedges:
-    njets: [-0.5, 0.5, 1.5, 2.5]
+    njets: [-0.5, 0.5, 1.5, 12.5]
 
   SR_cuts:
-    tau_pair_sign: (q_1*q_2) < 0
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
     had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 > 0.5
     had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 > 0.5
-  AR_cuts:
+    # -------------------------------------------
     tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+  AR_cuts:
     had_tau_id_vs_jet_1: (id_tau_vsJet_VLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
     had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 < 0.5
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
 
   var_dependence: m_vis
-  var_bins: [0, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 200]
+  var_bins: [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 200]
 
 process_fractions_subleading:
   processes: ["QCD"]
@@ -76,19 +95,29 @@ process_fractions_subleading:
       - "==0"
       - "==1"
       - ">=2"
+    tau_decaymode_1:
+        - "==0"
+        - "==1"
+        - "==10"
+        - "==11"
   split_categories_binedges:
-    njets: [-0.5, 0.5, 1.5, 2.5]
+    njets: [-0.5, 0.5, 1.5, 12.5]
 
   SR_cuts:
-    tau_pair_sign: (q_1*q_2) < 0
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
     had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 > 0.5
     had_tau_id_vs_jet_2: id_tau_vsJet_Tight_2 > 0.5
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
   AR_cuts:
-    tau_pair_sign: "(q_1*q_2) < 0" 
-    no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
     had_tau_id_vs_jet_1: id_tau_vsJet_Tight_1 < 0.5
     had_tau_id_vs_jet_2: (id_tau_vsJet_VLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
 
   var_dependence: m_vis
-  var_bins: [0, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 200]
+  var_bins: [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 175, 200, 225]

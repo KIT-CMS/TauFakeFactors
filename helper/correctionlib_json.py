@@ -9,6 +9,14 @@ from typing import List, Dict, Union, Tuple
 import configs.general_definitions as gd
 
 
+def get_edges(variable_info: Tuple[str, list]) -> List[Union[float, int]]:
+    return [
+        min(variable_info[1]) - 1,
+        min(variable_info[1]),
+        max(variable_info[1]),
+        max(variable_info[1]) + 1,
+    ]
+
 def generate_ff_corrlib_json(
     config: Dict[str, Union[str, Dict, List]],
     ff_functions: Dict[
@@ -72,7 +80,7 @@ def generate_ff_corrlib_json(
             uncertainties=frac_unc,
         )
         corrlib_corrections.append(fraction)
-    
+
     if "process_fractions_subleading" in config and fractions_subleading is not None:
         var = config["process_fractions_subleading"]["var_dependence"]
         binning = config["process_fractions_subleading"]["var_bins"]
@@ -195,12 +203,7 @@ def make_1D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=gd.variable_translator[variable_info[0]],
-                                edges=[
-                                    0,
-                                    min(variable_info[1]),
-                                    max(variable_info[1]),
-                                    (max(variable_info[1]) + 1),
-                                ],
+                                edges=get_edges(variable_info),
                                 content=[
                                     eval(
                                         ff_functions[cat1][unc].replace(
@@ -239,12 +242,7 @@ def make_1D_ff(
                     cs.Binning(
                         nodetype="binning",
                         input=gd.variable_translator[variable_info[0]],
-                        edges=[
-                            0,
-                            min(variable_info[1]),
-                            max(variable_info[1]),
-                            (max(variable_info[1]) + 1),
-                        ],
+                        edges=get_edges(variable_info),
                         content=[
                             eval(
                                 ff_functions[cat1]["nominal"].replace(
@@ -359,12 +357,7 @@ def make_2D_ff(
                                     cs.Binning(
                                         nodetype="binning",
                                         input=gd.variable_translator[variable_info[0]],
-                                        edges=[
-                                            0,
-                                            min(variable_info[1]),
-                                            max(variable_info[1]),
-                                            (max(variable_info[1]) + 1),
-                                        ],
+                                        edges=get_edges(variable_info),
                                         content=[
                                             eval(
                                                 ff_functions[cat1][cat2][unc].replace(
@@ -416,12 +409,7 @@ def make_2D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=gd.variable_translator[variable_info[0]],
-                                edges=[
-                                    0,
-                                    min(variable_info[1]),
-                                    max(variable_info[1]),
-                                    (max(variable_info[1]) + 1),
-                                ],
+                                edges=get_edges(variable_info),
                                 content=[
                                     eval(
                                         ff_functions[cat1][cat2]["nominal"].replace(

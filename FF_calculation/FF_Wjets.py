@@ -9,7 +9,7 @@ import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
 import logging
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Any
 
 import helper.ff_functions as func
 import helper.plotting as plotting
@@ -372,6 +372,7 @@ def non_closure_correction(
     corr_evaluator: FakeFactorCorrectionEvaluator,
     for_DRtoSR: bool,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
     """
     This function calculates non closure corrections for fake factors for W+jets.

@@ -4,18 +4,18 @@ target_processes:
     non_closure:
       subleading_lep_pt:
         var_dependence: pt_2
-        var_bins: [30, 35, 40, 45, 50, 55, 60, 70, 80, 100]
-      m_vis:
-        var_dependence: "m_vis"
-        var_bins: [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200, 250]
+        var_bins: [40, 45, 50, 55, 60, 70, 80, 100]
+      # m_vis:
+      #   var_dependence: "m_vis"
+      #   var_bins: [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200, 250]
 
     DR_SR:
       var_dependence: m_vis
-      var_bins: [0, 30, 80, 90, 100, 120, 140, 160, 180, 250]
+      var_bins: [30, 80, 90, 100, 120, 140, 160, 180, 250]
       SRlike_cuts:
-        had_tau_id_vs_jet_2: (id_tau_vsJet_VVLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
+        had_tau_id_vs_jet_2: (id_tau_vsJet_VLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
       ARlike_cuts:
-        had_tau_id_vs_jet_2: (id_tau_vsJet_VVLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
+        had_tau_id_vs_jet_2: (id_tau_vsJet_VLoose_2 > 0.5) && (id_tau_vsJet_Tight_2 < 0.5)
       AR_SR_cuts:
         tau_pair_sign: (q_1*q_2) < 0
 
@@ -28,19 +28,19 @@ target_processes:
     non_closure:
       leading_lep_pt:
         var_dependence: pt_1
-        var_bins: [30, 35, 40, 45, 50, 55, 60, 70, 80, 100]
-      m_vis:
-        var_dependence: "m_vis"
-        var_bins: [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200, 250]
+        var_bins: [40, 45, 50, 55, 60, 70, 80, 100]
+      # m_vis:
+      #   var_dependence: "m_vis"
+      #   var_bins: [0, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200, 250]
 
     DR_SR:
       var_dependence: m_vis
-      var_bins: [0, 30, 80, 90, 100, 120, 140, 160, 180, 250]
+      var_bins: [30, 80, 90, 100, 120, 140, 160, 180, 250]
 
       SRlike_cuts:
-        had_tau_id_vs_jet_1: (id_tau_vsJet_VVLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
+        had_tau_id_vs_jet_1: (id_tau_vsJet_VLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
       ARlike_cuts:
-        had_tau_id_vs_jet_1: (id_tau_vsJet_VVLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
+        had_tau_id_vs_jet_1: (id_tau_vsJet_VLoose_1 > 0.5) && (id_tau_vsJet_Tight_1 < 0.5)
       AR_SR_cuts:
         tau_pair_sign: (q_1*q_2) < 0
 

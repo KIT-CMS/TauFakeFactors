@@ -1,10 +1,10 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_production_2018UL_mt_et_tt__2024-11-21_v1/CROWNRun"
-output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1/CROWNRun"
+output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
 
-file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
-file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_production_2018UL_mt_et_tt__2024-11-21_v1
+file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
+file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
 
-workdir_name: ff_production_2018UL_mt_et_tt__2024-11-21_v1
+workdir_name: ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1_delmetests
 
 era: '2018'
 tree: ntuple
