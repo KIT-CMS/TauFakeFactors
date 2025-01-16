@@ -411,14 +411,60 @@ def fit_function(
     log.info("-" * 50)
 
     # --------------------------------------------------------------------------------------
-    # _functions = fitting_helper.get_wrapped_functions_from_fits(
-    #     graph=graph,
-    #     bounds=(bin_edges[0], bin_edges[-1]),
-    #     do_mc_subtr_unc=do_mc_subtr_unc,
-    #     ff_hist_up=ff_hist_up,
-    #     ff_hist_down=ff_hist_down,
-    # )
+    function_fit_option = "poly_best"
+    function_fit_options = {
+        **{
+            f"poly_{i}": (f"poly_{i}",) for i in range(1, 6)
+        },
+        "poly_best": tuple(f"poly_{i}" for i in range(1, 6))
+    }
+
+    try:
+        _, _ = ff_hist_up, ff_hist_down
+    except UnboundLocalError:
+        ff_hist_up, ff_hist_down = None, None
+        _do_mc_subtr_unc = False
+
+    _functions = fitting_helper.get_wrapped_functions_from_fits(
+        graph=graph,
+        bounds=(bin_edges[0], bin_edges[-1]),
+        do_mc_subtr_unc=do_mc_subtr_unc and _do_mc_subtr_unc,
+        ff_hist_up=ff_hist_up,
+        ff_hist_down=ff_hist_down,
+        function_collection=function_fit_options[function_fit_option],
+        convert_to="ROOT",
+    )
+    _functions_str = fitting_helper.get_wrapped_functions_from_fits(
+        graph=graph,
+        bounds=(bin_edges[0], bin_edges[-1]),
+        do_mc_subtr_unc=do_mc_subtr_unc and _do_mc_subtr_unc,
+        ff_hist_up=ff_hist_up,
+        ff_hist_down=ff_hist_down,
+        function_collection=function_fit_options[function_fit_option],
+        convert_to="str",
+    )
     # TODO: start from here
+
+    c1 = ROOT.TCanvas("c", "", 700, 800)
+    f1 = _functions["nominal"]
+    f2 = _functions["up"]
+    f3 = _functions["down"]
+    f1.SetLineColor(ROOT.kRed)
+    f2.SetLineColor(ROOT.kBlue)
+    f3.SetLineColor(ROOT.kGreen)
+    f1.Draw()
+    f2.Draw("SAME")
+    f3.Draw("SAME")
+    graph.Draw("E SAME")
+
+    import os
+    __i = 0
+    while os.path.exists(f"test{__i}.png"):
+        __i += 1
+
+    c1.SaveAs(f"test{__i}.png")
+
+    # import ipdb; ipdb.set_trace()
 
     # --------------------------------------------------------------------------------------
     # producing correctionlib expressions for nominal and all variation
