@@ -419,6 +419,7 @@ def fit_function(
         "poly_best": tuple(f"poly_{i}" for i in range(1, 6))
     }
 
+    _do_mc_subtr_unc = True
     try:
         _, _ = ff_hist_up, ff_hist_down
     except UnboundLocalError:
