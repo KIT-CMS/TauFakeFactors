@@ -1,261 +1,115 @@
 import itertools as itt
 import logging
-from abc import ABC, ABCMeta, abstractmethod
 from io import StringIO
-from typing import Any, Callable, Dict, Tuple, Union, Literal
+from typing import Any, Callable, Dict, Literal, Tuple, Union
 
-import numdifftools as nd
 import numpy as np
+import ROOT
 from wurlitzer import STDOUT, pipes
 
-try:
-    import ROOT
-except ImportError:
-    print("ROOT not available, functions including ROOT will not work.")
 
-    class FakeROOT:
-        TF1 = None
-        TGraphAsymmErrors = None
-        TH1 = None
-    ROOT = FakeROOT
-
-
-class _StaticMethodMeta(ABCMeta):
-    def __getattr__(cls, name):
-        if name.startswith('__') and name.endswith('__'):
-            raise AttributeError(f"{cls.__name__} has no attribute {name}")
-        func = cls._generate_nth_expression(name)
-        setattr(cls, name, staticmethod(func))
-        return func
+def func_yerr(x, par, n, func):
+    grad, eps, func_par = [], 1e-6, [par[i] for i in range(n)]
+    cov = [[par[n + i * n + j] for j in range(n)] for i in range(n)]
+    for i in range(n):
+        func_par1 = [func_par[i] for i in range(n)]
+        func_par2 = [func_par[i] for i in range(n)]
+        func_par1[i] += eps
+        func_par2[i] -= eps
+        grad.append((func(x, func_par1) - func(x, func_par2)) / (2 * eps))
+    variance = sum(sum(grad[i] * cov[i][j] * grad[j] for j in range(n)) for i in range(n))
+    variance = (variance ** (2)) ** 0.5
+    return (variance) ** 0.5
 
 
-class _Base(ABC, metaclass=_StaticMethodMeta):
-    @classmethod
-    @abstractmethod
-    def _generate_nth_expression(cls, name):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _nth_expression(x, par, n):
-        pass
-
-
-class FitFunctions(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        return sum(par[i] * x[0] ** i for i in range(n))
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n + 1)
-
-        poly_method.__name__ = name
-        poly_method.__n_par__ = int(n + 1)
-
-        return poly_method
+def str_func_yerr(x, par, n, func):
+    grad, eps, func_par = [], 1e-6, [par[i] for i in range(n)]
+    cov = [[par[n + i * n + j] for j in range(n)] for i in range(n)]
+    for i in range(n):
+        func_par1 = [func_par[i] for i in range(n)]
+        func_par2 = [func_par[i] for i in range(n)]
+        func_par1[i] += eps
+        func_par2[i] -= eps
+        grad.append(f"(({func(x, func_par1)} - {func(x, func_par2)}) / (2.0 * {eps}))")
+    variance = " + ".join(" + ".join(f"(({grad[i]}) * ({cov[i][j]}) * ({grad[j]}))" for j in range(n)) for i in range(n))
+    variance = f"((({variance}) ** (2))) ** (0.5)"
+    return f"(({variance}) ** (0.5))"
 
 
-class FitFunctionsStr(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        expr = " + ".join(f"( {par[i]} * ( x ) ** ({i}) )" for i in range(n))
+def poly_n_func(n: int) -> Tuple[Callable, Callable]:
+
+    def nominal(x, par):
+        return sum(par[i] * x[0] ** i for i in range(n + 1))
+
+    nominal.__name__ = f"poly_{n}"
+    nominal.__n_par__ = n + 1
+
+    def up(x, par):
+        nom = nominal(x, [par[i] for i in range(n + 1)])
+        unct = func_yerr(x, par, n + 1, nominal)
+        return nom + unct / 2.0
+
+    up.__name__ = f"poly_{n}_up"
+    up.__n_par__ = (n + 1) + (n + 1) * (n + 1)
+
+    def down(x, par):
+        nom = nominal(x, [par[i] for i in range(n + 1)])
+        unct = func_yerr(x, par, n + 1, nominal)
+        return nom - unct / 2.0
+
+    down.__name__ = f"poly_{n}_down"
+    down.__n_par__ = (n + 1) + (n + 1) * (n + 1)
+
+    return nominal, up, down
+
+
+def poly_n_str_func(n: int) -> Tuple[Callable, Callable]:
+
+    def nominal(x, par):
+        expr = " + ".join(f"({par[i]} * ( x ) ** ({i}))" for i in range(n + 1))
         return f"( {expr} )"
 
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
+    nominal.__name__ = f"poly_{n}"
+    nominal.__n_par__ = n + 1
 
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n + 1)
+    def up(x, par):
+        nom = nominal(x, [par[i] for i in range(n + 1)])
+        up = str_func_yerr(x, par, n + 1, nominal)
+        return f"( ( {nom} ) + ( {up} ) / 2.0 )"
 
-        poly_method.__name__ == name
+    up.__name__ = f"poly_{n}_up"
+    up.__n_par__ = (n + 1) + (n + 1) * (n + 1)
 
-        return poly_method
+    def down(x, par):
+        nom = nominal(x, [par[i] for i in range(n + 1)])
+        down = str_func_yerr(x, par, n + 1, nominal)
+        return f"( ( {nom} ) - ( {down} ) / 2.0 )"
 
+    down.__name__ = f"poly_{n}_down"
+    down.__n_par__ = (n + 1) + (n + 1) * (n + 1)
 
-class FitFunctionsYError(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        g, h, f = [], 1e-6, getattr(FitFunctions, f"poly_{int(n - 1)}")
-        p = [par[i] for i in range(n)]
-        c = [[par[n + i * n + j] for j in range(n)] for i in range(n)]
-        for i in range(n):
-            p1, p2 = [p[i] for i in range(n)], [p[i] for i in range(n)]
-            p1[i] += h
-            p2[i] -= h
-            g.append((f(x, p1) - f(x, p2)) / (2 * h))
-        u = sum(sum(g[i] * c[i][j] * g[j] for j in range(n)) for i in range(n))
-        u = (u ** (2)) ** 0.5
-        return (u) ** 0.5
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n + 1)
-
-        poly_method.__name__ == name
-
-        return poly_method
+    return nominal, up, down
 
 
-class FitFunctionsYErrorStr(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        g, h, f = [], 1e-6, getattr(FitFunctionsStr, f"poly_{int(n - 1)}")
-        p = [par[i] for i in range(n)]
-        c = [[par[n + i * n + j] for j in range(n)] for i in range(n)]
-        for i in range(n):
-            p1, p2 = [p[i] for i in range(n)], [p[i] for i in range(n)]
-            p1[i] += h
-            p2[i] -= h
-            g.append(f"( ( {f(x, p1)} - {f(x, p2)} ) / ( 2.0 * {h} ) )")
-        u = " + ".join(" + ".join(f"( ( {g[i]} ) * ( {c[i][j]} ) * ( {g[j]} ) )" for j in range(n)) for i in range(n))
-        u = f"( ( ( {u} ) ** (2) ) ) ** (0.5)"
-        return f"( ( {u} ) ** (0.5) )"
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n + 1)
-
-        poly_method.__name__ == name
-
-        return poly_method
-
-
-class FitFunctionsUp(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        _par = [par[i] for i in range(n + 1)]
-        return getattr(FitFunctions, f"poly_{int(n)}")(x, _par) + getattr(FitFunctionsYError, f"poly_{int(n)}")(x, par) / 2.0
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n)
-
-        poly_method.__name__ = name
-        poly_method.__n_par__ = int((n + 1) + (n + 1) * (n + 1))
-
-        return poly_method
-
-
-class FitFunctionsDown(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        _par = [par[i] for i in range(n + 1)]
-        return getattr(FitFunctions, f"poly_{int(n)}")(x, _par) - getattr(FitFunctionsYError, f"poly_{int(n)}")(x, par) / 2.0
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n)
-
-        poly_method.__name__ = name
-        poly_method.__n_par__ = int((n + 1) + (n + 1) * (n + 1))
-
-        return poly_method
-
-
-class FitFunctionsUpStr(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        _par = [par[i] for i in range(n + 1)]
-        f_nominal = getattr(FitFunctionsStr, f"poly_{int(n)}")(x, _par)
-        f_error = getattr(FitFunctionsYErrorStr, f"poly_{int(n)}")(x, par)
-        return f"( ( {f_nominal} ) + ( {f_error} ) / 2.0 )"
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n)
-
-        poly_method.__name__ = name
-
-        return poly_method
-
-
-class FitFunctionsDownStr(_Base):
-    @staticmethod
-    def _nth_expression(x, par, n):
-        _par = [par[i] for i in range(n + 1)]
-        f_nominal = getattr(FitFunctionsStr, f"poly_{int(n)}")(x, _par)
-        f_error = getattr(FitFunctionsYErrorStr, f"poly_{int(n)}")(x, par)
-        return f"( ( {f_nominal} ) - ( {f_error} ) / 2.0 )"
-
-    @classmethod
-    def _generate_nth_expression(cls, name):
-        n = int(name.split("_")[1])
-
-        def poly_method(x, par):
-            return cls._nth_expression(x, par, n)
-
-        poly_method.__name__ = name
-
-        return poly_method
-
-
-def _extract_par(fit: Any) -> np.ndarray:
-    return np.array(
+def extract_par_and_cov(fit: Any) -> Tuple[np.ndarray, np.ndarray]:
+    par = np.array(
         [
             fit.Get().Parameter(i)
             for i in range(fit.Get().Parameters().size())
         ],
     )
 
-
-def _extract_cov(fit: Any) -> np.ndarray:
     N = fit.Get().Parameters().size()
     cov, _cov = np.zeros((N, N)), fit.Get().GetCovarianceMatrix()
     for i, j in itt.product(range(N), range(N)):
         cov[i, j] = _cov(i, j)
-    return cov
+
+    return par, cov
 
 
-def extract_par_and_cov(fit: Any) -> Tuple[np.ndarray, np.ndarray]:
-    return _extract_par(fit), _extract_cov(fit)
-
-
-def get_wrapped_error_funcs(func, par, cov):
-    def upper_value(x):
-        return func(x, par) + np.sqrt(
-            np.apply_along_axis(
-                lambda J: J @ cov @ J.T,
-                1,
-                np.atleast_2d(nd.Gradient(lambda par: func(x, par))(par)),
-            ),
-        ) / 2
-
-    def lower_value(x):
-        return func(x, par) - np.sqrt(
-            np.apply_along_axis(
-                lambda J: J @ cov @ J.T,
-                1,
-                np.atleast_2d(nd.Gradient(lambda par: func(x, par))(par)),
-            ),
-        ) / 2
-
-    return upper_value, lower_value
-
-
-def get_wrapped_func(func, par):
-    def _f(x):
-        return func(x, par)
-    return _f
+generated_functions, generated_str_functions = {}, {}
+generated_functions.update({f"poly_{i}": poly_n_func(i) for i in range(1, 6)})
+generated_str_functions.update({f"poly_{i}": poly_n_str_func(i) for i in range(1, 6)})
 
 
 def get_wrapped_functions_from_fits(
@@ -287,7 +141,7 @@ def get_wrapped_functions_from_fits(
         function_collection (Tuple[str, ...], optional):
             Collection of functions to fit. Defaults to polynomial functions of degree 1 to 5.
             If more than one function is given, the one with the best chi2/ndf is chosen.
-            function must be defined in termy of FitFunctions (poly_<N>).
+            function must be defined `generated_functions` and `generated_str_functions`.
         verbose (bool, optional): Whether to print detailed fit information. Defaults to True.
         root_wrap (bool, optional): Whether to wrap the results in ROOT.TF1 objects. Defaults to True.
         logger (Union[str, None], optional): Logger name for logging fit information. Defaults to None.
@@ -303,25 +157,25 @@ def get_wrapped_functions_from_fits(
     best_chi2_over_ndf, name = float("inf"), ""
     TF1s_up, TF1s_down, Fits_up, Fits_down = dict(), dict(), dict(), dict()
 
-    for _func_name in function_collection:
-        _func = getattr(FitFunctions, _func_name)
-        _name, _n_par = _func.__name__, _func.__n_par__
-        TF1s[_name] = ROOT.TF1(_name, _func, a, b, _n_par)
-        Fits[_name] = graph.Fit(TF1s[_name], "SFN")
+    for func_collection_name in function_collection:
+        func, _, _ = generated_functions[func_collection_name]
+        func_name, n_pars = func.__name__, func.__n_par__
+        TF1s[func_name] = ROOT.TF1(func_name, func, a, b, n_pars)
+        Fits[func_name] = graph.Fit(TF1s[func_name], "SFN")
 
         try:
-            chi2_over_ndf = Fits[_name].Chi2() / Fits[_name].Ndf()
+            chi2_over_ndf = Fits[func_name].Chi2() / Fits[func_name].Ndf()
         except ZeroDivisionError:
             chi2_over_ndf = float("inf")
         if abs(chi2_over_ndf - 1) < abs(best_chi2_over_ndf - 1):
-            best_chi2_over_ndf, name = chi2_over_ndf, _name
+            best_chi2_over_ndf, name = chi2_over_ndf, func_name
 
             if do_mc_subtr_unc:
-                TF1s_up[_name] = ROOT.TF1(_name, _func, a, b, _n_par)
-                TF1s_down[_name] = ROOT.TF1(_name, _func, a, b, _n_par)
+                TF1s_up[func_name] = ROOT.TF1(func_name, func, a, b, n_pars)
+                TF1s_down[func_name] = ROOT.TF1(func_name, func, a, b, n_pars)
 
-                Fits_up[_name] = ff_hist_up.Fit(TF1s_up[_name], "SFN")
-                Fits_down[_name] = ff_hist_down.Fit(TF1s_down[_name], "SFN")
+                Fits_up[func_name] = ff_hist_up.Fit(TF1s_up[func_name], "SFN")
+                Fits_down[func_name] = ff_hist_down.Fit(TF1s_down[func_name], "SFN")
 
     if verbose:
         out = StringIO()
@@ -349,54 +203,40 @@ def get_wrapped_functions_from_fits(
     results = {}
 
     par, cov = extract_par_and_cov(Fits[name])
-    class_collection = (
-        FitFunctions,
-        FitFunctionsUp,
-        FitFunctionsDown,
-    ) if convert_to == "ROOT" else (
-        FitFunctionsStr,
-        FitFunctionsUpStr,
-        FitFunctionsDownStr,
-    )
-    for _k, _cls, _var in zip(
+    for _k, _func, _vars in zip(
         ["nominal", "up", "down"],
-        class_collection,
+        (generated_functions if convert_to == "ROOT" else generated_str_functions)[name],
         [par, [*par, *cov.flatten()], [*par, *cov.flatten()]],
     ):
-        _func = getattr(_cls, name)
         if convert_to == "ROOT":
             results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
-            for i, p in enumerate(_var):
+            for i, p in enumerate(_vars):
                 results[_k].SetParameter(i, p)
         else:
-            results[_k] = lambda x: _func("x", _var)
+            results[_k] = lambda x: _func("x", _vars)
 
     if do_mc_subtr_unc:
         par_up, cov_up = extract_par_and_cov(Fits_up[name])
         par_down, cov_down = extract_par_and_cov(Fits_down[name])
 
-        for _k1, _params in zip(
+        for _k1, _vars in zip(
             ("mc_up", "mc_down"),
             (
                 (par_up, [*par_up, *cov_up.flatten()], [*par_up, *cov_up.flatten()]),
                 (par_down, [*par_down, *cov_down.flatten()], [*par_down, *cov_down.flatten()]),
             )
         ):
-            for _k2, _cls, _var in zip(
+            for _k2, _func, _var in zip(
                 ("nominal", "up", "down"),
-                class_collection,
-                _params,
+                (generated_functions if convert_to == "ROOT" else generated_str_functions)[name],
+                _vars,
             ):
-                if _k is None:
-                    continue
-
-                _func = getattr(_cls, name)
-
+                _k = f"{_k1}_{_k2}"
                 if convert_to == "ROOT":
-                    results[f"{_k1}_{_k2}"] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
+                    results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
                     for i, p in enumerate(_var):
-                        results[f"{_k1}_{_k2}"].SetParameter(i, p)
+                        results[_k].SetParameter(i, p)
                 else:
-                    results[f"{_k1}_{_k2}"] = lambda x: _func("x", _var)
+                    results[_k] = lambda x: _func("x", _var)
 
     return results
