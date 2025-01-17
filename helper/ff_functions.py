@@ -414,9 +414,9 @@ def fit_function(
     function_fit_option = "poly_best"
     function_fit_options = {
         **{
-            f"poly_{i}": (f"poly_{i}",) for i in range(1, 6)
+            f"poly_{i}": (f"poly_{i}",) for i in range(0, 6)
         },
-        "poly_best": tuple(f"poly_{i}" for i in range(1, 6))
+        "poly_best": tuple(f"poly_{i}" for i in range(0, 6))
     }
 
     _do_mc_subtr_unc = True

@@ -32,8 +32,8 @@ def str_func_yerr(x, par, n, func):
         func_par2[i] -= eps
         grad.append(f"(({func(x, func_par1)} - {func(x, func_par2)}) / (2.0 * {eps}))")
     variance = " + ".join(" + ".join(f"(({grad[i]}) * ({cov[i][j]}) * ({grad[j]}))" for j in range(n)) for i in range(n))
-    variance = f"((({variance}) ** (2))) ** (0.5)"
-    return f"(({variance}) ** (0.5))"
+    variance = f"pow(pow({variance}, 2), 0.5)"
+    return f"pow({variance}, 0.5)"
 
 
 def poly_n_func(n: int) -> Tuple[Callable, Callable]:
@@ -66,7 +66,7 @@ def poly_n_func(n: int) -> Tuple[Callable, Callable]:
 def poly_n_str_func(n: int) -> Tuple[Callable, Callable]:
 
     def nominal(x, par):
-        expr = " + ".join(f"({par[i]} * ( x ) ** ({i}))" for i in range(n + 1))
+        expr = " + ".join((f"{par[i]} * pow( {x} , {i})" for i in range(n + 1)))
         return f"( {expr} )"
 
     nominal.__name__ = f"poly_{n}"
@@ -108,8 +108,8 @@ def extract_par_and_cov(fit: Any) -> Tuple[np.ndarray, np.ndarray]:
 
 
 generated_functions, generated_str_functions = {}, {}
-generated_functions.update({f"poly_{i}": poly_n_func(i) for i in range(1, 6)})
-generated_str_functions.update({f"poly_{i}": poly_n_str_func(i) for i in range(1, 6)})
+generated_functions.update({f"poly_{i}": poly_n_func(i) for i in range(0, 6)})
+generated_str_functions.update({f"poly_{i}": poly_n_str_func(i) for i in range(0, 6)})
 
 
 def get_wrapped_functions_from_fits(
