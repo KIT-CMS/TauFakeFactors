@@ -4,16 +4,18 @@ Function for calculating fake factors for the ttbar process
 
 import array
 import copy
-import ROOT
-import numpy as np
-from io import StringIO
-from wurlitzer import pipes, STDOUT
 import logging
-from typing import Union, Dict, List, Any
+from collections import defaultdict
+from io import StringIO
+from typing import Any, Dict, List, Union
+
+import numpy as np
+import ROOT
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 
 
 def calculation_ttbar_FFs(
@@ -52,7 +54,7 @@ def calculation_ttbar_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_processes"][process]
+    process_conf = defaultdict(lambda: None, config["target_processes"][process])
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -288,6 +290,7 @@ def calculation_ttbar_FFs(
             ff_hists=FF_hist.Clone(),
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf["fit_option"],
         )
 
         plotting.plot_FFs(

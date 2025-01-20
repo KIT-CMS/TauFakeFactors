@@ -59,9 +59,8 @@ color_dict = {
     "embedding": (255, 169, 14),
     "tau_fakes": (185, 172, 112),
     "data_ff": (255, 169, 14),
-    "fit_graph_slope": ROOT.kBlue,
-    "fit_graph_norm": ROOT.kRed,
     "fit_graph_mc_sub": ROOT.kGreen,
+    "fit_graph_unct": ROOT.kRed,
 }
 # definitions for process labels on the plots
 label_dict = {
@@ -84,8 +83,7 @@ label_dict = {
     "data_subtracted": "reduced Data",
     "data_ff": "Data with FFs",
     "tau_fakes": "jet#rightarrow#tau_{h}",
-    "fit_graph_slope": "best fit (slope unc.)",
-    "fit_graph_norm": "best fit (normalization unc.)",
+    "fit_graph_unct": "best fit uncertainty",
     "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
 }
 # definitions to translate variable to readable language, channel dependent
@@ -131,8 +129,8 @@ variable_dict = {
         "eta_1": "leading #eta(#tau_{h})",
         "phi_1": "leading #phi(#tau_{h})",
         "pt_2": "subleading p_{T}(#tau_{h}) (GeV)",
-        "eta_1": "subleading #eta(#tau_{h})",
-        "phi_1": "subleading #phi(#tau_{h})",
+        "eta_2": "subleading #eta(#tau_{h})",
+        "phi_2": "subleading #phi(#tau_{h})",
         "mass_1": "leading #tau_{h} mass",
         "mass_2": "subleading #tau_{h} mass",
         "m_vis": "m_{vis} (GeV)",
@@ -189,8 +187,8 @@ variable_type = {
     "njets": "real",
     "nbtag": "real",
     "deltaR_ditaupair": "real",
-    "tau_decaymode_1": "int",
-    "tau_decaymode_2": "int",
+    "tau_decaymode_1": "real",
+    "tau_decaymode_2": "real",
 }
 # definitions for variable descriptions, needed for correctionlib, #var_max and #var_min are replaced later by using the variable binning
 variable_description = {
@@ -211,41 +209,21 @@ variable_description = {
 # intern naming translation helper for fit uncertainties
 # naming has to match the one used in helper/ff_functions.py -> fit_function()
 ff_variation_dict = {
-    "QCD": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
+    **{
+        k: {
+            "unc_up": "FFuncUp",
+            "unc_down": "FFuncDown",
+            "mc_subtraction_unc_up": "FFmcSubUncUp",
+            "mc_subtraction_unc_down": "FFmcSubUncDown",
+        }
+        for k in ["QCD", "QCD_subleading", "Wjets"]
     },
-    "QCD_subleading": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
-    },
-    "Wjets": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
-    },
-    "ttbar": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-    },
-    "ttbar_subleading": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
+    **{
+        k: {
+            "unc_up": "FFuncUp",
+            "unc_down": "FFuncDown",
+        }
+        for k in ["ttbar", "ttbar_subleading"]
     },
 }
 # intern naming translation helper for fraction uncertainties

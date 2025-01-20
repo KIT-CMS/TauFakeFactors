@@ -4,16 +4,18 @@ Function for calculating fake factors for the W-jets process
 
 import array
 import copy
+import logging
+from collections import defaultdict
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import Union, Dict, List, Any
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 
 
 def calculation_Wjets_FFs(
@@ -47,7 +49,7 @@ def calculation_Wjets_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_processes"]["Wjets"]
+    process_conf = defaultdict(lambda: None, config["target_processes"]["Wjets"])
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -235,6 +237,7 @@ def calculation_Wjets_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf["fit_option"],
         )
 
         plotting.plot_FFs(

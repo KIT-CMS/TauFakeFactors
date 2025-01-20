@@ -354,7 +354,10 @@ def get_yields_from_hists(
 
 
 def fit_function(
-    ff_hists: Union[List[Any], Any], bin_edges: List[int], logger: str
+    ff_hists: Union[List[Any], Any],
+    bin_edges: List[int],
+    logger: str,
+    fit_option: Union[str, List[str], None] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """
     This function performs a linear fit of the ratio histogram. The fitted function is then used
@@ -365,18 +368,25 @@ def fit_function(
         ff_hists: Either a list of nominal and MC varied ratio histograms or only the nominal ratio histogram
         bin_edges: Bins edges of the fitted variable, needed for the graphs for plotting
         logger: Name of the logger that should be used
+        fit_option: List[str] correspond to a list of paly_n fits to be performed
+                    with best fit being the one with the lowest chi2 value and nominal and
+                    variations being > 0 in fit range.
+                    str: "poly_n" or "bin_wise", where n is the order of the polynomial fit
+                    None: default is set to "poly_1" for backward compatibility
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
     """
-    log = logging.getLogger(logger)
 
-    do_mc_subtr_unc = False
+    if fit_option is None:
+        fit_option = ["poly_1"]
+    if not isinstance(fit_option, list) and fit_option != "bin_wise":
+        fit_option = [fit_option]
+
+    do_mc_subtr_unc, ff_hist_up, ff_hist_down = False, None, None
     if isinstance(ff_hists, list):
+        ff_hist, ff_hist_up, ff_hist_down = ff_hists
         do_mc_subtr_unc = True
-        ff_hist_up = ff_hists[1]
-        ff_hist_down = ff_hists[2]
-        ff_hist = ff_hists[0]
     else:
         ff_hist = ff_hists
 
@@ -400,172 +410,74 @@ def fit_function(
 
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        # linear fit of the graph
-        fit = graph.Fit("pol1", "SFN")
-        if do_mc_subtr_unc:
-            fit_up = ff_hist_up.Fit("pol1", "SFN")
-            fit_down = ff_hist_down.Fit("pol1", "SFN")
-    log.info(out.getvalue())
-    log.info("-" * 50)
+    if isinstance(fit_option, list) and all("poly" in _name for _name in fit_option):
+        callable_functions = fitting_helper.get_wrapped_functions_from_fits(
+            graph=graph,
+            bounds=(bin_edges[0], bin_edges[-1]),
+            do_mc_subtr_unc=do_mc_subtr_unc,
+            ff_hist_up=ff_hist_up,
+            ff_hist_down=ff_hist_down,
+            function_collection=fit_option,
+            convert_to="ROOT",
+        )
+        str_functions = fitting_helper.get_wrapped_functions_from_fits(
+            graph=graph,
+            bounds=(bin_edges[0], bin_edges[-1]),
+            do_mc_subtr_unc=do_mc_subtr_unc,
+            ff_hist_up=ff_hist_up,
+            ff_hist_down=ff_hist_down,
+            function_collection=fit_option,
+            convert_to="str",
+        )
+    elif fit_option == "bin_wise":
+        raise NotImplementedError("bin_wise fit option is not implemented yet")
 
-    # --------------------------------------------------------------------------------------
-    function_fit_option = "poly_best"
-    function_fit_options = {
-        **{
-            f"poly_{i}": (f"poly_{i}",) for i in range(0, 6)
-        },
-        "poly_best": tuple(f"poly_{i}" for i in range(0, 6))
-    }
-
-    _do_mc_subtr_unc = True
-    try:
-        _, _ = ff_hist_up, ff_hist_down
-    except UnboundLocalError:
-        ff_hist_up, ff_hist_down = None, None
-        _do_mc_subtr_unc = False
-
-    _functions = fitting_helper.get_wrapped_functions_from_fits(
-        graph=graph,
-        bounds=(bin_edges[0], bin_edges[-1]),
-        do_mc_subtr_unc=do_mc_subtr_unc and _do_mc_subtr_unc,
-        ff_hist_up=ff_hist_up,
-        ff_hist_down=ff_hist_down,
-        function_collection=function_fit_options[function_fit_option],
-        convert_to="ROOT",
-    )
-    _functions_str = fitting_helper.get_wrapped_functions_from_fits(
-        graph=graph,
-        bounds=(bin_edges[0], bin_edges[-1]),
-        do_mc_subtr_unc=do_mc_subtr_unc and _do_mc_subtr_unc,
-        ff_hist_up=ff_hist_up,
-        ff_hist_down=ff_hist_down,
-        function_collection=function_fit_options[function_fit_option],
-        convert_to="str",
-    )
-    # TODO: start from here
-
-    c1 = ROOT.TCanvas("c", "", 700, 800)
-    f1 = _functions["nominal"]
-    f2 = _functions["up"]
-    f3 = _functions["down"]
-    f1.SetLineColor(ROOT.kRed)
-    f2.SetLineColor(ROOT.kBlue)
-    f3.SetLineColor(ROOT.kGreen)
-    f1.Draw()
-    f2.Draw("SAME")
-    f3.Draw("SAME")
-    graph.Draw("E SAME")
-
-    import os
-    __i = 0
-    while os.path.exists(f"test{__i}.png"):
-        __i += 1
-
-    c1.SaveAs(f"test{__i}.png")
-
-    # import ipdb; ipdb.set_trace()
-
-    # --------------------------------------------------------------------------------------
     # producing correctionlib expressions for nominal and all variation
     corrlib_expressions = dict()
-    # best fit
-    corrlib_expressions["nominal"] = f"{fit.Parameter(1)}*x+{fit.Parameter(0)}"
-    # slope parameter up/down
-    corrlib_expressions[
-        "slope_unc_up"
-    ] = f"{(fit.Parameter(1) + fit.ParError(1))}*x+{fit.Parameter(0)}"
-    corrlib_expressions[
-        "slope_unc_down"
-    ] = f"{(fit.Parameter(1) - fit.ParError(1))}*x+{fit.Parameter(0)}"
-    # normalization parameter up/down
-    corrlib_expressions[
-        "normalization_unc_up"
-    ] = f"{fit.Parameter(1)}*x+{(fit.Parameter(0) + fit.ParError(0))}"
-    corrlib_expressions[
-        "normalization_unc_down"
-    ] = f"{fit.Parameter(1)}*x+{(fit.Parameter(0) - fit.ParError(0))}"
-    # MC subtraction uncertainty up/down
-    if do_mc_subtr_unc:
-        corrlib_expressions[
-            "mc_subtraction_unc_up"
-        ] = f"{fit_up.Parameter(1)}*x+{fit_up.Parameter(0)}"
-        corrlib_expressions[
-            "mc_subtraction_unc_down"
-        ] = f"{fit_down.Parameter(1)}*x+{fit_down.Parameter(0)}"
+    corrlib_expressions["nominal"] = str_functions["nominal"]  # best fit
+    corrlib_expressions["unc_up"] = str_functions["up"]  # up variation of best fit
+    corrlib_expressions["unc_down"] = str_functions["down"]  # down variation of best fit
+    if do_mc_subtr_unc:  # MC subtraction uncertainty up/down
+        corrlib_expressions["mc_subtraction_unc_up"] = str_functions["mc_up"]
+        corrlib_expressions["mc_subtraction_unc_down"] = str_functions["mc_down"]
 
     # producing graphs of the fit results for the plots with more bins than the used histograms
-    fit_func = lambda pt: (fit.Parameter(1) * pt + fit.Parameter(0))
-    fit_func_slope_up = lambda pt: (
-        (fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_slope_down = lambda pt: (
-        (fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_norm_up = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0))
-    )
-    fit_func_norm_down = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0))
-    )
-    if do_mc_subtr_unc:
-        fit_func_up = lambda pt: (fit_up.Parameter(1) * pt + fit_up.Parameter(0))
-        fit_func_down = lambda pt: (fit_down.Parameter(1) * pt + fit_down.Parameter(0))
+    fit_func = lambda pt: callable_functions["nominal"](pt)  # noqa E731
+    fit_func_up = lambda pt: callable_functions["up"](pt)  # noqa E731
+    fit_func_down = lambda pt: callable_functions["down"](pt)  # noqa E731
 
-    y_fit = list()
-    y_fit_slope_up = list()
-    y_fit_slope_down = list()
-    y_fit_norm_up = list()
-    y_fit_norm_down = list()
     if do_mc_subtr_unc:
-        y_fit_up = list()
-        y_fit_down = list()
+        fit_func_mc_up = lambda pt: callable_functions["mc_up"](pt)  # noqa E731
+        fit_func_mc_down = lambda pt: callable_functions["mc_down"](pt)  # noqa E731
+
+    y_fit, y_fit_up, y_fit_down = [], [], []
+    if do_mc_subtr_unc:
+        y_fit_mc_up, y_fit_mc_down = [], []
 
     x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
 
     for value in x_fit:
         y_fit.append(fit_func(value))
-        y_fit_slope_up.append(abs(fit_func_slope_up(value) - fit_func(value)))
-        y_fit_slope_down.append(abs(fit_func_slope_down(value) - fit_func(value)))
-        y_fit_norm_up.append(abs(fit_func_norm_up(value) - fit_func(value)))
-        y_fit_norm_down.append(abs(fit_func_norm_down(value) - fit_func(value)))
+        y_fit_up.append(fit_func_up(value) - fit_func(value))
+        y_fit_down.append(fit_func(value) - fit_func_down(value))
         if do_mc_subtr_unc:
-            y_fit_up.append(abs(fit_func_up(value) - fit_func(value)))
-            y_fit_down.append(abs(fit_func_down(value) - fit_func(value)))
+            y_fit_mc_up.append(abs(fit_func_mc_up(value) - fit_func(value)))
+            y_fit_mc_down.append(abs(fit_func_mc_down(value) - fit_func(value)))
 
     x_fit = array.array("d", x_fit)
     y_fit = array.array("d", y_fit)
-    y_fit_slope_up = array.array("d", y_fit_slope_up)
-    y_fit_slope_down = array.array("d", y_fit_slope_down)
-    y_fit_norm_up = array.array("d", y_fit_norm_up)
-    y_fit_norm_down = array.array("d", y_fit_norm_down)
+    y_fit_up = array.array("d", y_fit_up)
+    y_fit_down = array.array("d", y_fit_down)
     if do_mc_subtr_unc:
-        y_fit_up = array.array("d", y_fit_up)
-        y_fit_down = array.array("d", y_fit_down)
+        y_fit_mc_up = array.array("d", y_fit_mc_up)
+        y_fit_mc_down = array.array("d", y_fit_mc_down)
 
-    fit_graph_slope = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_slope_down, y_fit_slope_up
-    )
-    fit_graph_norm = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_norm_down, y_fit_norm_up
-    )
+    results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
+    results["fit_graph_unct"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
     if do_mc_subtr_unc:
-        fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
-            len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
-        )
+        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(*_args, y_fit_mc_down, y_fit_mc_up)
 
-    if do_mc_subtr_unc:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-            "fit_graph_mc_sub": fit_graph_mc_sub,
-        }, corrlib_expressions
-    else:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-        }, corrlib_expressions
+    return results, corrlib_expressions
 
 
 def calculate_non_closure_correction(

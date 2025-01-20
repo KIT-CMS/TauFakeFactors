@@ -1,7 +1,7 @@
 import itertools as itt
 import logging
 from io import StringIO
-from typing import Any, Callable, Dict, Literal, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 import numpy as np
 import ROOT
@@ -65,25 +65,25 @@ def poly_n_func(n: int) -> Tuple[Callable, Callable]:
 
 def poly_n_str_func(n: int) -> Tuple[Callable, Callable]:
 
-    def nominal(x, par):
-        expr = " + ".join((f"{par[i]} * pow( {x} , {i})" for i in range(n + 1)))
+    def nominal(x, par_nominal):
+        expr = " + ".join((f"{par_nominal[i]} * pow({x}, {i})" for i in range(n + 1)))
         return f"( {expr} )"
 
     nominal.__name__ = f"poly_{n}"
     nominal.__n_par__ = n + 1
 
-    def up(x, par):
-        nom = nominal(x, [par[i] for i in range(n + 1)])
-        up = str_func_yerr(x, par, n + 1, nominal)
-        return f"( ( {nom} ) + ( {up} ) / 2.0 )"
+    def up(x, par_up):
+        _nom_up = nominal(x, [par_up[i] for i in range(nominal.__n_par__)])
+        _up = str_func_yerr(x, par_up, nominal.__n_par__, nominal)
+        return f"( ( {_nom_up} ) + ( {_up} ) / 2.0 )"
 
     up.__name__ = f"poly_{n}_up"
     up.__n_par__ = (n + 1) + (n + 1) * (n + 1)
 
-    def down(x, par):
-        nom = nominal(x, [par[i] for i in range(n + 1)])
-        down = str_func_yerr(x, par, n + 1, nominal)
-        return f"( ( {nom} ) - ( {down} ) / 2.0 )"
+    def down(x, par_down):
+        _nom_down = nominal(x, [par_down[i] for i in range(nominal.__n_par__)])
+        _down = str_func_yerr(x, par_down, nominal.__n_par__, nominal)
+        return f"( ( {_nom_down} ) - ( {_down} ) / 2.0 )"
 
     down.__name__ = f"poly_{n}_down"
     down.__n_par__ = (n + 1) + (n + 1) * (n + 1)
@@ -112,13 +112,27 @@ generated_functions.update({f"poly_{i}": poly_n_func(i) for i in range(0, 6)})
 generated_str_functions.update({f"poly_{i}": poly_n_str_func(i) for i in range(0, 6)})
 
 
+def check_function_validity_within_bounds(
+    funcs: Dict[str, Callable[..., List[float]]],
+    bounds: Tuple[float, float],
+    parameters: Dict[str, List[float]],
+) -> bool:
+    x = np.linspace(*bounds, 100)
+    keys = [
+        "nominal",
+        # "up",  # TODO: is this needed?
+        # "down",  # TODO: is this needed?
+    ]
+    return all(all(funcs[k]([it], parameters[k]) > 0 for it in x) for k in keys)
+
+
 def get_wrapped_functions_from_fits(
     graph: ROOT.TGraphAsymmErrors,
     bounds: Tuple[float, float],
     do_mc_subtr_unc: bool,
     ff_hist_up: ROOT.TH1,
     ff_hist_down: ROOT.TH1,
-    function_collection: Tuple[Callable, ...] = (
+    function_collection: Union[List[Callable], Tuple[Callable, ...]] = (
         "poly_1",
         "poly_2",
         "poly_3",
@@ -167,6 +181,20 @@ def get_wrapped_functions_from_fits(
             chi2_over_ndf = Fits[func_name].Chi2() / Fits[func_name].Ndf()
         except ZeroDivisionError:
             chi2_over_ndf = float("inf")
+
+        __par, __cov = extract_par_and_cov(Fits[func_name])
+        if not check_function_validity_within_bounds(
+            funcs=dict(zip(["nominal", "up", "down"], generated_functions[func_name])),
+            bounds=bounds,
+            parameters=dict(
+                zip(
+                    ["nominal", "up", "down"],
+                    [__par, [*__par, *__cov.flatten()], [*__par, *__cov.flatten()]],
+                )
+            ),
+        ) and len(function_collection) > 1:
+            chi2_over_ndf = float("inf")
+
         if abs(chi2_over_ndf - 1) < abs(best_chi2_over_ndf - 1):
             best_chi2_over_ndf, name = chi2_over_ndf, func_name
 
@@ -176,6 +204,9 @@ def get_wrapped_functions_from_fits(
 
                 Fits_up[func_name] = ff_hist_up.Fit(TF1s_up[func_name], "SFN")
                 Fits_down[func_name] = ff_hist_down.Fit(TF1s_down[func_name], "SFN")
+
+    if best_chi2_over_ndf == float("inf"):
+        raise ValueError("No valid function found for the given bounds.")
 
     if verbose:
         out = StringIO()
@@ -213,30 +244,21 @@ def get_wrapped_functions_from_fits(
             for i, p in enumerate(_vars):
                 results[_k].SetParameter(i, p)
         else:
-            results[_k] = lambda x: _func("x", _vars)
+            results[_k] = _func(" ( x ) ", _vars)
 
     if do_mc_subtr_unc:
-        par_up, cov_up = extract_par_and_cov(Fits_up[name])
-        par_down, cov_down = extract_par_and_cov(Fits_down[name])
-
-        for _k1, _vars in zip(
+        par_up, _ = extract_par_and_cov(Fits_up[name])
+        par_down, _ = extract_par_and_cov(Fits_down[name])
+        _func, _, _ = (generated_functions if convert_to == "ROOT" else generated_str_functions)[name]
+        for _k, _vars in zip(
             ("mc_up", "mc_down"),
-            (
-                (par_up, [*par_up, *cov_up.flatten()], [*par_up, *cov_up.flatten()]),
-                (par_down, [*par_down, *cov_down.flatten()], [*par_down, *cov_down.flatten()]),
-            )
+            (par_up, par_down)
         ):
-            for _k2, _func, _var in zip(
-                ("nominal", "up", "down"),
-                (generated_functions if convert_to == "ROOT" else generated_str_functions)[name],
-                _vars,
-            ):
-                _k = f"{_k1}_{_k2}"
-                if convert_to == "ROOT":
-                    results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
-                    for i, p in enumerate(_var):
-                        results[_k].SetParameter(i, p)
-                else:
-                    results[_k] = lambda x: _func("x", _var)
+            if convert_to == "ROOT":
+                results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
+                for i, p in enumerate(_vars):
+                    results[_k].SetParameter(i, p)
+            else:
+                results[_k] = _func(" ( x ) ", _vars)
 
     return results

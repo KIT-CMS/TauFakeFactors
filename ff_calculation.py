@@ -47,6 +47,7 @@ def run_ff_calculation(
         Depending on the "process" either a dictionary with fake factor function expressions or a dictionary with process fraction values
     """
     process, config, sample_paths, output_path = args
+    config = defaultdict(lambda: None, config)
     log = logging.getLogger(f"ff_calculation.{process}")
 
     if process in ["QCD", "QCD_subleading"]:

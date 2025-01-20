@@ -27,6 +27,7 @@ target_processes:
 
     var_dependence: pt_1
     var_bins: [40, 50, 60, 70, 100]
+    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
   QCD_subleading:
     split_categories:
@@ -55,6 +56,7 @@ target_processes:
 
     var_dependence: pt_2
     var_bins: [40, 50, 60, 70, 100]
+    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
 process_fractions:
   processes:
