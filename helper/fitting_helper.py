@@ -141,8 +141,9 @@ def get_wrapped_functions_from_fits(
     ),
     verbose: bool = True,
     logger: Union[str, None] = None,
-    convert_to: Literal["ROOT", "str"] = "ROOT",
-) -> Dict[str, ROOT.TF1]:
+    convert_to_callable: bool = True,
+    **kwargs: Dict[str, Any],
+) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
     """
     Fits a set of functions to a given graph and returns functions
     (nominal, nominal + error, nominal - error) for the best fit.
@@ -236,10 +237,10 @@ def get_wrapped_functions_from_fits(
     par, cov = extract_par_and_cov(Fits[name])
     for _k, _func, _vars in zip(
         ["nominal", "up", "down"],
-        (generated_functions if convert_to == "ROOT" else generated_str_functions)[name],
+        (generated_functions if convert_to_callable == convert_to_callable else generated_str_functions)[name],
         [par, [*par, *cov.flatten()], [*par, *cov.flatten()]],
     ):
-        if convert_to == "ROOT":
+        if convert_to_callable == convert_to_callable:
             results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
             for i, p in enumerate(_vars):
                 results[_k].SetParameter(i, p)
@@ -249,12 +250,12 @@ def get_wrapped_functions_from_fits(
     if do_mc_subtr_unc:
         par_up, _ = extract_par_and_cov(Fits_up[name])
         par_down, _ = extract_par_and_cov(Fits_down[name])
-        _func, _, _ = (generated_functions if convert_to == "ROOT" else generated_str_functions)[name]
+        _func, _, _ = (generated_functions if convert_to_callable == convert_to_callable else generated_str_functions)[name]
         for _k, _vars in zip(
             ("mc_up", "mc_down"),
             (par_up, par_down)
         ):
-            if convert_to == "ROOT":
+            if convert_to_callable == convert_to_callable:
                 results[_k] = ROOT.TF1(f"{_func.__name__}_{_k}", _func, a, b, _func.__n_par__)
                 for i, p in enumerate(_vars):
                     results[_k].SetParameter(i, p)

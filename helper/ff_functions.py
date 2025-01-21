@@ -411,44 +411,44 @@ def fit_function(
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
     if isinstance(fit_option, list) and all("poly" in _name for _name in fit_option):
-        callable_functions = fitting_helper.get_wrapped_functions_from_fits(
+        callable_expression = fitting_helper.get_wrapped_functions_from_fits(
             graph=graph,
             bounds=(bin_edges[0], bin_edges[-1]),
             do_mc_subtr_unc=do_mc_subtr_unc,
             ff_hist_up=ff_hist_up,
             ff_hist_down=ff_hist_down,
             function_collection=fit_option,
-            convert_to="ROOT",
+            convert_to_callable=True,
         )
-        str_functions = fitting_helper.get_wrapped_functions_from_fits(
+        correctionlib_expression = fitting_helper.get_wrapped_functions_from_fits(
             graph=graph,
             bounds=(bin_edges[0], bin_edges[-1]),
             do_mc_subtr_unc=do_mc_subtr_unc,
             ff_hist_up=ff_hist_up,
             ff_hist_down=ff_hist_down,
             function_collection=fit_option,
-            convert_to="str",
+            convert_to_callable=False,
         )
     elif fit_option == "bin_wise":
         raise NotImplementedError("bin_wise fit option is not implemented yet")
 
     # producing correctionlib expressions for nominal and all variation
     corrlib_expressions = dict()
-    corrlib_expressions["nominal"] = str_functions["nominal"]  # best fit
-    corrlib_expressions["unc_up"] = str_functions["up"]  # up variation of best fit
-    corrlib_expressions["unc_down"] = str_functions["down"]  # down variation of best fit
+    corrlib_expressions["nominal"] = correctionlib_expression["nominal"]  # best fit
+    corrlib_expressions["unc_up"] = correctionlib_expression["up"]  # up variation of best fit
+    corrlib_expressions["unc_down"] = correctionlib_expression["down"]  # down variation of best fit
     if do_mc_subtr_unc:  # MC subtraction uncertainty up/down
-        corrlib_expressions["mc_subtraction_unc_up"] = str_functions["mc_up"]
-        corrlib_expressions["mc_subtraction_unc_down"] = str_functions["mc_down"]
+        corrlib_expressions["mc_subtraction_unc_up"] = correctionlib_expression["mc_up"]
+        corrlib_expressions["mc_subtraction_unc_down"] = correctionlib_expression["mc_down"]
 
     # producing graphs of the fit results for the plots with more bins than the used histograms
-    fit_func = lambda pt: callable_functions["nominal"](pt)  # noqa E731
-    fit_func_up = lambda pt: callable_functions["up"](pt)  # noqa E731
-    fit_func_down = lambda pt: callable_functions["down"](pt)  # noqa E731
+    fit_func = lambda pt: callable_expression["nominal"](pt)  # noqa E731
+    fit_func_up = lambda pt: callable_expression["up"](pt)  # noqa E731
+    fit_func_down = lambda pt: callable_expression["down"](pt)  # noqa E731
 
     if do_mc_subtr_unc:
-        fit_func_mc_up = lambda pt: callable_functions["mc_up"](pt)  # noqa E731
-        fit_func_mc_down = lambda pt: callable_functions["mc_down"](pt)  # noqa E731
+        fit_func_mc_up = lambda pt: callable_expression["mc_up"](pt)  # noqa E731
+        fit_func_mc_down = lambda pt: callable_expression["mc_down"](pt)  # noqa E731
 
     y_fit, y_fit_up, y_fit_down = [], [], []
     if do_mc_subtr_unc:

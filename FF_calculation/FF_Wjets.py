@@ -237,7 +237,7 @@ def calculation_Wjets_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf["fit_option"],
+            fit_option=process_conf.get("fit_option", ("poly_1")),
         )
 
         plotting.plot_FFs(
