@@ -4,16 +4,17 @@ Function for calculating fake factors for the QCD process
 
 import array
 import copy
+import logging
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import Union, Dict, List
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 
 
 def calculation_QCD_FFs(
@@ -22,6 +23,7 @@ def calculation_QCD_FFs(
     output_path: str,
     process: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for QCD.
@@ -47,7 +49,6 @@ def calculation_QCD_FFs(
 
     # get QCD specific config information
     process_conf = config["target_processes"][process]
-
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
     )
@@ -140,8 +141,8 @@ def calculation_QCD_FFs(
                 "QCD",
             ]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
-                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
+                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)  # TODO: ask whats this magic numbers?
+                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)  # Answer: Historical reasons
         for hist in ARlike_hists:
             if hist not in [
                 "data",
@@ -163,6 +164,7 @@ def calculation_QCD_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf.get("fit_option", ("poly_1")),
         )
 
         plotting.plot_FFs(
@@ -269,6 +271,7 @@ def non_closure_correction(
     corr_evaluator: FakeFactorCorrectionEvaluator,
     for_DRtoSR: bool,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
     """
     This function calculates non closure corrections for fake factors for QCD.

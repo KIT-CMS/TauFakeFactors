@@ -34,14 +34,14 @@ parser.add_argument(
     """,
 )
 parser.add_argument(
-    "--only-main-corrections",
-    action="store_true",
-    help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
-)
-parser.add_argument(
     "--skip-DRtoSR-ffs",
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for the DR to SR correction and directly calculate the corrections. This is useful if you already calculated the needed additional fake factors.",
+)
+parser.add_argument(
+    "--only-main-corrections",
+    action="store_true",
+    help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
 )
 
 
@@ -75,45 +75,24 @@ def run_ff_calculation_for_DRtoSR(
             to_AR_SR=False,
         )
 
-        if process == "QCD":
-            log.info(
-                "Calculating fake factors for the SR-DR correction for the QCD process."
-            )
+        ff_calculation_function = {
+            "QCD": FF_QCD.calculation_QCD_FFs,
+            "QCD_subleading": FF_QCD.calculation_QCD_FFs,
+            "Wjets": FF_Wjets.calculation_Wjets_FFs,
+        }
+        result = None
+        try:
+            log.info(f"Calculating fake factors for the SR-DR correction for the {process} process.")
             log.info("-" * 50)
-            result = FF_QCD.calculation_QCD_FFs(
+            result = ff_calculation_function[process](
                 config=temp_conf,
                 sample_paths=sample_paths,
                 output_path=output_path,
                 process=process,
                 logger=f"ff_corrections.{process}",
             )
-        elif process == "QCD_subleading":
-            log.info(
-                "Calculating fake factors for the SR-DR correction for the QCD(subleading) process."
-            )
-            log.info("-" * 50)
-            result = FF_QCD.calculation_QCD_FFs(
-                config=temp_conf,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                process=process,
-                logger=f"ff_corrections.{process}",
-            )
-        elif process == "Wjets":
-            log.info(
-                "Calculating fake factors for the SR-DR correction for the Wjets process."
-            )
-            log.info("-" * 50)
-            result = FF_Wjets.calculation_Wjets_FFs(
-                config=temp_conf,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                logger=f"ff_corrections.{process}",
-            )
-        else:
-            log.info(f"No DR to SR calculation function is defined for {process}.")
-            result = None
-
+        except KeyError:
+            raise ValueError(f"Process {process} not known!")
     else:
         log.info(f"Target process {process} has no DR to SR calculation defined.")
         result = None
@@ -161,7 +140,7 @@ def run_non_closure_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-        
+
         closure_correction = list(
             corr_config["target_processes"][process]["DR_SR"]["non_closure"]
         )[0]
@@ -172,12 +151,19 @@ def run_non_closure_for_DRtoSR(
             to_AR_SR=False,
         )
 
-        if process == "QCD":
+        _rename_me = {
+            "QCD": FF_QCD.non_closure_correction,
+            "QCD_subleading": FF_QCD.non_closure_correction,
+            "Wjets": FF_Wjets.non_closure_correction,
+        }
+
+        result = None
+        try:
             log.info(
-                f"Calculating closure correction for the DR to SR correction of the QCD process dependent on {closure_correction}."
+                f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_correction}."
             )
             log.info("-" * 50)
-            result = FF_QCD.non_closure_correction(
+            result = _rename_me[process](
                 config=temp_conf,
                 corr_config=corr_config,
                 sample_paths=sample_paths,
@@ -189,47 +175,8 @@ def run_non_closure_for_DRtoSR(
                 for_DRtoSR=True,
                 logger=f"ff_corrections.{process}",
             )
-
-        elif process == "QCD_subleading":
-            log.info(
-                f"Calculating closure correction for the DR to SR correction of the QCD(subleading) process dependent on {closure_correction}."
-            )
-            log.info("-" * 50)
-            result = FF_QCD.non_closure_correction(
-                config=temp_conf,
-                corr_config=corr_config,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                process=process,
-                closure_variable=closure_correction,
-                evaluator=evaluator,
-                corr_evaluator=None,
-                for_DRtoSR=True,
-                logger=f"ff_corrections.{process}",
-            )
-
-        elif process == "Wjets":
-            log.info(
-                f"Calculating closure correction for the DR to SR correction of the Wjets process dependent on {closure_correction}."
-            )
-            log.info("-" * 50)
-            result = FF_Wjets.non_closure_correction(
-                config=temp_conf,
-                corr_config=corr_config,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                closure_variable=closure_correction,
-                evaluator=evaluator,
-                corr_evaluator=None,
-                for_DRtoSR=True,
-                logger=f"ff_corrections.{process}",
-            )
-        else:
-            log.info(
-                f"No closure correction function for DR to SR calculation is defined for {process}."
-            )
-            result = None
-
+        except KeyError:
+            raise ValueError(f"Process {process} not known!")
     else:
         log.info(
             f"Target process {process} has no closure correction for DR to SR calculation defined."
@@ -393,8 +340,15 @@ if __name__ == "__main__":
                             logger=f"ff_corrections.{process}",
                         )
 
-                    if process in ["QCD", "QCD_subleading"]:
-                        corr = FF_QCD.non_closure_correction(
+                    non_closure_correction_functions = {
+                        "QCD": FF_QCD.non_closure_correction,
+                        "QCD_subleading": FF_QCD.non_closure_correction,
+                        "Wjets": FF_Wjets.non_closure_correction,
+                        "ttbar": FF_ttbar.non_closure_correction,
+                        "ttbar_subleading": FF_ttbar.non_closure_correction,
+                    }
+                    try:
+                        corr = non_closure_correction_functions[process](
                             config=temp_conf,
                             corr_config=corr_config,
                             sample_paths=sample_paths,
@@ -406,31 +360,7 @@ if __name__ == "__main__":
                             for_DRtoSR=False,
                             logger=f"ff_corrections.{process}",
                         )
-                    elif process == "Wjets":
-                        corr = FF_Wjets.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            for_DRtoSR=False,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    elif process in ["ttbar", "ttbar_subleading"]:
-                        corr = FF_ttbar.non_closure_correction(
-                            config=temp_conf,
-                            corr_config=corr_config,
-                            sample_paths=sample_paths,
-                            output_path=save_path_plots,
-                            process=process,
-                            closure_variable=closure_corr,
-                            evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
-                            logger=f"ff_corrections.{process}",
-                        )
-                    else:
+                    except KeyError:
                         raise ValueError(f"Process {process} not known!")
 
                     corrections[process]["non_closure_" + closure_corr] = corr

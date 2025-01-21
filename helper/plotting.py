@@ -17,6 +17,7 @@ def plot_FFs(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    draw_option: str = "fit",
 ) -> None:
     """
     Function which produces a fake factor plot.
@@ -82,7 +83,7 @@ def plot_FFs(
     legend.SetTextAlign(12)
     legend.AddEntry(ff_ratio, "measured", "lep")
     for unc in uncertainties:
-        legend.AddEntry(uncertainties[unc], gd.label_dict[unc], "fl")
+        legend.AddEntry(uncertainties[unc], gd.label_dict[unc][draw_option], "fl")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()
@@ -148,6 +149,8 @@ def plot_data_mc(
     c.SetRightMargin(0.05)
     c.SetLeftMargin(0.16)
     c.SetBottomMargin(0.12)
+
+    c.SetLogy()
 
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
@@ -317,6 +320,7 @@ def plot_data_mc_ratio(
     pad1 = ROOT.TPad("pad1", "pad1", 0, 0.25, 1, 1.0)
     pad1.SetRightMargin(0.05)
     pad1.SetLeftMargin(0.16)
+    pad1.SetLogy()
     pad1.Draw()
     # Lower ratio plot is pad2
     c.cd()
@@ -368,6 +372,8 @@ def plot_data_mc_ratio(
         hist_str = "reduced"
     else:
         hist_str = "full"
+
+    c.SetLogy()
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):

@@ -4,16 +4,18 @@ Function for calculating fake factors for the W-jets process
 
 import array
 import copy
+import logging
+from collections import defaultdict
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import Union, Dict, List
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 
 
 def calculation_Wjets_FFs(
@@ -21,6 +23,7 @@ def calculation_Wjets_FFs(
     sample_paths: List[str],
     output_path: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for W+jets.
@@ -47,7 +50,7 @@ def calculation_Wjets_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_processes"]["Wjets"]
+    process_conf = defaultdict(lambda: None, config["target_processes"]["Wjets"])
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -235,6 +238,7 @@ def calculation_Wjets_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf.get("fit_option", ("poly_1")),
         )
 
         plotting.plot_FFs(
@@ -247,6 +251,7 @@ def calculation_Wjets_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=process_conf.get("fit_option", "fit")
         )
 
         if len(split) == 1:
@@ -372,6 +377,7 @@ def non_closure_correction(
     corr_evaluator: FakeFactorCorrectionEvaluator,
     for_DRtoSR: bool,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
     """
     This function calculates non closure corrections for fake factors for W+jets.

@@ -15,9 +15,9 @@ output_features = {
         "tt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_1", "tau_decaymode_1", "mass_2", "tau_decaymode_2"],
     },
     "smhtt_ul": {
-        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
-        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto"],
-        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto"],
+        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2"],
+        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto", "tau_decaymode_2"],
+        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2", "tau_decaymode_1"],
     },
 }
 
@@ -59,9 +59,8 @@ color_dict = {
     "embedding": (255, 169, 14),
     "tau_fakes": (185, 172, 112),
     "data_ff": (255, 169, 14),
-    "fit_graph_slope": ROOT.kBlue,
-    "fit_graph_norm": ROOT.kRed,
     "fit_graph_mc_sub": ROOT.kGreen,
+    "fit_graph_unc": ROOT.kRed,
 }
 # definitions for process labels on the plots
 label_dict = {
@@ -84,9 +83,14 @@ label_dict = {
     "data_subtracted": "reduced Data",
     "data_ff": "Data with FFs",
     "tau_fakes": "jet#rightarrow#tau_{h}",
-    "fit_graph_slope": "best fit (slope unc.)",
-    "fit_graph_norm": "best fit (normalization unc.)",
-    "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
+    "fit_graph_unc": {
+        "fit": "best fit uncertainty",
+        "hist": "FF",
+    },
+    "fit_graph_mc_sub": {
+        "fit": "best fit (MC subtraction unc.)",
+        "hist": "FF (MC subtraction unc.)",
+    },
 }
 # definitions to translate variable to readable language, channel dependent
 variable_dict = {
@@ -106,6 +110,7 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(e#tau_{h})",
+        "tau_decaymode_2": "#tau_{h}^{DM} ",
     },
     "mt": {
         "pt_1": "p_{T}(#mu) (GeV)",
@@ -123,14 +128,15 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(#mu#tau_{h})",
+        "tau_decaymode_2": "#tau_{h}^{DM}",
     },
     "tt": {
         "pt_1": "leading p_{T}(#tau_{h}) (GeV)",
         "eta_1": "leading #eta(#tau_{h})",
         "phi_1": "leading #phi(#tau_{h})",
         "pt_2": "subleading p_{T}(#tau_{h}) (GeV)",
-        "eta_1": "subleading #eta(#tau_{h})",
-        "phi_1": "subleading #phi(#tau_{h})",
+        "eta_2": "subleading #eta(#tau_{h})",
+        "phi_2": "subleading #phi(#tau_{h})",
         "mass_1": "leading #tau_{h} mass",
         "mass_2": "subleading #tau_{h} mass",
         "m_vis": "m_{vis} (GeV)",
@@ -139,6 +145,8 @@ variable_dict = {
         "njets": "number of jets",
         "nbtag": "number of b-tagged jets",
         "deltaR_ditaupair": "#DeltaR(#tau_{h}#tau_{h})",
+        "tau_decaymode_1": "#tau_{h, 1}^{DM}",
+        "tau_decaymode_2": "#tau_{h, 2}^{DM}",
     },
 }
 # definitions to translate category cuts to readable language
@@ -147,6 +155,8 @@ category_dict = {
     "njets": "N_{jets}",
     "nbtag": "N_{b-jets}",
     "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
+    "tau_decaymode_1": "#tau_{h, 1}^{DM}",
+    "tau_decaymode_2": "#tau_{h, 2}^{DM}",
 }
 
 ### For correctionlib ###
@@ -167,6 +177,8 @@ variable_translator = {
     "QCD": "QCD",
     "Wjets": "Wjets",
     "ttbar_J": "ttbar",
+    "tau_decaymode_1": "leading_tau_decaymode",
+    "tau_decaymode_2": "subleading_tau_decaymode",
 }
 # definitions for the variable type, needed for correctionlib
 variable_type = {
@@ -181,6 +193,8 @@ variable_type = {
     "njets": "real",
     "nbtag": "real",
     "deltaR_ditaupair": "real",
+    "tau_decaymode_1": "real",
+    "tau_decaymode_2": "real",
 }
 # definitions for variable descriptions, needed for correctionlib, #var_max and #var_min are replaced later by using the variable binning
 variable_description = {
@@ -195,45 +209,27 @@ variable_description = {
     "njets": "number of jets in an event; the defined categories are ",
     "nbtag": "number of b-tagged jets in an event; the defined categories are ",
     "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
+    "tau_decaymode_1": "decay mode of the leading tau in the tau pair; the defined categories are ",
+    "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",
 }
 # intern naming translation helper for fit uncertainties
 # naming has to match the one used in helper/ff_functions.py -> fit_function()
 ff_variation_dict = {
-    "QCD": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
+    **{
+        k: {
+            "unc_up": "FFuncUp",
+            "unc_down": "FFuncDown",
+            "mc_subtraction_unc_up": "FFmcSubUncUp",
+            "mc_subtraction_unc_down": "FFmcSubUncDown",
+        }
+        for k in ["QCD", "QCD_subleading", "Wjets"]
     },
-    "QCD_subleading": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
-    },
-    "Wjets": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-        "mc_subtraction_unc_up": "FFmcSubUncUp",
-        "mc_subtraction_unc_down": "FFmcSubUncDown",
-    },
-    "ttbar": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
-    },
-    "ttbar_subleading": {
-        "slope_unc_up": "FFslopeUncUp",
-        "slope_unc_down": "FFslopeUncDown",
-        "normalization_unc_up": "FFnormUncUp",
-        "normalization_unc_down": "FFnormUncDown",
+    **{
+        k: {
+            "unc_up": "FFuncUp",
+            "unc_down": "FFuncDown",
+        }
+        for k in ["ttbar", "ttbar_subleading"]
     },
 }
 # intern naming translation helper for fraction uncertainties
