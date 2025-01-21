@@ -23,6 +23,7 @@ def calculation_Wjets_FFs(
     sample_paths: List[str],
     output_path: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for W+jets.
@@ -250,6 +251,7 @@ def calculation_Wjets_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=process_conf.get("fit_option", "fit")
         )
 
         if len(split) == 1:

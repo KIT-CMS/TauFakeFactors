@@ -17,6 +17,7 @@ def plot_FFs(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    draw_option: str = "fit",
 ) -> None:
     """
     Function which produces a fake factor plot.
@@ -82,7 +83,7 @@ def plot_FFs(
     legend.SetTextAlign(12)
     legend.AddEntry(ff_ratio, "measured", "lep")
     for unc in uncertainties:
-        legend.AddEntry(uncertainties[unc], gd.label_dict[unc], "fl")
+        legend.AddEntry(uncertainties[unc], gd.label_dict[unc][draw_option], "fl")
     legend.Draw("SAME")
 
     text = ROOT.TLatex()

@@ -263,3 +263,76 @@ def get_wrapped_functions_from_fits(
                 results[_k] = _func(" ( x ) ", _vars)
 
     return results
+
+
+# ---
+
+def _hist(
+    hist: ROOT.TH1F,
+    return_callable: bool = True,
+) -> Tuple[Callable, List[float], List[float]]:
+
+    _nominal, _up, _down, _edges = [], [], [], []
+    for i in range(1, hist.GetNbinsX() + 1):
+        _nominal.append(hist.GetBinContent(i))
+        _up.append(hist.GetBinContent(i) + hist.GetBinErrorUp(i))
+        _down.append(hist.GetBinContent(i) - hist.GetBinErrorLow(i))
+        _edges.append((hist.GetBinLowEdge(i), hist.GetBinLowEdge(i + 1)))
+
+    def nominal(x):
+        if x < _edges[0][0]:
+            return _nominal[0]
+        elif x >= _edges[-1][1]:
+            return _nominal[-1]
+        else:
+            for value, window in zip(_nominal, _edges):
+                if x >= window[0] and x < window[1]:
+                    return value
+
+    def up(x):
+        if x < _edges[0][0]:
+            return _up[0]
+        elif x >= _edges[-1][1]:
+            return _up[-1]
+        else:
+            for value, window in zip(_up, _edges):
+                if x >= window[0] and x < window[1]:
+                    return value
+
+    def down(x):
+        if x < _edges[0][0]:
+            return _down[0]
+        elif x >= _edges[-1][1]:
+            return _down[-1]
+        else:
+            for value, window in zip(_down, _edges):
+                if x >= window[0] and x < window[1]:
+                    return value
+
+    return (nominal, up, down) if return_callable else (_nominal, _up, _down)
+
+
+def get_wrapped_hists(
+    ff_hist: ROOT.TH1,
+    ff_hist_up: ROOT.TH1,
+    ff_hist_down: ROOT.TH1,
+    do_mc_subtr_unc: bool,
+    convert_to_callable: bool = True,
+    **kwargs: Dict[str, Any],
+) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
+
+    results = dict(
+        zip(
+            ["nominal", "up", "down"],
+            _hist(ff_hist, return_callable=convert_to_callable),
+        )
+    )
+    if do_mc_subtr_unc:
+        results.update(
+            {
+                "mc_up": _hist(ff_hist_up, return_callable=convert_to_callable)[0],
+                "mc_down": _hist(ff_hist_down, return_callable=convert_to_callable)[0],
+            }
+        )
+
+    return results

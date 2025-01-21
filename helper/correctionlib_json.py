@@ -10,33 +10,34 @@ import rich
 import configs.general_definitions as gd
 
 
-def get_edges(variable_info: Tuple[str, list]) -> List[Union[float, int]]:
-    return [
-        min(variable_info[1]) - 1,
-        min(variable_info[1]),
-        max(variable_info[1]),
-        max(variable_info[1]) + 1,
-    ]
-
-
-def get_ff_content(
+def get_edges_and_content(
     item: Union[str, Any],
-    variable_info
-) -> List:
+    variable_info: Tuple[str, list],
+):
     if isinstance(item, str):
-        return [
-            eval(item.replace("x", str(min(variable_info[1])))),
-            cs.Formula(
-                nodetype="formula",
-                variables=[gd.variable_translator[variable_info[0]]],
-                parser="TFormula",
-                expression=item,
-                parameters=None,
-            ),
-            eval(item.replace("x", str(max(variable_info[1])))),
-        ]
-    else:
-        raise NotImplementedError("Non string items are not supported yet.")
+        return {
+            "edges": [
+                min(variable_info[1]) - 1,
+                min(variable_info[1]),
+                max(variable_info[1]),
+                max(variable_info[1]) + 1,
+            ],
+            "content": [
+                eval(item.replace("x", str(min(variable_info[1])))),
+                cs.Formula(
+                    nodetype="formula",
+                    variables=[gd.variable_translator[variable_info[0]]],
+                    parser="TFormula",
+                    expression=item,
+                    parameters=None,
+                ),
+                eval(item.replace("x", str(max(variable_info[1])))),
+            ],
+        }
+    return {
+        "edges": variable_info[1],
+        "content": item,
+    }
 
 
 def write_json(path: str, item: Union[cs.CorrectionSet, cs.Correction]) -> None:
@@ -206,8 +207,7 @@ def make_1D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=gd.variable_translator[variable_info[0]],
-                                edges=get_edges(variable_info),
-                                content=get_ff_content(ff_functions[cat1][unc], variable_info),
+                                **get_edges_and_content(ff_functions[cat1][unc], variable_info),
                                 flow="clamp",
                             )
                             for cat1 in ff_functions
@@ -225,8 +225,7 @@ def make_1D_ff(
                     cs.Binning(
                         nodetype="binning",
                         input=gd.variable_translator[variable_info[0]],
-                        edges=get_edges(variable_info),
-                        content=get_ff_content(ff_functions[cat1]["nominal"], variable_info),
+                        **get_edges_and_content(ff_functions[cat1]["nominal"], variable_info),
                         flow="clamp",
                     )
                     for cat1 in ff_functions
@@ -318,8 +317,7 @@ def make_2D_ff(
                                     cs.Binning(
                                         nodetype="binning",
                                         input=gd.variable_translator[variable_info[0]],
-                                        edges=get_edges(variable_info),
-                                        content=get_ff_content(ff_functions[cat1][cat2][unc], variable_info),
+                                        **get_edges_and_content(ff_functions[cat1][cat2][unc], variable_info),
                                         flow="clamp",
                                     )
                                     for cat2 in ff_functions[cat1]
@@ -346,8 +344,7 @@ def make_2D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=gd.variable_translator[variable_info[0]],
-                                edges=get_edges(variable_info),
-                                content=get_ff_content(ff_functions[cat1][cat2]["nominal"], variable_info),
+                                **get_edges_and_content(ff_functions[cat1][cat2]["nominal"], variable_info),
                                 flow="clamp",
                             )
                             for cat2 in ff_functions[cat1]

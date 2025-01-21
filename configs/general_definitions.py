@@ -60,7 +60,7 @@ color_dict = {
     "tau_fakes": (185, 172, 112),
     "data_ff": (255, 169, 14),
     "fit_graph_mc_sub": ROOT.kGreen,
-    "fit_graph_unct": ROOT.kRed,
+    "fit_graph_unc": ROOT.kRed,
 }
 # definitions for process labels on the plots
 label_dict = {
@@ -83,8 +83,14 @@ label_dict = {
     "data_subtracted": "reduced Data",
     "data_ff": "Data with FFs",
     "tau_fakes": "jet#rightarrow#tau_{h}",
-    "fit_graph_unct": "best fit uncertainty",
-    "fit_graph_mc_sub": "best fit (MC subtraction unc.)",
+    "fit_graph_unc": {
+        "fit": "best fit uncertainty",
+        "hist": "FF",
+    },
+    "fit_graph_mc_sub": {
+        "fit": "best fit (MC subtraction unc.)",
+        "hist": "FF (MC subtraction unc.)",
+    },
 }
 # definitions to translate variable to readable language, channel dependent
 variable_dict = {

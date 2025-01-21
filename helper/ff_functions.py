@@ -410,27 +410,30 @@ def fit_function(
 
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
-    if isinstance(fit_option, list) and all("poly" in _name for _name in fit_option):
-        callable_expression = fitting_helper.get_wrapped_functions_from_fits(
-            graph=graph,
-            bounds=(bin_edges[0], bin_edges[-1]),
-            do_mc_subtr_unc=do_mc_subtr_unc,
-            ff_hist_up=ff_hist_up,
-            ff_hist_down=ff_hist_down,
-            function_collection=fit_option,
-            convert_to_callable=True,
-        )
-        correctionlib_expression = fitting_helper.get_wrapped_functions_from_fits(
-            graph=graph,
-            bounds=(bin_edges[0], bin_edges[-1]),
-            do_mc_subtr_unc=do_mc_subtr_unc,
-            ff_hist_up=ff_hist_up,
-            ff_hist_down=ff_hist_down,
-            function_collection=fit_option,
-            convert_to_callable=False,
-        )
-    elif fit_option == "bin_wise":
-        raise NotImplementedError("bin_wise fit option is not implemented yet")
+    retrival_function = fitting_helper.get_wrapped_functions_from_fits
+    if fit_option == "bin_wise":
+        retrival_function = fitting_helper.get_wrapped_hists
+
+    callable_expression = retrival_function(
+        graph=graph,
+        bounds=(bin_edges[0], bin_edges[-1]),
+        do_mc_subtr_unc=do_mc_subtr_unc,
+        ff_hist=ff_hist,
+        ff_hist_up=ff_hist_up,
+        ff_hist_down=ff_hist_down,
+        function_collection=fit_option,
+        convert_to_callable=True,
+    )
+    correctionlib_expression = retrival_function(
+        graph=graph,
+        bounds=(bin_edges[0], bin_edges[-1]),
+        do_mc_subtr_unc=do_mc_subtr_unc,
+        ff_hist=ff_hist,
+        ff_hist_up=ff_hist_up,
+        ff_hist_down=ff_hist_down,
+        function_collection=fit_option,
+        convert_to_callable=False,
+    )
 
     # producing correctionlib expressions for nominal and all variation
     corrlib_expressions = dict()
@@ -473,7 +476,7 @@ def fit_function(
         y_fit_mc_down = array.array("d", y_fit_mc_down)
 
     results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
-    results["fit_graph_unct"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
+    results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
     if do_mc_subtr_unc:
         results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(*_args, y_fit_mc_down, y_fit_mc_up)
 
