@@ -17,7 +17,7 @@ import ROOT
 import helper.filters as filters
 import helper.weights as weights
 import helper.functions as func
-import configs.general_definitions as gd
+# import configs.general_definitions as gd
 
 
 parser = argparse.ArgumentParser()
@@ -28,6 +28,7 @@ parser.add_argument(
     help="Path to the config file which contains information for the preselection step.",
 )
 parser.add_argument(
+    "-c",
     "--common-config-file",
     default=None,
     help="""
@@ -134,12 +135,12 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]]]) -> Non
         if process in ["data", "embedding"]:
             if "btag_weight" not in rdf.GetColumnNames():
                 rdf = rdf.Define("btag_weight", "1.")
-            for wp in tau_iso_wps:
+            for wp in config["tau_iso_wgt_wps"]:
                 weightname = "id_wgt_boostedtau_iso_" + wp + "_2"
                 if weightname not in rdf.GetColumnNames():
                     rdf = rdf.Define(weightname, "1.")
             if config["channel"] == "tt":
-                for wp in tau_iso_wps:
+                for wp in config["tau_iso_wgt_wps"]:
                     weightname = "id_wgt_boostedtau_iso_" + wp + "_1"
                     if weightname not in rdf.GetColumnNames():
                         rdf = rdf.Define(weightname, "1.")
@@ -222,7 +223,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    config = func.load_config(args.config_file, args.common_config_file)
+    config = func.load_config(args.config_file)
 
     # loading general dataset info file for xsec and event number
     with open("datasets/datasets.json", "r") as file:
@@ -241,16 +242,18 @@ if __name__ == "__main__":
     )
 
     # get needed features for fake factor calculation
-    output_features = gd.output_features[config["analysis"]][config["channel"]]
+    output_features = config["output_features"] # gd.output_features[config["analysis"]][config["channel"]]
 
-    tau_iso_wps = ["VLoose", "Loose", "Medium"]
-    for wp in tau_iso_wps:
+    # tau_iso_wps = ["VLoose", "Loose", "Medium"]
+    for wp in config["tau_iso_wps"]:
         output_features.append("id_boostedtau_iso_" + wp + "_2")
+    for wp in config["tau_iso_wgt_wps"]:
         output_features.append("id_wgt_boostedtau_iso_" + wp + "_2")
 
     if config["channel"] == "tt":
-        for wp in tau_iso_wps:
+        for wp in config["tau_iso_wps"]:
             output_features.append("id_boostedtau_iso_" + wp + "_1")
+        for wp in config["tau_iso_wgt_wps"]:
             output_features.append("id_wgt_boostedtau_iso_" + wp + "_1")
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers

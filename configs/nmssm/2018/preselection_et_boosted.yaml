@@ -1,12 +1,6 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
-era: "2018"
-channel: "mt"
-tree: "ntuple"
-analysis: "nmssm_boosted"
-
-output_path: "/ceph/nshadskiy/FFmethod/07_2024_v1_boosted"
+channel: "et"
 
 processes:
     DYjets:
@@ -62,36 +56,36 @@ processes:
     #     tau_gen_modes:
     #         - "all"
     #     samples:
-    #         - "TauEmbedding-MuTauFinalState_Run2018A-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018B-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018C-UL2018"
-    #         - "TauEmbedding-MuTauFinalState_Run2018D-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
+    #         - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
     data:
         tau_gen_modes:
             - "all"
         samples:
-            - "SingleMuon_Run2018A-UL2018_GT36"
-            - "SingleMuon_Run2018B-UL2018_GT36"
-            - "SingleMuon_Run2018C-UL2018_GT36"
-            - "SingleMuon_Run2018D-UL2018_GT36"
+            - "EGamma_Run2018A-UL2018"
+            - "EGamma_Run2018B-UL2018"
+            - "EGamma_Run2018C-UL2018"
+            - "EGamma_Run2018D-UL2018"
 
 event_selection:
-    # lep_pt: "boosted_pt_1 > 55"
+    # lep_pt: "boosted_pt_1 > 120"
     had_tau_pt: "boosted_pt_2 > 40"
     had_tau_eta: "abs(boosted_eta_2) < 2.3"
     had_tau_decay_mode: "(boosted_tau_decaymode_2 == 0) || (boosted_tau_decaymode_2 == 1) || (boosted_tau_decaymode_2 == 10)"
-    had_tau_id_anti_ele: "id_boostedtau_antiEle_VLoose_2 > 0.5"
-    had_tau_id_anti_mu: "id_boostedtau_antiMu_Loose_2 > 0.5"
-    single_trigger: "((trg_single_mu50_boosted > 0.5 || trg_single_oldMu100_boosted > 0.5 || trg_single_tkmu100_boosted > 0.5) && (boosted_pt_1 >= 55)) || ((trg_single_mu24_boosted > 0.5) && (boosted_iso_1 < 0.3) && (boosted_pt_1 >= 25) && (boosted_pt_1 < 55))"
+    had_tau_id_anti_ele: "id_boostedtau_antiEle_Loose_2 > 0.5"
+    # had_tau_id_anti_mu: "id_boostedtau_antiMu_Loose_2 > 0.5"
+    single_trigger: "((trg_single_ele115_boosted > 0.5 || trg_single_photon200_boosted > 0.5) && (boosted_pt_1 >= 120)) || ((trg_single_ele32_boosted > 0.5) && (boosted_iso_1 < 0.3) && (boosted_pt_1 > 33) && (boosted_pt_1 < 120))"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    lep_iso: "iso_wgt_mu_boosted_1"
-    lep_id: "id_wgt_mu_boosted_1"
-    had_tau_id_anti_ele: "(id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)"
-    had_tau_id_anti_mu: "(id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)"
-    single_trigger: "trg_wgt_single_mu50_boosted * (boosted_pt_1 >= 55) + trg_wgt_single_mu24_boosted * ((boosted_pt_1 >= 25) && (boosted_pt_1 < 55))"
+    lep_iso: "iso_wgt_ele_boosted_1"
+    lep_id: "id_wgt_ele_boosted_1"
+    had_tau_id_anti_ele: "(id_boostedtau_antiEle_Loose_2>0.5)*id_wgt_boostedtau_antiEle_Loose_2 + (id_boostedtau_antiEle_Loose_2<0.5)"
+    # had_tau_id_anti_mu: "(id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)"
+    single_trigger: "trg_wgt_single_ele_boosted"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
@@ -100,10 +94,40 @@ mc_weights:
             - "Wjets"
     lumi: ""
     # Z_pt_reweighting: "ZPtMassReweightWeight"
-    Top_pt_reweighting: "topPtReweightWeight"
+    Top_pt_reweighting: "topPtReweightWeight" 
 
 # emb_weights:
 #     # general weights (for embedding): string is passed directly as weight
 #     generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-#     lep_iso: "emb_iso_wgt_mu_boosted_1"
-#     lep_id: "emb_id_wgt_mu_boosted_1"
+#     lep_iso: "iso_wgt_ele_boosted_1"
+#     lep_id: "id_wgt_ele_boosted_1"
+
+output_features:
+    - "weight" # this is always needed
+    - "btag_weight"
+    - "pNet_Xbb_weight"
+    - "njets"
+    - "nbtag"
+    - "q_1"
+    - "pt_2"
+    - "q_2"
+    - "gen_match_2"
+    - "m_vis"
+    - "mt_1"
+    - "deltaR_ditaupair"
+    - "pt_1"
+    - "iso_1"
+    - "metphi"
+    - "extramuon_veto"
+    - "extraelec_veto"
+    - "dilepton_veto"
+    - "fj_Xbb_pt"
+    - "fj_Xbb_eta"
+    - "fj_Xbb_particleNet_XbbvsQCD"
+    - "bpair_pt_1"
+    - "bpair_pt_2"
+    - "bpair_btag_value_2"
+    - "bpair_eta_2"
+    - "met"
+    - "mass_2"
+    - "tau_decaymode_2"
