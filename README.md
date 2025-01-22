@@ -12,7 +12,8 @@ conda env create --file environment.yaml
 ```
 
 General definitions like paths for all steps of the fake factor measurements should be defined in the `configs/ANALYSIS/ERA/common_settings.yaml` file.
-The expected input folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
+
+The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
 parameter | type | description
   ---|---|---
   `ntuple_path` | `string` | absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsxrootd-kit.gridka.de//store/user/USER/..."
