@@ -23,6 +23,7 @@ def calculation_ttbar_FFs(
     output_path: str,
     process: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for ttbar.
@@ -289,7 +290,7 @@ def calculation_ttbar_FFs(
             ff_hists=FF_hist.Clone(),
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf.get("fit_option", ("poly_1")),
+            fit_option=process_conf.get("fit_option", "poly_1"),
         )
 
         plotting.plot_FFs(
@@ -302,6 +303,7 @@ def calculation_ttbar_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=process_conf.get("fit_option", "fit")
         )
 
         if len(split) == 1:

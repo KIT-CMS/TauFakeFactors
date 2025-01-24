@@ -164,7 +164,7 @@ def calculation_QCD_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf.get("fit_option", ("poly_1")),
+            fit_option=process_conf.get("fit_option", "poly_1"),
         )
 
         plotting.plot_FFs(
@@ -177,6 +177,7 @@ def calculation_QCD_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=process_conf.get("fit_option", "fit")
         )
 
         if len(split) == 1:

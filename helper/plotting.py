@@ -36,6 +36,12 @@ def plot_FFs(
     Return:
         None
     """
+
+    if isinstance(draw_option, str) and draw_option == "bin_wise":
+        draw_option = "hist"
+    else:
+        draw_option = "fit"
+
     log = logging.getLogger(logger)
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True

@@ -8,7 +8,7 @@ import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
 import logging
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Any
 
 import helper.ff_functions as func
 import helper.plotting as plotting
@@ -20,6 +20,7 @@ def fraction_calculation(
     output_path: str,
     process: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
     This function calculates fractions of processes for the application of fake factors.
