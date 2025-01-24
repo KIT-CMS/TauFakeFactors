@@ -1,8 +1,9 @@
-import os
-import ROOT
-import correctionlib
 import logging
-from typing import Dict, Union, List, Any
+import os
+from typing import Any, Dict, List, Union
+
+import correctionlib
+import ROOT
 
 
 class FakeFactorEvaluator:

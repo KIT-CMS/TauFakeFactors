@@ -3,16 +3,12 @@ Collection of helpful functions for the fake factor calculation scripts
 """
 
 import array
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import List, Dict, Union, Tuple, Any, Callable
-import itertools as itt
-import numdifftools as nd
-import helper.fitting_helper as fitting_helper
 
+import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 

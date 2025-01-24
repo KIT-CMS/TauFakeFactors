@@ -1,8 +1,9 @@
 import ROOT
 from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
 from typing import Any, Dict, List
+
+import ROOT
+from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 

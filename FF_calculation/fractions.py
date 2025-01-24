@@ -4,11 +4,12 @@ Function for calculating the process fractions for the fake factors
 
 import array
 import copy
-import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
 import logging
-from typing import Union, Dict, List, Any
+from io import StringIO
+from typing import Any, Dict, List, Union
+
+import ROOT
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting

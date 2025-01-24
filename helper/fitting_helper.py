@@ -1,7 +1,7 @@
 import itertools as itt
 import logging
 from io import StringIO
-from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
