@@ -639,3 +639,4 @@ def smooth_function(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
     return smooth_graph, corr_dict
+
