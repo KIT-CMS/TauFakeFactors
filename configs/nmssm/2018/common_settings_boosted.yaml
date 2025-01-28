@@ -1,0 +1,17 @@
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
+tree: "ntuple"
+era: "2018"
+
+tau_iso_wps: 
+    - "Loose"
+tau_iso_wgt_wps: 
+    - "Loose"
+
+# output of preselection
+output_path: "/ceph/nshadskiy/FFmethod/01_2025_v1_boosted"
+# output_path and file_path should be the same;
+# the difference is that the first one is used for the preselection step 
+# and the second one for the FF calculation step
+file_path: "/ceph/nshadskiy/FFmethod/01_2025_v1_boosted"
+# output of FF measurement
+workdir_name: "01_2025_v1_boosted"

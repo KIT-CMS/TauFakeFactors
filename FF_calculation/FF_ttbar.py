@@ -23,6 +23,7 @@ def calculation_ttbar_FFs(
     output_path: str,
     process: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for ttbar.

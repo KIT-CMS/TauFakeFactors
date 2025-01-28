@@ -11,6 +11,25 @@ The environment can be set up with conda via
 conda env create --file environment.yaml
 ```
 
+General definitions like paths for all steps of the fake factor measurements should be defined in the `configs/ANALYSIS/ERA/common_settings.yaml` file.
+The expected input folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
+parameter | type | description
+  ---|---|---
+  `ntuple_path` | `string` | absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsxrootd-kit.gridka.de//store/user/USER/..."
+  `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
+  `era` | `string` | data taking era (e.g. "2018, "2017", "2016preVFP", "2016postVFP")
+  `tau_vs_jet_wps` | `list` | list of tau ID vsJet working points to be written out in the preselection step (e.g. ["Medium", "VVVLoose"])
+  `tau_vs_jet_wgt_wps` | `list` | list of tau ID vsJet working point scale factors to be written out in the preselection step (e.g. ["Medium"])
+ 
+
+The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
+  parameter | type | description
+  ---|---|---
+  `output_path` | `string` | absolute path where the files with the preselected events will be stored, a local path is expected like "/ceph/USER/..."
+  `file_path` | `string` | absolute path to the folder with the preselected files (should be the same as `output_path`) to be used for the fake factor calculation
+  `workdir_name` | `string` | relative path where the fake factor measurement output files will be stored; folder is produced in `workdir/`
+
+
 <details>
 <summary>
 
@@ -19,34 +38,24 @@ conda env create --file environment.yaml
 </summary>
 
 This framework is designed for n-tuples produced with CROWN as input. 
+All information for the preselection step is defined in configuration files in the `configs/ANALYSIS/ERA/` folder. 
 
-All information for the preselection step is defined in a configuration file in the `configs/` folder. 
 The preselection config has the following parameters:
 
-* The expected input folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
-    parameter | type | description
+* parameter | type | description
     ---|---|---
-    `ntuple_path` | `string` | absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsxrootd-kit.gridka.de//store/user/USER/..."
-    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
-    `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
-    `analysis` | `string` | analysis name, needed to get the output features which are saved/needed for the later steps e.g. `"smhtt_ul"`. The output features are defined in `configs/general_definitions.py`.
-
-* The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
-    parameter | type | description
-    ---|---|---
-    `output_path` | `string` | absolute path where the files with the preselected events will be stored, a local path is expected like "/ceph/USER/..."
 
 * In `processes` all the processes are defined that should be preprocessed. \
   The names are also used for the output file naming after the processing. \
   Each process needs two specifications:
-    parameter | type | description
+    subparameter | type | description
     ---|---|---
     `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau
     `samples` | `list` | list of all sample tags corresponding to the specific process
   
   The `tau_gen_modes` have following modes:
-    parameter | type | description
+    subparameter | type | description
     ---|---|---
     `T` | `string` | genuine tau
     `J` | `string` | jet misidentified as a tau
@@ -60,7 +69,7 @@ The preselection config has the following parameters:
   There are two types of weights.
   1. Similar to `event_selection`, a weight can directly be specified and is then applied to all samples in the same way e.g. `lep_id: "id_wgt_mu_1"`
   2. But some weights are either sample specific or need additional information. Currently implemented options are:
-      parameter | type | description
+      subparameter | type | description
       ---|---|---
       `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them. 
       `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string
@@ -69,12 +78,13 @@ The preselection config has the following parameters:
 
 * In `emb_weights` all weights that should be applied for embedded samples are defined. \
   Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
+* In `output_features` the to be saved/needed features for the later calculations are listed.
 
 Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. 
 
 To run the preselection step, execute the python script and specify the config file (relative path possible):
 ```bash
-python preselection.py --config-file PATH/CONFIG.yaml
+python preselection.py --config-file configs/PATH/CONFIG.yaml
 ```
 Further there are additional optional parameters: 
 1. `--nthreads=SOME_INTEGER` to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).
@@ -194,5 +204,5 @@ The last step is to calculate all the specified corrections for the main fake fa
 
 ## Hints
 
-* check out `configs/general_definitions.py`, this file has many relevant definition for preselection (which variables to save), plotting (dictionaries for names) or correctionlib output information
-* check `ntuple_path` and `output_path` (preselection) or `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs 
+* check out `configs/general_definitions.py`, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information
+* check `ntuple_path` and `output_path` (preselection) and `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs 

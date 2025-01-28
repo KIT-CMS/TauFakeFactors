@@ -13,36 +13,34 @@ import yaml
 from XRootD import client
 
 
-def load_config(config_file: str, common_config_file: Union[str, None] = None) -> Dict:
+def load_config(config_file: str) -> Dict:
     """
-    This function loads the configuration file. It first loads the common settings if a 
-    common config file is specified or is present in the same folder as the config file.
-    The common settings are overwritten by the specific settings in the config file.
-    (a warning is printed if the same keys are present in both files)
+    This function loads the configuration file. It first loads the common settings which
+    should be present in the same folder as the config file.
+    The common settings are overwritten if they are also specified in the config file.
 
     Args:
         config_file: Path to the specific config file
-        common_config_file: Path to the common config file (default: None)
+    
+    Return:
+        Configuration as a dictionary
     """
-
-    if common_config_file is None and os.path.exists(
-        os.path.join(
+    common_config_file_name = "common_settings.yaml"
+    if "boosted" in config_file:
+        common_config_file_name = "common_settings_boosted.yaml"
+        
+    common_config_file = os.path.join(
             os.path.split(config_file)[0],
-            "common_settings.yaml",
-        ),
-    ):
-        print(f"Using common_settings.yaml as common config file found in {os.path.split(config_file)[0]}")
-        common_config_file = os.path.join(
-            os.path.split(config_file)[0],
-            "common_settings.yaml",
+            common_config_file_name,
         )
+    if os.path.exists(common_config_file):
+        print(f"Using {common_config_file_name} file found in {os.path.split(config_file)[0]}")
     else:
-        print(f"No common config file found. Using common settings specified in the {config_file}.")
+        print(f"No common config file found!")
 
     config = {}
-    if common_config_file is not None:
-        with open(common_config_file, "r") as file:
-            config.update(yaml.load(file, yaml.FullLoader))
+    with open(common_config_file, "r") as file:
+        config.update(yaml.load(file, yaml.FullLoader))
 
     # loading of the chosen config file
     try:
@@ -285,9 +283,6 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     rdf = rdf.Redefine("fj_Xbb_pt", "fj_Xbb_pt_boosted")
     rdf = rdf.Redefine("fj_Xbb_eta", "fj_Xbb_eta_boosted")
     rdf = rdf.Redefine("fj_Xbb_particleNet_XbbvsQCD", "fj_Xbb_particleNet_XbbvsQCD_boosted")
-    rdf = rdf.Redefine("fj_Xbb_hadflavor", "fj_Xbb_hadflavor_boosted")
-    rdf = rdf.Redefine("fj_Xbb_nBhad", "fj_Xbb_nBhad_boosted")
-    rdf = rdf.Redefine("fj_Xbb_nChad", "fj_Xbb_nChad_boosted")
     rdf = rdf.Redefine("bpair_pt_1", "bpair_pt_1_boosted")
     rdf = rdf.Redefine("bpair_pt_2", "bpair_pt_2_boosted")
     rdf = rdf.Redefine("bpair_btag_value_2", "bpair_btag_value_2_boosted")

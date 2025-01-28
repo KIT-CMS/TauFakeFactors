@@ -1,7 +1,7 @@
 import itertools as itt
 import logging
 from io import StringIO
-from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
@@ -130,6 +130,7 @@ def get_wrapped_functions_from_fits(
     graph: ROOT.TGraphAsymmErrors,
     bounds: Tuple[float, float],
     do_mc_subtr_unc: bool,
+    ff_hist: ROOT.TH1,
     ff_hist_up: ROOT.TH1,
     ff_hist_down: ROOT.TH1,
     function_collection: Union[List[Callable], Tuple[Callable, ...]] = (
@@ -142,7 +143,6 @@ def get_wrapped_functions_from_fits(
     verbose: bool = True,
     logger: Union[str, None] = None,
     convert_to_callable: bool = True,
-    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
     """
     Fits a set of functions to a given graph and returns functions

@@ -1,12 +1,6 @@
 # This is an example config containing information for the preselection
 
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
-era: "2018"
-channel: "tt"
-tree: "ntuple"
-analysis: "nmssm_boosted"
-
-output_path: "/ceph/nshadskiy/FFmethod/07_2024_v1_boosted"
+channel: "et"
 
 processes:
     DYjets:
@@ -58,52 +52,85 @@ processes:
             - "ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
             - "ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL18NanoAODv9-106X"
-    # embedding:
-    #     tau_gen_modes:
-    #         - "all"
-    #     samples:
-    #         - "TauEmbedding-TauTauFinalState_Run2018A-UL2018"
-    #         - "TauEmbedding-TauTauFinalState_Run2018B-UL2018"
-    #         - "TauEmbedding-TauTauFinalState_Run2018C-UL2018"
-    #         - "TauEmbedding-TauTauFinalState_Run2018D-UL2018"
+    embedding:
+        tau_gen_modes:
+            - "all"
+        samples:
+            - "TauEmbedding-ElTauFinalState_Run2018A-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018B-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018C-UL2018"
+            - "TauEmbedding-ElTauFinalState_Run2018D-UL2018"
     data:
         tau_gen_modes:
             - "all"
         samples:
-            - "JetHT_Run2018A-UL2018"
-            - "JetHT_Run2018B-UL2018"
-            - "JetHT_Run2018C-UL2018"
-            - "JetHT_Run2018D-UL2018"
+            - "EGamma_Run2018A-UL2018"
+            - "EGamma_Run2018B-UL2018"
+            - "EGamma_Run2018C-UL2018"
+            - "EGamma_Run2018D-UL2018"
 
 event_selection:
-    # met: "(met_boosted > 120)"
-    had_tau_pt: "(boosted_pt_1 > 40) && (boosted_pt_2 > 40)"
-    had_tau_eta: "(abs(boosted_eta_1) < 2.3) && (abs(boosted_eta_2) < 2.3)"
-    had_tau_decay_mode_1: "(boosted_tau_decaymode_1 == 0) || (boosted_tau_decaymode_1 == 1) || (boosted_tau_decaymode_1 == 10)"
-    had_tau_decay_mode_2: "(boosted_tau_decaymode_2 == 0) || (boosted_tau_decaymode_2 == 1) || (boosted_tau_decaymode_2 == 10)"
-    # had_tau_id_anti_ele: "(id_boostedtau_antiEle_VLoose_1 > 0.5) && (id_boostedtau_antiEle_VLoose_2 > 0.5)"
-    # had_tau_id_anti_mu: "(id_boostedtau_antiMu_Loose_1 > 0.5) && (id_boostedtau_antiMu_Loose_2 > 0.5)"
-    single_trigger: "(trg_ak8pfjet400_trimmass30 > 0.5) || (trg_pfht500_pfmet100_pfmht100_idtight > 0.5)"
+    lep_pt: "pt_1 > 33"
+    had_tau_pt: "pt_2 > 30"
+    had_tau_eta: "abs(eta_2) < 2.3"
+    had_tau_decay_mode: "(tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)"
+    had_tau_id_vs_ele: "id_tau_vsEle_Tight_2 > 0.5"
+    had_tau_id_vs_mu: "id_tau_vsMu_VLoose_2 > 0.5"
+    single_trigger: "(trg_single_ele32 > 0.5) || (trg_single_ele35 > 0.5)"
+    boosted_tau_veto: "(boosted_deltaR_ditaupair > 0.8) || (boosted_deltaR_ditaupair < 0.1)"
 
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    # had_tau_id_anti_ele_1: "(id_boostedtau_antiEle_VLoose_1>0.5)*id_wgt_boostedtau_antiEle_VLoose_1 + (id_boostedtau_antiEle_VLoose_1<0.5)"
-    # had_tau_id_anti_ele_2: "(id_boostedtau_antiEle_VLoose_2>0.5)*id_wgt_boostedtau_antiEle_VLoose_2 + (id_boostedtau_antiEle_VLoose_2<0.5)"
-    # had_tau_id_anti_mu_1: "(id_boostedtau_antiMu_Loose_1>0.5)*id_wgt_boostedtau_antiMu_Loose_1 + (id_boostedtau_antiMu_Loose_1<0.5)"
-    # had_tau_id_anti_mu_2: "(id_boostedtau_antiMu_Loose_2>0.5)*id_wgt_boostedtau_antiMu_Loose_2 + (id_boostedtau_antiMu_Loose_2<0.5)"
-    trigger: "trg_wgt_fatjet * (trg_ak8pfjet400_trimmass30 > 0.5) + (trg_ak8pfjet400_trimmass30 < 0.5)"
+    lep_iso: "iso_wgt_ele_1"
+    lep_id: "id_wgt_ele_1"
+    had_tau_id_vs_ele: "(id_tau_vsEle_Tight_2>0.5)*id_wgt_tau_vsEle_Tight_2 + (id_tau_vsEle_Tight_2<0.5)"
+    had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)"
+    single_trigger: "trg_wgt_single_ele32orele35"
 
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: 
         stitching:
+            # - "DYjets"
             - "Wjets"
     lumi: ""
     # Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
 
-# emb_weights:
-#     # general weights (for embedding): string is passed directly as weight
-#     generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
-#     # double_trigger: "emb_trg_wgt_1 * emb_trg_wgt_2"
+emb_weights:
+    # general weights (for embedding): string is passed directly as weight
+    generator: "emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt"
+    lep_iso: "iso_wgt_ele_1"
+    lep_id: "id_wgt_ele_1"
+    single_trigger: "trg_wgt_single_ele32orele35"
+
+output_features:
+    - "weight" # this is always needed
+    - "btag_weight"
+    - "pNet_Xbb_weight"
+    - "njets"
+    - "nbtag"
+    - "q_1"
+    - "pt_2"
+    - "q_2"
+    - "gen_match_2"
+    - "m_vis"
+    - "mt_1"
+    - "deltaR_ditaupair"
+    - "pt_1"
+    - "iso_1"
+    - "metphi"
+    - "extramuon_veto"
+    - "extraelec_veto"
+    - "dilepton_veto"
+    - "fj_Xbb_pt"
+    - "fj_Xbb_eta"
+    - "fj_Xbb_particleNet_XbbvsQCD"
+    - "bpair_pt_1"
+    - "bpair_pt_2"
+    - "bpair_btag_value_2"
+    - "bpair_eta_2"
+    - "met"
+    - "mass_2"
+    - "tau_decaymode_2"

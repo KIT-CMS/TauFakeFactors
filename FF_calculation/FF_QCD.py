@@ -23,7 +23,6 @@ def calculation_QCD_FFs(
     output_path: str,
     process: str,
     logger: str,
-    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for QCD.
@@ -49,6 +48,7 @@ def calculation_QCD_FFs(
 
     # get QCD specific config information
     process_conf = config["target_processes"][process]
+    
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
     )
@@ -271,7 +271,6 @@ def non_closure_correction(
     corr_evaluator: FakeFactorCorrectionEvaluator,
     for_DRtoSR: bool,
     logger: str,
-    **kwargs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
     """
     This function calculates non closure corrections for fake factors for QCD.

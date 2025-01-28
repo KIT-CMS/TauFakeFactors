@@ -4,7 +4,6 @@ Script for preprocessing n-tuples for the fake factor calculation
 
 import os
 import argparse
-import ipdb.stdout
 import yaml
 import json
 import multiprocessing
@@ -18,7 +17,6 @@ import ROOT
 import helper.filters as filters
 import helper.weights as weights
 import helper.functions as func
-import configs.general_definitions as gd
 
 
 parser = argparse.ArgumentParser()
@@ -27,15 +25,6 @@ parser.add_argument(
     "--config-file",
     default=None,
     help="Path to the config file which contains information for the preselection step.",
-)
-parser.add_argument(
-    "--common-config-file",
-    default=None,
-    help="""
-        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
-        Settings loaded here are overwritten by the settings in --config-file if present there.
-        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
-    """,
 )
 parser.add_argument(
     "--nthreads",
@@ -135,12 +124,12 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -
         if process in ["data", "embedding"]:
             if "btag_weight" not in rdf.GetColumnNames():
                 rdf = rdf.Define("btag_weight", "1.")
-            for wp in tau_vs_jet_wps:
+            for wp in config["tau_vs_jet_wgt_wps"]:
                 weightname = "id_wgt_tau_vsJet_" + wp + "_2"
                 if weightname not in rdf.GetColumnNames():
                     rdf = rdf.Define(weightname, "1.")
             if config["channel"] == "tt":
-                for wp in tau_vs_jet_wps:
+                for wp in config["tau_vs_jet_wgt_wps"]:
                     weightname = "id_wgt_tau_vsJet_" + wp + "_1"
                     if weightname not in rdf.GetColumnNames():
                         rdf = rdf.Define(weightname, "1.")
@@ -218,7 +207,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    config = func.load_config(args.config_file, args.common_config_file)
+    config = func.load_config(args.config_file)
 
     # loading general dataset info file for xsec and event number
     with open("datasets/datasets.json", "r") as file:
@@ -237,25 +226,18 @@ if __name__ == "__main__":
     )
 
     # get needed features for fake factor calculation
-    output_features = gd.output_features[config["analysis"]][config["channel"]]
+    output_features = config["output_features"]
 
-    tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"] if not config.get("wps") else config["wps"]["tau_vs_jet"]["wp"]
-    tau_vs_jet_wgt_wps = ["Medium", "Tight"] if not config.get("wps") else config["wps"]["tau_vs_jet"]["wgt"]
-    for wp in tau_vs_jet_wps:
+    for wp in config["tau_vs_jet_wps"]:
         output_features.append("id_tau_vsJet_" + wp + "_2")
-    for wp in tau_vs_jet_wgt_wps:
+    for wp in config["tau_vs_jet_wgt_wps"]:
         output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
 
     if config["channel"] == "tt":
-        for wp in tau_vs_jet_wps:
+        for wp in config["tau_vs_jet_wps"]:
             output_features.append("id_tau_vsJet_" + wp + "_1")
-        for wp in tau_vs_jet_wgt_wps:
+        for wp in config["tau_vs_jet_wgt_wps"]:
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
-
-    if "additional_features" in config:
-        for item in config["additional_features"]:
-            if item not in output_features:
-                output_features.append(item)
 
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config, int(args.ncores)) for process in config["processes"]]

@@ -1,26 +1,5 @@
 import ROOT
 
-### for preselection ###
-
-# list of output features, they can change depending on the analysis or channel (tau vs jet ID is added internally)
-output_features = {
-    "nmssm": {
-        "et": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_2", "tau_decaymode_2"],
-        "mt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_2", "tau_decaymode_2"],
-        "tt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_1", "tau_decaymode_1", "mass_2", "tau_decaymode_2"],
-    },
-    "nmssm_boosted": {
-        "et": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_2", "tau_decaymode_2"],
-        "mt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dilepton_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_2", "tau_decaymode_2"],
-        "tt": ["fj_Xbb_hadflavor", "fj_Xbb_nBhad", "fj_Xbb_nChad", "weight", "btag_weight", "pNet_Xbb_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "fj_Xbb_pt", "fj_Xbb_eta", "fj_Xbb_particleNet_XbbvsQCD", "bpair_pt_1", "bpair_pt_2", "bpair_btag_value_2", "bpair_eta_2", "met", "mass_1", "tau_decaymode_1", "mass_2", "tau_decaymode_2"],
-    },
-    "smhtt_ul": {
-        "et": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2"],
-        "mt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "dimuon_veto", "tau_decaymode_2"],
-        "tt": ["weight", "btag_weight", "njets", "nbtag", "q_1", "pt_2", "q_2", "gen_match_1", "gen_match_2", "m_vis", "mt_1", "deltaR_ditaupair", "pt_1", "iso_1", "metphi", "extramuon_veto", "extraelec_veto", "tau_decaymode_2", "tau_decaymode_1"],
-    },
-}
-
 ### For plotting ###
 
 # label definitions for y-axis
@@ -35,10 +14,10 @@ FF_YAxis = {
 channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
 # definitions for era and luminosity TODO: 2016
 era_dict = {
-    "2016preVFP": "19.52 fb^{-1} (2016preVFP, 13 TeV)",
-    "2016postVFP": "16.81 fb^{-1} (2016postVFP, 13 TeV)",
-    "2017": "41.48 fb^{-1} (2017, 13 TeV)",
-    "2018": "59.83 fb^{-1} (2018, 13 TeV)",
+    "2016preVFP": "19.5 fb^{-1} (2016preVFP, 13 TeV)",
+    "2016postVFP": "16.8 fb^{-1} (2016postVFP, 13 TeV)",
+    "2017": "41.5 fb^{-1} (2017, 13 TeV)",
+    "2018": "59.8 fb^{-1} (2018, 13 TeV)",
 }
 # definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
@@ -163,22 +142,22 @@ category_dict = {
 
 # intern naming translation helper for variables
 variable_translator = {
-    "pt_2": "subleading_lep_pt",
-    "pt_1": "leading_lep_pt",
-    "mass_1": "leading_lep_mass",
-    "mass_2": "subleading_lep_mass",
-    "mt_1": "lep_mt",
-    "iso_1": "lep_iso",
+    "pt_2": "pt_2",
+    "pt_1": "pt_1",
+    "mass_1": "mass_1",
+    "mass_2": "mass_2",
+    "mt_1": "mt_1",
+    "iso_1": "iso_1",
     "m_vis": "m_vis",
-    "bpt_1": "b_pt",
+    "bpair_pt_1": "bpair_pt_1",
     "njets": "njets",
-    "nbtag": "nbtags",
-    "deltaR_ditaupair": "dR_tau_pair",
+    "nbtag": "nbtag",
+    "deltaR_ditaupair": "deltaR_ditaupair",
+    "tau_decaymode_1": "tau_decaymode_1",
+    "tau_decaymode_2": "tau_decaymode_2",
     "QCD": "QCD",
     "Wjets": "Wjets",
-    "ttbar_J": "ttbar",
-    "tau_decaymode_1": "leading_tau_decaymode",
-    "tau_decaymode_2": "subleading_tau_decaymode",
+    "ttbar_J": "ttbar", 
 }
 # definitions for the variable type, needed for correctionlib
 variable_type = {

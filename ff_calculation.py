@@ -23,15 +23,6 @@ parser.add_argument(
     default=None,
     help="Path to the config file which contains information for the fake factor calculation step.",
 )
-parser.add_argument(
-    "--common-config-file",
-    default=None,
-    help="""
-        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
-        Settings loaded here are overwritten by the settings in --config-file if present there.
-        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
-    """,
-)
 
 
 def run_ff_calculation(
@@ -98,7 +89,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    config = func.load_config(args.config_file, args.common_config_file)
+    config = func.load_config(args.config_file)
 
 
     save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])

@@ -8,11 +8,9 @@ import ROOT
 from io import StringIO
 from wurlitzer import pipes, STDOUT
 import logging
-from typing import List, Dict, Union, Tuple, Any, Callable
-import itertools as itt
-import numdifftools as nd
-import helper.fitting_helper as fitting_helper
+from typing import List, Dict, Union, Tuple, Any
 
+import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 
@@ -357,10 +355,10 @@ def fit_function(
     ff_hists: Union[List[Any], Any],
     bin_edges: List[int],
     logger: str,
-    fit_option: Union[str, List[str], None] = None,
+    fit_option: Union[str, List[str]],
 ) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """
-    This function performs a linear fit of the ratio histogram. The fitted function is then used
+    This function performs fits of the ratio histogram. The fitted function is then used
     to produce expressions for correctionlib (including variations). Additionally graphs of
     the fitted function variations are generated which are later used for plotting purposes.
 
@@ -368,18 +366,17 @@ def fit_function(
         ff_hists: Either a list of nominal and MC varied ratio histograms or only the nominal ratio histogram
         bin_edges: Bins edges of the fitted variable, needed for the graphs for plotting
         logger: Name of the logger that should be used
-        fit_option: List[str] correspond to a list of paly_n fits to be performed
-                    with best fit being the one with the lowest chi2 value and nominal and
+        fit_option: List[str] correspond to a list of poly_n fits to be performed
+                    with best fit being the one with the lowest chi2/ndf value and nominal and
                     variations being > 0 in fit range.
                     str: "poly_n" or "bin_wise", where n is the order of the polynomial fit
-                    None: default is set to "poly_1" for backward compatibility
+
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
     """
-
-    if fit_option is None:
-        fit_option = ["poly_1"]
+    log = logging.getLogger(logger)
+    
     if not isinstance(fit_option, list) and fit_option != "bin_wise":
         fit_option = [fit_option]
 

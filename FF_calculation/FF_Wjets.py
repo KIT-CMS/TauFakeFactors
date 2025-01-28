@@ -5,7 +5,7 @@ Function for calculating fake factors for the W-jets process
 import array
 import copy
 import logging
-from collections import defaultdict
+# from collections import defaultdict
 from io import StringIO
 from typing import Any, Dict, List, Union
 
@@ -50,7 +50,7 @@ def calculation_Wjets_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = defaultdict(lambda: None, config["target_processes"]["Wjets"])
+    process_conf = config["target_processes"]["Wjets"]
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -251,7 +251,7 @@ def calculation_Wjets_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
-            draw_option=process_conf.get("fit_option", "fit")
+            draw_option=process_conf.get("fit_option", "fit"),
         )
 
         if len(split) == 1:
