@@ -14,16 +14,17 @@ def get_edges_and_content(
     item: Union[str, Any],
     variable_info: Tuple[str, list],
 ):
+    # import ipdb; ipdb.set_trace()
     if isinstance(item, str):
         return {
             "edges": [
-                min(variable_info[1]) - 1,
+                # min(variable_info[1]) - 1,
                 min(variable_info[1]),
                 max(variable_info[1]),
-                max(variable_info[1]) + 1,
+                # max(variable_info[1]) + 1,
             ],
             "content": [
-                eval(item.replace("x", str(min(variable_info[1])))),
+                # eval(item.replace("x", str(min(variable_info[1])))),
                 cs.Formula(
                     nodetype="formula",
                     variables=[gd.variable_translator[variable_info[0]]],
@@ -31,7 +32,7 @@ def get_edges_and_content(
                     expression=item,
                     parameters=None,
                 ),
-                eval(item.replace("x", str(max(variable_info[1])))),
+                # eval(item.replace("x", str(max(variable_info[1])))),
             ],
         }
     return {
@@ -379,7 +380,7 @@ def make_1D_fractions(
         fraction_conf: A dictionary with all the relevant information for the fraction calculation
         variable_info: Tuple with information (name and binning) about the variable the fractions depends on
         fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS]
-        fraction_name: Name of the calculated fraction, relevant if more than one fraction should be added 
+        fraction_name: Name of the calculated fraction, relevant if more than one fraction should be added
         uncertainties: Dictionary of uncertainty names which should be added
 
     Return:

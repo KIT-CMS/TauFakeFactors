@@ -388,10 +388,7 @@ def fit_function(
 
     # Producing a graph based on the provided root histograms
     nbins = ff_hist.GetNbinsX()
-    x = list()
-    y = list()
-    error_y_up = list()
-    error_y_down = list()
+    x, y, error_y_up, error_y_down = [], [], [], []
 
     for nbin in range(nbins):
         x.append(ff_hist.GetBinCenter(nbin + 1))
@@ -410,7 +407,7 @@ def fit_function(
     if fit_option == "bin_wise":
         retrival_function = fitting_helper.get_wrapped_hists
 
-    callable_expression = retrival_function(
+    callable_expression, correctionlib_expression = retrival_function(
         graph=graph,
         bounds=(bin_edges[0], bin_edges[-1]),
         do_mc_subtr_unc=do_mc_subtr_unc,
@@ -418,50 +415,29 @@ def fit_function(
         ff_hist_up=ff_hist_up,
         ff_hist_down=ff_hist_down,
         function_collection=fit_option,
-        convert_to_callable=True,
     )
-    correctionlib_expression = retrival_function(
-        graph=graph,
-        bounds=(bin_edges[0], bin_edges[-1]),
-        do_mc_subtr_unc=do_mc_subtr_unc,
-        ff_hist=ff_hist,
-        ff_hist_up=ff_hist_up,
-        ff_hist_down=ff_hist_down,
-        function_collection=fit_option,
-        convert_to_callable=False,
-    )
-
-    # producing correctionlib expressions for nominal and all variation
-    corrlib_expressions = dict()
-    corrlib_expressions["nominal"] = correctionlib_expression["nominal"]  # best fit
-    corrlib_expressions["unc_up"] = correctionlib_expression["up"]  # up variation of best fit
-    corrlib_expressions["unc_down"] = correctionlib_expression["down"]  # down variation of best fit
-    if do_mc_subtr_unc:  # MC subtraction uncertainty up/down
-        corrlib_expressions["mc_subtraction_unc_up"] = correctionlib_expression["mc_up"]
-        corrlib_expressions["mc_subtraction_unc_down"] = correctionlib_expression["mc_down"]
-
-    # producing graphs of the fit results for the plots with more bins than the used histograms
-    fit_func = lambda pt: callable_expression["nominal"](pt)  # noqa E731
-    fit_func_up = lambda pt: callable_expression["up"](pt)  # noqa E731
-    fit_func_down = lambda pt: callable_expression["down"](pt)  # noqa E731
-
-    if do_mc_subtr_unc:
-        fit_func_mc_up = lambda pt: callable_expression["mc_up"](pt)  # noqa E731
-        fit_func_mc_down = lambda pt: callable_expression["mc_down"](pt)  # noqa E731
 
     y_fit, y_fit_up, y_fit_down = [], [], []
     if do_mc_subtr_unc:
         y_fit_mc_up, y_fit_mc_down = [], []
 
     x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
-
     for value in x_fit:
-        y_fit.append(fit_func(value))
-        y_fit_up.append(fit_func_up(value) - fit_func(value))
-        y_fit_down.append(fit_func(value) - fit_func_down(value))
+        nominal, up, down = (
+            callable_expression["nominal"](value),
+            callable_expression["unc_up"](value),
+            callable_expression["unc_down"](value),
+        )
+        y_fit.append(nominal)
+        y_fit_up.append(up - nominal)
+        y_fit_down.append(nominal - down)
         if do_mc_subtr_unc:
-            y_fit_mc_up.append(abs(fit_func_mc_up(value) - fit_func(value)))
-            y_fit_mc_down.append(abs(fit_func_mc_down(value) - fit_func(value)))
+            mc_substr_up, mc_substr_down = (
+                callable_expression["mc_subtraction_unc_up"](value),
+                callable_expression["mc_subtraction_unc_down"](value),
+            )
+            y_fit_mc_up.append(abs(mc_substr_up - nominal))
+            y_fit_mc_down.append(abs(nominal - mc_substr_down))
 
     x_fit = array.array("d", x_fit)
     y_fit = array.array("d", y_fit)
@@ -475,8 +451,7 @@ def fit_function(
     results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
     if do_mc_subtr_unc:
         results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(*_args, y_fit_mc_down, y_fit_mc_up)
-
-    return results, corrlib_expressions
+    return results, correctionlib_expression
 
 
 def calculate_non_closure_correction(
