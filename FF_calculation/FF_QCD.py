@@ -160,13 +160,13 @@ def calculation_QCD_FFs(
             SRlike=SRlike_hists, ARlike=ARlike_hists
         )
         # performing the fit and calculating the fit uncertainties
-        fit_graphs, corrlib_exp = func.fit_function(
+        fit_graphs, corrlib_exp, used_fit = func.fit_function(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf.get("fit_option", ("poly_1")),
+            fit_option=process_conf.get("fit_option", "poly_1"),
         )
-
+        print(f"XXXXXXXXXXXXXXXXXXXXXXXXXXXX {used_fit}")
         plotting.plot_FFs(
             variable=process_conf["var_dependence"],
             ff_ratio=FF_hist,
@@ -177,6 +177,7 @@ def calculation_QCD_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=used_fit,
         )
 
         if len(split) == 1:

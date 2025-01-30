@@ -1,8 +1,9 @@
-import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
 import logging
-from typing import Any, Dict, List
+from io import StringIO
+from typing import Any, Dict, List, Union
+
+import ROOT
+from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 
@@ -17,7 +18,7 @@ def plot_FFs(
     category: Dict[str, str],
     output_path: str,
     logger: str,
-    draw_option: str = "fit",
+    draw_option: str,
 ) -> None:
     """
     Function which produces a fake factor plot.
@@ -32,6 +33,7 @@ def plot_FFs(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        draw_option: Based on chosen fit_option to correctly plot a fitted function or a histogram as measurement
 
     Return:
         None

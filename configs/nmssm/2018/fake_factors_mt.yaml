@@ -34,102 +34,103 @@ target_processes:
         var_bins: [30,32,35,40,48,70,100]
         fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
-    Wjets: 
-        split_categories: 
-            njets:  
-                - "==0" 
-                - "==1"
-                - ">=2"
-        split_categories_binedges:
-            njets: [-0.5,0.5,1.5,2.5]
+#     Wjets: 
+#         split_categories: 
+#             njets:  
+#                 - "==0" 
+#                 - "==1"
+#                 - ">=2"
+#         split_categories_binedges:
+#             njets: [-0.5,0.5,1.5,2.5]
 
-        SRlike_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag == 0"
-            lep_mt: "mt_1 > 70"
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
-            fatjet_veto: "fj_Xbb_pt < 200"
+#         SRlike_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             nbtag: "nbtag == 0"
+#             lep_mt: "mt_1 > 70"
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+#             fatjet_veto: "fj_Xbb_pt < 200"
 
-        ARlike_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            nbtag: "nbtag == 0"
-            lep_mt: "mt_1 > 70"
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-            fatjet_veto: "fj_Xbb_pt < 200"
+#         ARlike_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             nbtag: "nbtag == 0"
+#             lep_mt: "mt_1 > 70"
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+#             fatjet_veto: "fj_Xbb_pt < 200"
         
-        var_dependence: "pt_2"
-        var_bins: [30,32,38,47,60,100]
-        fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+#         var_dependence: "pt_2"
+#         var_bins: [30,32,38,47,60,100]
+#         fit_option: ["poly_0", "poly_2", "poly_4", "poly_5"]
 
-    ttbar: 
-        split_categories: 
-            njets:  
-                - "<=1"
-                - "==2"
-                - "==3"
-                - ">=4"
-        split_categories_binedges:
-            njets: [-0.5,1.5,2.5,3.5,4.5]
+#     ttbar: 
+#         split_categories: 
+#             njets:  
+#                 - "<=1"
+#                 - "==2"
+#                 - "==3"
+#                 - ">=4"
+#         split_categories_binedges:
+#             njets: [-0.5,1.5,2.5,3.5,4.5]
 
-        SR_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
-            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#         SR_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+#             bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
-        AR_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#         AR_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+#             bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
-        SRlike_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
-            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
-            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#         SRlike_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+#             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+#             bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
             
-        ARlike_cuts:
-            tau_pair_sign: "(q_1*q_2) < 0" 
-            lep_iso: "iso_1 < 0.15"
-            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
-            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-            bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#         ARlike_cuts:
+#             tau_pair_sign: "(q_1*q_2) < 0" 
+#             lep_iso: "iso_1 < 0.15"
+#             no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+#             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+#             bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
         
-        var_dependence: "pt_2"
-        var_bins: [30,32,35,38,41,44,52,70,100]
-        fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+#         var_dependence: "pt_2"
+#         var_bins: [30,32,35,38,41,44,52,70,100]
+#         fit_option: "bin_wise"
+#         # fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
-process_fractions:
-    processes: ["QCD", "Wjets", "ttbar_J"]
+# process_fractions:
+#     processes: ["QCD", "Wjets", "ttbar_J"]
 
-    split_categories:
-        nbtag:
-            - "<=1"
-            - ">=2"
-    split_categories_binedges:
-        nbtag: [-0.5,1.5,2.5]
+#     split_categories:
+#         nbtag:
+#             - "<=1"
+#             - ">=2"
+#     split_categories_binedges:
+#         nbtag: [-0.5,1.5,2.5]
 
-    AR_cuts:
-        tau_pair_sign: "(q_1*q_2) < 0" 
-        lep_iso: "iso_1 < 0.15"
-        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-        had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-        bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#     AR_cuts:
+#         tau_pair_sign: "(q_1*q_2) < 0" 
+#         lep_iso: "iso_1 < 0.15"
+#         no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#         had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+#         bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
-    SR_cuts:
-        tau_pair_sign: "(q_1*q_2) < 0" 
-        lep_iso: "iso_1 < 0.15"
-        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-        had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
-        bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
+#     SR_cuts:
+#         tau_pair_sign: "(q_1*q_2) < 0" 
+#         lep_iso: "iso_1 < 0.15"
+#         no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+#         had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+#         bb_selection: "(bpair_pt_1>=20 && bpair_pt_2>=20 && nbtag>=1 && bpair_btag_value_2>=0.049 && abs(bpair_eta_2)<=2.5) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && abs(fj_Xbb_eta)<=2.5 && fj_Xbb_pt>=200)"
 
-    var_dependence: "mt_1"
-    var_bins: [0,15,30,45,60,75,90,105,120,135,150]
+#     var_dependence: "mt_1"
+#     var_bins: [0,15,30,45,60,75,90,105,120,135,150]

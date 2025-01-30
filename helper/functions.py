@@ -35,6 +35,7 @@ def load_config(config_file: str) -> Dict:
         )
     if os.path.exists(common_config_file):
         print(f"Using {common_config_file_name} file found in {os.path.split(config_file)[0]}")
+        print("-" * 50)
     else:
         print(f"No common config file found!")
 

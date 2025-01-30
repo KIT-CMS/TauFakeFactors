@@ -40,49 +40,27 @@ def run_ff_calculation(
     process, config, sample_paths, output_path = args
     log = logging.getLogger(f"ff_calculation.{process}")
 
-    if process in ["QCD", "QCD_subleading"]:
+    ff_calculation_functions = {
+        "QCD": FF_QCD.calculation_QCD_FFs,
+        "QCD_subleading": FF_QCD.calculation_QCD_FFs,
+        "Wjets": FF_Wjets.calculation_Wjets_FFs,
+        "ttbar": FF_ttbar.calculation_ttbar_FFs,
+        "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
+        "process_fractions": fraction_calculation,
+        "process_fractions_subleading": fraction_calculation,
+    }
+    try:
         log.info(f"Calculating fake factors for the {process} process.")
         log.info("-" * 50)
-        result = FF_QCD.calculation_QCD_FFs(
+        return ff_calculation_functions[process](
             config=config,
             sample_paths=sample_paths,
             output_path=output_path,
             process=process,
             logger=f"ff_calculation.{process}",
         )
-    elif process == "Wjets":
-        log.info("Calculating fake factors for the Wjets process.")
-        log.info("-" * 50)
-        result = FF_Wjets.calculation_Wjets_FFs(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            logger=f"ff_calculation.{process}",
-        )
-    elif process in ["ttbar", "ttbar_subleading"]:
-        log.info(f"Calculating fake factors for the {process} process.")
-        log.info("-" * 50)
-        result = FF_ttbar.calculation_ttbar_FFs(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            process=process,
-            logger=f"ff_calculation.{process}",
-        )
-    elif process in ["process_fractions", "process_fractions_subleading"]:
-        log.info(f"Calculating the process {process} for the FF application.")
-        log.info("-" * 50)
-        result = fraction_calculation(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            process=process,
-            logger=f"ff_calculation.{process}",
-        )
-    else:
+    except KeyError:
         raise Exception(f"Target process: Such a process is not known: {process}")
-
-    return result
 
 
 if __name__ == "__main__":
@@ -116,7 +94,7 @@ if __name__ == "__main__":
         subcategories=subcategories,
     )
 
-    # getting all the input files
+    # getting all the ntuple input files
     sample_paths = func.get_samples(config=config)
     if len(sample_paths) == 0:
         raise Exception("No input files found!")

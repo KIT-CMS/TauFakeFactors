@@ -1,5 +1,5 @@
 import array
-from typing import Dict, Any, Union, List
+from typing import Any, Dict, List, Union
 
 
 def gen_weight(rdf: Any, sample_info: Dict[str, str]) -> Any:

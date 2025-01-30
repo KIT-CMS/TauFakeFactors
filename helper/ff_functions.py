@@ -3,12 +3,10 @@ Collection of helpful functions for the fake factor calculation scripts
 """
 
 import array
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import List, Dict, Union, Tuple, Any
 
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
@@ -356,7 +354,7 @@ def fit_function(
     bin_edges: List[int],
     logger: str,
     fit_option: Union[str, List[str]],
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
+) -> Tuple[Dict[str, Any], Dict[str, str], str]:
     """
     This function performs fits of the ratio histogram. The fitted function is then used
     to produce expressions for correctionlib (including variations). Additionally graphs of
@@ -375,7 +373,7 @@ def fit_function(
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
     """
-    log = logging.getLogger(logger)
+    # log = logging.getLogger(logger)
     
     if not isinstance(fit_option, list) and fit_option != "bin_wise":
         fit_option = [fit_option]
@@ -411,24 +409,28 @@ def fit_function(
     if fit_option == "bin_wise":
         retrival_function = fitting_helper.get_wrapped_hists
 
-    callable_expression = retrival_function(
+    callable_expression, used_fit = retrival_function(
         graph=graph,
         bounds=(bin_edges[0], bin_edges[-1]),
-        do_mc_subtr_unc=do_mc_subtr_unc,
         ff_hist=ff_hist,
         ff_hist_up=ff_hist_up,
         ff_hist_down=ff_hist_down,
+        do_mc_subtr_unc=do_mc_subtr_unc,
+        logger=logger,
         function_collection=fit_option,
+        verbose=True,
         convert_to_callable=True,
     )
-    correctionlib_expression = retrival_function(
+    correctionlib_expression, _ = retrival_function(
         graph=graph,
         bounds=(bin_edges[0], bin_edges[-1]),
-        do_mc_subtr_unc=do_mc_subtr_unc,
         ff_hist=ff_hist,
         ff_hist_up=ff_hist_up,
         ff_hist_down=ff_hist_down,
+        do_mc_subtr_unc=do_mc_subtr_unc,
+        logger=logger,
         function_collection=fit_option,
+        verbose=False,
         convert_to_callable=False,
     )
 
@@ -458,8 +460,8 @@ def fit_function(
 
     for value in x_fit:
         y_fit.append(fit_func(value))
-        y_fit_up.append(fit_func_up(value) - fit_func(value))
-        y_fit_down.append(fit_func(value) - fit_func_down(value))
+        y_fit_up.append(abs(fit_func_up(value) - fit_func(value)))
+        y_fit_down.append(abs(fit_func_down(value) - fit_func(value)))
         if do_mc_subtr_unc:
             y_fit_mc_up.append(abs(fit_func_mc_up(value) - fit_func(value)))
             y_fit_mc_down.append(abs(fit_func_mc_down(value) - fit_func(value)))
@@ -477,7 +479,7 @@ def fit_function(
     if do_mc_subtr_unc:
         results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(*_args, y_fit_mc_down, y_fit_mc_up)
 
-    return results, corrlib_expressions
+    return results, corrlib_expressions, used_fit
 
 
 def calculate_non_closure_correction(
@@ -640,3 +642,4 @@ def smooth_function(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
     return smooth_graph, corr_dict
+

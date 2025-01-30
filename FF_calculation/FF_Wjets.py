@@ -23,7 +23,6 @@ def calculation_Wjets_FFs(
     sample_paths: List[str],
     output_path: str,
     logger: str,
-    **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for W+jets.
@@ -234,11 +233,11 @@ def calculation_Wjets_FFs(
             SRlike=SRlike_hists, ARlike=ARlike_hists
         )
         # performing the fit and calculating the uncertainties
-        fit_graphs, corrlib_exp = func.fit_function(
+        fit_graphs, corrlib_exp, used_fit = func.fit_function(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf.get("fit_option", ("poly_1")),
+            fit_option=process_conf.get("fit_option", "poly_1"),
         )
 
         plotting.plot_FFs(
@@ -251,7 +250,7 @@ def calculation_Wjets_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
-            draw_option=process_conf.get("fit_option", "fit"),
+            draw_option=used_fit,
         )
 
         if len(split) == 1:
