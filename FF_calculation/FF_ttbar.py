@@ -91,7 +91,7 @@ def calculation_ttbar_FFs(
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(
-                "No tau pair sign cut defined in the ttbar config. Is needed for the QCD estimation."
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
             )
 
         rdf_SRlike_qcd = func.apply_region_filters(
@@ -123,7 +123,7 @@ def calculation_ttbar_FFs(
         )
 
         log.info(
-            "Filtering events for the application-like region. Target process: ttbar"
+            f"Filtering events for the application-like region. Target process: {process}"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -137,7 +137,7 @@ def calculation_ttbar_FFs(
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(
-                "No tau pair sign cut defined in the ttbar config. Is needed for the QCD estimation."
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
             )
 
         rdf_ARlike_qcd = func.apply_region_filters(
@@ -290,6 +290,7 @@ def calculation_ttbar_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
+            limit_and_replace_kwargs=process_conf.get("limit_and_replace_kwargs", {}),  # TODO: Build an config interface for that
         )
 
         plotting.plot_FFs(

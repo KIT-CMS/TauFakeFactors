@@ -165,8 +165,9 @@ def calculation_QCD_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
+            limit_and_replace_kwargs=process_conf.get("limit_and_replace_kwargs", {}),  # TODO: Build an config interface for that
         )
-        print(f"XXXXXXXXXXXXXXXXXXXXXXXXXXXX {used_fit}")
+
         plotting.plot_FFs(
             variable=process_conf["var_dependence"],
             ff_ratio=FF_hist,
@@ -269,7 +270,7 @@ def non_closure_correction(
     process: str,
     closure_variable: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     for_DRtoSR: bool,
     logger: str,
 ) -> Dict[str, np.ndarray]:
@@ -356,20 +357,32 @@ def non_closure_correction(
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
-            if corr_evaluator == None:
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", f"weight * {process}_fake_factor"
+            
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_ARlike = corr_evaluator.evaluate_correction(
+                    rdf=rdf_ARlike, 
                 )
-            else:
-                if config["channel"] != "tt" or process == "QCD_subleading":
-                    rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
-                else:
-                    rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(
-                        rdf=rdf_ARlike
-                    )
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
-                )
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+            
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", f"weight * {process}_fake_factor{corr_str}"
+            )
+            
+            # if corr_evaluator == None:
+            #     rdf_ARlike = rdf_ARlike.Define(
+            #         "weight_ff", f"weight * {process}_fake_factor"
+            #     )
+            # else:
+            #     if config["channel"] != "tt" or process == "QCD_subleading":
+            #         rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
+            #     else:
+            #         rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(
+            #             rdf=rdf_ARlike
+            #         )
+            #     rdf_ARlike = rdf_ARlike.Define(
+            #         "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+            #     )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()

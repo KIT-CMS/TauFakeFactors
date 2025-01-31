@@ -22,6 +22,7 @@ def calculation_Wjets_FFs(
     config: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
     output_path: str,
+    process: str,
     logger: str,
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
@@ -49,7 +50,7 @@ def calculation_Wjets_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_processes"]["Wjets"]
+    process_conf = config["target_processes"][process]
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -78,7 +79,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for the signal-like region. Target process: Wjets"
+                f"Filtering events for the signal-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -92,7 +93,7 @@ def calculation_Wjets_FFs(
                 region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
             else:
                 raise ValueError(
-                    "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                    f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
                 )
 
             rdf_SRlike_qcd = func.apply_region_filters(
@@ -104,7 +105,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for QCD estimation in the signal-like region. Target process: Wjets"
+                f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -124,7 +125,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for the application-like region. Target process: Wjets"
+                f"Filtering events for the application-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -138,7 +139,7 @@ def calculation_Wjets_FFs(
                 region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
             else:
                 raise ValueError(
-                    "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                    f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
                 )
 
             rdf_ARlike_qcd = func.apply_region_filters(
@@ -150,7 +151,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for QCD estimation in the application-like region. Target process: Wjets"
+                f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -238,6 +239,7 @@ def calculation_Wjets_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
+            limit_and_replace_kwargs=process_conf.get("limit_and_replace_kwargs", {}),  # TODO: Build an config interface for that
         )
 
         plotting.plot_FFs(
@@ -246,7 +248,7 @@ def calculation_Wjets_FFs(
             uncertainties=fit_graphs,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             category=split,
             output_path=output_path,
             logger=logger,
@@ -310,7 +312,7 @@ def calculation_Wjets_FFs(
             hists=SRlike_hists,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             region="SR_like",
             data=data,
             samples=samples,
@@ -323,7 +325,7 @@ def calculation_Wjets_FFs(
             hists=ARlike_hists,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             region="AR_like",
             data=data,
             samples=samples,
@@ -340,7 +342,7 @@ def calculation_Wjets_FFs(
             hists=SRlike_hists,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             region="SR_like",
             data=data,
             samples=samples,
@@ -353,7 +355,7 @@ def calculation_Wjets_FFs(
             hists=ARlike_hists,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             region="AR_like",
             data=data,
             samples=samples,

@@ -1,11 +1,6 @@
 # This is an example config containing information for the FF calculation
 
-file_path: "/ceph/nshadskiy/FFmethod/07_2024_v1"
-era: "2018"
 channel: "tt" # options are et, mt, tt
-tree: "ntuple"
-
-workdir_name: "08_2024_v1"
 
 use_embedding: False
 
@@ -35,6 +30,7 @@ target_processes:
         
         var_dependence: "pt_1"
         var_bins: [40,55,70,85,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
     QCD_subleading: 
         split_categories: 
@@ -61,6 +57,7 @@ target_processes:
         
         var_dependence: "pt_2"
         var_bins: [40,50,70,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
     ttbar: 
         split_categories: 
@@ -108,6 +105,7 @@ target_processes:
         
         var_dependence: "pt_1"
         var_bins: [40,44,52,70,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
     ttbar_subleading: 
         split_categories: 
@@ -155,6 +153,7 @@ target_processes:
         
         var_dependence: "pt_2"
         var_bins: [40,44,52,70,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
 
 process_fractions:
     processes: ["QCD", "Wjets", "ttbar_J"]
