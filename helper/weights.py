@@ -152,7 +152,9 @@ def apply_pNet_weight(rdf: Any) -> Any:
     Return:
         root DataFrame object with the applied weight
     """
-    rdf = rdf.Redefine("weight", "weight * ((fj_Xbb_pt >= 0) * pNet_Xbb_weight + (fj_Xbb_pt < 0))")
+    rdf = rdf.Redefine(
+        "weight", "weight * ((fj_Xbb_pt >= 0) * pNet_Xbb_weight + (fj_Xbb_pt < 0))"
+    )
 
     return rdf
 

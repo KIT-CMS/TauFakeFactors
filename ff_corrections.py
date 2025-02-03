@@ -73,7 +73,9 @@ def run_ff_calculation_for_DRtoSR(
         }
         result = None
         try:
-            log.info(f"Calculating fake factors for the SR-DR correction for the {process} process.")
+            log.info(
+                f"Calculating fake factors for the SR-DR correction for the {process} process."
+            )
             log.info("-" * 50)
             result = ff_calculation_functions[process](
                 config=temp_conf,
@@ -137,7 +139,9 @@ def run_non_closure_for_DRtoSR(
         )[0]
         func.modify_config(
             config=temp_conf,
-            corr_config=corr_config["target_processes"][process]["DR_SR"]["non_closure"][closure_correction],
+            corr_config=corr_config["target_processes"][process]["DR_SR"][
+                "non_closure"
+            ][closure_correction],
             process=process,
             to_AR_SR=False,
         )
@@ -235,7 +239,8 @@ if __name__ == "__main__":
 
                 with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
                     for args, result in zip(
-                        args_list, executor.map(run_ff_calculation_for_DRtoSR, args_list)
+                        args_list,
+                        executor.map(run_ff_calculation_for_DRtoSR, args_list),
                     ):
                         if result is not None:
                             fake_factors[args[0]] = result
@@ -269,7 +274,9 @@ if __name__ == "__main__":
                     args_list, executor.map(run_non_closure_for_DRtoSR, args_list)
                 ):
                     if result[0] is not None:
-                        DR_SR_corrections[args[0]]["non_closure_" + result[1]] = result[0]
+                        DR_SR_corrections[args[0]]["non_closure_" + result[1]] = result[
+                            0
+                        ]
         else:
             raise Exception("No target processes are defined!")
 
@@ -301,14 +308,14 @@ if __name__ == "__main__":
                     for_DRtoSR=False,
                     logger=f"ff_corrections.{process}",
                 )
-                
+
                 all_non_closure_corr_vars = list()
-                
+
                 for idx, closure_corr in enumerate(
                     corr_config["target_processes"][process]["non_closure"]
                 ):
                     all_non_closure_corr_vars.append(closure_corr)
-                    
+
                     log.info(
                         f"Calculating closure correction for the {process} process dependent on {closure_corr}."
                     )
@@ -322,9 +329,9 @@ if __name__ == "__main__":
                         process=process,
                         to_AR_SR=False,
                     )
-                    
+
                     corr_evaluators = list()
-                    
+
                     for n in range(idx):
                         corr_evaluators.append(
                             FakeFactorCorrectionEvaluator(
@@ -378,7 +385,11 @@ if __name__ == "__main__":
                 corr_evaluator = FakeFactorCorrectionEvaluator(
                     config=config,
                     process=process,
-                    corr_variable=list(corr_config["target_processes"][process]["DR_SR"]["non_closure"].keys())[0],
+                    corr_variable=list(
+                        corr_config["target_processes"][process]["DR_SR"][
+                            "non_closure"
+                        ].keys()
+                    )[0],
                     for_DRtoSR=True,
                     logger=f"ff_corrections.{process}",
                 )

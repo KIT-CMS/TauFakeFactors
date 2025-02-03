@@ -88,7 +88,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -
             for weight in mc_weight_conf:
                 if weight == "generator":
                     # calculating generator weight (including cross section weight)
-                    if "stitching" in mc_weight_conf["generator"]: 
+                    if "stitching" in mc_weight_conf["generator"]:
                         if process in mc_weight_conf["generator"]["stitching"]:
                             rdf = weights.stitching_gen_weight(
                                 rdf=rdf,
@@ -97,7 +97,9 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -
                                 sample_info=datasets[sample],
                             )
                         else:
-                            rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
+                            rdf = weights.gen_weight(
+                                rdf=rdf, sample_info=datasets[sample]
+                            )
                     else:
                         rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
                 elif weight == "lumi":

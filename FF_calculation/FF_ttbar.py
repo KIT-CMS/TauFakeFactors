@@ -78,7 +78,9 @@ def calculation_ttbar_FFs(
             region_cuts=region_conf,
         )
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for the signal-like region. Target process: {process}"
+        )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -290,13 +292,19 @@ def calculation_ttbar_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
-            limit_kwargs=process_conf.get("limit_kwargs", {
-                "limit_x": {
-                    "nominal": (process_conf["var_bins"][0], process_conf["var_bins"][-1]),
-                    "up": (-float("inf"), float("inf")),
-                    "down": (-float("inf"), float("inf")),
+            limit_kwargs=process_conf.get(
+                "limit_kwargs",
+                {
+                    "limit_x": {
+                        "nominal": (
+                            process_conf["var_bins"][0],
+                            process_conf["var_bins"][-1],
+                        ),
+                        "up": (-float("inf"), float("inf")),
+                        "down": (-float("inf"), float("inf")),
+                    },
                 },
-            }),
+            ),
         )
 
         plotting.plot_FFs(
@@ -313,9 +321,9 @@ def calculation_ttbar_FFs(
         )
 
         if len(split) == 1:
-            corrlib_expressions[
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-            ] = corrlib_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
+                corrlib_exp
+            )
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
@@ -470,7 +478,9 @@ def non_closure_correction(
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "ttbar_J":
-            log.info(f"Processing {sample} for the non closure correction for {process}.")
+            log.info(
+                f"Processing {sample} for the non closure correction for {process}."
+            )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -485,7 +495,9 @@ def non_closure_correction(
                 region_cuts=region_conf,
             )
 
-            log.info(f"Filtering events for the signal region. Target process: {process}")
+            log.info(
+                f"Filtering events for the signal region. Target process: {process}"
+            )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
@@ -512,15 +524,15 @@ def non_closure_correction(
                 rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_AR)
             else:
                 rdf_AR = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_AR)
-            
+
             # additionally evaluate the previous corrections
             corr_str = ""
             for corr_evaluator in corr_evaluators:
                 rdf_AR = corr_evaluator.evaluate_correction(
-                    rdf=rdf_AR, 
+                    rdf=rdf_AR,
                 )
                 corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
-            
+
             rdf_AR = rdf_AR.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
             )

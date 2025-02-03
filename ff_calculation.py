@@ -69,7 +69,6 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-
     save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])
     func.check_path(path=os.path.join(os.getcwd(), save_path_ffs))
     save_path_plots = os.path.join(
@@ -113,9 +112,13 @@ if __name__ == "__main__":
             for process in config["target_processes"]
         ]
         if "process_fractions" in config:
-            args_list.append(("process_fractions", config, sample_paths, save_path_plots))
+            args_list.append(
+                ("process_fractions", config, sample_paths, save_path_plots)
+            )
         if "process_fractions_subleading" in config:
-            args_list.append(("process_fractions_subleading", config, sample_paths, save_path_plots))
+            args_list.append(
+                ("process_fractions_subleading", config, sample_paths, save_path_plots)
+            )
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
             for args, result in zip(

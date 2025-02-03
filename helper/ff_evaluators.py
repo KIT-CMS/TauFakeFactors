@@ -49,14 +49,18 @@ class FakeFactorEvaluator:
         self.process = process
 
         correctionlib.register_pyroot_binding()
-        
+
         if for_DRtoSR:
-            log.info(f"Loading fake factor for file {self.ff_path_for_DRtoSR} for process {self.process}")
+            log.info(
+                f"Loading fake factor for file {self.ff_path_for_DRtoSR} for process {self.process}"
+            )
             ROOT.gInterpreter.Declare(
                 f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path_for_DRtoSR}")->at("{self.process}_fake_factors");'
             )
         else:
-            log.info(f"Loading fake factor file {self.ff_path} for process {self.process}")
+            log.info(
+                f"Loading fake factor file {self.ff_path} for process {self.process}"
+            )
             ROOT.gInterpreter.Declare(
                 f'auto {self.process}_ = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
             )
@@ -122,7 +126,7 @@ class FakeFactorEvaluator:
             f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
         )
         return rdf
-    
+
     def evaluate_fraction_lep_mt_nbtag(self, rdf: Any) -> Any:
         """
         Evaluating the fractions based on the variables it depends on.
@@ -207,7 +211,7 @@ class FakeFactorCorrectionEvaluator:
         ROOT.gInterpreter.Declare(
             f'auto {self.process}_corr_{self.variable}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_{self.variable}_correction");'
         )
-        
+
     def evaluate_correction(self, rdf: Any) -> Any:
         """
         Evaluating the fake factor corrections based on the variables it depends on.
@@ -222,6 +226,6 @@ class FakeFactorCorrectionEvaluator:
         eval_str = f'{self.variable}, "nominal"'
         rdf = rdf.Define(
             f"{self.process}_ff_corr_{self.variable}",
-            f'{self.process}_corr_{self.variable}_{self.for_DRtoSR}->evaluate({{{eval_str}}})',
+            f"{self.process}_corr_{self.variable}_{self.for_DRtoSR}->evaluate({{{eval_str}}})",
         )
         return rdf

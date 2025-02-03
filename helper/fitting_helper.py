@@ -30,29 +30,28 @@ def _get_gradients(
 
 
 def func_yerr(
-    x: Union[List[float], str],
-    par: List[float],
-    n: int,
-    func: Callable
+    x: Union[List[float], str], par: List[float], n: int, func: Callable
 ) -> float:
     # par contains func parameters and the flattened covariance matrix
     grad = _get_gradients(x, [par[i] for i in range(n)], n, func, is_string=False)
     cov = [[par[n + i * n + j] for j in range(n)] for i in range(n)]
-    variance = sum(sum(grad[i] * cov[i][j] * grad[j] for j in range(n)) for i in range(n))
+    variance = sum(
+        sum(grad[i] * cov[i][j] * grad[j] for j in range(n)) for i in range(n)
+    )
     variance = (variance ** (2)) ** 0.5
     return (variance) ** 0.5
 
 
 def str_func_yerr(
-    x: Union[List[float], List[str]],
-    param: List[float],
-    n: int,
-    func: Callable
+    x: Union[List[float], List[str]], param: List[float], n: int, func: Callable
 ) -> str:
     # par contains func parameters and the flattened covariance matrix
     grad = _get_gradients(x, [param[i] for i in range(n)], n, func, is_string=True)
     cov = [[param[n + i * n + j] for j in range(n)] for i in range(n)]
-    variance = " + ".join(" + ".join(f"(({grad[i]}) * ({cov[i][j]}) * ({grad[j]}))" for j in range(n)) for i in range(n))
+    variance = " + ".join(
+        " + ".join(f"(({grad[i]}) * ({cov[i][j]}) * ({grad[j]}))" for j in range(n))
+        for i in range(n)
+    )
     variance = f"pow(pow({variance}, 2), 0.5)"
     return f"pow({variance}, 0.5)"
 
@@ -62,7 +61,9 @@ def _limit(
     *boundaries: float,
     is_string: bool = False,
 ) -> Union[float, str]:
-    assert len(boundaries) == 2, "Boundaries must be a tuple of two (lower, upper) float values."
+    assert (
+        len(boundaries) == 2
+    ), "Boundaries must be a tuple of two (lower, upper) float values."
     minimum, maximum = boundaries
     if is_string:
         minimum = "-9999.0" if minimum == -float("inf") else str(float(minimum))
@@ -95,6 +96,7 @@ def poly_n_func(
     Returns:
         Callables of the defined polynomial function
     """
+
     def nominal(x, param):
         x = [_limit(x[0], *limit_x_nominal)]
         nom = sum(param[i] * x[0] ** i for i in range(n + 1))
@@ -152,6 +154,7 @@ def poly_n_str_func(
     Returns:
         Callables of the defined polynomial string function
     """
+
     def _nominal(x, param):
         nom = " + ".join((f"{param[i]} * pow({x}, {i})" for i in range(n + 1)))
         return f"({nom})"
@@ -187,10 +190,7 @@ def poly_n_str_func(
 
 def extract_param_and_cov(fit: Any) -> Tuple[np.ndarray, np.ndarray]:
     param = np.array(
-        [
-            fit.Get().Parameter(i)
-            for i in range(fit.Get().Parameters().size())
-        ],
+        [fit.Get().Parameter(i) for i in range(fit.Get().Parameters().size())],
     )
 
     n_params = fit.Get().Parameters().size()
@@ -218,20 +218,48 @@ def check_function_validity_within_bounds(
 def get_default_limit_kwargs(
     logger: str,
     bounds: Tuple[float, float],
-    limit_x: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
-    limit_y: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
+    limit_x: Union[
+        Tuple[float, float], Dict[str, Tuple[float, float]]
+    ] = _no_limit_default,
+    limit_y: Union[
+        Tuple[float, float], Dict[str, Tuple[float, float]]
+    ] = _no_limit_default,
     verbose: bool = True,
 ) -> Dict[str, Union[Tuple[float, float], Tuple[None, ...]]]:
     kwargs_dict = dict(
-        limit_x_nominal=limit_x if isinstance(limit_x, tuple) else limit_x.get("nominal", _no_limit_default),
-        limit_x_up=limit_x if isinstance(limit_x, tuple) else limit_x.get("up", _no_limit_default),
-        limit_x_down=limit_x if isinstance(limit_x, tuple) else limit_x.get("down", _no_limit_default),
-        limit_y_nominal=limit_y if isinstance(limit_y, tuple) else limit_y.get("nominal", _no_limit_default),
-        limit_y_up=limit_y if isinstance(limit_y, tuple) else limit_y.get("up", _no_limit_default),
-        limit_y_down=limit_y if isinstance(limit_y, tuple) else limit_y.get("down", _no_limit_default),
+        limit_x_nominal=(
+            limit_x
+            if isinstance(limit_x, tuple)
+            else limit_x.get("nominal", _no_limit_default)
+        ),
+        limit_x_up=(
+            limit_x
+            if isinstance(limit_x, tuple)
+            else limit_x.get("up", _no_limit_default)
+        ),
+        limit_x_down=(
+            limit_x
+            if isinstance(limit_x, tuple)
+            else limit_x.get("down", _no_limit_default)
+        ),
+        limit_y_nominal=(
+            limit_y
+            if isinstance(limit_y, tuple)
+            else limit_y.get("nominal", _no_limit_default)
+        ),
+        limit_y_up=(
+            limit_y
+            if isinstance(limit_y, tuple)
+            else limit_y.get("up", _no_limit_default)
+        ),
+        limit_y_down=(
+            limit_y
+            if isinstance(limit_y, tuple)
+            else limit_y.get("down", _no_limit_default)
+        ),
     )
 
-    if (isinstance(limit_x, tuple) and limit_x == _no_limit_default):
+    if isinstance(limit_x, tuple) and limit_x == _no_limit_default:
         msg = " ".join(
             [
                 f"No custom limit_x was provided, using provided boundaries {bounds} for ",
@@ -248,7 +276,7 @@ def get_default_limit_kwargs(
                 limit_x_down=bounds,
             ),
         )
-    if (isinstance(limit_y, tuple) and limit_y == _no_limit_default):
+    if isinstance(limit_y, tuple) and limit_y == _no_limit_default:
         msg = " ".join(
             [
                 f"No custom limit_y was provided, using default of (0.0, float('inf')) for ",
@@ -275,20 +303,22 @@ def get_wrapped_functions_from_fits(
     ff_hist_down: ROOT.TH1,
     do_mc_subtr_unc: bool,
     logger: str,
-    function_collection: Union[List[Callable], Tuple[Callable, ...]] = (
-        "poly_1",
-    ),
+    function_collection: Union[List[Callable], Tuple[Callable, ...]] = ("poly_1",),
     verbose: bool = True,
     #
-    limit_x: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
-    limit_y: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
+    limit_x: Union[
+        Tuple[float, float], Dict[str, Tuple[float, float]]
+    ] = _no_limit_default,
+    limit_y: Union[
+        Tuple[float, float], Dict[str, Tuple[float, float]]
+    ] = _no_limit_default,
     #
     **kwargs: Dict[str, Any],
 ) -> Tuple[Dict[str, Callable], Dict[str, str]]:
     """
     Fits a set of functions to a given graph and returns functions
     (nominal, nominal + error, nominal - error) for the best fit.
-    
+
     Args:
         graph (ROOT.TGraphAsymmErrors): The graph to fit.
         bounds (Tuple[float, float]): The bounds for the fit.
@@ -299,8 +329,8 @@ def get_wrapped_functions_from_fits(
         function_collection (Tuple[str, ...], optional):
             Collection of functions to fit. Defaults to polynomial functions of degree 1 to 5.
             If more than one function is given, the one with the best chi2/ndf is chosen.
-        verbose (bool, optional): Whether to print detailed fit information. Defaults to True.        
-    
+        verbose (bool, optional): Whether to print detailed fit information. Defaults to True.
+
     Returns: Dict[str, Callable]: Dictionary with the best fit function containing:
         - "nominal": The best fit function.
         - "up": The best fit function including the upper error.
@@ -309,7 +339,7 @@ def get_wrapped_functions_from_fits(
         - "mc_down": The best fit function including the lower error from MC subtraction
     """
     log = logging.getLogger(logger)
-    
+
     a, b = bounds
     TF1s, Fits = dict(), dict()
     best_chi2_over_ndf, name = float("inf"), ""
@@ -321,7 +351,6 @@ def get_wrapped_functions_from_fits(
         limit_x=limit_x,
         limit_y=limit_y,
         verbose=verbose,
-        
     )
 
     poly_n_func_limited = partial(poly_n_func, **limit_kwargs)
@@ -351,16 +380,23 @@ def get_wrapped_functions_from_fits(
             chi2_over_ndf = float("inf")
 
         __param, __cov = extract_param_and_cov(Fits[func_name])
-        if not check_function_validity_within_bounds(
-            funcs=dict(zip(["nominal", "up", "down"], _functions[func_name])),
-            bounds=bounds,
-            parameters=dict(
-                zip(
-                    ["nominal", "up", "down"],
-                    [__param, [*__param, *__cov.flatten()], [*__param, *__cov.flatten()]],
-                )
-            ),
-        ) and len(function_collection) > 1:
+        if (
+            not check_function_validity_within_bounds(
+                funcs=dict(zip(["nominal", "up", "down"], _functions[func_name])),
+                bounds=bounds,
+                parameters=dict(
+                    zip(
+                        ["nominal", "up", "down"],
+                        [
+                            __param,
+                            [*__param, *__cov.flatten()],
+                            [*__param, *__cov.flatten()],
+                        ],
+                    )
+                ),
+            )
+            and len(function_collection) > 1
+        ):
             chi2_over_ndf = float("inf")
 
         if abs(chi2_over_ndf - 1) < abs(best_chi2_over_ndf - 1):
@@ -391,7 +427,7 @@ def get_wrapped_functions_from_fits(
                 log.info("Down")
                 Fits_down[name].Print()
                 Fits_down[name].Get().GetCovarianceMatrix().Print()
-                log.info("-" * 50)            
+                log.info("-" * 50)
         log.info(out.getvalue())
         log.info("-" * 50)
 
@@ -400,28 +436,44 @@ def get_wrapped_functions_from_fits(
     nominal_param, cov = extract_param_and_cov(Fits[name])
     variation_param = [*nominal_param, *cov.flatten()]
 
-    callable_results["nominal"] = lambda x: _functions_limited[name][0]([x], nominal_param)
-    callable_results["unc_up"] = lambda x: _functions_limited[name][1]([x], variation_param)
-    callable_results["unc_down"] = lambda x: _functions_limited[name][2]([x], variation_param)
+    callable_results["nominal"] = lambda x: _functions_limited[name][0](
+        [x], nominal_param
+    )
+    callable_results["unc_up"] = lambda x: _functions_limited[name][1](
+        [x], variation_param
+    )
+    callable_results["unc_down"] = lambda x: _functions_limited[name][2](
+        [x], variation_param
+    )
 
     str_results["nominal"] = _str_functions_limited[name][0](" ( x ) ", nominal_param)
     str_results["unc_up"] = _str_functions_limited[name][1](" ( x ) ", variation_param)
-    str_results["unc_down"] = _str_functions_limited[name][2](" ( x ) ", variation_param)
+    str_results["unc_down"] = _str_functions_limited[name][2](
+        " ( x ) ", variation_param
+    )
 
     if do_mc_subtr_unc:
         param_up, _ = extract_param_and_cov(Fits_up[name])
         param_down, _ = extract_param_and_cov(Fits_down[name])
-        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][0](
-            [x], param_up,
+        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][
+            0
+        ](
+            [x],
+            param_up,
         )
-        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[name][0](
-            [x], param_down,
+        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[
+            name
+        ][0](
+            [x],
+            param_down,
         )
         str_results["mc_subtraction_unc_up"] = _str_functions_limited[name][0](
-            " ( x ) ", param_up,
+            " ( x ) ",
+            param_up,
         )
         str_results["mc_subtraction_unc_down"] = _str_functions_limited[name][0](
-            " ( x ) ", param_down,
+            " ( x ) ",
+            param_down,
         )
 
     return callable_results, str_results, name
@@ -483,14 +535,14 @@ def get_wrapped_hists(
 ) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
     """
     Returns histograms (nominal, nominal + error, nominal - error).
-    
+
     Args:
         ff_hist (ROOT.TH1): Histogram for the nominal variation.
         ff_hist_up (ROOT.TH1): Histogram for the upward variation.
         ff_hist_down (ROOT.TH1): Histogram for the downward variation.
         do_mc_subtr_unc (bool): Whether to consider MC subtraction.
         logger (str): Logger name for logging fit information.
-    
+
     Returns: Dict[str, Union[List, Callable]]: Dictionary with the histograms containing:
         - "nominal": measured histogram.
         - "up": measured histogram including the upper error.
@@ -502,7 +554,7 @@ def get_wrapped_hists(
     if verbose:
         log.info("Measured histograms directly instead of a fit.")
         log.info("-" * 50)
-        
+
     callable_results = dict(
         zip(
             ["nominal", "unc_up", "unc_down"],
@@ -519,13 +571,19 @@ def get_wrapped_hists(
         callable_results.update(
             {
                 "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=True)[0],
-                "mc_subtraction_unc_down": hist_func(ff_hist_down, return_callable=True)[0],
+                "mc_subtraction_unc_down": hist_func(
+                    ff_hist_down, return_callable=True
+                )[0],
             }
         )
         str_results.update(
             {
-                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=False)[0],
-                "mc_subtraction_unc_down": hist_func(ff_hist_down, return_callable=False)[0],
+                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=False)[
+                    0
+                ],
+                "mc_subtraction_unc_down": hist_func(
+                    ff_hist_down, return_callable=False
+                )[0],
             }
         )
 

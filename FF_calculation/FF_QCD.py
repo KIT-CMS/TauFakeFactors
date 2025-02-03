@@ -48,7 +48,7 @@ def calculation_QCD_FFs(
 
     # get QCD specific config information
     process_conf = config["target_processes"][process]
-    
+
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
     )
@@ -141,8 +141,12 @@ def calculation_QCD_FFs(
                 "QCD",
             ]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)  # TODO: ask whats this magic numbers?
-                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)  # Answer: Historical reasons
+                SRlike_hists["data_subtracted_up"].Add(
+                    SRlike_hists[hist], -0.93
+                )  # TODO: ask whats this magic numbers?
+                SRlike_hists["data_subtracted_down"].Add(
+                    SRlike_hists[hist], -1.07
+                )  # Answer: Historical reasons
         for hist in ARlike_hists:
             if hist not in [
                 "data",
@@ -165,15 +169,20 @@ def calculation_QCD_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
-            limit_kwargs=process_conf.get("limit_kwargs", {
-                "limit_x": {
-                    "nominal": (process_conf["var_bins"][0], process_conf["var_bins"][-1]),
-                    "up": (-float("inf"), float("inf")),
-                    "down": (-float("inf"), float("inf")),
+            limit_kwargs=process_conf.get(
+                "limit_kwargs",
+                {
+                    "limit_x": {
+                        "nominal": (
+                            process_conf["var_bins"][0],
+                            process_conf["var_bins"][-1],
+                        ),
+                        "up": (-float("inf"), float("inf")),
+                        "down": (-float("inf"), float("inf")),
+                    },
                 },
-            }),
+            ),
         )
-        
 
         plotting.plot_FFs(
             variable=process_conf["var_dependence"],
@@ -189,9 +198,9 @@ def calculation_QCD_FFs(
         )
 
         if len(split) == 1:
-            corrlib_expressions[
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-            ] = corrlib_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
+                corrlib_exp
+            )
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
@@ -364,15 +373,15 @@ def non_closure_correction(
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
-            
+
             # additionally evaluate the previous corrections
             corr_str = ""
             for corr_evaluator in corr_evaluators:
                 rdf_ARlike = corr_evaluator.evaluate_correction(
-                    rdf=rdf_ARlike, 
+                    rdf=rdf_ARlike,
                 )
                 corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
-            
+
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
             )
@@ -608,7 +617,8 @@ def DR_SR_correction(
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
                 rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr_{corr_evaluator.variable}"
+                "weight_ff",
+                f"weight * {process}_fake_factor * {process}_ff_corr_{corr_evaluator.variable}",
             )
 
         # redirecting C++ stdout for Report() to python stdout

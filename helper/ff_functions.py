@@ -373,7 +373,7 @@ def fit_function(
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
-    """    
+    """
     if not isinstance(fit_option, list) and fit_option != "bin_wise":
         fit_option = [fit_option]
 
@@ -451,8 +451,10 @@ def fit_function(
     results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
     results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
     if do_mc_subtr_unc:
-        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(*_args, y_fit_mc_down, y_fit_mc_up)
-    
+        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(
+            *_args, y_fit_mc_down, y_fit_mc_up
+        )
+
     return results, correctionlib_expression, used_fit
 
 
@@ -616,4 +618,3 @@ def smooth_function(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
     return smooth_graph, corr_dict
-

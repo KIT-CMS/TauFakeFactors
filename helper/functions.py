@@ -21,20 +21,22 @@ def load_config(config_file: str) -> Dict:
 
     Args:
         config_file: Path to the specific config file
-    
+
     Return:
         Configuration as a dictionary
     """
     common_config_file_name = "common_settings.yaml"
     if "boosted" in config_file:
         common_config_file_name = "common_settings_boosted.yaml"
-        
+
     common_config_file = os.path.join(
-            os.path.split(config_file)[0],
-            common_config_file_name,
-        )
+        os.path.split(config_file)[0],
+        common_config_file_name,
+    )
     if os.path.exists(common_config_file):
-        print(f"Using {common_config_file_name} file found in {os.path.split(config_file)[0]}")
+        print(
+            f"Using {common_config_file_name} file found in {os.path.split(config_file)[0]}"
+        )
         print("-" * 50)
     else:
         print(f"No common config file found!")
@@ -283,7 +285,9 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     rdf = rdf.Redefine("m_vis", "boosted_m_vis")
     rdf = rdf.Redefine("fj_Xbb_pt", "fj_Xbb_pt_boosted")
     rdf = rdf.Redefine("fj_Xbb_eta", "fj_Xbb_eta_boosted")
-    rdf = rdf.Redefine("fj_Xbb_particleNet_XbbvsQCD", "fj_Xbb_particleNet_XbbvsQCD_boosted")
+    rdf = rdf.Redefine(
+        "fj_Xbb_particleNet_XbbvsQCD", "fj_Xbb_particleNet_XbbvsQCD_boosted"
+    )
     rdf = rdf.Redefine("bpair_pt_1", "bpair_pt_1_boosted")
     rdf = rdf.Redefine("bpair_pt_2", "bpair_pt_2_boosted")
     rdf = rdf.Redefine("bpair_btag_value_2", "bpair_btag_value_2_boosted")
@@ -300,7 +304,7 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
     else:
         rdf = rdf.Define("btag_weight_boosted", "1.")
         rdf = rdf.Redefine("btag_weight", "btag_weight_boosted")
-    
+
     if "pNet_Xbb_weight_boosted" in rdf.GetColumnNames():
         rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
     else:

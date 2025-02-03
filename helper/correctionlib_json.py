@@ -180,7 +180,8 @@ def make_1D_ff(
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
+                description=gd.variable_description[cat_inputs[0]]
+                + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name="syst",
@@ -207,7 +208,9 @@ def make_1D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=variable_info[0],
-                                **get_edges_and_content(ff_functions[cat1][unc], variable_info),
+                                **get_edges_and_content(
+                                    ff_functions[cat1][unc], variable_info
+                                ),
                                 flow="clamp",
                             )
                             for cat1 in ff_functions
@@ -225,7 +228,9 @@ def make_1D_ff(
                     cs.Binning(
                         nodetype="binning",
                         input=variable_info[0],
-                        **get_edges_and_content(ff_functions[cat1]["nominal"], variable_info),
+                        **get_edges_and_content(
+                            ff_functions[cat1]["nominal"], variable_info
+                        ),
                         flow="clamp",
                     )
                     for cat1 in ff_functions
@@ -280,12 +285,14 @@ def make_2D_ff(
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
+                description=gd.variable_description[cat_inputs[0]]
+                + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name=cat_inputs[1],
                 type=gd.variable_type[cat_inputs[1]],
-                description=gd.variable_description[cat_inputs[1]] + ", ".join(cat_values[1]),
+                description=gd.variable_description[cat_inputs[1]]
+                + ", ".join(cat_values[1]),
             ),
             cs.Variable(
                 name="syst",
@@ -312,12 +319,16 @@ def make_2D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=cat_inputs[1],
-                                edges=process_conf["split_categories_binedges"][cat_inputs[1]],
+                                edges=process_conf["split_categories_binedges"][
+                                    cat_inputs[1]
+                                ],
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
                                         input=variable_info[0],
-                                        **get_edges_and_content(ff_functions[cat1][cat2][unc], variable_info),
+                                        **get_edges_and_content(
+                                            ff_functions[cat1][cat2][unc], variable_info
+                                        ),
                                         flow="clamp",
                                     )
                                     for cat2 in ff_functions[cat1]
@@ -344,7 +355,9 @@ def make_2D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=variable_info[0],
-                                **get_edges_and_content(ff_functions[cat1][cat2]["nominal"], variable_info),
+                                **get_edges_and_content(
+                                    ff_functions[cat1][cat2]["nominal"], variable_info
+                                ),
                                 flow="clamp",
                             )
                             for cat2 in ff_functions[cat1]
@@ -410,7 +423,8 @@ def make_1D_fractions(
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
+                description=gd.variable_description[cat_inputs[0]]
+                + ", ".join(cat_values[0]),
             ),
             cs.Variable(
                 name="syst",
@@ -436,7 +450,9 @@ def make_1D_fractions(
                                 value=cs.Binning(
                                     nodetype="binning",
                                     input=cat_inputs[0],
-                                    edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
+                                    edges=fraction_conf["split_categories_binedges"][
+                                        cat_inputs[0]
+                                    ],
                                     content=[
                                         cs.Binning(
                                             nodetype="binning",
@@ -466,7 +482,9 @@ def make_1D_fractions(
                         value=cs.Binning(
                             nodetype="binning",
                             input=cat_inputs[0],
-                            edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
+                            edges=fraction_conf["split_categories_binedges"][
+                                cat_inputs[0]
+                            ],
                             content=[
                                 cs.Binning(
                                     nodetype="binning",
@@ -515,12 +533,18 @@ def generate_correction_corrlib_json(
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
-                variable = config["target_processes"][process]["non_closure"][tmp_var]["var_dependence"]
+                variable = config["target_processes"][process]["non_closure"][tmp_var][
+                    "var_dependence"
+                ]
             elif "non_closure" in correction and for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
-                variable = config["target_processes"][process]["DR_SR"]["non_closure"][tmp_var]["var_dependence"]
+                variable = config["target_processes"][process]["DR_SR"]["non_closure"][
+                    tmp_var
+                ]["var_dependence"]
             else:
-                variable = config["target_processes"][process][correction]["var_dependence"]
+                variable = config["target_processes"][process][correction][
+                    "var_dependence"
+                ]
             correction_dict = corrections[process][correction]
             corr = make_1D_correction(
                 process,

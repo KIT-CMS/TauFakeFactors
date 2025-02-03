@@ -52,10 +52,8 @@ def plot_FFs(
         42
     )  # chosing font, see https://root.cern/root/html534/TAttText.html
 
-    ff_ratio.SetMaximum(
-        max(ff_ratio.GetMaximum() + 0.4 * ff_ratio.GetMaximum(), 0.5)
-    )
-    ff_ratio.SetMinimum(0.)
+    ff_ratio.SetMaximum(max(ff_ratio.GetMaximum() + 0.4 * ff_ratio.GetMaximum(), 0.5))
+    ff_ratio.SetMinimum(0.0)
     # ff_ratio.SetAxisRange(0, 0.5, "Y")
     ff_ratio.SetMarkerStyle(20)
     ff_ratio.SetMarkerSize(1.2)
@@ -65,7 +63,11 @@ def plot_FFs(
     ff_ratio.GetXaxis().SetMoreLogLabels()
     ff_ratio.GetXaxis().SetNoExponent()
     ff_ratio.GetYaxis().SetTitle(gd.FF_YAxis[process])
-    ff_ratio.GetXaxis().SetTitle(gd.variable_dict[channel][variable] if variable in gd.variable_dict[channel] else variable)
+    ff_ratio.GetXaxis().SetTitle(
+        gd.variable_dict[channel][variable]
+        if variable in gd.variable_dict[channel]
+        else variable
+    )
     ff_ratio.GetYaxis().SetLabelSize(0.04)
     ff_ratio.GetXaxis().SetLabelSize(0.04)
     ff_ratio.GetYaxis().SetTitleSize(0.05)
@@ -175,7 +177,11 @@ def plot_data_mc(
     mc.SetFillColor(ROOT.kGray + 2)
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("N_{Events}")
-    stack.GetXaxis().SetTitle(gd.variable_dict[channel][variable] if variable in gd.variable_dict[channel] else variable)
+    stack.GetXaxis().SetTitle(
+        gd.variable_dict[channel][variable]
+        if variable in gd.variable_dict[channel]
+        else variable
+    )
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -312,7 +318,11 @@ def plot_data_mc_ratio(
 
     # Adjust x-axis settings
     x = ratio.GetXaxis()
-    x.SetTitle(gd.variable_dict[channel][variable] if variable in gd.variable_dict[channel] else variable)
+    x.SetTitle(
+        gd.variable_dict[channel][variable]
+        if variable in gd.variable_dict[channel]
+        else variable
+    )
     x.SetTitleSize(0.12)
     x.SetLabelSize(0.1)
 
@@ -445,7 +455,11 @@ def plot_fractions(
     stack.SetTitle("")
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Fraction")
-    stack.GetXaxis().SetTitle(gd.variable_dict[channel][variable] if variable in gd.variable_dict[channel] else variable)
+    stack.GetXaxis().SetTitle(
+        gd.variable_dict[channel][variable]
+        if variable in gd.variable_dict[channel]
+        else variable
+    )
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
     stack.GetYaxis().SetTitleSize(0.05)
@@ -528,9 +542,9 @@ def plot_correction(
 
     # corr_hist.SetAxisRange(0, 2, "Y")
     corr_hist.SetMaximum(
-        max(corr_hist.GetMaximum() + 0.4 * corr_hist.GetMaximum(), 2.)
+        max(corr_hist.GetMaximum() + 0.4 * corr_hist.GetMaximum(), 2.0)
     )
-    corr_hist.SetMinimum(0.)
+    corr_hist.SetMinimum(0.0)
     corr_hist.SetMarkerStyle(20)
     corr_hist.SetMarkerSize(1.2)
     corr_hist.SetLineWidth(2)
@@ -539,7 +553,11 @@ def plot_correction(
     corr_hist.GetXaxis().SetMoreLogLabels()
     corr_hist.GetXaxis().SetNoExponent()
     corr_hist.GetYaxis().SetTitle("Correction")
-    corr_hist.GetXaxis().SetTitle(gd.variable_dict[channel][variable] if variable in gd.variable_dict[channel] else variable)
+    corr_hist.GetXaxis().SetTitle(
+        gd.variable_dict[channel][variable]
+        if variable in gd.variable_dict[channel]
+        else variable
+    )
     corr_hist.GetYaxis().SetLabelSize(0.04)
     corr_hist.GetXaxis().SetLabelSize(0.04)
     corr_hist.GetYaxis().SetTitleSize(0.05)
