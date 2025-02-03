@@ -21,7 +21,7 @@ def load_config(config_file: str) -> Dict:
 
     Args:
         config_file: Path to the specific config file
-
+    
     Return:
         Configuration as a dictionary
     """
