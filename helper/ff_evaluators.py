@@ -1,8 +1,9 @@
-import os
-import ROOT
-import correctionlib
 import logging
-from typing import Dict, Union, List, Any
+import os
+from typing import Any, Dict, List, Union
+
+import correctionlib
+import ROOT
 
 
 class FakeFactorEvaluator:
@@ -48,14 +49,18 @@ class FakeFactorEvaluator:
         self.process = process
 
         correctionlib.register_pyroot_binding()
-        
+
         if for_DRtoSR:
-            log.info(f"Loading fake factor for file {self.ff_path_for_DRtoSR} for process {self.process}")
+            log.info(
+                f"Loading fake factor for file {self.ff_path_for_DRtoSR} for process {self.process}"
+            )
             ROOT.gInterpreter.Declare(
                 f'auto {self.process}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.ff_path_for_DRtoSR}")->at("{self.process}_fake_factors");'
             )
         else:
-            log.info(f"Loading fake factor file {self.ff_path} for process {self.process}")
+            log.info(
+                f"Loading fake factor file {self.ff_path} for process {self.process}"
+            )
             ROOT.gInterpreter.Declare(
                 f'auto {self.process}_ = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
             )
@@ -121,7 +126,7 @@ class FakeFactorEvaluator:
             f'{self.process}_{self.for_DRtoSR}->evaluate({{pt_2, (float)njets, deltaR_ditaupair, "nominal"}})',
         )
         return rdf
-    
+
     def evaluate_fraction_lep_mt_nbtag(self, rdf: Any) -> Any:
         """
         Evaluating the fractions based on the variables it depends on.
@@ -164,6 +169,7 @@ class FakeFactorCorrectionEvaluator:
         self,
         config: Dict[str, Union[str, Dict, List]],
         process: str,
+        corr_variable: str,
         for_DRtoSR: bool,
         logger: str,
     ):
@@ -196,21 +202,17 @@ class FakeFactorCorrectionEvaluator:
             )
 
         self.process = process
+        self.variable = corr_variable
 
         correctionlib.register_pyroot_binding()
         log.info(
             f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
-        if self.process in ["QCD", "ttbar"] and config["channel"] == "tt":
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_subleading_lep_pt_correction");'
-            )
-        else:
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_leading_lep_pt_correction");'
-            )
+        ROOT.gInterpreter.Declare(
+            f'auto {self.process}_corr_{self.variable}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_{self.variable}_correction");'
+        )
 
-    def evaluate_leading_lep_pt(self, rdf: Any) -> Any:
+    def evaluate_correction(self, rdf: Any) -> Any:
         """
         Evaluating the fake factor corrections based on the variables it depends on.
         In this function it is the transverse momentum of the leading lepton in the tau pair.
@@ -221,25 +223,9 @@ class FakeFactorCorrectionEvaluator:
         Return:
             root DataFrame object with a new column with the evaluated fake factor corrections
         """
+        eval_str = f'{self.variable}, "nominal"'
         rdf = rdf.Define(
-            f"{self.process}_ff_corr",
-            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_1, "nominal"}})',
-        )
-        return rdf
-
-    def evaluate_subleading_lep_pt(self, rdf: Any) -> Any:
-        """
-        Evaluating the fake factor corrections based on the variables it depends on.
-        In this function it is the transverse momentum of the subleading lepton in the tau pair.
-
-        Args:
-            rdf: root DataFrame object
-
-        Return:
-            root DataFrame object with a new column with the evaluated fake factor corrections
-        """
-        rdf = rdf.Define(
-            f"{self.process}_ff_corr",
-            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_2, "nominal"}})',
+            f"{self.process}_ff_corr_{self.variable}",
+            f"{self.process}_corr_{self.variable}_{self.for_DRtoSR}->evaluate({{{eval_str}}})",
         )
         return rdf

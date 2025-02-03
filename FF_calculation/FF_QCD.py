@@ -4,16 +4,17 @@ Function for calculating fake factors for the QCD process
 
 import array
 import copy
+import logging
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import Union, Dict, List
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 
 
 def calculation_QCD_FFs(
@@ -140,8 +141,12 @@ def calculation_QCD_FFs(
                 "QCD",
             ]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
-                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
+                SRlike_hists["data_subtracted_up"].Add(
+                    SRlike_hists[hist], -0.93
+                )  # TODO: ask whats this magic numbers?
+                SRlike_hists["data_subtracted_down"].Add(
+                    SRlike_hists[hist], -1.07
+                )  # Answer: Historical reasons
         for hist in ARlike_hists:
             if hist not in [
                 "data",
@@ -159,10 +164,24 @@ def calculation_QCD_FFs(
             SRlike=SRlike_hists, ARlike=ARlike_hists
         )
         # performing the fit and calculating the fit uncertainties
-        fit_graphs, corrlib_exp = func.fit_function(
+        fit_graphs, corrlib_exp, used_fit = func.fit_function(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf.get("fit_option", "poly_1"),
+            limit_kwargs=process_conf.get(
+                "limit_kwargs",
+                {
+                    "limit_x": {
+                        "nominal": (
+                            process_conf["var_bins"][0],
+                            process_conf["var_bins"][-1],
+                        ),
+                        "up": (-float("inf"), float("inf")),
+                        "down": (-float("inf"), float("inf")),
+                    },
+                },
+            ),
         )
 
         plotting.plot_FFs(
@@ -175,12 +194,13 @@ def calculation_QCD_FFs(
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=used_fit,
         )
 
         if len(split) == 1:
-            corrlib_expressions[
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-            ] = corrlib_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
+                corrlib_exp
+            )
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
@@ -266,7 +286,7 @@ def non_closure_correction(
     process: str,
     closure_variable: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     for_DRtoSR: bool,
     logger: str,
 ) -> Dict[str, np.ndarray]:
@@ -281,7 +301,7 @@ def non_closure_correction(
         process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
         closure_variable: Name of the variable the correction is calculated for
         evaluator: Evaluator with QCD fake factors
-        corr_evaluator: Evaluator with corrections to QCD fake factors
+        corr_evaluators: List of evaluators with corrections to QCD fake factors
         for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
         logger: Name of the logger that should be used
 
@@ -353,20 +373,18 @@ def non_closure_correction(
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
-            if corr_evaluator == None:
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", f"weight * {process}_fake_factor"
+
+            # additionally evaluate the previous corrections
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_ARlike = corr_evaluator.evaluate_correction(
+                    rdf=rdf_ARlike,
                 )
-            else:
-                if config["channel"] != "tt" or process == "QCD_subleading":
-                    rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
-                else:
-                    rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(
-                        rdf=rdf_ARlike
-                    )
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
-                )
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", f"weight * {process}_fake_factor{corr_str}"
+            )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -594,12 +612,13 @@ def DR_SR_correction(
         if sample == "data":
             if config["channel"] != "tt" or process == "QCD_subleading":
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
-                rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
-                rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(rdf=rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+                "weight_ff",
+                f"weight * {process}_fake_factor * {process}_ff_corr_{corr_evaluator.variable}",
             )
 
         # redirecting C++ stdout for Report() to python stdout

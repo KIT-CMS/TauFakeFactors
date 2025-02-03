@@ -17,7 +17,6 @@ import ROOT
 import helper.filters as filters
 import helper.weights as weights
 import helper.functions as func
-# import configs.general_definitions as gd
 
 
 parser = argparse.ArgumentParser()
@@ -26,16 +25,6 @@ parser.add_argument(
     "--config-file",
     default=None,
     help="Path to the config file which contains information for the preselection step.",
-)
-parser.add_argument(
-    "-c",
-    "--common-config-file",
-    default=None,
-    help="""
-        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
-        Settings loaded here are overwritten by the settings in --config-file if present there.
-        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
-    """,
 )
 parser.add_argument(
     "--nthreads",
@@ -99,7 +88,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -
             for weight in mc_weight_conf:
                 if weight == "generator":
                     # calculating generator weight (including cross section weight)
-                    if "stitching" in mc_weight_conf["generator"]: 
+                    if "stitching" in mc_weight_conf["generator"]:
                         if process in mc_weight_conf["generator"]["stitching"]:
                             rdf = weights.stitching_gen_weight(
                                 rdf=rdf,
@@ -108,7 +97,9 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int]) -
                                 sample_info=datasets[sample],
                             )
                         else:
-                            rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
+                            rdf = weights.gen_weight(
+                                rdf=rdf, sample_info=datasets[sample]
+                            )
                     else:
                         rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
                 elif weight == "lumi":
@@ -237,10 +228,8 @@ if __name__ == "__main__":
     )
 
     # get needed features for fake factor calculation
-    output_features = config["output_features"] # gd.output_features[config["analysis"]][config["channel"]]
+    output_features = config["output_features"]
 
-    # tau_vs_jet_wps = ["VVVLoose", "Medium", "Tight"]
-    # tau_vs_jet_wgt_wps = ["Medium", "Tight"]
     for wp in config["tau_vs_jet_wps"]:
         output_features.append("id_tau_vsJet_" + wp + "_2")
     for wp in config["tau_vs_jet_wgt_wps"]:

@@ -1,11 +1,6 @@
 # This is an example config containing information for the FF calculation
 
-# file_path: "/ceph/nshadskiy/FFmethod/01_2025_v1"
-# era: "2018"
 channel: "mt" # options are et, mt, tt
-# tree: "ntuple"
-
-# workdir_name: "01_2025_v1"
 
 use_embedding: False
 
@@ -37,6 +32,13 @@ target_processes:
         
         var_dependence: "pt_2"
         var_bins: [30,32,35,40,48,70,100]
+        # fit_option: "bin_wise"
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [30.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
     Wjets: 
         split_categories: 
@@ -66,7 +68,13 @@ target_processes:
             fatjet_veto: "fj_Xbb_pt < 200"
         
         var_dependence: "pt_2"
-        var_bins: [30,32,38,47,60,100]
+        var_bins: [30,32,38,47,60,70,80,90,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [30.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
     ttbar: 
         split_categories: 
@@ -108,6 +116,12 @@ target_processes:
         
         var_dependence: "pt_2"
         var_bins: [30,32,35,38,41,44,52,70,100]
+        fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [30.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
 process_fractions:
     processes: ["QCD", "Wjets", "ttbar_J"]

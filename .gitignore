@@ -130,3 +130,7 @@ dmypy.json
 
 # custom
 workdir/*
+
+*.bak*
+*.delme*
+*.init*
