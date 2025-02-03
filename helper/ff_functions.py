@@ -354,7 +354,7 @@ def fit_function(
     bin_edges: List[int],
     logger: str,
     fit_option: Union[str, List[str]],
-    limit_and_replace_kwargs: Dict[str, Any],
+    limit_kwargs: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], Dict[str, str], str]:
     """
     This function performs fits of the ratio histogram. The fitted function is then used
@@ -373,9 +373,7 @@ def fit_function(
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
-    """
-    # log = logging.getLogger(logger)
-    
+    """    
     if not isinstance(fit_option, list) and fit_option != "bin_wise":
         fit_option = [fit_option]
 
@@ -417,11 +415,7 @@ def fit_function(
         logger=logger,
         function_collection=fit_option,
         verbose=True,
-        limit_x={
-            "nominal": (bin_edges[0], bin_edges[-1]),
-            "up": (-float("inf"), float("inf")),
-            "down": (-float("inf"), float("inf")),
-        },
+        limit_x=limit_kwargs["limit_x"],
     )
 
     y_fit, y_fit_up, y_fit_down = [], [], []

@@ -85,10 +85,6 @@ def poly_n_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
-    #
-    boundary_replace_nominal: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
-    boundary_replace_up: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
-    boundary_replace_down: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function with degree n and an up and down varied version.
@@ -100,12 +96,9 @@ def poly_n_func(
         Callables of the defined polynomial function
     """
     def nominal(x, param):
-        if not any(boundary_replace_nominal):
-            x = [_limit(x[0], *limit_x_nominal)]
-            nom = sum(param[i] * x[0] ** i for i in range(n + 1))
-            return _limit(nom, *limit_y_nominal)
-        else:
-            raise NotImplementedError
+        x = [_limit(x[0], *limit_x_nominal)]
+        nom = sum(param[i] * x[0] ** i for i in range(n + 1))
+        return _limit(nom, *limit_y_nominal)
 
     nominal.__name__ = f"poly_{n}"
     nominal.__n_param__ = n + 1
@@ -115,13 +108,10 @@ def poly_n_func(
         def _nominal(x, param):
             return sum(param[i] * x[0] ** i for i in range(n + 1))
 
-        if not any(boundary_replace_up):
-            x = [_limit(x[0], *limit_x_up)]
-            nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
-            unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-            return _limit(nom + unc / 2.0, *limit_y_up)
-        else:
-            raise NotImplementedError
+        x = [_limit(x[0], *limit_x_up)]
+        nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
+        unc = func_yerr(x, param, nominal.__n_param__, _nominal)
+        return _limit(nom + unc / 2.0, *limit_y_up)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -131,13 +121,10 @@ def poly_n_func(
         def _nominal(x, param):
             return sum(param[i] * x[0] ** i for i in range(n + 1))
 
-        if not any(boundary_replace_down):
-            x = [_limit(x[0], *limit_x_down)]
-            nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
-            unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-            return _limit(nom - unc / 2.0, *limit_y_down)
-        else:
-            raise NotImplementedError
+        x = [_limit(x[0], *limit_x_down)]
+        nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
+        unc = func_yerr(x, param, nominal.__n_param__, _nominal)
+        return _limit(nom - unc / 2.0, *limit_y_down)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -155,10 +142,6 @@ def poly_n_str_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
-    #
-    boundary_replace_nominal: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
-    boundary_replace_up: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
-    boundary_replace_down: Union[Tuple[None, ...], Tuple[Any, Any]] = (None,),  # tbd
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function as a string with degree n and an up and down varied version.
@@ -174,36 +157,27 @@ def poly_n_str_func(
         return f"({nom})"
 
     def nominal(x, param):
-        if not any(boundary_replace_nominal):
-            x = _limit(x, *limit_x_nominal, is_string=True)
-            nom = " + ".join((f"{param[i]} * pow({x}, {i})" for i in range(n + 1)))
-            return _limit(f"({nom})", *limit_y_nominal, is_string=True)
-        else:
-            raise NotImplementedError
+        x = _limit(x, *limit_x_nominal, is_string=True)
+        nom = " + ".join((f"{param[i]} * pow({x}, {i})" for i in range(n + 1)))
+        return _limit(f"({nom})", *limit_y_nominal, is_string=True)
 
     nominal.__name__ = f"poly_{n}"
     nominal.__n_param__ = n + 1
 
     def up(x, param):
-        if not any(boundary_replace_up):
-            x = _limit(x, *limit_x_up, is_string=True)
-            nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
-            unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-            return _limit(f"(({nom}) + ({unc}) / 2.0)", *limit_y_up, is_string=True)
-        else:
-            raise NotImplementedError
+        x = _limit(x, *limit_x_up, is_string=True)
+        nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
+        unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
+        return _limit(f"(({nom}) + ({unc}) / 2.0)", *limit_y_up, is_string=True)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
 
     def down(x, param):
-        if not any(boundary_replace_down):
-            x = _limit(x, *limit_x_down, is_string=True)
-            nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
-            unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-            return _limit(f"(({nom}) - ({unc}) / 2.0)", *limit_y_down, is_string=True)
-        else:
-            raise NotImplementedError
+        x = _limit(x, *limit_x_down, is_string=True)
+        nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
+        unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
+        return _limit(f"(({nom}) - ({unc}) / 2.0)", *limit_y_down, is_string=True)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -241,12 +215,11 @@ def check_function_validity_within_bounds(
     return all(all(funcs[k]([it], parameters[k]) > 0 for it in x) for k in keys)
 
 
-def get_default_limit_and_replace_kwargs(
+def get_default_limit_kwargs(
     logger: str,
     bounds: Tuple[float, float],
     limit_x: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
     limit_y: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
-    boundary_replace: Union[Tuple[None, ...], Dict[str, Tuple[None, ...]]] = (None,),  # tbd
     verbose: bool = True,
 ) -> Dict[str, Union[Tuple[float, float], Tuple[None, ...]]]:
     kwargs_dict = dict(
@@ -256,9 +229,6 @@ def get_default_limit_and_replace_kwargs(
         limit_y_nominal=limit_y if isinstance(limit_y, tuple) else limit_y.get("nominal", _no_limit_default),
         limit_y_up=limit_y if isinstance(limit_y, tuple) else limit_y.get("up", _no_limit_default),
         limit_y_down=limit_y if isinstance(limit_y, tuple) else limit_y.get("down", _no_limit_default),
-        boundary_replace_nominal=boundary_replace if isinstance(boundary_replace, tuple) else boundary_replace.get("nominal", (None,)),
-        boundary_replace_up=boundary_replace if isinstance(boundary_replace, tuple) else boundary_replace.get("up", (None,)),
-        boundary_replace_down=boundary_replace if isinstance(boundary_replace, tuple) else boundary_replace.get("down", (None,)),
     )
 
     if (isinstance(limit_x, tuple) and limit_x == _no_limit_default):
@@ -312,7 +282,6 @@ def get_wrapped_functions_from_fits(
     #
     limit_x: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
     limit_y: Union[Tuple[float, float], Dict[str, Tuple[float, float]]] = _no_limit_default,
-    boundary_replace: Union[Tuple[None, ...], Dict[str, Tuple[None, ...]]] = (None,),  # tbd
     #
     **kwargs: Dict[str, Any],
 ) -> Tuple[Dict[str, Callable], Dict[str, str]]:
@@ -346,18 +315,17 @@ def get_wrapped_functions_from_fits(
     best_chi2_over_ndf, name = float("inf"), ""
     TF1s_up, TF1s_down, Fits_up, Fits_down = dict(), dict(), dict(), dict()
 
-    limit_and_replace_kwargs = get_default_limit_and_replace_kwargs(
+    limit_kwargs = get_default_limit_kwargs(
         logger=log,
         bounds=bounds,
         limit_x=limit_x,
         limit_y=limit_y,
-        boundary_replace=boundary_replace,
         verbose=verbose,
         
     )
 
-    poly_n_func_limited = partial(poly_n_func, **limit_and_replace_kwargs)
-    poly_n_str_func_limited = partial(poly_n_str_func, **limit_and_replace_kwargs)
+    poly_n_func_limited = partial(poly_n_func, **limit_kwargs)
+    poly_n_str_func_limited = partial(poly_n_str_func, **limit_kwargs)
 
     _functions, _str_functions = dict(), dict()
     _functions_limited, _str_functions_limited = dict(), dict()

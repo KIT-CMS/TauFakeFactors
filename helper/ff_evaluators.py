@@ -165,6 +165,7 @@ class FakeFactorCorrectionEvaluator:
         self,
         config: Dict[str, Union[str, Dict, List]],
         process: str,
+        corr_variable: str,
         for_DRtoSR: bool,
         logger: str,
     ):
@@ -197,21 +198,17 @@ class FakeFactorCorrectionEvaluator:
             )
 
         self.process = process
+        self.variable = corr_variable
 
         correctionlib.register_pyroot_binding()
         log.info(
             f"Loading fake factor correction file {self.corr_path} for process {self.process}"
         )
-        if self.process in ["QCD", "ttbar"] and config["channel"] == "tt":
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_subleading_lep_pt_correction");'
-            )
-        else:
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_corr_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_leading_lep_pt_correction");'
-            )
-
-    def evaluate_leading_lep_pt(self, rdf: Any) -> Any:
+        ROOT.gInterpreter.Declare(
+            f'auto {self.process}_corr_{self.variable}_{self.for_DRtoSR} = correction::CorrectionSet::from_file("{self.corr_path}")->at("{self.process}_non_closure_{self.variable}_correction");'
+        )
+        
+    def evaluate_correction(self, rdf: Any) -> Any:
         """
         Evaluating the fake factor corrections based on the variables it depends on.
         In this function it is the transverse momentum of the leading lepton in the tau pair.
@@ -222,25 +219,9 @@ class FakeFactorCorrectionEvaluator:
         Return:
             root DataFrame object with a new column with the evaluated fake factor corrections
         """
+        eval_str = f'{self.variable}, "nominal"'
         rdf = rdf.Define(
-            f"{self.process}_ff_corr",
-            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_1, "nominal"}})',
-        )
-        return rdf
-
-    def evaluate_subleading_lep_pt(self, rdf: Any) -> Any:
-        """
-        Evaluating the fake factor corrections based on the variables it depends on.
-        In this function it is the transverse momentum of the subleading lepton in the tau pair.
-
-        Args:
-            rdf: root DataFrame object
-
-        Return:
-            root DataFrame object with a new column with the evaluated fake factor corrections
-        """
-        rdf = rdf.Define(
-            f"{self.process}_ff_corr",
-            f'{self.process}_corr_{self.for_DRtoSR}->evaluate({{pt_2, "nominal"}})',
+            f"{self.process}_ff_corr_{self.variable}",
+            f'{self.process}_corr_{self.variable}_{self.for_DRtoSR}->evaluate({{{eval_str}}})',
         )
         return rdf

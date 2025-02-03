@@ -165,8 +165,15 @@ def calculation_QCD_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
-            limit_and_replace_kwargs=process_conf.get("limit_and_replace_kwargs", {}),  # TODO: Build an config interface for that
+            limit_kwargs=process_conf.get("limit_kwargs", {
+                "limit_x": {
+                    "nominal": (process_conf["var_bins"][0], process_conf["var_bins"][-1]),
+                    "up": (-float("inf"), float("inf")),
+                    "down": (-float("inf"), float("inf")),
+                },
+            }),
         )
+        
 
         plotting.plot_FFs(
             variable=process_conf["var_dependence"],
@@ -285,7 +292,7 @@ def non_closure_correction(
         process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
         closure_variable: Name of the variable the correction is calculated for
         evaluator: Evaluator with QCD fake factors
-        corr_evaluator: Evaluator with corrections to QCD fake factors
+        corr_evaluators: List of evaluators with corrections to QCD fake factors
         for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
         logger: Name of the logger that should be used
 
@@ -358,6 +365,7 @@ def non_closure_correction(
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
             
+            # additionally evaluate the previous corrections
             corr_str = ""
             for corr_evaluator in corr_evaluators:
                 rdf_ARlike = corr_evaluator.evaluate_correction(
@@ -368,21 +376,6 @@ def non_closure_correction(
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
             )
-            
-            # if corr_evaluator == None:
-            #     rdf_ARlike = rdf_ARlike.Define(
-            #         "weight_ff", f"weight * {process}_fake_factor"
-            #     )
-            # else:
-            #     if config["channel"] != "tt" or process == "QCD_subleading":
-            #         rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
-            #     else:
-            #         rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(
-            #             rdf=rdf_ARlike
-            #         )
-            #     rdf_ARlike = rdf_ARlike.Define(
-            #         "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
-            #     )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -610,12 +603,12 @@ def DR_SR_correction(
         if sample == "data":
             if config["channel"] != "tt" or process == "QCD_subleading":
                 rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
-                rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             else:
                 rdf_ARlike = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_ARlike)
-                rdf_ARlike = corr_evaluator.evaluate_subleading_lep_pt(rdf=rdf_ARlike)
+                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+                "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr_{corr_evaluator.variable}"
             )
 
         # redirecting C++ stdout for Report() to python stdout

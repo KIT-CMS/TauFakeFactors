@@ -80,21 +80,23 @@ mc_weights:
 emb_weights:
   double_trigger: emb_trg_wgt_1 * emb_trg_wgt_2
   generator: emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt
-wps:
-  tau_vs_jet:
-    wgt:
-      - Medium
-      - Tight
-      - VTight
-    wp:
-      - VVLoose
-      - VLoose
-      - Loose
-      - Medium
-      - Tight
-      - VTight
 
-additional_features:
+output_features:
+  - weight
+  - btag_weight
+  - njets
+  - nbtag
+  - q_1
+  - pt_2
+  - q_2
+  - gen_match_1
+  - gen_match_2
+  - m_vis
+  - mt_1
+  - pt_1
+  - metphi
+  - extramuon_veto
+  - extraelec_veto
   - tau_decaymode_1
   - tau_decaymode_2
   - mass_1

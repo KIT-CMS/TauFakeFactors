@@ -31,6 +31,11 @@ target_processes:
         var_dependence: "pt_1"
         var_bins: [40,55,70,85,100]
         fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [40.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
     QCD_subleading: 
         split_categories: 
@@ -58,6 +63,11 @@ target_processes:
         var_dependence: "pt_2"
         var_bins: [40,50,70,100]
         fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [40.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
     ttbar: 
         split_categories: 
@@ -106,6 +116,11 @@ target_processes:
         var_dependence: "pt_1"
         var_bins: [40,44,52,70,100]
         fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [40.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
     ttbar_subleading: 
         split_categories: 
@@ -154,6 +169,11 @@ target_processes:
         var_dependence: "pt_2"
         var_bins: [40,44,52,70,100]
         fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+        limit_kwargs: 
+            limit_x:
+                nominal: [40.,100.]
+                up: [-.inf, .inf]
+                down: [-.inf, .inf]
 
 process_fractions:
     processes: ["QCD", "Wjets", "ttbar_J"]

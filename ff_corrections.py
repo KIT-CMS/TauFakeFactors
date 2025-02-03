@@ -25,15 +25,6 @@ parser.add_argument(
     help="Path to the config file which contains information for the fake factor corrections step.",
 )
 parser.add_argument(
-    "--common-config-file",
-    default=None,
-    help="""
-        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
-        Settings loaded here are overwritten by the settings in --config-file if present there.
-        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
-    """,
-)
-parser.add_argument(
     "--skip-DRtoSR-ffs",
     action="store_true",
     help="Using this argument means to skip the calculation of the fake factors for the DR to SR correction and directly calculate the corrections. This is useful if you already calculated the needed additional fake factors.",
@@ -75,7 +66,7 @@ def run_ff_calculation_for_DRtoSR(
             to_AR_SR=False,
         )
 
-        ff_calculation_function = {
+        ff_calculation_functions = {
             "QCD": FF_QCD.calculation_QCD_FFs,
             "QCD_subleading": FF_QCD.calculation_QCD_FFs,
             "Wjets": FF_Wjets.calculation_Wjets_FFs,
@@ -84,7 +75,7 @@ def run_ff_calculation_for_DRtoSR(
         try:
             log.info(f"Calculating fake factors for the SR-DR correction for the {process} process.")
             log.info("-" * 50)
-            result = ff_calculation_function[process](
+            result = ff_calculation_functions[process](
                 config=temp_conf,
                 sample_paths=sample_paths,
                 output_path=output_path,
@@ -151,7 +142,7 @@ def run_non_closure_for_DRtoSR(
             to_AR_SR=False,
         )
 
-        _rename_me = {
+        ff_correction_functions = {
             "QCD": FF_QCD.non_closure_correction,
             "QCD_subleading": FF_QCD.non_closure_correction,
             "Wjets": FF_Wjets.non_closure_correction,
@@ -163,7 +154,7 @@ def run_non_closure_for_DRtoSR(
                 f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_correction}."
             )
             log.info("-" * 50)
-            result = _rename_me[process](
+            result = ff_correction_functions[process](
                 config=temp_conf,
                 corr_config=corr_config,
                 sample_paths=sample_paths,
@@ -171,7 +162,7 @@ def run_non_closure_for_DRtoSR(
                 process=process,
                 closure_variable=closure_correction,
                 evaluator=evaluator,
-                corr_evaluator=None,
+                corr_evaluators=[],
                 for_DRtoSR=True,
                 logger=f"ff_corrections.{process}",
             )
@@ -191,7 +182,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    corr_config = func.load_config(args.config_file, args.common_config_file)
+    corr_config = func.load_config(args.config_file)
 
     with open(
         os.path.join(
@@ -278,9 +269,7 @@ if __name__ == "__main__":
                     args_list, executor.map(run_non_closure_for_DRtoSR, args_list)
                 ):
                     if result[0] is not None:
-                        DR_SR_corrections[args[0]]["non_closure_" + result[1]] = result[
-                            0
-                        ]
+                        DR_SR_corrections[args[0]]["non_closure_" + result[1]] = result[0]
         else:
             raise Exception("No target processes are defined!")
 
@@ -312,10 +301,14 @@ if __name__ == "__main__":
                     for_DRtoSR=False,
                     logger=f"ff_corrections.{process}",
                 )
-
+                
+                all_non_closure_corr_vars = list()
+                
                 for idx, closure_corr in enumerate(
                     corr_config["target_processes"][process]["non_closure"]
                 ):
+                    all_non_closure_corr_vars.append(closure_corr)
+                    
                     log.info(
                         f"Calculating closure correction for the {process} process dependent on {closure_corr}."
                     )
@@ -329,15 +322,18 @@ if __name__ == "__main__":
                         process=process,
                         to_AR_SR=False,
                     )
-
-                    if idx == 0:
-                        corr_evaluator = None
-                    else:
-                        corr_evaluator = FakeFactorCorrectionEvaluator(
-                            config=config,
-                            process=process,
-                            for_DRtoSR=False,
-                            logger=f"ff_corrections.{process}",
+                    
+                    corr_evaluators = list()
+                    
+                    for n in range(idx):
+                        corr_evaluators.append(
+                            FakeFactorCorrectionEvaluator(
+                                config=config,
+                                process=process,
+                                corr_variable=all_non_closure_corr_vars[n],
+                                for_DRtoSR=False,
+                                logger=f"ff_corrections.{process}",
+                            )
                         )
 
                     non_closure_correction_functions = {
@@ -356,7 +352,7 @@ if __name__ == "__main__":
                             process=process,
                             closure_variable=closure_corr,
                             evaluator=evaluator,
-                            corr_evaluator=corr_evaluator,
+                            corr_evaluators=corr_evaluators,
                             for_DRtoSR=False,
                             logger=f"ff_corrections.{process}",
                         )
@@ -382,6 +378,7 @@ if __name__ == "__main__":
                 corr_evaluator = FakeFactorCorrectionEvaluator(
                     config=config,
                     process=process,
+                    corr_variable=list(corr_config["target_processes"][process]["DR_SR"]["non_closure"].keys())[0],
                     for_DRtoSR=True,
                     logger=f"ff_corrections.{process}",
                 )

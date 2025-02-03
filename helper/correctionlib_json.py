@@ -18,21 +18,17 @@ def get_edges_and_content(
     if isinstance(item, str):
         return {
             "edges": [
-                # min(variable_info[1]) - 1,
                 min(variable_info[1]),
                 max(variable_info[1]),
-                # max(variable_info[1]) + 1,
             ],
             "content": [
-                # eval(item.replace("x", str(min(variable_info[1])))),
                 cs.Formula(
                     nodetype="formula",
-                    variables=[gd.variable_translator[variable_info[0]]],
+                    variables=[variable_info[0]],
                     parser="TFormula",
                     expression=item,
                     parameters=None,
                 ),
-                # eval(item.replace("x", str(max(variable_info[1])))),
             ],
         }
     return {
@@ -175,14 +171,14 @@ def make_1D_ff(
         generic_formulas=None,
         inputs=[
             cs.Variable(
-                name=gd.variable_translator[variable_info[0]],
+                name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
                 description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=gd.variable_translator[cat_inputs[0]],
+                name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
                 description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
@@ -205,12 +201,12 @@ def make_1D_ff(
                     key=process + unc_name,
                     value=cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[cat_inputs[0]],
+                        input=cat_inputs[0],
                         edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=gd.variable_translator[variable_info[0]],
+                                input=variable_info[0],
                                 **get_edges_and_content(ff_functions[cat1][unc], variable_info),
                                 flow="clamp",
                             )
@@ -223,12 +219,12 @@ def make_1D_ff(
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=gd.variable_translator[cat_inputs[0]],
+                input=cat_inputs[0],
                 edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
                     cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[variable_info[0]],
+                        input=variable_info[0],
                         **get_edges_and_content(ff_functions[cat1]["nominal"], variable_info),
                         flow="clamp",
                     )
@@ -275,19 +271,19 @@ def make_2D_ff(
         generic_formulas=None,
         inputs=[
             cs.Variable(
-                name=gd.variable_translator[variable_info[0]],
+                name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
                 description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=gd.variable_translator[cat_inputs[0]],
+                name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
                 description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
             cs.Variable(
-                name=gd.variable_translator[cat_inputs[1]],
+                name=cat_inputs[1],
                 type=gd.variable_type[cat_inputs[1]],
                 description=gd.variable_description[cat_inputs[1]] + ", ".join(cat_values[1]),
             ),
@@ -310,17 +306,17 @@ def make_2D_ff(
                     key=process + unc_name,
                     value=cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[cat_inputs[0]],
+                        input=cat_inputs[0],
                         edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=gd.variable_translator[cat_inputs[1]],
+                                input=cat_inputs[1],
                                 edges=process_conf["split_categories_binedges"][cat_inputs[1]],
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
-                                        input=gd.variable_translator[variable_info[0]],
+                                        input=variable_info[0],
                                         **get_edges_and_content(ff_functions[cat1][cat2][unc], variable_info),
                                         flow="clamp",
                                     )
@@ -337,17 +333,17 @@ def make_2D_ff(
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=gd.variable_translator[cat_inputs[0]],
+                input=cat_inputs[0],
                 edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
                     cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[cat_inputs[1]],
+                        input=cat_inputs[1],
                         edges=process_conf["split_categories_binedges"][cat_inputs[1]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
-                                input=gd.variable_translator[variable_info[0]],
+                                input=variable_info[0],
                                 **get_edges_and_content(ff_functions[cat1][cat2]["nominal"], variable_info),
                                 flow="clamp",
                             )
@@ -405,14 +401,14 @@ def make_1D_fractions(
                 description="name of the process",
             ),
             cs.Variable(
-                name=gd.variable_translator[variable_info[0]],
+                name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
                 description=gd.variable_description[variable_info[0]]
                 .replace("#var_min", str(min(variable_info[1])))
                 .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
-                name=gd.variable_translator[cat_inputs[0]],
+                name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
                 description=gd.variable_description[cat_inputs[0]] + ", ".join(cat_values[0]),
             ),
@@ -439,12 +435,12 @@ def make_1D_fractions(
                                 key=gd.variable_translator[p],
                                 value=cs.Binning(
                                     nodetype="binning",
-                                    input=gd.variable_translator[cat_inputs[0]],
+                                    input=cat_inputs[0],
                                     edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
                                     content=[
                                         cs.Binning(
                                             nodetype="binning",
-                                            input=gd.variable_translator[variable_info[0]],
+                                            input=variable_info[0],
                                             edges=variable_info[1],
                                             content=fractions[cat][unc][p],
                                             flow="clamp",
@@ -469,12 +465,12 @@ def make_1D_fractions(
                         key=gd.variable_translator[p],
                         value=cs.Binning(
                             nodetype="binning",
-                            input=gd.variable_translator[cat_inputs[0]],
+                            input=cat_inputs[0],
                             edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
                             content=[
                                 cs.Binning(
                                     nodetype="binning",
-                                    input=gd.variable_translator[variable_info[0]],
+                                    input=variable_info[0],
                                     edges=variable_info[1],
                                     content=fractions[cat]["nominal"][p],
                                     flow="clamp",
@@ -569,7 +565,7 @@ def make_1D_correction(
         generic_formulas=None,
         inputs=[
             cs.Variable(
-                name=gd.variable_translator[variable],
+                name=variable,
                 type=gd.variable_type[variable],
                 description=gd.variable_description[variable]
                 .replace("#var_min", str(min(correction["edges"])))
@@ -591,20 +587,20 @@ def make_1D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + f"{gd.corr_variation_dict[correction_name]}CorrUp",
+                    key=process + f"_{correction_name}_CorrUp",
                     value=cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[variable],
+                        input=variable,
                         edges=list(correction["edges"]),
                         content=list(correction["up"]),
                         flow="clamp",
                     ),
                 ),
                 cs.CategoryItem(
-                    key=process + f"{gd.corr_variation_dict[correction_name]}CorrDown",
+                    key=process + f"_{correction_name}_CorrDown",
                     value=cs.Binning(
                         nodetype="binning",
-                        input=gd.variable_translator[variable],
+                        input=variable,
                         edges=list(correction["edges"]),
                         content=list(correction["down"]),
                         flow="clamp",
@@ -613,7 +609,7 @@ def make_1D_correction(
             ],
             default=cs.Binning(
                 nodetype="binning",
-                input=gd.variable_translator[variable],
+                input=variable,
                 edges=list(correction["edges"]),
                 content=list(correction["nominal"]),
                 flow="clamp",

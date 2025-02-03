@@ -2,11 +2,11 @@ channel: et
 target_processes:
   QCD:
     non_closure:
-      leading_lep_pt:
+      pt_1:
         var_dependence: pt_1
         var_bins: [0, 25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
 
-      lep_iso:
+      iso_1:
         var_dependence: iso_1
         var_bins: [0., 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.31]
         SRlike_cuts:
@@ -26,16 +26,16 @@ target_processes:
         tau_pair_sign: (q_1*q_2) < 0
 
       non_closure:
-        leading_lep_pt:
+        pt_1:
           var_dependence: pt_1
           var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
 
   Wjets:
     non_closure:
-      leading_lep_pt:
+      pt_1:
         var_dependence: pt_1
         var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
-      lep_iso:
+      iso_1:
         var_dependence: "iso_1"
         var_bins: [0., 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.31]
         SRlike_cuts:
@@ -56,12 +56,12 @@ target_processes:
         lep_mt: mt_1 < 70
 
       non_closure:
-        leading_lep_pt:
+        pt_1:
           var_dependence: pt_1
           var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
 
   ttbar:
     non_closure:
-      leading_lep_pt:
+      pt_1:
         var_dependence: pt_1
         var_bins: [30, 40, 50, 60, 70, 80, 90, 100, 120]

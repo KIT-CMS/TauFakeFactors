@@ -1,19 +1,17 @@
 # This is an example config containing information for the FF corrections
 
-workdir_name: "07_2024_v1_boosted"
-era: "2018"
 channel: "mt" # options are et, mt, tt
 
 target_processes:
     QCD:
         non_closure:
-            leading_lep_pt:
+            pt_1:
                 var_dependence: "pt_1"
                 var_bins: [25,35,45,55,65,75,90,110]
-            subleading_lep_mass:
+            mass_2:
                 var_dependence: "mass_2"
                 var_bins: [0.,0.2,0.5,0.8,1.0,1.2,1.4,1.6,2.] 
-            # lep_mt:
+            # mt_1:
             #     var_dependence: "mt_1"
             #     var_bins: [0,10,20,30,40,50]
         
@@ -29,16 +27,16 @@ target_processes:
             AR_SR_cuts:
                 tau_pair_sign: "(q_1*q_2) < 0"
             non_closure:
-                leading_lep_pt:
+                pt_1:
                     var_dependence: "pt_1"
                     var_bins: [25,30,35,40,45,50,55,70,80,90,110]
 
     Wjets:
         non_closure:
-            leading_lep_pt:
+            pt_1:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,100]
-            subleading_lep_mass:
+            mass_2:
                 var_dependence: "mass_2"
                 var_bins: [0.,0.2,0.5,0.8,1.,1.2,1.4,1.6,2.]
             # m_vis:
@@ -58,16 +56,16 @@ target_processes:
                 nbtag: "(nbtag >= 1) || (fj_Xbb_particleNet_XbbvsQCD>=0.6 && fj_Xbb_pt > 200)"
                 # deltaR_ditaupair: "deltaR_ditaupair <= 0.8"
             non_closure:
-                leading_lep_pt:
+                pt_1:
                     var_dependence: "pt_1"
                     var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,100]
 
     ttbar:
         non_closure:
-            leading_lep_pt:
+            pt_1:
                 var_dependence: "pt_1"
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
-            subleading_lep_mass:
+            mass_2:
                 var_dependence: "mass_2"
                 var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.]
             # m_vis:

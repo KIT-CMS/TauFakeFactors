@@ -154,19 +154,19 @@ category_dict = {
 
 # intern naming translation helper for variables
 variable_translator = {
-    "pt_2": "pt_2",
-    "pt_1": "pt_1",
-    "mass_1": "mass_1",
-    "mass_2": "mass_2",
-    "mt_1": "mt_1",
-    "iso_1": "iso_1",
-    "m_vis": "m_vis",
-    "bpair_pt_1": "bpair_pt_1",
-    "njets": "njets",
-    "nbtag": "nbtag",
-    "deltaR_ditaupair": "deltaR_ditaupair",
-    "tau_decaymode_1": "tau_decaymode_1",
-    "tau_decaymode_2": "tau_decaymode_2",
+    # "pt_2": "pt_2",
+    # "pt_1": "pt_1",
+    # "mass_1": "mass_1",
+    # "mass_2": "mass_2",
+    # "mt_1": "mt_1",
+    # "iso_1": "iso_1",
+    # "m_vis": "m_vis",
+    # "bpair_pt_1": "bpair_pt_1",
+    # "njets": "njets",
+    # "nbtag": "nbtag",
+    # "deltaR_ditaupair": "deltaR_ditaupair",
+    # "tau_decaymode_1": "tau_decaymode_1",
+    # "tau_decaymode_2": "tau_decaymode_2",
     "QCD": "QCD",
     "Wjets": "Wjets",
     "ttbar_J": "ttbar", 
@@ -240,14 +240,14 @@ frac_variation_dict = {
     },
 }
 # intern naming translation helper for correction uncertainties
-corr_variation_dict = {
-    "non_closure_pt_2": "non_closure_pt_2",
-    "non_closure_pt_1": "non_closure_pt_1",
-    "non_closure_m_vis": "non_closure_m_vis",
-    "non_closure_bpair_pt_1": "non_closure_bpair_pt_1",
-    "non_closure_iso_1": "non_closure_iso_1",
-    "non_closure_mass_2": "non_closure_mass_2",
-    "non_closure_mass_1": "non_closure_mass_1",
-    "non_closure_mt_1": "non_closure_mt_1",
-    "DR_SR": "DRtoSR",
-}
+# corr_variation_dict = {
+#     "non_closure_pt_2": "non_closure_pt_2",
+#     "non_closure_pt_1": "non_closure_pt_1",
+#     "non_closure_m_vis": "non_closure_m_vis",
+#     "non_closure_bpair_pt_1": "non_closure_bpair_pt_1",
+#     "non_closure_iso_1": "non_closure_iso_1",
+#     "non_closure_mass_2": "non_closure_mass_2",
+#     "non_closure_mass_1": "non_closure_mass_1",
+#     "non_closure_mt_1": "non_closure_mt_1",
+#     "DR_SR": "DRtoSR",
+# }

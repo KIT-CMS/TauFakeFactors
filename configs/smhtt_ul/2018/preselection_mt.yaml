@@ -90,21 +90,23 @@ emb_weights:
   lep_id: id_wgt_mu_1
   lep_iso: iso_wgt_mu_1
   single_trigger: trg_wgt_single_mu24ormu27
-wps:
-  tau_vs_jet:
-    wgt:
-      - Medium
-      - Tight
-      - VTight
-    wp:
-      - VVLoose
-      - VLoose
-      - Loose
-      - Medium
-      - Tight
-      - VTight
 
-additional_features:
+output_features:
+  - weight
+  - btag_weight
+  - njets
+  - nbtag
+  - q_1
+  - pt_2
+  - q_2
+  - gen_match_2
+  - m_vis
+  - mt_1
+  - pt_1
+  - metphi
+  - extramuon_veto
+  - extraelec_veto
+  - dimuon_veto
   - tau_decaymode_1
   - tau_decaymode_2
   - mass_1

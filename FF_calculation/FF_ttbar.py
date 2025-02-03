@@ -290,7 +290,13 @@ def calculation_ttbar_FFs(
             bin_edges=process_conf["var_bins"],
             logger=logger,
             fit_option=process_conf.get("fit_option", "poly_1"),
-            limit_and_replace_kwargs=process_conf.get("limit_and_replace_kwargs", {}),  # TODO: Build an config interface for that
+            limit_kwargs=process_conf.get("limit_kwargs", {
+                "limit_x": {
+                    "nominal": (process_conf["var_bins"][0], process_conf["var_bins"][-1]),
+                    "up": (-float("inf"), float("inf")),
+                    "down": (-float("inf"), float("inf")),
+                },
+            }),
         )
 
         plotting.plot_FFs(
@@ -427,7 +433,7 @@ def non_closure_correction(
     process: str,
     closure_variable: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     logger: str,
     **kwargs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
@@ -442,7 +448,7 @@ def non_closure_correction(
         process: This is relevant for ttbar because for the tt channel two different ttbar fake factors are calculated, one for each hadronic tau
         closure_variable: Name of the variable the correction is calculated for
         evaluator: Evaluator with ttbar fake factors
-        corr_evaluator: Evaluator with corrections to ttbar fake factors
+        corr_evaluators: List of evaluators with corrections to ttbar fake factors
         logger: Name of the logger that should be used
 
     Return:
@@ -506,16 +512,18 @@ def non_closure_correction(
                 rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_AR)
             else:
                 rdf_AR = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_AR)
-            if corr_evaluator == None:
-                rdf_AR = rdf_AR.Define("weight_ff", f"weight * {process}_fake_factor")
-            else:
-                if config["channel"] != "tt" or process == "QCD_subleading":
-                    rdf_AR = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_AR)
-                else:
-                    rdf_AR = corr_evaluator.evaluate_subleading_lep_pt(rdf=rdf_AR)
-                rdf_AR = rdf_AR.Define(
-                    "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
+            
+            # additionally evaluate the previous corrections
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_AR = corr_evaluator.evaluate_correction(
+                    rdf=rdf_AR, 
                 )
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+            
+            rdf_AR = rdf_AR.Define(
+                "weight_ff", f"weight * {process}_fake_factor{corr_str}"
+            )
 
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -589,247 +597,6 @@ def non_closure_correction(
         channel=config["channel"],
         process=process,
         region="non_closure_" + closure_variable,
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
-
-    return correction_dict
-
-
-def non_closure_correction_tt(
-    config: Dict[str, Union[str, Dict, List]],
-    corr_config: Dict[str, Union[str, Dict]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    closure_variable: str,
-    evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
-    logger: str,
-) -> Dict[str, np.ndarray]:
-    """
-    This function calculates non closure corrections for fake factors for ttbar.
-
-    Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for ttbar because for the tt channel two different ttbar fake factors are calculated, one for each hadronic tau
-        closure_variable: Name of the variable the correction is calculated for
-        evaluator: Evaluator with ttbar fake factors
-        corr_evaluator: Evaluator with corrections to ttbar fake factors
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
-    """
-    log = logging.getLogger(logger)
-
-    # init histogram dict for FF measurement
-    SR_hists = dict()
-    AR_hists = dict()
-
-    # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
-    correction_conf = corr_config["target_processes"][process]["non_closure"][
-        closure_variable
-    ]
-
-    for sample_path in sample_paths:
-        # getting the name of the process from the sample path
-        sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the non closure correction for {process}.")
-        log.info("-" * 50)
-
-        rdf = ROOT.RDataFrame(config["tree"], sample_path)
-
-        # event filter for ttbar signal region
-        region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
-        rdf_SR = func.apply_region_filters(
-            rdf=rdf,
-            channel=config["channel"],
-            sample=sample,
-            category_cuts=None,
-            region_cuts=region_conf,
-        )
-
-        log.info(f"Filtering events for the signal region. Target process: {process}")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_SR.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
-        # event filter for ttbar application region
-        region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
-        rdf_AR = func.apply_region_filters(
-            rdf=rdf,
-            channel=config["channel"],
-            sample=sample,
-            category_cuts=None,
-            region_cuts=region_conf,
-        )
-
-        log.info(
-            f"Filtering events for the application region. Target process: {process}"
-        )
-
-        # evaluate the measured fake factors for the specific processes
-        if sample == "data":
-            if config["channel"] != "tt" or process == "ttbar_subleading":
-                rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_AR)
-            else:
-                rdf_AR = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_AR)
-            if corr_evaluator == None:
-                rdf_AR = rdf_AR.Define("weight_ff", f"weight * {process}_fake_factor")
-            else:
-                if config["channel"] != "tt" or process == "QCD_subleading":
-                    rdf_AR = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_AR)
-                else:
-                    rdf_AR = corr_evaluator.evaluate_subleading_lep_pt(rdf=rdf_AR)
-                rdf_AR = rdf_AR.Define(
-                    "weight_ff", f"weight * {process}_fake_factor * {process}_ff_corr"
-                )
-
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_AR.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
-        # get binning of the dependent variable
-        xbinning = array.array("d", correction_conf["var_bins"])
-        nbinsx = len(correction_conf["var_bins"]) - 1
-
-        # making the histograms
-        h = rdf_SR.Histo1D(
-            (
-                correction_conf["var_dependence"],
-                f"{sample}",
-                nbinsx,
-                xbinning,
-            ),
-            correction_conf["var_dependence"],
-            "weight",
-        )
-        SR_hists[sample] = h.GetValue()
-        
-        h = rdf_AR.Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        AR_hists[sample] = h.GetValue()
-
-        if sample == "data":
-            h = rdf_AR.Histo1D(
-                (
-                    correction_conf["var_dependence"],
-                    f"{sample}",
-                    nbinsx,
-                    xbinning,
-                ),
-                correction_conf["var_dependence"],
-                "weight_ff",
-            )
-            AR_hists["data_ff"] = h.GetValue()
-        
-    SR_hists["data_subtracted"] = SR_hists["data"].Clone()
-    AR_hists["data_subtracted"] = AR_hists["data"].Clone()
-
-    for hist in SR_hists:
-        if hist not in ["data", "data_subtracted", "ttbar_J"]:
-            SR_hists["data_subtracted"].Add(SR_hists[hist], -1)
-    for hist in AR_hists:
-        if hist not in ["data", "data_subtracted", "data_ff", "ttbar_J"]:
-            AR_hists["data_subtracted"].Add(AR_hists[hist], -1)
-
-    correction_hist, process_fraction = func.calculate_non_closure_correction(
-        SRlike=SR_hists, ARlike=AR_hists
-    )
-
-    smoothed_graph, correction_dict = func.smooth_function(
-        hist=correction_hist.Clone(),
-        bin_edges=correction_conf["var_bins"],
-    )
-
-    plotting.plot_correction(
-        variable=correction_conf["var_dependence"],
-        corr_hist=correction_hist,
-        corr_graph=smoothed_graph,
-        corr_name="non_closure_" + closure_variable,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        output_path=output_path,
-        logger=logger,
-    )
-
-    plot_hists = dict()
-
-    plot_hists["data_subtracted"] = SR_hists["data_subtracted"].Clone()
-    plot_hists["data_ff"] = AR_hists["data_ff"].Clone()
-    plot_hists["data_ff"].Scale(process_fraction)
-
-    data = "data_subtracted"
-    samples = ["data_ff"]
-
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=plot_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="non_closure_" + closure_variable,
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
-    
-    data = "data"
-    if config["use_embedding"]:
-        samples = [
-            "diboson_J",
-            "diboson_L",
-            "Wjets",
-            "ttbar_J",
-            "ttbar_L",
-            "DYjets_J",
-            "DYjets_L",
-            "ST_J",
-            "ST_L",
-            "embedding",
-        ]
-    else:
-        samples = [
-            "diboson_J",
-            "diboson_L",
-            "diboson_T",
-            "Wjets",
-            "ttbar_J",
-            "ttbar_L",
-            "ttbar_T",
-            "DYjets_J",
-            "DYjets_L",
-            "DYjets_T",
-            "ST_J",
-            "ST_L",
-            "ST_T",
-        ]
-
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=SR_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="non_closure_" + closure_variable + "_SRlike_hist",
         data=data,
         samples=samples,
         category={"incl": ""},

@@ -8,7 +8,18 @@ workdir_name: ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1_
 
 era: '2018'
 tree: ntuple
-analysis: smhtt_ul
+
+tau_vs_jet_wps:
+  - Medium
+  - Tight
+  - VTight
+tau_vs_jet_wgt_wps:
+  - VVLoose
+  - VLoose
+  - Loose
+  - Medium
+  - Tight
+  - VTight
 
 use_embedding: true
 
