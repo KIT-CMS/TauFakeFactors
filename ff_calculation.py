@@ -23,15 +23,6 @@ parser.add_argument(
     default=None,
     help="Path to the config file which contains information for the fake factor calculation step.",
 )
-parser.add_argument(
-    "--common-config-file",
-    default=None,
-    help="""
-        Path to the common config file which contains common information i.e. ntuple path, workdir etc.
-        Settings loaded here are overwritten by the settings in --config-file if present there.
-        'common_settings.yaml' in the same folder as --config-file is loaded by default if present.
-    """,
-)
 
 
 def run_ff_calculation(
@@ -49,57 +40,34 @@ def run_ff_calculation(
     process, config, sample_paths, output_path = args
     log = logging.getLogger(f"ff_calculation.{process}")
 
-    if process in ["QCD", "QCD_subleading"]:
+    ff_calculation_functions = {
+        "QCD": FF_QCD.calculation_QCD_FFs,
+        "QCD_subleading": FF_QCD.calculation_QCD_FFs,
+        "Wjets": FF_Wjets.calculation_Wjets_FFs,
+        "ttbar": FF_ttbar.calculation_ttbar_FFs,
+        "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
+        "process_fractions": fraction_calculation,
+        "process_fractions_subleading": fraction_calculation,
+    }
+    try:
         log.info(f"Calculating fake factors for the {process} process.")
         log.info("-" * 50)
-        result = FF_QCD.calculation_QCD_FFs(
+        return ff_calculation_functions[process](
             config=config,
             sample_paths=sample_paths,
             output_path=output_path,
             process=process,
             logger=f"ff_calculation.{process}",
         )
-    elif process == "Wjets":
-        log.info("Calculating fake factors for the Wjets process.")
-        log.info("-" * 50)
-        result = FF_Wjets.calculation_Wjets_FFs(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            logger=f"ff_calculation.{process}",
-        )
-    elif process in ["ttbar", "ttbar_subleading"]:
-        log.info(f"Calculating fake factors for the {process} process.")
-        log.info("-" * 50)
-        result = FF_ttbar.calculation_ttbar_FFs(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            process=process,
-            logger=f"ff_calculation.{process}",
-        )
-    elif process in ["process_fractions", "process_fractions_subleading"]:
-        log.info(f"Calculating the process {process} for the FF application.")
-        log.info("-" * 50)
-        result = fraction_calculation(
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            process=process,
-            logger=f"ff_calculation.{process}",
-        )
-    else:
+    except KeyError:
         raise Exception(f"Target process: Such a process is not known: {process}")
-
-    return result
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
     # loading of the chosen config file
-    config = func.load_config(args.config_file, args.common_config_file)
-
+    config = func.load_config(args.config_file)
 
     save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])
     func.check_path(path=os.path.join(os.getcwd(), save_path_ffs))
@@ -125,7 +93,7 @@ if __name__ == "__main__":
         subcategories=subcategories,
     )
 
-    # getting all the input files
+    # getting all the ntuple input files
     sample_paths = func.get_samples(config=config)
     if len(sample_paths) == 0:
         raise Exception("No input files found!")
@@ -144,9 +112,13 @@ if __name__ == "__main__":
             for process in config["target_processes"]
         ]
         if "process_fractions" in config:
-            args_list.append(("process_fractions", config, sample_paths, save_path_plots))
+            args_list.append(
+                ("process_fractions", config, sample_paths, save_path_plots)
+            )
         if "process_fractions_subleading" in config:
-            args_list.append(("process_fractions_subleading", config, sample_paths, save_path_plots))
+            args_list.append(
+                ("process_fractions_subleading", config, sample_paths, save_path_plots)
+            )
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
             for args, result in zip(

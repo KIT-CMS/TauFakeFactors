@@ -15,4 +15,6 @@ output_path: "/ceph/nshadskiy/FFmethod/01_2025_v1"
 # and the second one for the FF calculation step
 file_path: "/ceph/nshadskiy/FFmethod/01_2025_v1"
 # output of FF measurement
-workdir_name: "01_2025_v1"
+workdir_name: "01_2025_v2"
+
+write_corrections: "smoothed" # or "binwise"

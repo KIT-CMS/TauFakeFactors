@@ -1,5 +1,5 @@
 import array
-from typing import Dict, Any, Union, List
+from typing import Any, Dict, List, Union
 
 
 def gen_weight(rdf: Any, sample_info: Dict[str, str]) -> Any:
@@ -152,7 +152,9 @@ def apply_pNet_weight(rdf: Any) -> Any:
     Return:
         root DataFrame object with the applied weight
     """
-    rdf = rdf.Redefine("weight", "weight * ((fj_Xbb_pt >= 0) * pNet_Xbb_weight + (fj_Xbb_pt < 0))")
+    rdf = rdf.Redefine(
+        "weight", "weight * ((fj_Xbb_pt >= 0) * pNet_Xbb_weight + (fj_Xbb_pt < 0))"
+    )
 
     return rdf
 

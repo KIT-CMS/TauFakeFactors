@@ -4,11 +4,12 @@ Function for calculating the process fractions for the fake factors
 
 import array
 import copy
-import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
 import logging
-from typing import Union, Dict, List
+from io import StringIO
+from typing import Any, Dict, List, Union
+
+import ROOT
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
@@ -20,6 +21,7 @@ def fraction_calculation(
     output_path: str,
     process: str,
     logger: str,
+    **kwargs: Dict[str, Any],
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
     This function calculates fractions of processes for the application of fake factors.
@@ -217,33 +219,24 @@ def fraction_calculation(
                 "ST_L",
                 "ST_T",
             ]
-
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=AR_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="AR",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=SR_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="SR",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
+        
+        for _hist, _region, _data, _samples in [
+            (SR_hists, "SR", data, samples),
+            (AR_hists, "AR", data, samples),
+        ]:
+            plotting.plot_data_mc_ratio(
+                variable=process_conf["var_dependence"],
+                hists=_hist,
+                era=config["era"],
+                channel=config["channel"],
+                process=process,
+                region=_region,
+                data=_data,
+                samples=_samples,
+                category=split,
+                output_path=output_path,
+                logger=logger,
+            )
         log.info("-" * 50)
 
     # transform histograms to fraction values for correctionlib

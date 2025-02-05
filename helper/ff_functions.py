@@ -3,13 +3,12 @@ Collection of helpful functions for the fake factor calculation scripts
 """
 
 import array
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import List, Dict, Union, Tuple, Any
 
+import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 
@@ -351,10 +350,14 @@ def get_yields_from_hists(
 
 
 def fit_function(
-    ff_hists: Union[List[Any], Any], bin_edges: List[int], logger: str
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    ff_hists: Union[List[Any], Any],
+    bin_edges: List[int],
+    logger: str,
+    fit_option: Union[str, List[str]],
+    limit_kwargs: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, str], str]:
     """
-    This function performs a linear fit of the ratio histogram. The fitted function is then used
+    This function performs fits of the ratio histogram. The fitted function is then used
     to produce expressions for correctionlib (including variations). Additionally graphs of
     the fitted function variations are generated which are later used for plotting purposes.
 
@@ -362,27 +365,28 @@ def fit_function(
         ff_hists: Either a list of nominal and MC varied ratio histograms or only the nominal ratio histogram
         bin_edges: Bins edges of the fitted variable, needed for the graphs for plotting
         logger: Name of the logger that should be used
+        fit_option: List[str] correspond to a list of poly_n fits to be performed
+                    with best fit being the one with the lowest chi2/ndf value and nominal and
+                    variations being > 0 in fit range.
+                    str: "poly_n" or "bin_wise", where n is the order of the polynomial fit
+
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
     """
-    log = logging.getLogger(logger)
+    if not isinstance(fit_option, list) and fit_option != "bin_wise":
+        fit_option = [fit_option]
 
-    do_mc_subtr_unc = False
+    do_mc_subtr_unc, ff_hist_up, ff_hist_down = False, None, None
     if isinstance(ff_hists, list):
+        ff_hist, ff_hist_up, ff_hist_down = ff_hists
         do_mc_subtr_unc = True
-        ff_hist_up = ff_hists[1]
-        ff_hist_down = ff_hists[2]
-        ff_hist = ff_hists[0]
     else:
         ff_hist = ff_hists
 
     # Producing a graph based on the provided root histograms
     nbins = ff_hist.GetNbinsX()
-    x = list()
-    y = list()
-    error_y_up = list()
-    error_y_down = list()
+    x, y, error_y_up, error_y_down = [], [], [], []
 
     for nbin in range(nbins):
         x.append(ff_hist.GetBinCenter(nbin + 1))
@@ -397,114 +401,61 @@ def fit_function(
 
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        # linear fit of the graph
-        fit = graph.Fit("pol1", "SFN")
-        if do_mc_subtr_unc:
-            fit_up = ff_hist_up.Fit("pol1", "SFN")
-            fit_down = ff_hist_down.Fit("pol1", "SFN")
-    log.info(out.getvalue())
-    log.info("-" * 50)
+    retrival_function = fitting_helper.get_wrapped_functions_from_fits
+    if fit_option == "bin_wise":
+        retrival_function = fitting_helper.get_wrapped_hists
 
-    # producing correctionlib expressions for nominal and all variation
-    corrlib_expressions = dict()
-    # best fit
-    corrlib_expressions["nominal"] = f"{fit.Parameter(1)}*x+{fit.Parameter(0)}"
-    # slope parameter up/down
-    corrlib_expressions[
-        "slope_unc_up"
-    ] = f"{(fit.Parameter(1) + fit.ParError(1))}*x+{fit.Parameter(0)}"
-    corrlib_expressions[
-        "slope_unc_down"
-    ] = f"{(fit.Parameter(1) - fit.ParError(1))}*x+{fit.Parameter(0)}"
-    # normalization parameter up/down
-    corrlib_expressions[
-        "normalization_unc_up"
-    ] = f"{fit.Parameter(1)}*x+{(fit.Parameter(0) + fit.ParError(0))}"
-    corrlib_expressions[
-        "normalization_unc_down"
-    ] = f"{fit.Parameter(1)}*x+{(fit.Parameter(0) - fit.ParError(0))}"
-    # MC subtraction uncertainty up/down
-    if do_mc_subtr_unc:
-        corrlib_expressions[
-            "mc_subtraction_unc_up"
-        ] = f"{fit_up.Parameter(1)}*x+{fit_up.Parameter(0)}"
-        corrlib_expressions[
-            "mc_subtraction_unc_down"
-        ] = f"{fit_down.Parameter(1)}*x+{fit_down.Parameter(0)}"
+    callable_expression, correctionlib_expression, used_fit = retrival_function(
+        graph=graph,
+        bounds=(bin_edges[0], bin_edges[-1]),
+        ff_hist=ff_hist,
+        ff_hist_up=ff_hist_up,
+        ff_hist_down=ff_hist_down,
+        do_mc_subtr_unc=do_mc_subtr_unc,
+        logger=logger,
+        function_collection=fit_option,
+        verbose=True,
+        limit_x=limit_kwargs["limit_x"],
+    )
 
-    # producing graphs of the fit results for the plots with more bins than the used histograms
-    fit_func = lambda pt: (fit.Parameter(1) * pt + fit.Parameter(0))
-    fit_func_slope_up = lambda pt: (
-        (fit.Parameter(1) + fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_slope_down = lambda pt: (
-        (fit.Parameter(1) - fit.ParError(1)) * pt + fit.Parameter(0)
-    )
-    fit_func_norm_up = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) + fit.ParError(0))
-    )
-    fit_func_norm_down = lambda pt: (
-        fit.Parameter(1) * pt + (fit.Parameter(0) - fit.ParError(0))
-    )
+    y_fit, y_fit_up, y_fit_down = [], [], []
     if do_mc_subtr_unc:
-        fit_func_up = lambda pt: (fit_up.Parameter(1) * pt + fit_up.Parameter(0))
-        fit_func_down = lambda pt: (fit_down.Parameter(1) * pt + fit_down.Parameter(0))
-
-    y_fit = list()
-    y_fit_slope_up = list()
-    y_fit_slope_down = list()
-    y_fit_norm_up = list()
-    y_fit_norm_down = list()
-    if do_mc_subtr_unc:
-        y_fit_up = list()
-        y_fit_down = list()
+        y_fit_mc_up, y_fit_mc_down = [], []
 
     x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
-
     for value in x_fit:
-        y_fit.append(fit_func(value))
-        y_fit_slope_up.append(abs(fit_func_slope_up(value) - fit_func(value)))
-        y_fit_slope_down.append(abs(fit_func_slope_down(value) - fit_func(value)))
-        y_fit_norm_up.append(abs(fit_func_norm_up(value) - fit_func(value)))
-        y_fit_norm_down.append(abs(fit_func_norm_down(value) - fit_func(value)))
+        nominal, up, down = (
+            callable_expression["nominal"](value),
+            callable_expression["unc_up"](value),
+            callable_expression["unc_down"](value),
+        )
+        y_fit.append(nominal)
+        y_fit_up.append(up - nominal)
+        y_fit_down.append(nominal - down)
         if do_mc_subtr_unc:
-            y_fit_up.append(abs(fit_func_up(value) - fit_func(value)))
-            y_fit_down.append(abs(fit_func_down(value) - fit_func(value)))
+            mc_substr_up, mc_substr_down = (
+                callable_expression["mc_subtraction_unc_up"](value),
+                callable_expression["mc_subtraction_unc_down"](value),
+            )
+            y_fit_mc_up.append(abs(mc_substr_up - nominal))
+            y_fit_mc_down.append(abs(nominal - mc_substr_down))
 
     x_fit = array.array("d", x_fit)
     y_fit = array.array("d", y_fit)
-    y_fit_slope_up = array.array("d", y_fit_slope_up)
-    y_fit_slope_down = array.array("d", y_fit_slope_down)
-    y_fit_norm_up = array.array("d", y_fit_norm_up)
-    y_fit_norm_down = array.array("d", y_fit_norm_down)
+    y_fit_up = array.array("d", y_fit_up)
+    y_fit_down = array.array("d", y_fit_down)
     if do_mc_subtr_unc:
-        y_fit_up = array.array("d", y_fit_up)
-        y_fit_down = array.array("d", y_fit_down)
+        y_fit_mc_up = array.array("d", y_fit_mc_up)
+        y_fit_mc_down = array.array("d", y_fit_mc_down)
 
-    fit_graph_slope = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_slope_down, y_fit_slope_up
-    )
-    fit_graph_norm = ROOT.TGraphAsymmErrors(
-        len(x_fit), x_fit, y_fit, 0, 0, y_fit_norm_down, y_fit_norm_up
-    )
+    results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
+    results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
     if do_mc_subtr_unc:
-        fit_graph_mc_sub = ROOT.TGraphAsymmErrors(
-            len(x_fit), x_fit, y_fit, 0, 0, y_fit_down, y_fit_up
+        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(
+            *_args, y_fit_mc_down, y_fit_mc_up
         )
 
-    if do_mc_subtr_unc:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-            "fit_graph_mc_sub": fit_graph_mc_sub,
-        }, corrlib_expressions
-    else:
-        return {
-            "fit_graph_slope": fit_graph_slope,
-            "fit_graph_norm": fit_graph_norm,
-        }, corrlib_expressions
+    return results, correctionlib_expression, used_fit
 
 
 def calculate_non_closure_correction(
@@ -580,7 +531,7 @@ def calculate_non_closure_correction_ttbar_fromMC(
 
 
 def smooth_function(
-    hist: Any, bin_edges: List[float]
+    hist: Any, bin_edges: List[float], write_corrections: str
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -656,12 +607,27 @@ def smooth_function(
     smooth_y_up = array.array("d", smooth_y_up)
     smooth_y_down = array.array("d", smooth_y_down)
 
+    if write_corrections == "binwise":
+        _bins = np.array(bin_edges)
+        _nom = np.array(y)
+        _up = _nom + np.array(error_y_up)
+        _down = _nom - np.array(error_y_down)
+    else:
+        _bins = np.array(eval_bin_edges)
+        _nom = np.array(smooth_y)
+        _up = _nom + np.array(smooth_y_up)
+        _down = _nom - np.array(smooth_y_down)
+        
+    _nom[_nom < 0] = 0
+    _up[_up < 0] = 0
+    _down[_down < 0] = 0
+    
     corr_dict = {
-        "edges": np.array(eval_bin_edges),
-        "nominal": np.array(smooth_y),
-        "up": np.array(smooth_y) + np.array(smooth_y_up),
-        "down": np.array(smooth_y) - np.array(smooth_y_down),
-    }
+            "edges": _bins,
+            "nominal": _nom,
+            "up": _up,
+            "down": _down,
+        }
 
     smooth_graph = ROOT.TGraphAsymmErrors(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up

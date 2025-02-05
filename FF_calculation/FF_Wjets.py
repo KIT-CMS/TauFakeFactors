@@ -4,22 +4,27 @@ Function for calculating fake factors for the W-jets process
 
 import array
 import copy
+import logging
+
+# from collections import defaultdict
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import numpy as np
 import ROOT
-from io import StringIO
-from wurlitzer import pipes, STDOUT
-import logging
-from typing import Union, Dict, List
+from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
+import configs.general_definitions as gd
 
 
 def calculation_Wjets_FFs(
     config: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
     output_path: str,
+    process: str,
     logger: str,
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
@@ -47,7 +52,7 @@ def calculation_Wjets_FFs(
     corrlib_expressions = dict()
 
     # get QCD specific config information
-    process_conf = config["target_processes"]["Wjets"]
+    process_conf = config["target_processes"][process]
 
     split_variables, split_combinations = func.get_split_combinations(
         categories=process_conf["split_categories"]
@@ -76,7 +81,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for the signal-like region. Target process: Wjets"
+                f"Filtering events for the signal-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -90,7 +95,7 @@ def calculation_Wjets_FFs(
                 region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
             else:
                 raise ValueError(
-                    "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                    f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
                 )
 
             rdf_SRlike_qcd = func.apply_region_filters(
@@ -102,7 +107,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for QCD estimation in the signal-like region. Target process: Wjets"
+                f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -122,7 +127,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for the application-like region. Target process: Wjets"
+                f"Filtering events for the application-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -136,7 +141,7 @@ def calculation_Wjets_FFs(
                 region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
             else:
                 raise ValueError(
-                    "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                    f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
                 )
 
             rdf_ARlike_qcd = func.apply_region_filters(
@@ -148,7 +153,7 @@ def calculation_Wjets_FFs(
             )
 
             log.info(
-                "Filtering events for QCD estimation in the application-like region. Target process: Wjets"
+                f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
             )
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
@@ -231,10 +236,24 @@ def calculation_Wjets_FFs(
             SRlike=SRlike_hists, ARlike=ARlike_hists
         )
         # performing the fit and calculating the uncertainties
-        fit_graphs, corrlib_exp = func.fit_function(
+        fit_graphs, corrlib_exp, used_fit = func.fit_function(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
+            fit_option=process_conf.get("fit_option", gd.default_fit_options["Wjets"]),
+            limit_kwargs=process_conf.get(
+                "limit_kwargs",
+                {
+                    "limit_x": {
+                        "nominal": (
+                            process_conf["var_bins"][0],
+                            process_conf["var_bins"][-1],
+                        ),
+                        "up": (-float("inf"), float("inf")),
+                        "down": (-float("inf"), float("inf")),
+                    },
+                },
+            ),
         )
 
         plotting.plot_FFs(
@@ -243,16 +262,17 @@ def calculation_Wjets_FFs(
             uncertainties=fit_graphs,
             era=config["era"],
             channel=config["channel"],
-            process="Wjets",
+            process=process,
             category=split,
             output_path=output_path,
             logger=logger,
+            draw_option=used_fit,
         )
 
         if len(split) == 1:
-            corrlib_expressions[
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-            ] = corrlib_exp
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
+                corrlib_exp
+            )
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
@@ -300,63 +320,26 @@ def calculation_Wjets_FFs(
                 "ST_L",
                 "ST_T",
             ]
-
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=SRlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process="Wjets",
-            region="SR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=ARlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process="Wjets",
-            region="AR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-
-        data = "data_subtracted"
-        samples = ["Wjets"]
-
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=SRlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process="Wjets",
-            region="SR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=ARlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process="Wjets",
-            region="AR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
+        
+        for _hist, _region, _data, _samples in [
+            (SRlike_hists, "SR_like", data, samples),
+            (ARlike_hists, "AR_like", data, samples),
+            (SRlike_hists, "SR_like", "data_subtracted", ["Wjets"]),
+            (ARlike_hists, "AR_like", "data_subtracted", ["Wjets"]),
+        ]:
+            plotting.plot_data_mc_ratio(
+                variable=process_conf["var_dependence"],
+                hists=_hist,
+                era=config["era"],
+                channel=config["channel"],
+                process=process,
+                region=_region,
+                data=_data,
+                samples=_samples,
+                category=split,
+                output_path=output_path,
+                logger=logger,
+            )
         log.info("-" * 50)
 
     return corrlib_expressions
@@ -367,9 +350,10 @@ def non_closure_correction(
     corr_config: Dict[str, Union[str, Dict]],
     sample_paths: List[str],
     output_path: str,
+    process: str,
     closure_variable: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     for_DRtoSR: bool,
     logger: str,
 ) -> Dict[str, np.ndarray]:
@@ -381,9 +365,10 @@ def non_closure_correction(
         corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
+        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
         closure_variable: Name of the variable the correction is calculated for
         evaluator: Evaluator with Wjets fake factors
-        corr_evaluator: Evaluator with corrections to Wjets fake factors
+        corr_evaluators: List of evaluator with corrections to Wjets fake factors
         for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
         logger: Name of the logger that should be used
 
@@ -401,20 +386,20 @@ def non_closure_correction(
     ARlike_hists_qcd = dict()
 
     # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"]["Wjets"])
+    process_conf = copy.deepcopy(config["target_processes"][process])
     if for_DRtoSR:
-        correction_conf = corr_config["target_processes"]["Wjets"]["DR_SR"][
+        correction_conf = corr_config["target_processes"][process]["DR_SR"][
             "non_closure"
         ][closure_variable]
     else:
-        correction_conf = corr_config["target_processes"]["Wjets"]["non_closure"][
+        correction_conf = corr_config["target_processes"][process]["non_closure"][
             closure_variable
         ]
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the non closure correction for Wjets.")
+        log.info(f"Processing {sample} for the non closure correction for {process}.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -429,7 +414,9 @@ def non_closure_correction(
             region_cuts=region_conf,
         )
 
-        log.info("Filtering events for the signal-like region. Target process: Wjets")
+        log.info(
+            f"Filtering events for the signal-like region. Target process: {process}"
+        )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -442,7 +429,7 @@ def non_closure_correction(
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(
-                "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
             )
 
         rdf_SRlike_qcd = func.apply_region_filters(
@@ -454,7 +441,7 @@ def non_closure_correction(
         )
 
         log.info(
-            "Filtering events for QCD estimation in the signal-like region. Target process: Wjets"
+            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -474,27 +461,24 @@ def non_closure_correction(
         )
 
         log.info(
-            "Filtering events for the application-like region. Target process: Wjets"
+            f"Filtering events for the application-like region. Target process: {process}"
         )
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(
-                    rdf=rdf_ARlike
+            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
+
+            # additionally evaluate the previous corrections
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_ARlike = corr_evaluator.evaluate_correction(
+                    rdf=rdf_ARlike,
                 )
-            else:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
-            # additionally evaluate the first correction, if this is the second correction
-            if corr_evaluator == None:
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", "weight * Wjets_fake_factor"
-                )
-            else:
-                rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
-                rdf_ARlike = rdf_ARlike.Define(
-                    "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
-                )
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+
+            rdf_ARlike = rdf_ARlike.Define(
+                "weight_ff", f"weight * {process}_fake_factor{corr_str}"
+            )
 
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -508,7 +492,7 @@ def non_closure_correction(
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(
-                "No tau pair sign cut defined in the Wjets config. Is needed for the QCD estimation."
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
             )
 
         rdf_ARlike_qcd = func.apply_region_filters(
@@ -520,7 +504,7 @@ def non_closure_correction(
         )
 
         log.info(
-            "Filtering events for QCD estimation in the application-like region. Target process: Wjets"
+            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
         )
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
@@ -594,6 +578,7 @@ def non_closure_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
+        write_corrections=config["write_corrections"],
     )
 
     if for_DRtoSR:
@@ -608,7 +593,7 @@ def non_closure_correction(
         corr_name="non_closure_" + closure_variable + add_str,
         era=config["era"],
         channel=config["channel"],
-        process="Wjets",
+        process=process,
         output_path=output_path,
         logger=logger,
     )
@@ -627,7 +612,7 @@ def non_closure_correction(
         hists=plot_hists,
         era=config["era"],
         channel=config["channel"],
-        process="Wjets",
+        process=process,
         region="non_closure_" + closure_variable + add_str,
         data=data,
         samples=samples,
@@ -674,7 +659,7 @@ def non_closure_correction(
         hists=SRlike_hists,
         era=config["era"],
         channel=config["channel"],
-        process="Wjets",
+        process=process,
         region="non_closure_" + closure_variable + add_str + "_SRlike",
         data=data,
         samples=samples,
@@ -763,16 +748,11 @@ def DR_SR_correction(
                 "Filtering events for the application-like region. Target process: Wjets"
             )
 
-            # evaluate the measured fake factors for the specific processes
-            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(
-                    rdf=rdf_ARlike
-                )
-            else:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
-            rdf_ARlike = corr_evaluator.evaluate_leading_lep_pt(rdf=rdf_ARlike)
+            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
+            rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff", "weight * Wjets_fake_factor * Wjets_ff_corr"
+                "weight_ff",
+                f"weight * Wjets_fake_factor * Wjets_ff_corr_{corr_evaluator.variable}",
             )
 
             # redirecting C++ stdout for Report() to python stdout
@@ -818,6 +798,7 @@ def DR_SR_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
+        write_corrections=config["write_corrections"],
     )
 
     plotting.plot_correction(

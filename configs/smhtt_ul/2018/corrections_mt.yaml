@@ -1,57 +1,65 @@
-# This is an example config containing information for the FF corrections
-
-workdir_name: "full_set_v13"
-era: "2018"
-channel: "mt" # options are et, mt, tt
-
+channel: mt
 target_processes:
-    QCD:
-        non_closure:
-            leading_lep_pt:
-                var_dependence: "pt_1"
-                var_bins: [25,30,40,50,60,70,80,90,100,120]
-            lep_iso:
-                var_dependence: "iso_1"
-                var_bins: [0.00,0.05,0.1,0.15,0.2,0.25,0.31]
-                SRlike_cuts:
-                    lep_iso: "iso_1 >= 0."
-                ARlike_cuts:
-                    lep_iso: "iso_1 >= 0."
-        DR_SR:
-            var_dependence: "m_vis"
-            var_bins: [0,40,60,80,100,120,140,160,180,250]
-            SRlike_cuts:
-                lep_iso: "iso_1 >= 0.15"
-            ARlike_cuts:
-                lep_iso: "iso_1 >= 0.15"
-            AR_SR_cuts:
-                tau_pair_sign: "(q_1*q_2) < 0"
-            non_closure:
-                leading_lep_pt:
-                    var_dependence: "pt_1"
-                    var_bins: [25,30,40,50,60,70,80,90,100,120]
+  QCD:
+    non_closure:
+      pt_1:
+        var_dependence: pt_1
+        var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
 
-    Wjets:
-        non_closure:
-            leading_lep_pt:
-                var_dependence: "pt_1"
-                var_bins: [25,30,40,50,60,70,80,90,100,120]
-        DR_SR:
-            var_dependence: "m_vis"
-            var_bins: [0,40,70,100,140,180,250]
-            SRlike_cuts:
-                lep_mt: "mt_1 >= 0.0"
-            ARlike_cuts:
-                lep_mt: "mt_1 >= 0.0"
-            AR_SR_cuts:
-                njets: "nbtag >= 1"
-            non_closure:
-                leading_lep_pt:
-                    var_dependence: "pt_1"
-                    var_bins: [25,30,40,50,60,70,80,90,100,120]
+      iso_1:
+        SRlike_cuts:
+          lep_iso: iso_1 >= 0.
+        ARlike_cuts:
+          lep_iso: iso_1 >= 0.
+        var_dependence: iso_1
+        var_bins: [0., 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.31]
 
-    ttbar:
-        non_closure:
-            leading_lep_pt:
-                var_dependence: "pt_1"
-                var_bins: [25,30,40,50,60,70,80,90,100,120]
+    DR_SR:
+      var_dependence: m_vis
+      var_bins: [0, 40, 60, 80, 100, 120, 140, 160, 180, 250]
+
+      SRlike_cuts:
+        lep_iso: iso_1 >= 0.15
+      ARlike_cuts:
+        lep_iso: iso_1 >= 0.15
+      AR_SR_cuts:
+        tau_pair_sign: (q_1*q_2) < 0
+
+      non_closure:
+        pt_1:
+          var_dependence: pt_1
+          var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
+  Wjets:
+    non_closure:
+      pt_1:
+        var_dependence: pt_1
+        var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
+      iso_1:
+        var_dependence: "iso_1"
+        var_bins: [0., 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.31]
+        SRlike_cuts:
+            lep_iso: "iso_1 >= 0.0"
+        ARlike_cuts:
+            lep_iso: "iso_1 >= 0.0"
+
+    DR_SR:
+      var_dependence: m_vis
+      var_bins: [0, 40, 70, 100, 140, 180, 250]
+
+      SRlike_cuts:
+        lep_mt: mt_1 >= 0.0
+      ARlike_cuts:
+        lep_mt: mt_1 >= 0.0
+      AR_SR_cuts:
+        nbtag: nbtag >= 0
+        lep_mt: mt_1 < 70
+
+      non_closure:
+        pt_1:
+          var_dependence: pt_1
+          var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]
+  ttbar:
+    non_closure:
+      pt_1:
+        var_dependence: pt_1
+        var_bins: [25, 30, 40, 50, 60, 70, 80, 90, 100, 120]

@@ -1,5 +1,26 @@
-workdir_name: "full_set_v13"
-file_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v5"
-output_path: "/ceph/sbrommer/FFmethod/smhtt_ul/03_2023_v5"
-ntuple_path: "root://cmsxrootd-kit.gridka.de//store/user/sbrommer/CROWN/ntuples/2018_ul_v4/CROWNRun"
-era: "2018"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1/CROWNRun"
+output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
+
+file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
+file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
+
+workdir_name: ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1_delmetests
+
+era: '2018'
+tree: ntuple
+
+tau_vs_jet_wps:
+  - Medium
+  - Tight
+  - VTight
+tau_vs_jet_wgt_wps:
+  - VVLoose
+  - VLoose
+  - Loose
+  - Medium
+  - Tight
+  - VTight
+
+use_embedding: true
+
+write_corrections: "binwise" # or "smoothed"
