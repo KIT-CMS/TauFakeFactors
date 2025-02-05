@@ -38,10 +38,10 @@ def get_edges_and_content(
 
 
 def write_json(path: str, item: Union[cs.CorrectionSet, cs.Correction]) -> None:
-    with (gzip.open if path.endswith(".gz") else open)(
-        path,
-        "w" if not path.endswith(".gz") else "wt",
-    ) as fout:
+    _open, _mode = open, "w"
+    if path.endswith(".gz"):
+        _open, _mode = gzip.open, "wt"
+    with _open(path, _mode) as fout:
         fout.write(json.dumps(item.model_dump(exclude_unset=True), indent=4))
 
 

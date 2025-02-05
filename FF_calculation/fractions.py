@@ -219,33 +219,24 @@ def fraction_calculation(
                 "ST_L",
                 "ST_T",
             ]
-
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=AR_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="AR",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable=process_conf["var_dependence"],
-            hists=SR_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="SR",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
+        
+        for _hist, _region, _data, _samples in [
+            (SR_hists, "SR", data, samples),
+            (AR_hists, "AR", data, samples),
+        ]:
+            plotting.plot_data_mc_ratio(
+                variable=process_conf["var_dependence"],
+                hists=_hist,
+                era=config["era"],
+                channel=config["channel"],
+                process=process,
+                region=_region,
+                data=_data,
+                samples=_samples,
+                category=split,
+                output_path=output_path,
+                logger=logger,
+            )
         log.info("-" * 50)
 
     # transform histograms to fraction values for correctionlib

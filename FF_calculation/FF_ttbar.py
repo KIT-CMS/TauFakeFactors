@@ -373,62 +373,25 @@ def calculation_ttbar_FFs(
                 "ST_T",
             ]
 
-        plotting.plot_data_mc_ratio(
-            variable="metphi",
-            hists=SRlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="SR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable="metphi",
-            hists=ARlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="AR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-
-        data = "data_subtracted"
-        samples = ["ttbar_J"]
-
-        plotting.plot_data_mc_ratio(
-            variable="metphi",
-            hists=SRlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="SR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
-        plotting.plot_data_mc_ratio(
-            variable="metphi",
-            hists=ARlike_hists,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            region="AR_like",
-            data=data,
-            samples=samples,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-        )
+        for _hist, _region, _data, _samples in [
+            (SRlike_hists, "SR_like", data, samples),
+            (ARlike_hists, "AR_like", data, samples),
+            (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
+            (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
+        ]:
+            plotting.plot_data_mc_ratio(
+                variable="metphi",
+                hists=_hist,
+                era=config["era"],
+                channel=config["channel"],
+                process=process,
+                region=_region,
+                data=_data,
+                samples=_samples,
+                category=split,
+                output_path=output_path,
+                logger=logger,
+            )
         log.info("-" * 50)
 
     return corrlib_expressions

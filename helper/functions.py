@@ -26,8 +26,6 @@ def load_config(config_file: str) -> Dict:
         Configuration as a dictionary
     """
     common_config_file_name = "common_settings.yaml"
-    if "boosted" in config_file:
-        common_config_file_name = "common_settings_boosted.yaml"
 
     common_config_file = os.path.join(
         os.path.split(config_file)[0],

@@ -455,15 +455,11 @@ def get_wrapped_functions_from_fits(
     if do_mc_subtr_unc:
         param_up, _ = extract_param_and_cov(Fits_up[name])
         param_down, _ = extract_param_and_cov(Fits_down[name])
-        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][
-            0
-        ](
+        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][0](
             [x],
             param_up,
         )
-        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[
-            name
-        ][0](
+        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[name][0](
             [x],
             param_down,
         )

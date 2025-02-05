@@ -64,9 +64,7 @@ def plot_FFs(
     ff_ratio.GetXaxis().SetNoExponent()
     ff_ratio.GetYaxis().SetTitle(gd.FF_YAxis[process])
     ff_ratio.GetXaxis().SetTitle(
-        gd.variable_dict[channel][variable]
-        if variable in gd.variable_dict[channel]
-        else variable
+        gd.variable_dict[channel].get(variable, variable)
     )
     ff_ratio.GetYaxis().SetLabelSize(0.04)
     ff_ratio.GetXaxis().SetLabelSize(0.04)
@@ -178,9 +176,7 @@ def plot_data_mc(
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("N_{Events}")
     stack.GetXaxis().SetTitle(
-        gd.variable_dict[channel][variable]
-        if variable in gd.variable_dict[channel]
-        else variable
+        gd.variable_dict[channel].get(variable, variable)
     )
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
@@ -319,9 +315,7 @@ def plot_data_mc_ratio(
     # Adjust x-axis settings
     x = ratio.GetXaxis()
     x.SetTitle(
-        gd.variable_dict[channel][variable]
-        if variable in gd.variable_dict[channel]
-        else variable
+        gd.variable_dict[channel].get(variable, variable)
     )
     x.SetTitleSize(0.12)
     x.SetLabelSize(0.1)
@@ -456,9 +450,7 @@ def plot_fractions(
     stack.Draw("HIST")
     stack.GetYaxis().SetTitle("Fraction")
     stack.GetXaxis().SetTitle(
-        gd.variable_dict[channel][variable]
-        if variable in gd.variable_dict[channel]
-        else variable
+        gd.variable_dict[channel].get(variable, variable)
     )
     stack.GetYaxis().SetLabelSize(0.04)
     stack.GetXaxis().SetLabelSize(0.04)
@@ -554,9 +546,7 @@ def plot_correction(
     corr_hist.GetXaxis().SetNoExponent()
     corr_hist.GetYaxis().SetTitle("Correction")
     corr_hist.GetXaxis().SetTitle(
-        gd.variable_dict[channel][variable]
-        if variable in gd.variable_dict[channel]
-        else variable
+        gd.variable_dict[channel].get(variable, variable)
     )
     corr_hist.GetYaxis().SetLabelSize(0.04)
     corr_hist.GetXaxis().SetLabelSize(0.04)
