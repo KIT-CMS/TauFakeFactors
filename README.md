@@ -11,7 +11,7 @@ The environment can be set up with conda via
 conda env create --file environment.yaml
 ```
 
-General definitions like paths for all steps of the fake factor measurements should be defined in the `configs/ANALYSIS/ERA/common_settings.yaml` file.
+General definitions like paths for all steps of the fake factor measurements should be defined in a `configs/ANALYSIS/ERA/common_settings.yaml` file (file name should be always stay the same).
 
 The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
 parameter | type | description
@@ -21,7 +21,7 @@ parameter | type | description
   `era` | `string` | data taking era (e.g. "2018, "2017", "2016preVFP", "2016postVFP")
   `tau_vs_jet_wps` | `list` | list of tau ID vsJet working points to be written out in the preselection step (e.g. ["Medium", "VVVLoose"])
   `tau_vs_jet_wgt_wps` | `list` | list of tau ID vsJet working point scale factors to be written out in the preselection step (e.g. ["Medium"])
- 
+  `write_corrections` | `string` | two options are available `"smoothed"` or `"binwise"` (default: `"smoothed"`); this option decides how the corrections are written out to the correctionlib json, based on a smoothed fit or just the measured histograms
 
 The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
   parameter | type | description
@@ -39,7 +39,7 @@ The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
 </summary>
 
 This framework is designed for n-tuples produced with CROWN as input. 
-All information for the preselection step is defined in configuration files in the `configs/ANALYSIS/ERA/` folder. 
+All information for the preselection step is defined in configuration files in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` file and a more specific config file. 
 
 The preselection config has the following parameters:
 
@@ -102,32 +102,20 @@ Further there are additional optional parameters:
 
 In this step the fake factors are calculated. This should be run after the preselection step.
 
-All information for the FF calculation step is defined in a configuration file in the `configs/` folder. \
+All information for the FF calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. \
 The FF calculation config has the following parameters:
-
-* The expected input folder structure is FILE_PATH/preselection/ERA/CHANNEL/*.root
-    parameter | type | description
-    ---|---|---
-    `file_path` | `string` | absolute path to the folder with the preselected files
-    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
-    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
-    `tree` | `string` | name of the tree in the preselected files (same as in preselection e.g. "ntuple")
-
-* The output folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*outputfiles*
-    parameter | type | description
-    ---|---|---
-    `workdir_name` | `string` | relative path where the output files will be stored
 
 * General options for the calculation:
     parameter | type | description
     ---|---|---
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
 
 * In `target_processes` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. \
   Each target process needs some specifications:
     parameter | type | description
     ---|---|---
-    `split_categories` | `dict` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li>implemented split variables are "njets", "nbtag" or "deltaR_ditaupair"</li><li>at least one inclusive category needs to be specified</li></ul>
+    `split_categories` | `dict` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li>implemented split variables are "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair"</li><li>at least one inclusive category needs to be specified</li></ul>
     `split_categories_binedges` | `dict` | bin edge values for each `split_categories` variable <ul><li>number of bin edges should always be N(variable cuts)+1</li></ul>
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process
@@ -135,7 +123,9 @@ The FF calculation config has the following parameters:
     `AR_cuts` | `dict` | event selections for the application region (normally only needed for ttbar)
     `var_dependence` | `string` | variable the FF measurement should depend on (normally pt of the hadronic tau e.g. `"pt_2"`)
     `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
-    
+    `fit_options` | `list` | a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: `["poly_1"]`); futher it is possible to specify `"binwise"` which means that the histograms are written out directly without a fit 
+    `limit_kwargs` | `dict` | this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0
+     
     Event selections can be defined the same way as in the preselection step `event_selection`. Only the tau vs jet ID cut is special because the name should always be `had_tau_id_vs_jet` (or `had_tau_id_vs_jet_*` in tt channel), this is needed to read out the working points from the cut string and apply the correct tau vs jet ID weights.
 
 * In `process_fractions` specifications for the calculation of the process fractions are defined.
@@ -166,27 +156,25 @@ Currently two different correction types are implemented:
 1. non closure correction depending on a specific variable
 2. DR to SR interpolation correction depending on a specific variable
 
-All information for the FF correction calculation step is defined in a configuration file in the `configs/` folder. Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). \
+All information for the FF correction calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). \
 The FF correction config has the following parameters:
 
 * The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*
     parameter | type | description
     ---|---|---
-    `workdir_name` | `string` | the name of the work directory for which the corrections should be calculated (normally the same as in the FF calculation step)
-    `era` | `string` | data taking era ("2018, "2017", "2016preVFP", "2016postVFP")
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
 
 * In `target_processes` the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined. \
   Each target process needs some specifications:
     parameter | type | description
     ---|---|---
-    `non_closure` | `dict` | one or two non closure corrections can be specified indicated by the variable the correction should be calculated for (e.g. `leading_lep_pt`), if more than one correction is specified, `leading_lep_pt` should come first (due to code specifics) because the second corrections is calculated with the first already applied
+    `non_closure` | `dict` | one or two non closure corrections can be specified indicated by the variable the correction should be calculated for (e.g. `pt_1`), also more than one closure correction are allowed and are calculated while already applying the correction that were already measured
     `DR_SR` | `dict` | this correction should be specified only once per process in `target_processes`
 
   Each correction has following specifications:
     parameter | type | description
     ---|---|---
-    `var_dependence` | `string` | variable the FF correction measurement should depend on (e.g. `"pt_1"` for "leading_lep_pt")
+    `var_dependence` | `string` | variable the FF correction measurement should depend on (e.g. `"pt_1"`)
     `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
