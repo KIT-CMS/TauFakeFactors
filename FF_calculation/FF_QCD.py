@@ -15,6 +15,7 @@ from wurlitzer import STDOUT, pipes
 import helper.ff_functions as func
 import helper.plotting as plotting
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
+import configs.general_definitions as gd
 
 
 def calculation_QCD_FFs(
@@ -168,7 +169,7 @@ def calculation_QCD_FFs(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
             bin_edges=process_conf["var_bins"],
             logger=logger,
-            fit_option=process_conf.get("fit_option", "poly_1"),
+            fit_option=process_conf.get("fit_option", gd.default_fit_options["QCD"]),
             limit_kwargs=process_conf.get(
                 "limit_kwargs",
                 {

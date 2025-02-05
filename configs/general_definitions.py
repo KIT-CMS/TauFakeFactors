@@ -1,5 +1,13 @@
 import ROOT
 
+### For fake factor fits ###
+
+default_fit_options = {
+    "QCD": "poly_1",
+    "Wjets": "poly_1",
+    "ttbar": "poly_1", 
+}
+
 ### For plotting ###
 
 # label definitions for y-axis
