@@ -531,7 +531,7 @@ def calculate_non_closure_correction_ttbar_fromMC(
 
 
 def smooth_function(
-    hist: Any, bin_edges: List[float]
+    hist: Any, bin_edges: List[float], write_corrections: str
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -607,12 +607,27 @@ def smooth_function(
     smooth_y_up = array.array("d", smooth_y_up)
     smooth_y_down = array.array("d", smooth_y_down)
 
+    if write_corrections == "binwise":
+        _bins = np.array(bin_edges)
+        _nom = np.array(y)
+        _up = _nom + np.array(error_y_up)
+        _down = _nom - np.array(error_y_down)
+    else:
+        _bins = np.array(eval_bin_edges)
+        _nom = np.array(smooth_y)
+        _up = _nom + np.array(smooth_y_up)
+        _down = _nom - np.array(smooth_y_down)
+        
+    _nom[_nom < 0] = 0
+    _up[_up < 0] = 0
+    _down[_down < 0] = 0
+    
     corr_dict = {
-        "edges": np.array(eval_bin_edges),
-        "nominal": np.array(smooth_y),
-        "up": np.array(smooth_y) + np.array(smooth_y_up),
-        "down": np.array(smooth_y) - np.array(smooth_y_down),
-    }
+            "edges": _bins,
+            "nominal": _nom,
+            "up": _up,
+            "down": _down,
+        }
 
     smooth_graph = ROOT.TGraphAsymmErrors(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up

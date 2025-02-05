@@ -578,6 +578,7 @@ def non_closure_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
+        write_corrections=config["write_corrections"],
     )
 
     if for_DRtoSR:
@@ -797,6 +798,7 @@ def DR_SR_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
+        write_corrections=config["write_corrections"],
     )
 
     plotting.plot_correction(

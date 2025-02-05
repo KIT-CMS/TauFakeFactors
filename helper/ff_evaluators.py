@@ -68,16 +68,6 @@ class FakeFactorEvaluator:
                 f'auto {self.process}_ = correction::CorrectionSet::from_file("{self.ff_path}")->at("{self.process}_fake_factors");'
             )
 
-        # loading process fractions
-        if "subleading" not in self.process:
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions");'
-            )
-        else:
-            ROOT.gInterpreter.Declare(
-                f'auto {self.process}_fraction = correction::CorrectionSet::from_file("{self.ff_path}")->at("process_fractions_subleading");'
-            )
-
     def evaluate_fake_factor(self, rdf: Any) -> Any:
         """
         Evaluating the fake factors based on the variables it depends on.
