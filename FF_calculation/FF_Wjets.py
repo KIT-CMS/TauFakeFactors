@@ -423,13 +423,13 @@ def non_closure_correction(
     ARlike_hists_qcd = dict()
 
     # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][f"{process}"])
+    process_conf = copy.deepcopy(config["target_processes"][process])
     if for_DRtoSR:
-        correction_conf = corr_config["target_processes"][f"{process}"]["DR_SR"][
+        correction_conf = corr_config["target_processes"][process]["DR_SR"][
             "non_closure"
         ][closure_variable]
     else:
-        correction_conf = corr_config["target_processes"][f"{process}"]["non_closure"][
+        correction_conf = corr_config["target_processes"][process]["non_closure"][
             closure_variable
         ]
 
@@ -503,12 +503,7 @@ def non_closure_correction(
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
-            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(
-                    rdf=rdf_ARlike
-                )
-            else:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
+            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
 
             # additionally evaluate the previous corrections
             corr_str = ""
@@ -789,13 +784,7 @@ def DR_SR_correction(
                 "Filtering events for the application-like region. Target process: Wjets"
             )
 
-            # evaluate the measured fake factors for the specific processes
-            if "deltaR_ditaupair" in process_conf["split_categories_binedges"]:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets_deltaR(
-                    rdf=rdf_ARlike
-                )
-            else:
-                rdf_ARlike = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_ARlike)
+            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
             rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff",

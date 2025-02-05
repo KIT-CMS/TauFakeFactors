@@ -520,11 +520,7 @@ def non_closure_correction(
                 f"Filtering events for the application region. Target process: {process}"
             )
 
-            # evaluate the measured fake factors for the specific processes
-            if config["channel"] != "tt" or process == "ttbar_subleading":
-                rdf_AR = evaluator.evaluate_subleading_lep_pt_njets(rdf=rdf_AR)
-            else:
-                rdf_AR = evaluator.evaluate_leading_lep_pt_njets(rdf=rdf_AR)
+            rdf_AR = evaluator.evaluate_fake_factor(rdf=rdf_AR)
 
             # additionally evaluate the previous corrections
             corr_str = ""

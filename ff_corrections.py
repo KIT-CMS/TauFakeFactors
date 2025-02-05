@@ -120,9 +120,11 @@ def run_non_closure_for_DRtoSR(
         "DR_SR" in corr_config["target_processes"][process]
         and "non_closure" in corr_config["target_processes"][process]["DR_SR"]
     ):
+        var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
         evaluator = FakeFactorEvaluator(
             config=config,
             process=process,
+            var_dependences=var_dependences,
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
@@ -300,11 +302,14 @@ if __name__ == "__main__":
     if "target_processes" in corr_config:
         for process in corr_config["target_processes"]:
             log = logging.getLogger(f"ff_corrections.{process}")
-
+            
+            var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
+            
             if "non_closure" in corr_config["target_processes"][process]:
                 evaluator = FakeFactorEvaluator(
                     config=config,
                     process=process,
+                    var_dependences=var_dependences,
                     for_DRtoSR=False,
                     logger=f"ff_corrections.{process}",
                 )
@@ -379,6 +384,7 @@ if __name__ == "__main__":
                 evaluator = FakeFactorEvaluator(
                     config=config,
                     process=process,
+                    var_dependences=var_dependences,
                     for_DRtoSR=True,
                     logger=f"ff_corrections.{process}",
                 )
