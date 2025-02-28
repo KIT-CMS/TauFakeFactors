@@ -368,13 +368,13 @@ def fit_function(
         fit_option: List[str] correspond to a list of poly_n fits to be performed
                     with best fit being the one with the lowest chi2/ndf value and nominal and
                     variations being > 0 in fit range.
-                    str: "poly_n" or "bin_wise", where n is the order of the polynomial fit
+                    str: "poly_n" or "binwise", where n is the order of the polynomial fit
 
     Return:
         1. Dictionary with graphs for each variation,
         2. Dictionary of function expressions for correctionlib (nominal and variations)
     """
-    if not isinstance(fit_option, list) and fit_option != "bin_wise":
+    if not isinstance(fit_option, list) and fit_option != "binwise":
         fit_option = [fit_option]
 
     do_mc_subtr_unc, ff_hist_up, ff_hist_down = False, None, None
@@ -402,7 +402,7 @@ def fit_function(
     graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
 
     retrival_function = fitting_helper.get_wrapped_functions_from_fits
-    if fit_option == "bin_wise":
+    if fit_option == "binwise":
         retrival_function = fitting_helper.get_wrapped_hists
 
     callable_expression, correctionlib_expression, used_fit = retrival_function(

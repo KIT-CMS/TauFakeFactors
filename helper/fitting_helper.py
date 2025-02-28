@@ -583,4 +583,4 @@ def get_wrapped_hists(
             }
         )
 
-    return callable_results, str_results, str("bin_wise")
+    return callable_results, str_results, str("binwise")

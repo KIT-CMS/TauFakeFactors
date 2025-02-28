@@ -252,19 +252,21 @@ def calculation_QCD_FFs(
             (SRlike_hists, "SR_like", data, samples),
             (ARlike_hists, "AR_like", data, samples),
         ]:
-            plotting.plot_data_mc(
-                variable=process_conf["var_dependence"],
-                hists=_hist,
-                era=config["era"],
-                channel=config["channel"],
-                process=process,
-                region=_region,
-                data=_data,
-                samples=_samples,
-                category=split,
-                output_path=output_path,
-                logger=logger,
-            )
+            for yscale in ["linear", "log"]:
+                plotting.plot_data_mc(
+                    variable=process_conf["var_dependence"],
+                    hists=_hist,
+                    era=config["era"],
+                    channel=config["channel"],
+                    process=process,
+                    region=_region,
+                    data=_data,
+                    samples=_samples,
+                    category=split,
+                    output_path=output_path,
+                    logger=logger,
+                    yscale=yscale,
+                )
         log.info("-" * 50)
 
     return corrlib_expressions
@@ -428,9 +430,9 @@ def non_closure_correction(
     )
 
     smoothed_graph, correction_dict = func.smooth_function(
-        hist=correction_hist.Clone(), 
-        bin_edges=correction_conf["var_bins"], 
-        write_corrections=config["write_corrections"],
+        hist=correction_hist.Clone(),
+        bin_edges=correction_conf["var_bins"],
+        write_corrections=correction_conf["write_corrections"],
     )
 
     if for_DRtoSR:
@@ -459,19 +461,21 @@ def non_closure_correction(
     data = "data_subtracted"
     samples = ["data_ff"]
 
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=plot_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="non_closure_" + closure_variable + add_str,
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
+    for yscale in ["linear", "log"]:
+        plotting.plot_data_mc(
+            variable=correction_conf["var_dependence"],
+            hists=plot_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process,
+            region="non_closure_" + closure_variable + add_str,
+            data=data,
+            samples=samples,
+            category={"incl": ""},
+            output_path=output_path,
+            logger=logger,
+            yscale=yscale,
+        )
 
     data = "data"
     if config["use_embedding"]:
@@ -504,19 +508,21 @@ def non_closure_correction(
             "ST_T",
         ]
 
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=SRlike_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="non_closure_" + closure_variable + add_str + "_SRlike_hist",
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
+    for yscale in ["linear", "log"]:
+        plotting.plot_data_mc(
+            variable=correction_conf["var_dependence"],
+            hists=SRlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process,
+            region="non_closure_" + closure_variable + add_str + "_SRlike_hist",
+            data=data,
+            samples=samples,
+            category={"incl": ""},
+            output_path=output_path,
+            logger=logger,
+            yscale=yscale,
+        )
 
     return correction_dict
 
@@ -663,7 +669,7 @@ def DR_SR_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
-        write_corrections=config["write_corrections"],
+        write_corrections=correction_conf["write_corrections"],
     )
 
     plotting.plot_correction(
@@ -687,19 +693,21 @@ def DR_SR_correction(
     data = "data_subtracted"
     samples = ["data_ff"]
 
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=plot_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="DR_SR",
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
+    for yscale in ["linear", "log"]:
+        plotting.plot_data_mc(
+            variable=correction_conf["var_dependence"],
+            hists=plot_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process,
+            region="DR_SR",
+            data=data,
+            samples=samples,
+            category={"incl": ""},
+            output_path=output_path,
+            logger=logger,
+            yscale=yscale,
+        )
 
     data = "data"
     if config["use_embedding"]:
@@ -732,18 +740,20 @@ def DR_SR_correction(
             "ST_T",
         ]
 
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=SRlike_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="DR_SR" + "_SRlike_hist",
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
+    for yscale in ["linear", "log"]:
+        plotting.plot_data_mc(
+            variable=correction_conf["var_dependence"],
+            hists=SRlike_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process,
+            region="DR_SR" + "_SRlike_hist",
+            data=data,
+            samples=samples,
+            category={"incl": ""},
+            output_path=output_path,
+            logger=logger,
+            yscale=yscale,
+        )
 
     return correction_dict

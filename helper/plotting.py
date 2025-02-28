@@ -123,6 +123,7 @@ def plot_data_mc(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    yscale: str = "linear",
 ) -> None:
     """
     Function which produces a data to MC control plot.
@@ -152,7 +153,8 @@ def plot_data_mc(
     c.SetLeftMargin(0.16)
     c.SetBottomMargin(0.12)
 
-    c.SetLogy()
+    if yscale == "log":
+        c.SetLogy()
 
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
     ROOT.gStyle.SetTextFont(
@@ -226,10 +228,10 @@ def plot_data_mc(
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
+            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
         )
         c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
+            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
         )
     log.info(out.getvalue())
     c.Close()
@@ -247,6 +249,7 @@ def plot_data_mc_ratio(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    yscale: str = "linear",
 ) -> None:
     """
     Function which produces a data to MC control plot with a ratio plot.
@@ -268,6 +271,8 @@ def plot_data_mc_ratio(
         None
     """
     log = logging.getLogger(logger)
+
+    # do_logscale = process != "ttbar"
 
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -326,7 +331,10 @@ def plot_data_mc_ratio(
     pad1 = ROOT.TPad("pad1", "pad1", 0, 0.25, 1, 1.0)
     pad1.SetRightMargin(0.05)
     pad1.SetLeftMargin(0.16)
-    pad1.SetLogy()
+
+    if yscale == "log":
+        pad1.SetLogy()
+
     pad1.Draw()
     # Lower ratio plot is pad2
     c.cd()
@@ -379,15 +387,16 @@ def plot_data_mc_ratio(
     else:
         hist_str = "full"
 
-    c.SetLogy()
+    if yscale == "log":
+        c.SetLogy()
 
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
+            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
         )
         c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
+            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
         )
     log.info(out.getvalue())
     c.Close()

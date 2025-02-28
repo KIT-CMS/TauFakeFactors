@@ -213,7 +213,8 @@ if __name__ == "__main__":
         config["channel"],
     )
     func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
-
+    with open(save_path_plots + "/config.yaml", "w") as config_file:
+        yaml.dump(corr_config, config_file, default_flow_style=False)
     # start output logging
     func.setup_logger(
         log_file=save_path_plots + "/ff_corrections.log",
@@ -444,3 +445,6 @@ if __name__ == "__main__":
         output_path=save_path_ffs,
         for_DRtoSR=False,
     )
+
+    with open(os.path.join(save_path_plots, "done"), "w") as done_file:
+        done_file.write("")

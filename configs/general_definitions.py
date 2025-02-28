@@ -78,7 +78,7 @@ label_dict = {
         "poly_4": "poly(4) best fit uncertainty",
         "poly_5": "poly(5) best fit uncertainty",
         "poly_6": "poly(6) best fit uncertainty",
-        "bin_wise": "plain histogram unc.",
+        "binwise": "plain histogram unc.",
     },
     "fit_graph_mc_sub": {
         "poly_0": "poly(0) best fit (MC subtraction unc.)",
@@ -88,7 +88,7 @@ label_dict = {
         "poly_4": "poly(4) best fit (MC subtraction unc.)",
         "poly_5": "poly(5) best fit (MC subtraction unc.)",
         "poly_6": "poly(6) best fit (MC subtraction unc.)",
-        "bin_wise": "plain histogram (MC subtraction unc.)",
+        "binwise": "plain histogram (MC subtraction unc.)",
     },
 }
 # definitions to translate variable to readable language, channel dependent
