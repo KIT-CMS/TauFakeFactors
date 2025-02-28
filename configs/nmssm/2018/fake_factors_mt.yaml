@@ -32,7 +32,6 @@ target_processes:
         
         var_dependence: "pt_2"
         var_bins: [30,32,35,40,48,70,100]
-        # fit_option: "bin_wise"
         fit_option: ["poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
         limit_kwargs: 
             limit_x:
