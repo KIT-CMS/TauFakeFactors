@@ -379,19 +379,21 @@ def calculation_ttbar_FFs(
             (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
             (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
         ]:
-            plotting.plot_data_mc_ratio(
-                variable="metphi",
-                hists=_hist,
-                era=config["era"],
-                channel=config["channel"],
-                process=process,
-                region=_region,
-                data=_data,
-                samples=_samples,
-                category=split,
-                output_path=output_path,
-                logger=logger,
-            )
+            for yscale in ["linear", "log"]:
+                plotting.plot_data_mc_ratio(
+                    variable="metphi",
+                    hists=_hist,
+                    era=config["era"],
+                    channel=config["channel"],
+                    process=process,
+                    region=_region,
+                    data=_data,
+                    samples=_samples,
+                    category=split,
+                    output_path=output_path,
+                    logger=logger,
+                    yscale=yscale,
+                )
         log.info("-" * 50)
 
     return corrlib_expressions
@@ -540,7 +542,7 @@ def non_closure_correction(
     smoothed_graph, correction_dict = func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=correction_conf["var_bins"],
-        write_corrections=config["write_corrections"],
+        write_corrections=correction_conf["write_corrections"],
     )
 
     plotting.plot_correction(
@@ -563,18 +565,20 @@ def non_closure_correction(
     data = "data_subtracted"
     samples = ["data_ff"]
 
-    plotting.plot_data_mc(
-        variable=correction_conf["var_dependence"],
-        hists=plot_hists,
-        era=config["era"],
-        channel=config["channel"],
-        process=process,
-        region="non_closure_" + closure_variable,
-        data=data,
-        samples=samples,
-        category={"incl": ""},
-        output_path=output_path,
-        logger=logger,
-    )
+    for yscale in ["linear", "log"]:
+        plotting.plot_data_mc(
+            variable=correction_conf["var_dependence"],
+            hists=plot_hists,
+            era=config["era"],
+            channel=config["channel"],
+            process=process,
+            region="non_closure_" + closure_variable,
+            data=data,
+            samples=samples,
+            category={"incl": ""},
+            output_path=output_path,
+            logger=logger,
+            yscale=yscale,
+        )
 
     return correction_dict

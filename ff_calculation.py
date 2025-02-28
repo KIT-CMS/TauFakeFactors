@@ -145,3 +145,6 @@ if __name__ == "__main__":
     # dumping config to output directory for documentation
     with open(save_path_plots + "/config.yaml", "w") as config_file:
         yaml.dump(config, config_file, default_flow_style=False)
+
+    with open(os.path.join(save_path_plots, "done"), "w") as done_file:
+        done_file.write("")
