@@ -272,8 +272,6 @@ def plot_data_mc_ratio(
     """
     log = logging.getLogger(logger)
 
-    # do_logscale = process != "ttbar"
-
     ROOT.PyConfig.IgnoreCommandLineOptions = True
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
