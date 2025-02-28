@@ -522,35 +522,31 @@ def generate_correction_corrlib_json(
         config: A dictionary with all the relevant information for the fake factors
         corrections: Dictionary of correction arrays, e.g. corrections[PROCESS][CORRECTION][VARIATION]
         output_path: Path where the generated correctionlib files should be stored
-        for_DRtoSR: Boolean which decides where the produced correctionlib file is stored, this is needed because additional fake factor corrections are needed to calculate the DR to SR correction and therefore they are stored in a different place (default: False)
+        for_DRtoSR: Boolean which decides where the produced correctionlib file is stored, this is needed because additional
+                    fake factor corrections are needed to calculate the DR to SR correction and therefore they are stored in
+                    a different place (default: False)
 
     Return:
         None
     """
     corrlib_ff_corrections = list()
-    
+
     compound_correction_names = dict()
-    compound_correction_variables = dict()
+    compound_inputs = dict()
 
     for process in corrections:
         compound_correction_names[process] = list()
-        compound_correction_variables[process] = list()
-        
+        compound_inputs[process] = list()
+
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
-                variable = config["target_processes"][process]["non_closure"][tmp_var][
-                    "var_dependence"
-                ]
+                variable = config["target_processes"][process]["non_closure"][tmp_var]["var_dependence"]
             elif "non_closure" in correction and for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
-                variable = config["target_processes"][process]["DR_SR"]["non_closure"][
-                    tmp_var
-                ]["var_dependence"]
+                variable = config["target_processes"][process]["DR_SR"]["non_closure"][tmp_var]["var_dependence"]
             else:
-                variable = config["target_processes"][process][correction][
-                    "var_dependence"
-                ]
+                variable = config["target_processes"][process][correction]["var_dependence"]
             correction_dict = corrections[process][correction]
             corr = make_1D_correction(
                 process,
@@ -559,10 +555,10 @@ def generate_correction_corrlib_json(
                 correction_dict,
             )
             corrlib_ff_corrections.append(corr)
-            
+
             if "non_closure" in correction:
-                compound_correction_names[process].append(f"{process}_{variable}_correction")
-                compound_correction_variables[process].append(
+                compound_correction_names[process].append(f"{process}_{correction}_correction")
+                compound_inputs[process].append(
                     cs.Variable(
                         name=variable,
                         type=gd.variable_type[variable],
@@ -571,7 +567,7 @@ def generate_correction_corrlib_json(
                         .replace("#var_max", str(max(correction_dict["edges"]))),
                     )
                 )
-    
+
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",
@@ -579,16 +575,16 @@ def generate_correction_corrlib_json(
         compound_corrections=[
             cs.CompoundCorrection(
                 name=f"{process}_compound_correction",
-                inputs=compound_correction_variables[process].append(
+                inputs=compound_inputs[process] + [
                     cs.Variable(
                         name="syst",
                         type="string",
                         description="Uncertainty from the correction measurement.",
                     )
-                ),
+                ],
                 output=cs.Variable(
-                    name=f"{process}_compound_correction", 
-                    type="real", 
+                    name=f"{process}_compound_correction",
+                    type="real",
                     description=f"compound correction for {process}",
                 ),
                 inputs_update=[],

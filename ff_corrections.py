@@ -303,9 +303,9 @@ if __name__ == "__main__":
     if "target_processes" in corr_config:
         for process in corr_config["target_processes"]:
             log = logging.getLogger(f"ff_corrections.{process}")
-            
+
             var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
-            
+
             if "non_closure" in corr_config["target_processes"][process]:
                 evaluator = FakeFactorEvaluator(
                     config=config,
