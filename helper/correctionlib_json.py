@@ -528,8 +528,14 @@ def generate_correction_corrlib_json(
         None
     """
     corrlib_ff_corrections = list()
+    
+    compound_correction_names = dict()
+    compound_correction_variables = dict()
 
     for process in corrections:
+        compound_correction_names[process] = list()
+        compound_correction_variables[process] = list()
+        
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
@@ -553,12 +559,45 @@ def generate_correction_corrlib_json(
                 correction_dict,
             )
             corrlib_ff_corrections.append(corr)
-
+            
+            if "non_closure" in correction:
+                compound_correction_names[process].append(f"{process}_{variable}_correction")
+                compound_correction_variables[process].append(
+                    cs.Variable(
+                        name=variable,
+                        type=gd.variable_type[variable],
+                        description=gd.variable_description[variable]
+                        .replace("#var_min", str(min(correction_dict["edges"])))
+                        .replace("#var_max", str(max(correction_dict["edges"]))),
+                    )
+                )
+    
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",
         corrections=corrlib_ff_corrections,
-        compound_corrections=None,
+        compound_corrections=[
+            cs.CompoundCorrection(
+                name=f"{process}_compound_correction",
+                inputs=compound_correction_variables[process].append(
+                    cs.Variable(
+                        name="syst",
+                        type="string",
+                        description="Uncertainty from the correction measurement.",
+                    )
+                ),
+                output=cs.Variable(
+                    name=f"{process}_compound_correction", 
+                    type="real", 
+                    description=f"compound correction for {process}",
+                ),
+                inputs_update=[],
+                input_op="*",
+                output_op="*",
+                stack=compound_correction_names[process],
+            )
+            for process in compound_correction_names
+        ],
     )
 
     base_filepath = os.path.join(output_path, f"FF_corrections_{config['channel']}")
