@@ -81,6 +81,7 @@ def get_split_combinations(
             elif len(values) == 2 and isinstance(_binning, list):
                 print(f"Using default binning for {values} of {_binning}")
                 logging.warning(f"Using default binning for {values} of {_binning}")
+                binnings.append(_binning)
             else:
                 raise Exception("Invalid type for binning")
     else:
