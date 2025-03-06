@@ -50,12 +50,13 @@ def calculation_QCD_FFs(
     # get QCD specific config information
     process_conf = config["target_processes"][process]
 
-    split_variables, split_combinations = func.get_split_combinations(
-        categories=process_conf["split_categories"]
+    split_variables, split_combinations, split_binnings = func.get_split_combinations(
+        categories=process_conf["split_categories"],
+        binning=process_conf["var_bins"],
     )
 
     # splitting between different categories
-    for split in split_combinations:
+    for split, binning in zip(split_combinations, split_binnings):
         for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
@@ -107,8 +108,8 @@ def calculation_QCD_FFs(
             log.info("-" * 50)
 
             # get binning of the dependent variable
-            xbinning = array.array("d", process_conf["var_bins"])
-            nbinsx = len(process_conf["var_bins"]) - 1
+            xbinning = array.array("d", binning)
+            nbinsx = len(binning) - 1
 
             # making the histograms
             h = rdf_SRlike.Histo1D(
@@ -167,21 +168,12 @@ def calculation_QCD_FFs(
         # performing the fit and calculating the fit uncertainties
         fit_graphs, corrlib_exp, used_fit = func.fit_function(
             ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
-            bin_edges=process_conf["var_bins"],
+            bin_edges=binning,
             logger=logger,
             fit_option=process_conf.get("fit_option", gd.default_fit_options["QCD"]),
             limit_kwargs=process_conf.get(
                 "limit_kwargs",
-                {
-                    "limit_x": {
-                        "nominal": (
-                            process_conf["var_bins"][0],
-                            process_conf["var_bins"][-1],
-                        ),
-                        "up": (-float("inf"), float("inf")),
-                        "down": (-float("inf"), float("inf")),
-                    },
-                },
+                func.Defaults.fit_function_limit_kwargs(binning),
             ),
         )
 

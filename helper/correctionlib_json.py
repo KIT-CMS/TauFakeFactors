@@ -8,13 +8,13 @@ import numpy as np
 import rich
 
 import configs.general_definitions as gd
+import helper.ff_functions as func
 
 
 def get_edges_and_content(
     item: Union[str, Any],
     variable_info: Tuple[str, list],
 ):
-    # import ipdb; ipdb.set_trace()
     if isinstance(item, str):
         return {
             "edges": [
@@ -73,35 +73,53 @@ def generate_ff_corrlib_json(
 
     for process in config["target_processes"]:
         if process in ff_functions:
-            var = config["target_processes"][process]["var_dependence"]
-            binning = config["target_processes"][process]["var_bins"]
+            proc_conf = config["target_processes"][process]
+            var = proc_conf["var_dependence"]
+            if "split_categories" in proc_conf:
+                # Use the extended version that returns binning for each combination
+                _, _, splits_binning = func.get_split_combinations(
+                    categories=proc_conf["split_categories"],
+                    binning=proc_conf["var_bins"],
+                )
+                # Select the binning corresponding to the first combination (adjust if needed)
+                binning = splits_binning[0]
+            else:
+                binning = proc_conf["var_bins"]
 
-            if len(config["target_processes"][process]["split_categories"]) == 1:
+            if len(proc_conf["split_categories"]) == 1:
                 process_ff = make_1D_ff(
                     process=process,
-                    process_conf=config["target_processes"][process],
+                    process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
                 )
-            elif len(config["target_processes"][process]["split_categories"]) == 2:
+            elif len(proc_conf["split_categories"]) == 2:
                 process_ff = make_2D_ff(
                     process=process,
-                    process_conf=config["target_processes"][process],
+                    process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
                 )
             corrlib_corrections.append(process_ff)
 
     if "process_fractions" in config and fractions is not None:
-        var = config["process_fractions"]["var_dependence"]
-        binning = config["process_fractions"]["var_bins"]
+        frac_conf = config["process_fractions"]
+        var = frac_conf["var_dependence"]
+        if "split_categories" in frac_conf:
+            _, _, splits_binning = func.get_split_combinations(
+                categories=frac_conf["split_categories"],
+                binning=frac_conf["var_bins"],
+            )
+            binning = splits_binning[0]
+        else:
+            binning = frac_conf["var_bins"]
 
         frac_unc = dict()
-        for process in config["process_fractions"]["processes"]:
-            frac_unc.update(gd.frac_variation_dict[process])
+        for proc in frac_conf["processes"]:
+            frac_unc.update(gd.frac_variation_dict[proc])
 
         fraction = make_1D_fractions(
-            fraction_conf=config["process_fractions"],
+            fraction_conf=frac_conf,
             variable_info=(var, binning),
             fractions=fractions,
             fraction_name="process_fractions",
@@ -110,15 +128,23 @@ def generate_ff_corrlib_json(
         corrlib_corrections.append(fraction)
 
     if "process_fractions_subleading" in config and fractions_subleading is not None:
-        var = config["process_fractions_subleading"]["var_dependence"]
-        binning = config["process_fractions_subleading"]["var_bins"]
+        frac_conf = config["process_fractions_subleading"]
+        var = frac_conf["var_dependence"]
+        if "split_categories" in frac_conf:
+            _, _, splits_binning = func.get_split_combinations(
+                categories=frac_conf["split_categories"],
+                binning=frac_conf["var_bins"],
+            )
+            binning = splits_binning[0]
+        else:
+            binning = frac_conf["var_bins"]
 
         frac_unc = dict()
-        for process in config["process_fractions_subleading"]["processes"]:
-            frac_unc.update(gd.frac_variation_dict[process])
+        for proc in frac_conf["processes"]:
+            frac_unc.update(gd.frac_variation_dict[proc])
 
         fraction = make_1D_fractions(
-            fraction_conf=config["process_fractions_subleading"],
+            fraction_conf=frac_conf,
             variable_info=(var, binning),
             fractions=fractions_subleading,
             fraction_name="process_fractions_subleading",
@@ -159,10 +185,7 @@ def make_1D_ff(
     """
     # get categories from config
     cat_inputs = list(process_conf["split_categories"].keys())
-    cat_values = [
-        process_conf["split_categories"][cat]
-        for cat in process_conf["split_categories"]
-    ]
+    cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
 
     ff = cs.Correction(
         name=f"{process}_fake_factors",
@@ -264,11 +287,7 @@ def make_2D_ff(
     """
     # get categories from config
     cat_inputs = list(process_conf["split_categories"].keys())
-    cat_values = [
-        process_conf["split_categories"][cat]
-        for cat in process_conf["split_categories"]
-    ]
-
+    cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
     ff = cs.Correction(
         name=f"{process}_fake_factors",
         description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
@@ -397,11 +416,7 @@ def make_1D_fractions(
     """
     # get categories from config
     cat_inputs = list(fraction_conf["split_categories"].keys())
-    cat_values = [
-        fraction_conf["split_categories"][cat]
-        for cat in fraction_conf["split_categories"]
-    ]
-
+    cat_values = [fraction_conf["split_categories"][cat] for cat in fraction_conf["split_categories"]]
     frac = cs.Correction(
         name=fraction_name,
         description=f"Calculation of process contributions ({fraction_name}) for the fake factor calculation.",

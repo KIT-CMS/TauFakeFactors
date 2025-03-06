@@ -48,12 +48,13 @@ def fraction_calculation(
     # get config information for the fraction calculation
     process_conf = config[process]
 
-    split_variables, split_combinations = func.get_split_combinations(
-        categories=process_conf["split_categories"]
+    split_variables, split_combinations, split_binnings = func.get_split_combinations(
+        categories=process_conf["split_categories"],
+        binning=process_conf["var_bins"],
     )
 
     # splitting between different categories
-    for split in split_combinations:
+    for split, binning in zip(split_combinations, split_binnings):
         for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
@@ -105,8 +106,8 @@ def fraction_calculation(
             log.info("-" * 50)
 
             # get binning of the dependent variable
-            xbinning = array.array("d", process_conf["var_bins"])
-            nbinsx = len(process_conf["var_bins"]) - 1
+            xbinning = array.array("d", binning)
+            nbinsx = len(binning) - 1
 
             # making the histograms
             h = rdf_AR.Histo1D(

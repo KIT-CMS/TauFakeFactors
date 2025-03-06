@@ -1,11 +1,49 @@
 import logging
+import os
 from io import StringIO
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import ROOT
 from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
+
+
+def save_plots_and_data(
+    base_filename_plot: str,
+    base_filename_data: str,
+    output_path: str,
+    plot_obj: Any,
+    data_obj: Any,
+    plot_extensions: Union[List[str], Tuple[str]] = ("png", "pdf"),
+    data_extensions: Union[List[str], Tuple[str]] = ("root",),
+    logger: Union[logging.Logger, None] = None,
+) -> None:
+
+    def save_root_canvas(ext):
+        plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+
+    def save_root_hists(ext):
+        root_filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
+        root_file = ROOT.TFile(root_filepath, "RECREATE")
+        if isinstance(data_obj, dict):
+            for key, hist in data_obj.items():
+                hist.Write(key)
+        elif isinstance(data_obj, ROOT.TH1D):
+            data_obj.Write(base_filename_data)
+        root_file.Close()
+
+    for extensions, _func in [
+        (plot_extensions, save_root_canvas),
+        (data_extensions, save_root_hists),
+    ]:
+        for extension in extensions:
+            os.makedirs(os.path.join(output_path, extension), exist_ok=True)
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                _func(extension)
+            if logger:
+                logger.info(out.getvalue())
 
 
 def plot_FFs(
@@ -99,15 +137,16 @@ def plot_FFs(
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, f"{gd.era_dict[era]}")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
-        )
-    log.info(out.getvalue())
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"ff_{variable}_{process}_{selection}"
+    save_plots_and_data(
+        base_filename_plot=f"{base_filename}",
+        base_filename_data=f"data_{base_filename}",
+        output_path=output_path,
+        plot_obj=c,
+        data_obj={"ff_ratio": ff_ratio, **uncertainties},
+        logger=log,
+    )
     c.Close()
 
 
@@ -220,20 +259,17 @@ def plot_data_mc(
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(gd.era_dict[era]))
 
-    if data == "data_subtracted":
-        hist_str = "reduced"
-    else:
-        hist_str = "full"
-
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
-        )
-    log.info(out.getvalue())
+    hist_str = "reduced" if data == "data_subtracted" else "full"
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"hist_{hist_str}_{variable}_{process}_{region}_{selection}"
+    save_plots_and_data(
+        base_filename_plot=f"{base_filename}_{yscale}",
+        base_filename_data=f"data_{base_filename}",
+        output_path=output_path,
+        plot_obj=c,
+        data_obj=hists,
+        logger=log,
+    )
     c.Close()
 
 
@@ -380,23 +416,20 @@ def plot_data_mc_ratio(
     pad2.cd()
     ratio.Draw("ep")
 
-    if data == "data_subtracted":
-        hist_str = "reduced"
-    else:
-        hist_str = "full"
-
     if yscale == "log":
         c.SetLogy()
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
-        )
-    log.info(out.getvalue())
+    hist_str = "reduced" if data == "data_subtracted" else "full"
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"hist_ratio_{hist_str}_{variable}_{process}_{region}_{selection}"
+    save_plots_and_data(
+        base_filename_plot=f"{base_filename}_{yscale}",
+        base_filename_data=f"data_{base_filename}",
+        output_path=output_path,
+        plot_obj=c,
+        data_obj=hists,
+        logger=log,
+    )
     c.Close()
 
 
@@ -484,15 +517,16 @@ def plot_fractions(
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, f"{gd.era_dict[era]}")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
-        )
-    log.info(out.getvalue())
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"fraction_{fraction_name}_{variable}_{region}_{selection}"
+    save_plots_and_data(
+        base_filename_plot=f"{base_filename}",
+        base_filename_data=f"data_{base_filename}",
+        output_path=output_path,
+        plot_obj=c,
+        data_obj=hists,
+        logger=log,
+    )
     c.Close()
 
 

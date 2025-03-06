@@ -2,45 +2,94 @@
 Collection of helpful functions for the fake factor calculation scripts
 """
 
+import logging
 import array
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
 
+import itertools as itt
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 
+class Defaults:
+    @staticmethod
+    def fit_function_limit_kwargs(binning):
+        return {
+            "limit_x": {
+                "nominal": (binning[0], binning[-1]),
+                "up": (-float("inf"), float("inf")),
+                "down": (-float("inf"), float("inf")),
+            },
+        }
+
+
 def get_split_combinations(
-    categories: Dict[str, List[str]]
-) -> Tuple[List[str], List[Dict[str, str]]]:
+    categories: Dict[str, List[str]],
+    binning: Union[
+        List[float],
+        Dict[str, List[float]],
+        Dict[str, Dict[str, List[float]]],
+        None,
+    ],
+) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
     """
     This function generates a dictionary for all category cut combinations.
     Categories can be defined based on one or two variables (more are not supported).
     Each variable has a list of cuts it should be split into.
 
+    Further, if binning is provided, the function will return the binning for each category cut combination.
+    If binning is a list, the same binning is used for all category cut combinations.
+    If binning is a dictionary, the binning is defined for each variable separately, where
+    the first variable is the key of the first dictionary and the second variable is the key of the second dictionary.
+
+    In case of two variables, the binning needs to be defined at least for the first variable,
+    the second splitting variable can be defined in a nested dictionary, if not then the default binning of first
+    variable is used for the second variable.
+
     Args:
         categories: Dictionary with the category definitions
+        binning: Binning for the dependent variable
 
     Return:
         1. List of variables the categories are defined in,
         2. List of all combinations of variable splits
+        3. List of binning for each category cut combination
     """
-    combinations = list()
+    combinations, binnings = [], []
     split_variables = list(categories.keys())
 
-    if len(split_variables) == 1:
-        for n in categories[split_variables[0]]:
-            combinations.append({split_variables[0]: n})
-    elif len(split_variables) == 2:
-        for n in categories[split_variables[0]]:
-            for m in categories[split_variables[1]]:
-                combinations.append({split_variables[0]: n, split_variables[1]: m})
-    else:
-        raise Exception("Category splitting is only defined up to 2 dimensions.")
+    assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
 
-    return split_variables, combinations
+    combinations = [
+        dict(zip(split_variables, v))
+        for v in itt.product(*(categories[_v] for _v in split_variables))
+    ]
+
+    if isinstance(binning, list):
+        binnings = [binning] * len(combinations)
+    elif isinstance(binning, dict):
+        for values in (c.values() for c in combinations):
+            values = list(values)
+            _binning = binning.get(values[0])
+            if len(values) == 1:
+                binnings.append(_binning)
+            elif len(values) == 2 and isinstance(_binning, dict):
+                binnings.append(_binning.get(values[1]))
+            elif len(values) == 2 and isinstance(_binning, list):
+                print(f"Using default binning for {values} of {_binning}")
+                logging.warning(f"Using default binning for {values} of {_binning}")
+            else:
+                raise Exception("Invalid type for binning")
+    else:
+        raise Exception("Invalid type for binning")
+
+    assert len(combinations) > 0, "No category combinations defined"
+    assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
+
+    return split_variables, combinations, binnings
 
 
 def apply_region_filters(
