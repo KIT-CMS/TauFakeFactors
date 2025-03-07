@@ -190,173 +190,33 @@ def calculation_ttbar_FFs(
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
     # splitting between different categories for mc-based FF calculation
-    for split, binning in zip(split_combinations, split_binnings):
-        for sample_path in sample_paths:
-            # getting the name of the process from the sample path
-            sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
-            if sample in ["ttbar_J"]:
-                log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
-                log.info("-" * 50)
 
-                rdf = ROOT.RDataFrame(config["tree"], sample_path)
-
-                # event filter for ttbar signal region
-                region_conf = copy.deepcopy(process_conf["SR_cuts"])
-                rdf_SR = func.apply_region_filters(
-                    rdf=rdf,
-                    channel=config["channel"],
-                    sample=sample,
-                    category_cuts=split,
-                    region_cuts=region_conf,
-                )
-
-                log.info(f"Filtering events for the signal region. Target process: {process}")
-                # redirecting C++ stdout for Report() to python stdout
-                out = StringIO()
-                with pipes(stdout=out, stderr=STDOUT):
-                    rdf_SR.Report().Print()
-                log.info(out.getvalue())
-                log.info("-" * 50)
-
-                # event filter for ttbar application region
-                region_conf = copy.deepcopy(process_conf["AR_cuts"])
-                rdf_AR = func.apply_region_filters(
-                    rdf=rdf,
-                    channel=config["channel"],
-                    sample=sample,
-                    category_cuts=split,
-                    region_cuts=region_conf,
-                )
-                log.info(f"Filtering events for the application region. Target process: {process}")
-                # redirecting C++ stdout for Report() to python stdout
-                out = StringIO()
-                with pipes(stdout=out, stderr=STDOUT):
-                    rdf_AR.Report().Print()
-                log.info(out.getvalue())
-                log.info("-" * 50)
-
-                # get binning of the dependent variable
-                xbinning = array.array("d", binning)
-                nbinsx = len(binning) - 1
-
-                # making the histograms
-                h = rdf_SR.Histo1D(
-                    (
-                        process_conf["var_dependence"],
-                        f"{sample}",
-                        nbinsx,
-                        xbinning,
-                    ),
-                    process_conf["var_dependence"],
-                    "weight",
-                )
-                SR_hists[sample] = h.GetValue()
-
-                h = rdf_AR.Histo1D(
-                    (
-                        process_conf["var_dependence"],
-                        f"{sample}",
-                        nbinsx,
-                        xbinning,
-                    ),
-                    process_conf["var_dependence"],
-                    "weight",
-                )
-                AR_hists[sample] = h.GetValue()
-
-        # Start of the FF calculation
-        FF_hist = func.calculate_ttbar_FF(
-            SR=SR_hists,
-            AR=AR_hists,
-            SRlike=SRlike_hists,
-            ARlike=ARlike_hists,
+    args_list = [
+        (
+            split,
+            binning,
+            config,
+            process_conf,
+            process,
+            split_variables,
+            sample_paths,
+            output_path,
+            logger,
+            SRlike_hists,
+            ARlike_hists,
         )
-        # performing the fit and calculating the uncertainties
-        fit_graphs, corrlib_exp, used_fit = func.fit_function(
-            ff_hists=FF_hist.Clone(),
-            bin_edges=binning,
-            logger=logger,
-            fit_option=process_conf.get("fit_option", gd.default_fit_options["ttbar"]),
-            limit_kwargs=process_conf.get(
-                "limit_kwargs",
-                func.Defaults.fit_function_limit_kwargs(binning),
-            ),
-        )
+        for split, binning in zip(split_combinations, split_binnings)
+    ]
 
-        plotting.plot_FFs(
-            variable=process_conf["var_dependence"],
-            ff_ratio=FF_hist,
-            uncertainties=fit_graphs,
-            era=config["era"],
-            channel=config["channel"],
-            process=process,
-            category=split,
-            output_path=output_path,
-            logger=logger,
-            draw_option=used_fit,
-            save_data=True
-        )
-
-        if len(split) == 1:
-            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = corrlib_exp
-        elif len(split) == 2:
-            if (
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-                not in corrlib_expressions
-            ):
-                corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = dict()
-            corrlib_expressions[
-                f"{split_variables[0]}#{split[split_variables[0]]}"
-            ][
-                f"{split_variables[1]}#{split[split_variables[1]]}"
-            ] = corrlib_exp
-        else:
-            raise Exception("Category splitting is only defined up to 2 dimensions.")
-
-        # doing some control plots
-        data = "data"
-        samples = [
-            "QCD",
-            "diboson_J",
-            "diboson_L",
-            "Wjets",
-            "ttbar_J",
-            "ttbar_L",
-            "DYjets_J",
-            "DYjets_L",
-            "ST_J",
-            "ST_L",
-            "ST_T",
-        ]
-        if config["use_embedding"]:
-            samples.append("embedding")
-        else:
-            samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-
-        for _hist, _region, _data, _samples in [
-            (SRlike_hists, "SR_like", data, samples),
-            (ARlike_hists, "AR_like", data, samples),
-            (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
-            (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
-        ]:
-            for yscale, save_data in zip(["linear", "log"], [True, False]):
-                plotting.plot_data_mc_ratio(
-                    variable="metphi",
-                    hists=_hist,
-                    era=config["era"],
-                    channel=config["channel"],
-                    process=process,
-                    region=_region,
-                    data=_data,
-                    samples=_samples,
-                    category=split,
-                    output_path=output_path,
-                    logger=logger,
-                    yscale=yscale,
-                    save_data=save_data,
-                )
-        log.info("-" * 50)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
+        corrlib_expressions = dict()
+        for idx, result in enumerate(executor.map(_split_calculation_ttbar_FFs, args_list)):
+            if len(split_variables) == 1:
+                corrlib_expressions.update(result)
+            elif len(split_variables) == 2:
+                key = list(result.keys())[0]
+                corrlib_expressions.setdefault(key, {}).update(result[key])
+        assert idx == len(args_list) - 1, "Not all categories were processed."
 
     return corrlib_expressions
 
