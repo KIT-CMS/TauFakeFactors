@@ -266,11 +266,16 @@ def fraction_calculation(
         for split, binning in zip(split_combinations, split_binnings)
     ]
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
-        fractions = dict()
-        for idx, result in enumerate(executor.map(_split_fraction_calculation, args_list)):
-            fractions.update(result)
-        assert idx == len(args_list) - 1, "Not all categories were processed."
+    if len(args_list) == 1:
+        results = [_split_fraction_calculation(args_list[0])]
+
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
+            results = list(executor.map(_split_fraction_calculation, args_list))
+
+    fractions = dict()
+    for result in results:
+        fractions.update(result)
 
     # transform histograms to fraction values for correctionlib
     fractions = func.get_yields_from_hists(

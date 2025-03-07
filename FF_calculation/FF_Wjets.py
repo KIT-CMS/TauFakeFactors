@@ -354,15 +354,19 @@ def calculation_Wjets_FFs(
         for split, binning in zip(split_combinations, split_binnings)
     ]
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
-        corrlib_expressions = dict()
-        for idx, result in enumerate(executor.map(_split_calculation_Wjets_FFs, args_list)):
-            if len(split_variables) == 1:
-                corrlib_expressions.update(result)
-            elif len(split_variables) == 2:
-                key = list(result.keys())[0]
-                corrlib_expressions.setdefault(key, {}).update(result[key])
-        assert idx == len(args_list) - 1, "Not all categories were processed."
+    if len(split_combinations) == 1:
+        results = [_split_calculation_Wjets_FFs(args_list[0])]
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
+            results = list(executor.map(_split_calculation_Wjets_FFs, args_list))
+
+    corrlib_expressions = dict()
+    for result in results:
+        if len(split_variables) == 1:
+            corrlib_expressions.update(result)
+        elif len(split_variables) == 2:
+            key = list(result.keys())[0]
+            corrlib_expressions.setdefault(key, {}).update(result[key])
 
     return corrlib_expressions
 

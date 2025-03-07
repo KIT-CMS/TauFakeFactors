@@ -120,16 +120,20 @@ if __name__ == "__main__":
                 ("process_fractions_subleading", config, sample_paths, save_path_plots)
             )
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
-            for args, result in zip(
-                args_list, executor.map(run_ff_calculation, args_list)
-            ):
-                if args[0] in config["target_processes"]:
-                    fake_factors[args[0]] = result
-                elif args[0] == "process_fractions":
-                    fractions = result
-                elif args[0] == "process_fractions_subleading":
-                    fractions_subleading = result
+        if len(args_list) == 1:
+            results = [args_list[0], run_ff_calculation(args_list[0])]
+        else:
+
+            with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
+                results = list(zip(args_list, executor.map(run_ff_calculation, args_list)))
+
+        for args, result in results:
+            if args[0] in config["target_processes"]:
+                fake_factors[args[0]] = result
+            elif args[0] == "process_fractions":
+                fractions = result
+            elif args[0] == "process_fractions_subleading":
+                fractions_subleading = result
     else:
         raise Exception("No target processes are defined!")
 
