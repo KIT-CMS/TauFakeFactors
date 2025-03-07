@@ -58,9 +58,7 @@ def fraction_calculation(
         for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            log.info(
-                f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category."
-            )
+            log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -75,9 +73,7 @@ def fraction_calculation(
                 region_cuts=region_conf,
             )
 
-            log.info(
-                "Filtering events for the fraction calculation in the application region."
-            )
+            log.info("Filtering events for the fraction calculation in the application region.")
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
@@ -95,9 +91,7 @@ def fraction_calculation(
                 region_cuts=region_conf,
             )
 
-            log.info(
-                "Filtering events for the fraction calculation in the signal region."
-            )
+            log.info("Filtering events for the fraction calculation in the signal region.")
             # redirecting C++ stdout for Report() to python stdout
             out = StringIO()
             with pipes(stdout=out, stderr=STDOUT):
@@ -154,13 +148,8 @@ def fraction_calculation(
             processes=config[process]["processes"],
         )
 
-        try:
-            cat_string = f"{split_variables[0]}#{split[split_variables[0]]}"
-        except:
-            raise Exception(
-                "Category splitting for fractions is only defined up to 1 dimensions."
-            )
-
+        assert len(split_variables) == 1, "Category splitting for fractions is only defined up to 1 dimensions for now."
+        cat_string = f"{split_variables[0]}#{split[split_variables[0]]}"
         fractions[cat_string] = frac_hists
 
         plotting.plot_fractions(
@@ -174,6 +163,7 @@ def fraction_calculation(
             category=split,
             output_path=output_path,
             logger=logger,
+            save_data=True,
         )
         plotting.plot_fractions(
             variable=process_conf["var_dependence"],
@@ -186,46 +176,34 @@ def fraction_calculation(
             category=split,
             output_path=output_path,
             logger=logger,
+            save_data=True,
         )
 
+        # producing some control plots
         data = "data"
+        samples = [
+            "QCD",
+            "diboson_J",
+            "diboson_L",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "DYjets_J",
+            "DYjets_L",
+            "ST_J",
+            "ST_L",
+            "ST_T",
+        ]
         if config["use_embedding"]:
-            samples = [
-                "QCD",
-                "diboson_J",
-                "diboson_L",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "DYjets_J",
-                "DYjets_L",
-                "ST_J",
-                "ST_L",
-                "embedding",
-            ]
+            samples.append("embedding")
         else:
-            samples = [
-                "QCD",
-                "diboson_J",
-                "diboson_L",
-                "diboson_T",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "ttbar_T",
-                "DYjets_J",
-                "DYjets_L",
-                "DYjets_T",
-                "ST_J",
-                "ST_L",
-                "ST_T",
-            ]
-        
+            samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
+
         for _hist, _region, _data, _samples in [
             (SR_hists, "SR", data, samples),
             (AR_hists, "AR", data, samples),
         ]:
-            for yscale in ["linear", "log"]:
+            for yscale, save_data in zip(["linear", "log"], [True, False]):
                 plotting.plot_data_mc_ratio(
                     variable=process_conf["var_dependence"],
                     hists=_hist,
@@ -239,6 +217,7 @@ def fraction_calculation(
                     output_path=output_path,
                     logger=logger,
                     yscale=yscale,
+                    save_data=save_data,
                 )
         log.info("-" * 50)
 

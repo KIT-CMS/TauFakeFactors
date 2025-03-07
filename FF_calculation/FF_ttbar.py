@@ -80,9 +80,7 @@ def calculation_ttbar_FFs(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -94,9 +92,7 @@ def calculation_ttbar_FFs(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(
-                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
-            )
+            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
 
         rdf_SRlike_qcd = func.apply_region_filters(
             rdf=rdf,
@@ -106,9 +102,7 @@ def calculation_ttbar_FFs(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for QCD estimation in the signal-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -126,9 +120,7 @@ def calculation_ttbar_FFs(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -152,9 +144,7 @@ def calculation_ttbar_FFs(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for QCD estimation in the application-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -206,9 +196,7 @@ def calculation_ttbar_FFs(
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
             # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
             if sample in ["ttbar_J"]:
-                log.info(
-                    f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category."
-                )
+                log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
                 log.info("-" * 50)
 
                 rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -223,9 +211,7 @@ def calculation_ttbar_FFs(
                     region_cuts=region_conf,
                 )
 
-                log.info(
-                    f"Filtering events for the signal region. Target process: {process}"
-                )
+                log.info(f"Filtering events for the signal region. Target process: {process}")
                 # redirecting C++ stdout for Report() to python stdout
                 out = StringIO()
                 with pipes(stdout=out, stderr=STDOUT):
@@ -242,9 +228,7 @@ def calculation_ttbar_FFs(
                     category_cuts=split,
                     region_cuts=region_conf,
                 )
-                log.info(
-                    f"Filtering events for the application region. Target process: {process}"
-                )
+                log.info(f"Filtering events for the application region. Target process: {process}")
                 # redirecting C++ stdout for Report() to python stdout
                 out = StringIO()
                 with pipes(stdout=out, stderr=STDOUT):
@@ -311,21 +295,20 @@ def calculation_ttbar_FFs(
             output_path=output_path,
             logger=logger,
             draw_option=used_fit,
+            save_data=True
         )
 
         if len(split) == 1:
-            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
-                corrlib_exp
-            )
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = corrlib_exp
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
                 not in corrlib_expressions
             ):
-                corrlib_expressions[
-                    f"{split_variables[0]}#{split[split_variables[0]]}"
-                ] = dict()
-            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"][
+                corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = dict()
+            corrlib_expressions[
+                f"{split_variables[0]}#{split[split_variables[0]]}"
+            ][
                 f"{split_variables[1]}#{split[split_variables[1]]}"
             ] = corrlib_exp
         else:
@@ -333,37 +316,23 @@ def calculation_ttbar_FFs(
 
         # doing some control plots
         data = "data"
+        samples = [
+            "QCD",
+            "diboson_J",
+            "diboson_L",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "DYjets_J",
+            "DYjets_L",
+            "ST_J",
+            "ST_L",
+            "ST_T",
+        ]
         if config["use_embedding"]:
-            samples = [
-                "QCD",
-                "diboson_J",
-                "diboson_L",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "DYjets_J",
-                "DYjets_L",
-                "ST_J",
-                "ST_L",
-                "embedding",
-            ]
+            samples.append("embedding")
         else:
-            samples = [
-                "QCD",
-                "diboson_J",
-                "diboson_L",
-                "diboson_T",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "ttbar_T",
-                "DYjets_J",
-                "DYjets_L",
-                "DYjets_T",
-                "ST_J",
-                "ST_L",
-                "ST_T",
-            ]
+            samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
 
         for _hist, _region, _data, _samples in [
             (SRlike_hists, "SR_like", data, samples),
@@ -371,7 +340,7 @@ def calculation_ttbar_FFs(
             (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
             (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
         ]:
-            for yscale in ["linear", "log"]:
+            for yscale, save_data in zip(["linear", "log"], [True, False]):
                 plotting.plot_data_mc_ratio(
                     variable="metphi",
                     hists=_hist,
@@ -385,6 +354,7 @@ def calculation_ttbar_FFs(
                     output_path=output_path,
                     logger=logger,
                     yscale=yscale,
+                    save_data=save_data,
                 )
         log.info("-" * 50)
 

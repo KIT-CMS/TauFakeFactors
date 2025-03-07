@@ -1,7 +1,7 @@
 import logging
 import os
 from io import StringIO
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Iterable
 
 import ROOT
 from wurlitzer import STDOUT, pipes
@@ -10,15 +10,37 @@ import configs.general_definitions as gd
 
 
 def save_plots_and_data(
-    base_filename_plot: str,
-    base_filename_data: str,
     output_path: str,
-    plot_obj: Any,
-    data_obj: Any,
-    plot_extensions: Union[List[str], Tuple[str]] = ("png", "pdf"),
-    data_extensions: Union[List[str], Tuple[str]] = ("root",),
+    plot_filename_and_obj: Union[Tuple[str, Any], None] = None,
+    data_filename_and_obj: Union[Tuple[str, Any], None] = None,
+    plot_extensions: Iterable[str] = ("png", "pdf"),
+    data_extensions: Iterable[str] = ("root",),
     logger: Union[logging.Logger, None] = None,
 ) -> None:
+    """
+    Save plot and/or data ROOT objects to disk in designated subdirectories within the output path.
+
+    This function creates subdirectories for each file extension (e.g. "png", "pdf", "root") in the
+    provided output path if they do not already exist and saves the corresponding object there.
+    Plot objects that curretly work are TCanvas objects, while data objects can be either a ROOT object
+    (e.g. a histogram) or a dictionary of ROOT objects (e.g. a dictionary of ROOT histograms).
+
+    Parameters:
+        output_path (str): Base directory where output subfolders (e.g. "png", "pdf", "root") will be created.
+        plot_filename_and_obj (Optional[Tuple[str, Any]]):
+            A tuple containing the base filename (without extension) and the plot object (e.g. a TCanvas) to be saved.
+            If None, no plot will be saved.
+        data_filename_and_obj (Optional[Tuple[str, Any]]):
+            A tuple containing the base filename (without extension) and the data object
+        plot_extensions (Iterable[str]): Iterable of file extensions for plot outputs. Default is ("png", "pdf").
+        data_extensions (Iterable[str]): Iterable of file extensions for data outputs. Default is ("root",).
+        logger (Optional[logging.Logger]): Logger object to which status messages will be written; if None, logging is skipped.
+
+    Returns:
+        None
+    """
+    base_filename_plot, plot_obj = "", None
+    base_filename_data, data_obj = "", None
 
     def save_root_canvas(ext):
         plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
@@ -33,10 +55,15 @@ def save_plots_and_data(
             data_obj.Write(base_filename_data)
         root_file.Close()
 
-    for extensions, _func in [
-        (plot_extensions, save_root_canvas),
-        (data_extensions, save_root_hists),
-    ]:
+    tasks = []
+    if plot_filename_and_obj is not None:
+        base_filename_plot, plot_obj = plot_filename_and_obj
+        tasks.append((plot_extensions, save_root_canvas))
+    if data_filename_and_obj is not None:
+        base_filename_data, data_obj = data_filename_and_obj
+        tasks.append((data_extensions, save_root_hists))
+
+    for extensions, _func in tasks:
         for extension in extensions:
             os.makedirs(os.path.join(output_path, extension), exist_ok=True)
             out = StringIO()
@@ -57,6 +84,7 @@ def plot_FFs(
     output_path: str,
     logger: str,
     draw_option: str,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a fake factor plot.
@@ -140,11 +168,9 @@ def plot_FFs(
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"ff_{variable}_{process}_{selection}"
     save_plots_and_data(
-        base_filename_plot=f"{base_filename}",
-        base_filename_data=f"data_{base_filename}",
         output_path=output_path,
-        plot_obj=c,
-        data_obj={"ff_ratio": ff_ratio, **uncertainties},
+        plot_filename_and_obj=(f"{base_filename}", c),
+        data_filename_and_obj=(f"data_{base_filename}", {"ff_ratio": ff_ratio, **uncertainties}) if save_data else None,
         logger=log,
     )
     c.Close()
@@ -163,6 +189,7 @@ def plot_data_mc(
     output_path: str,
     logger: str,
     yscale: str = "linear",
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a data to MC control plot.
@@ -263,11 +290,9 @@ def plot_data_mc(
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"hist_{hist_str}_{variable}_{process}_{region}_{selection}"
     save_plots_and_data(
-        base_filename_plot=f"{base_filename}_{yscale}",
-        base_filename_data=f"data_{base_filename}",
         output_path=output_path,
-        plot_obj=c,
-        data_obj=hists,
+        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
         logger=log,
     )
     c.Close()
@@ -286,6 +311,7 @@ def plot_data_mc_ratio(
     output_path: str,
     logger: str,
     yscale: str = "linear",
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a data to MC control plot with a ratio plot.
@@ -423,11 +449,9 @@ def plot_data_mc_ratio(
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"hist_ratio_{hist_str}_{variable}_{process}_{region}_{selection}"
     save_plots_and_data(
-        base_filename_plot=f"{base_filename}_{yscale}",
-        base_filename_data=f"data_{base_filename}",
         output_path=output_path,
-        plot_obj=c,
-        data_obj=hists,
+        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
         logger=log,
     )
     c.Close()
@@ -444,6 +468,7 @@ def plot_fractions(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a fraction plot where the sum of all considered process contributions
@@ -520,11 +545,9 @@ def plot_fractions(
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"fraction_{fraction_name}_{variable}_{region}_{selection}"
     save_plots_and_data(
-        base_filename_plot=f"{base_filename}",
-        base_filename_data=f"data_{base_filename}",
         output_path=output_path,
-        plot_obj=c,
-        data_obj=hists,
+        plot_filename_and_obj=(f"{base_filename}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
         logger=log,
     )
     c.Close()

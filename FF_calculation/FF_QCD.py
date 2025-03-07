@@ -60,9 +60,7 @@ def calculation_QCD_FFs(
         for sample_path in sample_paths:
             # getting the name of the process from the sample path
             sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-            log.info(
-                f"Processing {sample} for the {', '.join(['{} {}'.format(var, split[var]) for var in split_variables])} category."
-            )
+            log.info(f"Processing {sample} for the {', '.join(['{} {}'.format(var, split[var]) for var in split_variables])} category.")
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -143,12 +141,8 @@ def calculation_QCD_FFs(
                 "QCD",
             ]:
                 SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-                SRlike_hists["data_subtracted_up"].Add(
-                    SRlike_hists[hist], -0.93
-                )  # TODO: ask whats this magic numbers?
-                SRlike_hists["data_subtracted_down"].Add(
-                    SRlike_hists[hist], -1.07
-                )  # Answer: Historical reasons
+                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)  # TODO: ask whats this magic numbers?
+                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)  # Answer: Historical reasons
         for hist in ARlike_hists:
             if hist not in [
                 "data",
@@ -188,21 +182,20 @@ def calculation_QCD_FFs(
             output_path=output_path,
             logger=logger,
             draw_option=used_fit,
+            save_data=True,
         )
 
         if len(split) == 1:
-            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = (
-                corrlib_exp
-            )
+            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = corrlib_exp
         elif len(split) == 2:
             if (
                 f"{split_variables[0]}#{split[split_variables[0]]}"
                 not in corrlib_expressions
             ):
-                corrlib_expressions[
-                    f"{split_variables[0]}#{split[split_variables[0]]}"
-                ] = dict()
-            corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"][
+                corrlib_expressions[f"{split_variables[0]}#{split[split_variables[0]]}"] = dict()
+            corrlib_expressions[
+                f"{split_variables[0]}#{split[split_variables[0]]}"
+            ][
                 f"{split_variables[1]}#{split[split_variables[1]]}"
             ] = corrlib_exp
         else:
@@ -210,41 +203,29 @@ def calculation_QCD_FFs(
 
         # producing some control plots
         data = "data"
+        samples = [
+            "QCD",
+            "diboson_J",
+            "diboson_L",
+            "Wjets",
+            "ttbar_J",
+            "ttbar_L",
+            "DYjets_J",
+            "DYjets_L",
+            "ST_J",
+            "ST_L",
+            "ST_T",
+        ]
         if config["use_embedding"]:
-            samples = [
-                "diboson_J",
-                "diboson_L",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "DYjets_J",
-                "DYjets_L",
-                "ST_J",
-                "ST_L",
-                "embedding",
-            ]
+            samples.append("embedding")
         else:
-            samples = [
-                "diboson_J",
-                "diboson_L",
-                "diboson_T",
-                "Wjets",
-                "ttbar_J",
-                "ttbar_L",
-                "ttbar_T",
-                "DYjets_J",
-                "DYjets_L",
-                "DYjets_T",
-                "ST_J",
-                "ST_L",
-                "ST_T",
-            ]
+            samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
 
         for _hist, _region, _data, _samples in [
             (SRlike_hists, "SR_like", data, samples),
             (ARlike_hists, "AR_like", data, samples),
         ]:
-            for yscale in ["linear", "log"]:
+            for yscale, save_data in zip(["linear", "log"], [True, False]):
                 plotting.plot_data_mc(
                     variable=process_conf["var_dependence"],
                     hists=_hist,
@@ -258,6 +239,7 @@ def calculation_QCD_FFs(
                     output_path=output_path,
                     logger=logger,
                     yscale=yscale,
+                    save_data=save_data,
                 )
         log.info("-" * 50)
 
