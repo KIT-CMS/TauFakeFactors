@@ -123,7 +123,6 @@ if __name__ == "__main__":
         if len(args_list) == 1:
             results = [args_list[0], run_ff_calculation(args_list[0])]
         else:
-
             with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
                 results = list(zip(args_list, executor.map(run_ff_calculation, args_list)))
 

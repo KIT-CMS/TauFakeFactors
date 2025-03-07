@@ -2,11 +2,12 @@
 Function for calculating fake factors for the ttbar process
 """
 
+import concurrent.futures
 import array
 import copy
 import logging
 from io import StringIO
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple
 
 import numpy as np
 import ROOT
@@ -16,6 +17,215 @@ import helper.ff_functions as func
 import helper.plotting as plotting
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 import configs.general_definitions as gd
+
+
+def _split_calculation_ttbar_FFs(
+    args: Tuple[Any, ...],
+) -> Dict[str, Union[str, Dict[str, str]]]:
+    """
+    This function calculates fake factors for ttbar for a given category.
+
+    Intded to be used in a multiprocessing environment.
+
+    Args:
+        args: Tuple of arguments that are passed to the function
+            split: Dictionary containing the category information
+            binning: List of bin edges for the dependent variable
+            config: Dictionary with all the relevant information for the fake factor calculation
+            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+            process: Name of the process
+            split_variables: List of variables that are used for the category splitting
+            sample_paths: List of file paths where the samples are stored
+            output_path: Path where the generated plots should be stored
+            logger: Name of the logger that should be used
+            SRlike_hists: Dictionary containing histograms for the signal-like region
+            ARlike_hists: Dictionary containing histograms for the application-like region
+
+    Return:
+        Dictionary with the category information as keys and the fitted functions (including variations) as values
+    """
+
+    (
+        split,  # split: Dict[str, str],
+        binning,  # binning: List[float],
+        config,  # config: Dict[str, Union[str, Dict, List]],
+        process_conf,  # process_conf: Dict[str, Union[str, Dict, List]],
+        process,  # process: str,
+        split_variables,  # split_variables: List[str],
+        sample_paths,  # sample_paths: List[str],
+        output_path,  # output_path: str,
+        logger,  # logger: str,
+        SRlike_hists,  # SRlike_hists: Dict[str, ROOT.TH1D],
+        ARlike_hists,  # ARlike_hists: Dict[str, ROOT.TH1D],
+    ) = args
+
+    log = logging.getLogger(logger)
+
+    # init histogram dict for FF measurement from MC
+    SR_hists = dict()
+    AR_hists = dict()
+
+    corrlib_expression = dict()
+
+    for sample_path in sample_paths:
+        # getting the name of the process from the sample path
+        sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
+        # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
+        if sample in ["ttbar_J"]:
+            log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
+            log.info("-" * 50)
+
+            rdf = ROOT.RDataFrame(config["tree"], sample_path)
+
+            # event filter for ttbar signal region
+            region_conf = copy.deepcopy(process_conf["SR_cuts"])
+            rdf_SR = func.apply_region_filters(
+                rdf=rdf,
+                channel=config["channel"],
+                sample=sample,
+                category_cuts=split,
+                region_cuts=region_conf,
+            )
+
+            log.info(f"Filtering events for the signal region. Target process: {process}")
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_SR.Report().Print()
+            log.info(out.getvalue())
+            log.info("-" * 50)
+
+            # event filter for ttbar application region
+            region_conf = copy.deepcopy(process_conf["AR_cuts"])
+            rdf_AR = func.apply_region_filters(
+                rdf=rdf,
+                channel=config["channel"],
+                sample=sample,
+                category_cuts=split,
+                region_cuts=region_conf,
+            )
+            log.info(f"Filtering events for the application region. Target process: {process}")
+            # redirecting C++ stdout for Report() to python stdout
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                rdf_AR.Report().Print()
+            log.info(out.getvalue())
+            log.info("-" * 50)
+
+            # get binning of the dependent variable
+            xbinning = array.array("d", binning)
+            nbinsx = len(binning) - 1
+
+            # making the histograms
+            h = rdf_SR.Histo1D(
+                (
+                    process_conf["var_dependence"],
+                    f"{sample}",
+                    nbinsx,
+                    xbinning,
+                ),
+                process_conf["var_dependence"],
+                "weight",
+            )
+            SR_hists[sample] = h.GetValue()
+
+            h = rdf_AR.Histo1D(
+                (
+                    process_conf["var_dependence"],
+                    f"{sample}",
+                    nbinsx,
+                    xbinning,
+                ),
+                process_conf["var_dependence"],
+                "weight",
+            )
+            AR_hists[sample] = h.GetValue()
+
+    # Start of the FF calculation
+    FF_hist = func.calculate_ttbar_FF(
+        SR=SR_hists,
+        AR=AR_hists,
+        SRlike=SRlike_hists,
+        ARlike=ARlike_hists,
+    )
+    # performing the fit and calculating the uncertainties
+    fit_graphs, corrlib_exp, used_fit = func.fit_function(
+        ff_hists=FF_hist.Clone(),
+        bin_edges=binning,
+        logger=logger,
+        fit_option=process_conf.get("fit_option", gd.default_fit_options["ttbar"]),
+        limit_kwargs=process_conf.get(
+            "limit_kwargs",
+            func.Defaults.fit_function_limit_kwargs(binning),
+        ),
+    )
+
+    plotting.plot_FFs(
+        variable=process_conf["var_dependence"],
+        ff_ratio=FF_hist,
+        uncertainties=fit_graphs,
+        era=config["era"],
+        channel=config["channel"],
+        process=process,
+        category=split,
+        output_path=output_path,
+        logger=logger,
+        draw_option=used_fit,
+        save_data=True
+    )
+
+    # doing some control plots
+    data = "data"
+    samples = [
+        "QCD",
+        "diboson_J",
+        "diboson_L",
+        "Wjets",
+        "ttbar_J",
+        "ttbar_L",
+        "DYjets_J",
+        "DYjets_L",
+        "ST_J",
+        "ST_L",
+    ]
+    if config["use_embedding"]:
+        samples.append("embedding")
+    else:
+        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
+
+    for _hist, _region, _data, _samples in [
+        (SRlike_hists, "SR_like", data, samples),
+        (ARlike_hists, "AR_like", data, samples),
+        (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
+        (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
+    ]:
+        for yscale, save_data in zip(["linear", "log"], [True, False]):
+            plotting.plot_data_mc_ratio(
+                variable="metphi",
+                hists=_hist,
+                era=config["era"],
+                channel=config["channel"],
+                process=process,
+                region=_region,
+                data=_data,
+                samples=_samples,
+                category=split,
+                output_path=output_path,
+                logger=logger,
+                yscale=yscale,
+                save_data=save_data,
+            )
+    log.info("-" * 50)
+
+    keys = [f"{var}#{split[var]}" for var in split_variables]
+    if len(keys) == 1:
+        corrlib_expression[keys[0]] = corrlib_exp
+    elif len(keys) == 2:
+        corrlib_expression.setdefault(keys[0], {})[keys[1]] = corrlib_exp
+    else:
+        raise Exception("Something went wrong with the category splitting.")
+
+    return corrlib_expression
 
 
 def calculation_ttbar_FFs(
@@ -41,19 +251,13 @@ def calculation_ttbar_FFs(
     """
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF measurement from MC
-    SR_hists = dict()
-    AR_hists = dict()
     # init histogram dict for FF data correction
     SRlike_hists = dict()
     ARlike_hists = dict()
     # init histogram dict for QCD SS/OS estimation
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
-    # init dictionary for the FF functions for correctionlib
-    corrlib_expressions = dict()
 
-    # get QCD specific config information
     process_conf = config["target_processes"][process]
 
     split_variables, split_combinations, split_binnings = func.get_split_combinations(

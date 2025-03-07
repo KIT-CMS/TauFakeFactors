@@ -10,6 +10,7 @@ import numpy as np
 import ROOT
 
 import itertools as itt
+from copy import deepcopy
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
@@ -34,6 +35,7 @@ def get_split_combinations(
         Dict[str, Dict[str, List[float]]],
         None,
     ],
+    convert_binning_to_dict: bool = False,
 ) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
     """
     This function generates a dictionary for all category cut combinations.
@@ -89,6 +91,16 @@ def get_split_combinations(
 
     assert len(combinations) > 0, "No category combinations defined"
     assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
+
+    if convert_binning_to_dict:
+        _binnings = {}
+        for split, _binning in zip(combinations, binnings):
+            keys = [f"{var}#{split[var]}" for var in split_variables]
+            if len(keys) == 1:
+                _binnings.update({keys[0]: _binning})
+            elif len(keys) == 2:
+                _binnings.setdefault(keys[0], {})[keys[1]] = _binning
+        binnings = _binnings
 
     return split_variables, combinations, binnings
 

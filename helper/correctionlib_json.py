@@ -13,18 +13,19 @@ import helper.ff_functions as func
 
 def get_edges_and_content(
     item: Union[str, Any],
-    variable_info: Tuple[str, list],
+    variable_name: str,
+    variable_bins: list,
 ):
     if isinstance(item, str):
         return {
             "edges": [
-                min(variable_info[1]),
-                max(variable_info[1]),
+                min(variable_bins),
+                max(variable_bins),
             ],
             "content": [
                 cs.Formula(
                     nodetype="formula",
-                    variables=[variable_info[0]],
+                    variables=[variable_name],
                     parser="TFormula",
                     expression=item,
                     parameters=None,
@@ -32,7 +33,7 @@ def get_edges_and_content(
             ],
         }
     return {
-        "edges": variable_info[1],
+        "edges": variable_bins,
         "content": item,
     }
 
@@ -75,16 +76,11 @@ def generate_ff_corrlib_json(
         if process in ff_functions:
             proc_conf = config["target_processes"][process]
             var = proc_conf["var_dependence"]
-            if "split_categories" in proc_conf:
-                # Use the extended version that returns binning for each combination
-                _, _, splits_binning = func.get_split_combinations(
-                    categories=proc_conf["split_categories"],
-                    binning=proc_conf["var_bins"],
-                )
-                # Select the binning corresponding to the first combination (adjust if needed)
-                binning = splits_binning[0]
-            else:
-                binning = proc_conf["var_bins"]
+            _, _, binning = func.get_split_combinations(
+                categories=proc_conf["split_categories"],
+                binning=proc_conf["var_bins"],
+                convert_binning_to_dict=True,
+            )
 
             if len(proc_conf["split_categories"]) == 1:
                 process_ff = make_1D_ff(
@@ -105,14 +101,11 @@ def generate_ff_corrlib_json(
     if "process_fractions" in config and fractions is not None:
         frac_conf = config["process_fractions"]
         var = frac_conf["var_dependence"]
-        if "split_categories" in frac_conf:
-            _, _, splits_binning = func.get_split_combinations(
-                categories=frac_conf["split_categories"],
-                binning=frac_conf["var_bins"],
-            )
-            binning = splits_binning[0]
-        else:
-            binning = frac_conf["var_bins"]
+        _, _, binning = func.get_split_combinations(
+            categories=frac_conf["split_categories"],
+            binning=frac_conf["var_bins"],
+            convert_binning_to_dict=True,
+        )
 
         frac_unc = dict()
         for proc in frac_conf["processes"]:
@@ -130,14 +123,11 @@ def generate_ff_corrlib_json(
     if "process_fractions_subleading" in config and fractions_subleading is not None:
         frac_conf = config["process_fractions_subleading"]
         var = frac_conf["var_dependence"]
-        if "split_categories" in frac_conf:
-            _, _, splits_binning = func.get_split_combinations(
-                categories=frac_conf["split_categories"],
-                binning=frac_conf["var_bins"],
-            )
-            binning = splits_binning[0]
-        else:
-            binning = frac_conf["var_bins"]
+        _, _, binning = func.get_split_combinations(
+            categories=frac_conf["split_categories"],
+            binning=frac_conf["var_bins"],
+            convert_binning_to_dict=True,
+        )
 
         frac_unc = dict()
         for proc in frac_conf["processes"]:
@@ -197,14 +187,11 @@ def make_1D_ff(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
                 description=gd.variable_description[variable_info[0]]
-                .replace("#var_min", str(min(variable_info[1])))
-                .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]]
-                + ", ".join(cat_values[0]),
+                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values[0])}",
             ),
             cs.Variable(
                 name="syst",
@@ -232,7 +219,9 @@ def make_1D_ff(
                                 nodetype="binning",
                                 input=variable_info[0],
                                 **get_edges_and_content(
-                                    ff_functions[cat1][unc], variable_info
+                                    ff_functions[cat1][unc],
+                                    variable_info[0],
+                                    variable_info[1][cat1],
                                 ),
                                 flow="clamp",
                             )
@@ -252,7 +241,9 @@ def make_1D_ff(
                         nodetype="binning",
                         input=variable_info[0],
                         **get_edges_and_content(
-                            ff_functions[cat1]["nominal"], variable_info
+                            ff_functions[cat1]["nominal"],
+                            variable_info[0],
+                            variable_info[1][cat1],
                         ),
                         flow="clamp",
                     )
@@ -298,20 +289,16 @@ def make_2D_ff(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
                 description=gd.variable_description[variable_info[0]]
-                .replace("#var_min", str(min(variable_info[1])))
-                .replace("#var_max", str(max(variable_info[1]))),
             ),
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]]
-                + ", ".join(cat_values[0]),
+                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values[0])}",
             ),
             cs.Variable(
                 name=cat_inputs[1],
                 type=gd.variable_type[cat_inputs[1]],
-                description=gd.variable_description[cat_inputs[1]]
-                + ", ".join(cat_values[1]),
+                description=f"{gd.variable_description[cat_inputs[1]]} {', '.join(cat_values[1])}",
             ),
             cs.Variable(
                 name="syst",
@@ -338,15 +325,15 @@ def make_2D_ff(
                             cs.Binning(
                                 nodetype="binning",
                                 input=cat_inputs[1],
-                                edges=process_conf["split_categories_binedges"][
-                                    cat_inputs[1]
-                                ],
+                                edges=process_conf["split_categories_binedges"][cat_inputs[1]],
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
                                         input=variable_info[0],
                                         **get_edges_and_content(
-                                            ff_functions[cat1][cat2][unc], variable_info
+                                            ff_functions[cat1][cat2][unc],
+                                            variable_info[0],
+                                            variable_info[1][cat1][cat2],
                                         ),
                                         flow="clamp",
                                     )
@@ -375,7 +362,9 @@ def make_2D_ff(
                                 nodetype="binning",
                                 input=variable_info[0],
                                 **get_edges_and_content(
-                                    ff_functions[cat1][cat2]["nominal"], variable_info
+                                    ff_functions[cat1][cat2]["nominal"],
+                                    variable_info[0],
+                                    variable_info[1][cat1][cat2],
                                 ),
                                 flow="clamp",
                             )
@@ -431,9 +420,7 @@ def make_1D_fractions(
             cs.Variable(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_description[variable_info[0]]
-                .replace("#var_min", str(min(variable_info[1])))
-                .replace("#var_max", str(max(variable_info[1]))),
+                description=gd.variable_description[variable_info[0]],
             ),
             cs.Variable(
                 name=cat_inputs[0],
@@ -472,7 +459,7 @@ def make_1D_fractions(
                                         cs.Binning(
                                             nodetype="binning",
                                             input=variable_info[0],
-                                            edges=variable_info[1],
+                                            edges=variable_info[1][cat],
                                             content=fractions[cat][unc][p],
                                             flow="clamp",
                                         )
@@ -504,7 +491,7 @@ def make_1D_fractions(
                                 cs.Binning(
                                     nodetype="binning",
                                     input=variable_info[0],
-                                    edges=variable_info[1],
+                                    edges=variable_info[1][cat],
                                     content=fractions[cat]["nominal"][p],
                                     flow="clamp",
                                 )
