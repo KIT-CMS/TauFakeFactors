@@ -204,7 +204,6 @@ def calculation_QCD_FFs(
         # producing some control plots
         data = "data"
         samples = [
-            "QCD",
             "diboson_J",
             "diboson_L",
             "Wjets",
