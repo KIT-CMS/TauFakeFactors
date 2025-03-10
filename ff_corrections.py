@@ -7,12 +7,14 @@ import yaml
 import os
 import copy
 import logging
+import numpy as np
 from copy import deepcopy
 from typing import Tuple, Dict, List, Union, Any
 
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_Wjets as FF_Wjets
 import FF_calculation.FF_ttbar as FF_ttbar
+import helper.ff_functions as ff_func
 import helper.correctionlib_json as corrlib
 import helper.functions as func
 from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
@@ -54,6 +56,84 @@ DR_SR_CORRECTION_FUNCTIONS = {
     "QCD_subleading": FF_QCD.DR_SR_correction,
     "Wjets": FF_Wjets.DR_SR_correction,
 }
+
+
+def non_closure_correction(
+    config: Dict[str, Union[str, Dict, List]],
+    corr_config: Dict[str, Union[str, Dict]],
+    sample_paths: List[str],
+    output_path: str,
+    process: str,
+    closure_variable: str,
+    evaluator: FakeFactorEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
+    for_DRtoSR: bool,
+    logger: str,
+) -> Dict[str, np.ndarray]:
+    """
+    This function calculates non closure corrections for a given process splitting 
+    the calculation into different categories if necessary.
+
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
+        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
+        closure_variable: Name of the variable the correction is calculated for
+        evaluator: Evaluator with QCD fake factors
+        corr_evaluators: List of evaluators with corrections to QCD fake factors
+        for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
+        logger: Name of the logger that should be used
+
+    Return:
+        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+    """
+
+    # get process specific config information
+    process_conf = copy.deepcopy(config["target_processes"][process])
+    if for_DRtoSR:
+        correction_conf = corr_config["target_processes"][process]["DR_SR"]["non_closure"][closure_variable]
+    else:
+        correction_conf = corr_config["target_processes"][process]["non_closure"][closure_variable]
+
+    if "split_categories" in correction_conf:
+        split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+            categories=correction_conf["split_categories"],
+            binning=correction_conf["var_bins"],
+        )
+    else:
+        split_variables = []
+        split_combinations = [None]
+        split_binnings = [correction_conf["var_bins"]]
+
+    results = func.optional_process_pool(
+        args_list=[
+            (
+                split,
+                binning,
+                config,
+                correction_conf,
+                process_conf,
+                process,
+                closure_variable,
+                split_variables,
+                sample_paths,
+                output_path,
+                logger,
+                evaluator,
+                corr_evaluators,
+                for_DRtoSR,
+            )
+            for split, binning in zip(split_combinations, split_binnings)
+        ],
+        function=NON_CLOSURE_CORRECTION_FUNCTIONS[process],
+    )
+
+    if len(split_combinations) == 1 and split_combinations[0] is None:
+        return results[0]
+    else:
+        return ff_func.fill_corrlib_expression(results, split_variables)
 
 
 def run_ff_calculation_for_DRtoSR(
@@ -104,7 +184,7 @@ def run_ff_calculation_for_DRtoSR(
                 logger=f"ff_corrections.{process}",
             )
         except KeyError:
-            raise KeyError(f"Process {process} not known!")
+            raise ValueError(f"Process {process} not known!")
     else:
         log.info(f"Target process {process} has no DR to SR calculation defined.")
         result = None
@@ -165,7 +245,7 @@ def run_non_closure_for_DRtoSR(
         try:
             log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_correction}.")
             log.info("-" * 50)
-            result = NON_CLOSURE_CORRECTION_FUNCTIONS[process](
+            result = non_closure_correction(
                 config=temp_conf,
                 corr_config=corr_config,
                 sample_paths=sample_paths,
@@ -178,7 +258,7 @@ def run_non_closure_for_DRtoSR(
                 logger=f"ff_corrections.{process}",
             )
         except KeyError:
-            raise KeyError(f"Process {process} not known!")
+            raise ValueError(f"Process {process} not known!")
     else:
         log.info(f"Target process {process} has no closure correction for DR to SR calculation defined.")
         result, closure_correction = None, None
@@ -202,7 +282,6 @@ def run_correction(
 
     var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
 
-    combined_correction_sets = None
     if "non_closure" in corr_config["target_processes"][process]:
         evaluator = FakeFactorEvaluator.loading_from_file(
             config=config,
@@ -212,7 +291,7 @@ def run_correction(
             logger=f"ff_corrections.{process}",
         )
 
-        all_non_closure_corr_vars, correction_sets, corrections = [], [], []
+        all_non_closure_corr_vars, corrections, correction_set = [], [], None
         for idx, (closure_corr, _corr_config) in enumerate(
             corr_config["target_processes"][process]["non_closure"].items(),
         ):
@@ -237,7 +316,7 @@ def run_correction(
             corr_evaluators = list()
 
             for n in range(idx):
-                assert correction_set is not None, "Correction set must be calculated first!"
+                assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
                 corr_evaluators.append(
                     FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
                         correction=correction_set,
@@ -249,7 +328,7 @@ def run_correction(
                 )
 
             try:
-                corr = NON_CLOSURE_CORRECTION_FUNCTIONS[process](
+                corr = non_closure_correction(
                     config=temp_conf,
                     corr_config=corr_config,
                     sample_paths=sample_paths,

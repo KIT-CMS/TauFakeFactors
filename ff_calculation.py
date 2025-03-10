@@ -14,6 +14,7 @@ import FF_calculation.FF_ttbar as FF_ttbar
 from FF_calculation.fractions import fraction_calculation
 import helper.correctionlib_json as corrlib
 import helper.functions as func
+import helper.ff_functions as ff_func
 
 parser = argparse.ArgumentParser()
 
@@ -40,6 +41,85 @@ FF_CALCULATION_FUNCTIONS = {
 }
 
 
+def FF_calculation(
+    config: Dict[str, Union[str, Dict, List]],
+    sample_paths: List[str],
+    output_path: str,
+    process: str,
+    logger: str,
+) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
+    """
+    This function calculates fake factors for a given process or fractions of the processes.
+
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
+        logger: Name of the logger that should be used
+
+    Return:
+        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
+        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+    """
+
+    is_fraction = "fraction" in process
+    is_ttbar = "ttbar" in process
+    split_limit = 1 if is_fraction else 2
+
+    process_conf = config[process] if is_fraction else config["target_processes"][process]
+
+    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+        categories=process_conf["split_categories"],
+        binning=process_conf["var_bins"],
+    )
+
+    assert len(split_variables) <= split_limit, "Category splitting is only defined up to 2 dimensions."
+
+    if is_ttbar:
+        SRlike_hists, ARlike_hists = FF_ttbar.calculation_FF_prerequisites(
+            config=config,
+            process_conf=process_conf,
+            sample_paths=sample_paths,
+            process=process,
+            logger=logger,
+        )
+    else:
+        SRlike_hists, ARlike_hists = None, None
+
+    results = func.optional_process_pool(
+        args_list=[
+            (
+                split,
+                binning,
+                config,
+                process_conf,
+                process,
+                split_variables,
+                sample_paths,
+                output_path,
+                logger,
+                SRlike_hists,
+                ARlike_hists,
+            )
+            for split, binning in zip(split_combinations, split_binnings)
+        ],
+        function=FF_CALCULATION_FUNCTIONS[process],
+    )
+
+    if is_fraction:
+        fractions = dict()
+        for result in results:
+            fractions.update(result)
+
+        return ff_func.get_yields_from_hists(
+            hists=fractions,
+            processes=config[process]["processes"],
+        )
+    else:
+        return ff_func.fill_corrlib_expression(results, split_variables)
+
+
 def run_ff_calculation(
     args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
 ) -> Tuple[Tuple, Dict]:
@@ -60,7 +140,7 @@ def run_ff_calculation(
         log.info("-" * 50)
         return (
             args,
-            FF_CALCULATION_FUNCTIONS[process](
+            FF_calculation(
                 config=config,
                 sample_paths=sample_paths,
                 output_path=output_path,
@@ -113,36 +193,35 @@ if __name__ == "__main__":
     func.check_categories(config=config)
 
     # initializing the fake factor calculation
-    args_list = []
     if "target_processes" in config:
-        args_list.extend(
-            [
-                (process, config, sample_paths, save_path_plots)
-                for process in config["target_processes"]
-            ]
-        )
-    if "process_fractions" in config:
-        args_list.append(
-            ("process_fractions", config, sample_paths, save_path_plots)
-        )
-    if "process_fractions_subleading" in config:
-        args_list.append(
-            ("process_fractions_subleading", config, sample_paths, save_path_plots)
+        args_list = [
+            (process, config, sample_paths, save_path_plots)
+            for process in config["target_processes"]
+        ]
+        if "process_fractions" in config:
+            args_list.append(
+                ("process_fractions", config, sample_paths, save_path_plots)
+            )
+        if "process_fractions_subleading" in config:
+            args_list.append(
+                ("process_fractions_subleading", config, sample_paths, save_path_plots)
+            )
+
+        results = func.optional_process_pool(
+            args_list=args_list,
+            function=run_ff_calculation,
         )
 
-    results = func.optional_process_pool(
-        args_list=args_list,
-        function=run_ff_calculation,
-    )
-
-    fake_factors, fractions, fractions_subleading = {}, None, None
-    for args, result in results:
-        if "target_processes" in config and args[0] in config["target_processes"]:
-            fake_factors[args[0]] = result
-        elif args[0] == "process_fractions":
-            fractions = result
-        elif args[0] == "process_fractions_subleading":
-            fractions_subleading = result
+        fake_factors, fractions, fractions_subleading = {}, None, None
+        for args, result in results:
+            if args[0] in config["target_processes"]:
+                fake_factors[args[0]] = result
+            elif args[0] == "process_fractions":
+                fractions = result
+            elif args[0] == "process_fractions_subleading":
+                fractions_subleading = result
+    else:
+        raise Exception("No target processes are defined!")
 
     corrlib.generate_ff_corrlib_json(
         config=config,

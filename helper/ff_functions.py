@@ -20,6 +20,23 @@ def fill_corrlib_expression(
     split_variables: List[str],
     split: Union[None, dict] = None,
 ):
+    """
+    This function fills the correctionlib expressions with the results from the fake factor
+    calculation, process fraction or non-closure correction calculation (if a split is
+    provided). If a Dictionary is provided, the function will fill the correctionlib 
+    expressions for each category cut combination. If a List is provided, the function will
+    fill a Dictionary with the individual results.
+
+    Args:
+        item (Union[List[dict], dict]): Results from the fake factor calculation, process
+                                        fraction or non-closure correction calculation
+        split_variables (List[str]): List of variables the categories are defined in
+        split (Union[None, dict], optional): Dictionary with the category cut combinations.
+                                             Defaults to None.
+
+    Returns:
+        Dict: Dictionary with the filled correctionlib expressions    
+    """
     results = {}
     if split is not None and not isinstance(item, list):  # Single result from multiprocessing
         keys = [f"{var}#{split[var]}" for var in split_variables]
@@ -56,7 +73,8 @@ def get_split_combinations(
     Categories can be defined based on one or two variables (more are not supported).
     Each variable has a list of cuts it should be split into.
 
-    Further, if binning is provided, the function will return the binning for each category cut combination.
+    Further, if binning for individual categories is provided, the function will return the
+    binning for each category cut combination.
     If binning is a list, the same binning is used for all category cut combinations.
     If binning is a dictionary, the binning is defined for each variable separately, where
     the first variable is the key of the first dictionary and the second variable is the key of the second dictionary.

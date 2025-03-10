@@ -2,7 +2,6 @@
 Function for calculating the process fractions for the fake factors
 """
 
-import concurrent.futures
 import array
 import copy
 import logging
@@ -20,6 +19,15 @@ import helper.plotting as plotting
 def controlplot_samples(
     config: Dict[str, Union[str, Dict, List]],
 ) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots (fractions).
+
+    Args:
+        config: Dictionary containing "use_embedding" key
+
+    Returns:
+        List of samples
+    """
     samples = [
         "QCD",
         "diboson_J",
@@ -40,7 +48,7 @@ def controlplot_samples(
     return samples
 
 
-def _split_fraction_calculation(
+def fraction_calculation(
     args: Tuple[Any, ...],
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
@@ -73,6 +81,7 @@ def _split_fraction_calculation(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        *_,  # SRlike_hists, ARlike_hists only needed for ttbar
     ) = args
 
     log = logging.getLogger(logger)
@@ -224,65 +233,3 @@ def _split_fraction_calculation(
     log.info("-" * 50)
 
     return {f"{split_variables[0]}#{split[split_variables[0]]}": frac_hists}
-
-
-def fraction_calculation(
-    config: Dict[str, Union[str, Dict, List]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    logger: str,
-    **kwargs: Dict[str, Any],
-) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
-    """
-    This function calculates fractions of processes for the application of fake factors.
-    In general fake factors are calculated for more than one process and therefore an estimation
-    for the contribution of each process is needed.
-
-    Args:
-        config: A dictionary with all the relevant information for the fraction calculation
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for fractions because for the tt channel two different fractions are calculated, one for each hadronic tau
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary where the categories are defined as keys and the values are fractions of a process
-    """
-    process_conf = config[process]
-    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
-        categories=process_conf["split_categories"],
-        binning=process_conf["var_bins"],
-    )
-
-    assert len(split_variables) == 1, "Category splitting for fractions is only defined up to 1 dimensions for now."
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                process_conf,
-                process,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        func=_split_fraction_calculation,
-    )
-
-    fractions = dict()
-    for result in results:
-        fractions.update(result)
-
-    # transform histograms to fraction values for correctionlib
-    fractions = ff_func.get_yields_from_hists(
-        hists=fractions,
-        processes=config[process]["processes"],
-    )
-
-    return fractions

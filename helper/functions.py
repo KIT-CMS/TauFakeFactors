@@ -34,6 +34,20 @@ def optional_process_pool(
     function: Callable,
     max_workers: Union[int, None] = None,
 ) -> List[Any]:
+    """
+    Running a function with a list of arguments in parallel using multiprocessing if
+    the list of arguments is longer than one and multiprocessing is enabled.
+
+    Args:
+        args_list: List of tuples with arguments for the function
+        function: Function to be executed
+        max_workers: Number of workers to be used in the multiprocessing pool (default: None)
+
+    Return:
+        List of results of the function
+
+    """
+
     if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
         results = [function(args) for args in args_list]
     else:

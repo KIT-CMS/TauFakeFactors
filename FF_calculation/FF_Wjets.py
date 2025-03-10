@@ -24,6 +24,15 @@ import configs.general_definitions as gd
 def controlplot_samples(
     config: Dict[str, Union[str, Dict, List]],
 ) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots (Wjets FFs).
+
+    Args:
+        config: Dictionary containing "use_embedding" key
+
+    Returns:
+        List of samples
+    """
     samples = [
         "QCD",
         "diboson_J",
@@ -44,7 +53,7 @@ def controlplot_samples(
     return samples
 
 
-def _split_calculation_Wjets_FFs(
+def calculation_Wjets_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
@@ -77,6 +86,7 @@ def _split_calculation_Wjets_FFs(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        *_,  # SRlike_hists, ARlike_hists  only used in ttbar calculation
     ) = args
 
     log = logging.getLogger(logger)
@@ -305,87 +315,48 @@ def _split_calculation_Wjets_FFs(
     return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
 
 
-def calculation_Wjets_FFs(
-    config: Dict[str, Union[str, Dict, List]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    logger: str,
-) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
-    """
-    This function calculates fake factors for W+jets.
-
-    Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
-        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
-    """
-
-    process_conf = config["target_processes"][process]
-
-    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
-        categories=process_conf["split_categories"],
-        binning=process_conf["var_bins"],
-    )
-
-    assert len(split_variables) < 3, "Category splitting is only defined up to 2 dimensions."
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                process_conf,
-                process,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        function=_split_calculation_Wjets_FFs,
-    )
-
-    return ff_func.fill_corrlib_expression(results, split_variables)
-
-
 def non_closure_correction(
-    config: Dict[str, Union[str, Dict, List]],
-    corr_config: Dict[str, Union[str, Dict]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    closure_variable: str,
-    evaluator: FakeFactorEvaluator,
-    corr_evaluators: List[FakeFactorCorrectionEvaluator],
-    for_DRtoSR: bool,
-    logger: str,
+    args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
     """
-    This function calculates non closure corrections for fake factors for W+jets.
+    This function calculates the non-closure correction for the WJet process for a specific category.
+
+    Intended to be used in a multiprocessing environment.
 
     Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
-        closure_variable: Name of the variable the correction is calculated for
-        evaluator: Evaluator with Wjets fake factors
-        corr_evaluators: List of evaluator with corrections to Wjets fake factors
-        for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+        args: Tuple containing all the necessary information for the calculation of the non-closure correction
+            split: Dictionary containing the category information
+            binning: List of bin edges for the dependent variable
+            config: Dictionary with all the relevant information for the fake factor calculation
+            correction_conf: Dictionary with all the relevant information for the non-closure correction
+            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+            process: Name of the process
+            closure_variable: Name of the variable dependence of the closure correction
+            split_variables: List of variables that are used for the category splitting
+            sample_paths: List of file paths where the samples are stored
+            output_path: Path where the generated plots should be stored
+            logger: Name of the logger that should be used
+            evaluator: FakeFactorEvaluator object
+            corr_evaluators: List of FakeFactorCorrectionEvaluator objects
+            for_DRtoSR: If True the correction is calculated for the DR to SR correction
     """
+    (
+        split,
+        binning,
+        config,
+        correction_conf,
+        process_conf,
+        process,
+        closure_variable,
+        split_variables,
+        sample_paths,
+        output_path,
+        logger,
+        evaluator,
+        corr_evaluators,
+        for_DRtoSR,
+    ) = args
+
     log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
@@ -395,17 +366,6 @@ def non_closure_correction(
     # init histogram dict for QCD SS/OS estimation
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
-
-    # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
-    if for_DRtoSR:
-        correction_conf = corr_config["target_processes"][process]["DR_SR"][
-            "non_closure"
-        ][closure_variable]
-    else:
-        correction_conf = corr_config["target_processes"][process]["non_closure"][
-            closure_variable
-        ]
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
@@ -421,13 +381,11 @@ def non_closure_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -439,21 +397,17 @@ def non_closure_correction(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(
-                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
-            )
+            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
 
         rdf_SRlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for QCD estimation in the signal-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -467,13 +421,11 @@ def non_closure_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
@@ -502,9 +454,7 @@ def non_closure_correction(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(
-                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
-            )
+            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
 
         rdf_ARlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
@@ -514,9 +464,7 @@ def non_closure_correction(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for QCD estimation in the application-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -525,8 +473,8 @@ def non_closure_correction(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning = array.array("d", correction_conf["var_bins"])
-        nbinsx = len(correction_conf["var_bins"]) - 1
+        xbinning = array.array("d", binning)
+        nbinsx = len(binning) - 1
 
         # making the histograms
         h = rdf_SRlike.Histo1D(
@@ -588,20 +536,16 @@ def non_closure_correction(
 
     smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=correction_conf["var_bins"],
+        bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
     )
 
-    if for_DRtoSR:
-        add_str = "_for_DRtoSR"
-    else:
-        add_str = ""
-
+    add_str = "_DRtoSR" if for_DRtoSR else ""
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=correction_hist,
         corr_graph=smoothed_graph,
-        corr_name="non_closure_" + closure_variable + add_str,
+        corr_name=f"non_closure_{closure_variable}{add_str}",
         era=config["era"],
         channel=config["channel"],
         process=process,
@@ -622,7 +566,7 @@ def non_closure_correction(
             era=config["era"],
             channel=config["channel"],
             process=process,
-            region="non_closure_" + closure_variable + add_str,
+            region=f"non_closure_{closure_variable}{add_str}",
             data="data_subtracted",
             samples=["data_ff"],
             category={"incl": ""},
@@ -638,7 +582,7 @@ def non_closure_correction(
             era=config["era"],
             channel=config["channel"],
             process=process,
-            region="non_closure_" + closure_variable + add_str + "_SRlike",
+            region=f"non_closure_{closure_variable}{add_str}_SRlike",
             data="data",
             samples=controlplot_samples(config),
             category={"incl": ""},
@@ -647,7 +591,10 @@ def non_closure_correction(
             yscale=yscale,
         )
 
-    return correction_dict
+    if split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    else:
+        return correction_dict
 
 
 def DR_SR_correction(

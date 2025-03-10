@@ -22,6 +22,15 @@ import configs.general_definitions as gd
 def controlplot_samples(
     config: Dict[str, Union[str, Dict, List]],
 ) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots (ttbar FFs).
+
+    Args:
+        config: Dictionary containing "use_embedding" key
+
+    Returns:
+        List of samples
+    """
     samples = [
         "QCD",
         "diboson_J",
@@ -42,13 +51,13 @@ def controlplot_samples(
     return samples
 
 
-def _split_calculation_ttbar_FFs(
+def calculation_ttbar_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
     """
     This function calculates fake factors for ttbar for a given category.
 
-    Intded to be used in a multiprocessing environment.
+    Intended to be used in a multiprocessing environment.
 
     Args:
         args: Tuple of arguments that are passed to the function
@@ -220,29 +229,30 @@ def _split_calculation_ttbar_FFs(
             )
     log.info("-" * 50)
 
-    return ff_func.fill_corrlib_expression(corrlib_exp, split, split_variables)
+    return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
 
 
-def calculation_ttbar_FFs(
+def calculation_FF_prerequisites(
     config: Dict[str, Union[str, Dict, List]],
+    process_conf: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
-    output_path: str,
     process: str,
     logger: str,
-) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
+) -> Tuple[Dict[str, ROOT.TH1D], Dict[str, ROOT.TH1D]]:
     """
-    This function calculates fake factors for ttbar.
+    This function calculates the global SR and AR histograms for the ttbar process
+    that are used for process normalization.
 
     Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
+        config: Dictionary with all the relevant information for the fake factor calculation
+        process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
         sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for ttbar because for the tt channel two different ttbar fake factors are calculated, one for each hadronic tau
+        process: Name of the process
         logger: Name of the logger that should be used
 
     Return:
-        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
-        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+        Tuple of dictionaries containing the histograms for the signal-like and application-like regions
+
     """
     log = logging.getLogger(logger)
 
@@ -253,14 +263,6 @@ def calculation_ttbar_FFs(
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
 
-    process_conf = config["target_processes"][process]
-
-    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
-        categories=process_conf["split_categories"],
-        binning=process_conf["var_bins"],
-    )
-
-    # calculating global histograms for the data/mc scale factor
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
@@ -331,9 +333,7 @@ def calculation_ttbar_FFs(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(
-                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
-            )
+            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
 
         rdf_ARlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
@@ -388,71 +388,59 @@ def calculation_ttbar_FFs(
         if hist not in ["data", "data_subtracted", "ttbar_J"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
 
-    # splitting between different categories for mc-based FF calculation
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                process_conf,
-                process,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-                SRlike_hists,
-                ARlike_hists,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        func=_split_calculation_ttbar_FFs,
-    )
-
-    return ff_func.fill_corrlib_expressions(results, split_variables)
+    return SRlike_hists, ARlike_hists
 
 
 def non_closure_correction(
-    config: Dict[str, Union[str, Dict, List]],
-    corr_config: Dict[str, Union[str, Dict]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    closure_variable: str,
-    evaluator: FakeFactorEvaluator,
-    corr_evaluators: List[FakeFactorCorrectionEvaluator],
-    logger: str,
-    **kwargs: Dict[str, Any],
+    args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
     """
-    This function calculates non closure corrections for fake factors for ttbar.
+    This function calculates the non closure correction for the ttbar process.
+
+    Intded to be used in a multiprocessing environment.
 
     Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for ttbar because for the tt channel two different ttbar fake factors are calculated, one for each hadronic tau
-        closure_variable: Name of the variable the correction is calculated for
-        evaluator: Evaluator with ttbar fake factors
-        corr_evaluators: List of evaluators with corrections to ttbar fake factors
-        logger: Name of the logger that should be used
+        args: Tuple of arguments that are passed to the function
+            split: Dictionary containing the category information
+            binning: List of bin edges for the dependent variable
+            config: Dictionary with all the relevant information for the fake factor calculation
+            correction_conf: Dictionary with all the relevant information for the non closure correction
+            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+            process: Name of the process
+            closure_variable: Name of the variable for which the non closure correction is calculated
+            split_variables: List of variables that are used for the category splitting
+            sample_paths: List of file paths where the samples are stored
+            output_path: Path where the generated plots should be stored
+            logger: Name of the logger that should be used
+            evaluator: FakeFactorEvaluator instance
+            corr_evaluators: List of FakeFactorCorrectionEvaluator instances
 
     Return:
-        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+        Dictionary with the category information as key and the non closure correction as value
+
     """
+    (
+        split,
+        binning,
+        config,
+        correction_conf,
+        process_conf,
+        process,
+        closure_variable,
+        split_variables,
+        sample_paths,
+        output_path,
+        logger,
+        evaluator,
+        corr_evaluators,
+        *_,
+    ) = args
+
     log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SR_hists = dict()
     AR_hists = dict()
-
-    # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
-    correction_conf = corr_config["target_processes"][process]["non_closure"][
-        closure_variable
-    ]
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
@@ -471,7 +459,7 @@ def non_closure_correction(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=None,
+                category_cuts=split,
                 region_cuts=region_conf,
             )
 
@@ -491,7 +479,7 @@ def non_closure_correction(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=None,
+                category_cuts=split,
                 region_cuts=region_conf,
             )
 
@@ -521,8 +509,8 @@ def non_closure_correction(
             log.info("-" * 50)
 
             # get binning of the dependent variable
-            xbinning = array.array("d", correction_conf["var_bins"])
-            nbinsx = len(correction_conf["var_bins"]) - 1
+            xbinning = array.array("d", binning)
+            nbinsx = len(binning) - 1
 
             # making the histograms
             h = rdf_SR.Histo1D(
@@ -555,7 +543,7 @@ def non_closure_correction(
 
     smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=correction_conf["var_bins"],
+        bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
     )
 
@@ -592,4 +580,7 @@ def non_closure_correction(
             yscale=yscale,
         )
 
-    return correction_dict
+    if split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    else:
+        return correction_dict

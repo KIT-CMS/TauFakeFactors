@@ -22,6 +22,15 @@ import configs.general_definitions as gd
 def controlplot_samples(
     config: Dict[str, Union[str, Dict, List]],
 ) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots (QCD FFs).
+
+    Args:
+        config: Dictionary containing "use_embedding" key
+
+    Returns:
+        List of samples
+    """
     samples = [
         "diboson_J",
         "diboson_L",
@@ -40,7 +49,7 @@ def controlplot_samples(
     return samples
 
 
-def _split_calculation_QCD_FFs(
+def calculation_QCD_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
     """
@@ -73,6 +82,7 @@ def _split_calculation_QCD_FFs(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        *_,  # SRlike_hists, ARlike_hists only used in ttbar calculation
     ) = args
 
     log = logging.getLogger(logger)
@@ -232,61 +242,31 @@ def _split_calculation_QCD_FFs(
     return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
 
 
-def calculation_QCD_FFs(
-    config: Dict[str, Union[str, Dict, List]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    logger: str,
-) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
-    """
-    This function calculates fake factors for QCD.
-
-    Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
-        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
-    """
-    # get QCD specific config information
-    process_conf = config["target_processes"][process]
-
-    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
-        categories=process_conf["split_categories"],
-        binning=process_conf["var_bins"],
-    )
-
-    assert len(split_variables) < 3, "Category splitting is only defined up to 2 dimensions."
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                process_conf,
-                process,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        function=_split_calculation_QCD_FFs,
-    )
-
-    return ff_func.fill_corrlib_expression(results, split_variables)
-
-
-def _split_non_closure_correction(
+def non_closure_correction(
     args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
+    """
+    This function calculates non closure corrections for fake factors for QCD.
+
+    Intended to be used in a multiprocessing environment.
+
+    Args:
+        args: Tuple containing all the necessary information for the calculation of the non closure corrections
+            split: Dictionary containing the category information
+            binning: List of bin edges for the dependent variable
+            config: Dictionary with all the relevant information for the fake factor calculation
+            correction_conf: Dictionary with all the relevant information for the correction calculation
+            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+            process: Name of the process
+            closure_variable: Name of the variable the correction is calculated for
+            split_variables: List of variables that are used for the category splitting
+            sample_paths: List of file paths where the samples are stored
+            output_path: Path where the generated plots should be stored
+            logger: Name of the logger that should be used
+            evaluator: Evaluator with QCD fake factors
+            corr_evaluators: List of evaluators with corrections to QCD fake factors
+            for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
+    """
     (
         split,
         binning,
@@ -480,83 +460,6 @@ def _split_non_closure_correction(
         return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
     else:
         return correction_dict
-
-
-def non_closure_correction(
-    config: Dict[str, Union[str, Dict, List]],
-    corr_config: Dict[str, Union[str, Dict]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    closure_variable: str,
-    evaluator: FakeFactorEvaluator,
-    corr_evaluators: List[FakeFactorCorrectionEvaluator],
-    for_DRtoSR: bool,
-    logger: str,
-) -> Dict[str, np.ndarray]:
-    """
-    This function calculates non closure corrections for fake factors for QCD.
-
-    Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
-        closure_variable: Name of the variable the correction is calculated for
-        evaluator: Evaluator with QCD fake factors
-        corr_evaluators: List of evaluators with corrections to QCD fake factors
-        for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
-    """
-
-    # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
-    if for_DRtoSR:
-        correction_conf = corr_config["target_processes"][process]["DR_SR"]["non_closure"][closure_variable]
-    else:
-        correction_conf = corr_config["target_processes"][process]["non_closure"][closure_variable]
-
-    if "split_categories" in correction_conf:
-        split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
-            categories=correction_conf["split_categories"],
-            binning=correction_conf["var_bins"],
-        )
-    else:
-        split_variables = []
-        split_combinations = [None]
-        split_binnings = [correction_conf["var_bins"]]
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                correction_conf,
-                process_conf,
-                process,
-                closure_variable,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-                evaluator,
-                corr_evaluators,
-                for_DRtoSR,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        function=_split_non_closure_correction,
-    )
-
-    if len(split_combinations) == 1 and split_combinations[0] is None:
-        return results[0]
-    else:
-        return ff_func.fill_corrlib_expression(results, split_variables)
 
 
 def DR_SR_correction(
