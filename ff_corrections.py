@@ -18,6 +18,7 @@ import helper.ff_functions as ff_func
 import helper.correctionlib_json as corrlib
 import helper.functions as func
 from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
+from ff_calculation import FF_calculation
 
 parser = argparse.ArgumentParser()
 
@@ -165,18 +166,12 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-
-        ff_calculation_functions = {
-            "QCD": FF_QCD.calculation_QCD_FFs,
-            "QCD_subleading": FF_QCD.calculation_QCD_FFs,
-            "Wjets": FF_Wjets.calculation_Wjets_FFs,
-        }
         try:
             log.info(
                 f"Calculating fake factors for the SR-DR correction for the {process} process."
             )
             log.info("-" * 50)
-            result = ff_calculation_functions[process](
+            result = FF_calculation(
                 config=temp_conf,
                 sample_paths=sample_paths,
                 output_path=output_path,
