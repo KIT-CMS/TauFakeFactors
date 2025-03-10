@@ -2,15 +2,31 @@
 Collection of helpful functions for other scripts
 """
 
+import concurrent.futures
 import glob
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple, Callable
 
 import ROOT
 import yaml
 from XRootD import client
+
+
+def optional_process_pool(
+    args_list: List[Tuple[Any, ...]],
+    function: Callable,
+    max_workers: Union[int, None] = None,
+) -> List[Any]:
+    if len(args_list) == 1:
+        results = [function(args_list[0])]
+    else:
+        n = max_workers if max_workers is not None else len(args_list)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=n) as executor:
+            results = list(executor.map(function, args_list))
+
+    return results
 
 
 def load_config(config_file: str) -> Dict:

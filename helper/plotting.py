@@ -563,6 +563,8 @@ def plot_correction(
     process: str,
     output_path: str,
     logger: str,
+    category: Dict[str, str] = None,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a plot of the correction including the correction histogram
@@ -651,9 +653,17 @@ def plot_correction(
     elif "DR_SR" in corr_name:
         text.DrawLatex(0.2, 0.8, "DR to SR correction")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.png")
-        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.pdf")
-    log.info(out.getvalue())
+    selection = ""
+    if category is not None:
+        selection = '_'.join([""] + [f'{var}_{category[var]}' for var in category.keys()])
+
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", c),
+        data_filename_and_obj=(
+            f"data_corr_{process}_{corr_name}{selection}",
+            {"corr_hist": corr_hist, "corr_graph": corr_graph},
+        ) if save_data else None,
+        logger=log,
+    )
     c.Close()

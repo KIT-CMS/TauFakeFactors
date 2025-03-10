@@ -15,16 +15,30 @@ import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 
-class Defaults:
-    @staticmethod
-    def fit_function_limit_kwargs(binning):
-        return {
-            "limit_x": {
-                "nominal": (binning[0], binning[-1]),
-                "up": (-float("inf"), float("inf")),
-                "down": (-float("inf"), float("inf")),
-            },
-        }
+def fill_corrlib_expression(
+    item: Union[List[dict], dict],
+    split_variables: List[str],
+    split: Union[None, dict] = None,
+):
+    results = {}
+    if split is not None and not isinstance(item, list):  # Single result from multiprocessing
+        keys = [f"{var}#{split[var]}" for var in split_variables]
+        if len(keys) == 1:
+            results[keys[0]] = item
+        elif len(keys) == 2:
+            results.setdefault(keys[0], {})[keys[1]] = item
+        else:
+            raise Exception("Something went wrong with the category splitting.")
+
+    elif split is None and isinstance(item, list):  # Multiple results from multiprocessing
+        for it in item:
+            if len(split_variables) == 1:
+                results.update(it)
+            elif len(split_variables) == 2:
+                key = list(it.keys())[0]
+                results.setdefault(key, {}).update(it[key])
+
+    return results
 
 
 def get_split_combinations(

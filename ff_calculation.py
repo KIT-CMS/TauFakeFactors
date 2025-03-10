@@ -6,7 +6,6 @@ import argparse
 import yaml
 import os
 import logging
-import concurrent.futures
 from typing import Dict, Union, List, Tuple
 
 import FF_calculation.FF_QCD as FF_QCD
@@ -24,10 +23,20 @@ parser.add_argument(
     help="Path to the config file which contains information for the fake factor calculation step.",
 )
 
+FF_CALCULATION_FUNCTIONS = {
+    "QCD": FF_QCD.calculation_QCD_FFs,
+    "QCD_subleading": FF_QCD.calculation_QCD_FFs,
+    "Wjets": FF_Wjets.calculation_Wjets_FFs,
+    "ttbar": FF_ttbar.calculation_ttbar_FFs,
+    "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
+    "process_fractions": fraction_calculation,
+    "process_fractions_subleading": fraction_calculation,
+}
+
 
 def run_ff_calculation(
     args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
-) -> Dict:
+) -> Tuple[Tuple, Dict]:
     """
     This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process.
 
@@ -40,24 +49,18 @@ def run_ff_calculation(
     process, config, sample_paths, output_path = args
     log = logging.getLogger(f"ff_calculation.{process}")
 
-    ff_calculation_functions = {
-        "QCD": FF_QCD.calculation_QCD_FFs,
-        "QCD_subleading": FF_QCD.calculation_QCD_FFs,
-        "Wjets": FF_Wjets.calculation_Wjets_FFs,
-        "ttbar": FF_ttbar.calculation_ttbar_FFs,
-        "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
-        "process_fractions": fraction_calculation,
-        "process_fractions_subleading": fraction_calculation,
-    }
     try:
         log.info(f"Calculating fake factors for the {process} process.")
         log.info("-" * 50)
-        return ff_calculation_functions[process](
-            config=config,
-            sample_paths=sample_paths,
-            output_path=output_path,
-            process=process,
-            logger=f"ff_calculation.{process}",
+        return (
+            args,
+            FF_CALCULATION_FUNCTIONS[process](
+                config=config,
+                sample_paths=sample_paths,
+                output_path=output_path,
+                process=process,
+                logger=f"ff_calculation.{process}",
+            ),
         )
     except KeyError:
         raise Exception(f"Target process: Such a process is not known: {process}")
@@ -102,39 +105,36 @@ if __name__ == "__main__":
     func.check_categories(config=config)
 
     # initializing the fake factor calculation
-    fake_factors = dict()
-    fractions = None
-    fractions_subleading = None
-
+    args_list = []
     if "target_processes" in config:
-        args_list = [
-            (process, config, sample_paths, save_path_plots)
-            for process in config["target_processes"]
-        ]
-        if "process_fractions" in config:
-            args_list.append(
-                ("process_fractions", config, sample_paths, save_path_plots)
-            )
-        if "process_fractions_subleading" in config:
-            args_list.append(
-                ("process_fractions_subleading", config, sample_paths, save_path_plots)
-            )
+        args_list.extend(
+            [
+                (process, config, sample_paths, save_path_plots)
+                for process in config["target_processes"]
+            ]
+        )
+    if "process_fractions" in config:
+        args_list.append(
+            ("process_fractions", config, sample_paths, save_path_plots)
+        )
+    if "process_fractions_subleading" in config:
+        args_list.append(
+            ("process_fractions_subleading", config, sample_paths, save_path_plots)
+        )
 
-        if len(args_list) == 1:
-            results = [args_list[0], run_ff_calculation(args_list[0])]
-        else:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
-                results = list(zip(args_list, executor.map(run_ff_calculation, args_list)))
+    results = func.optional_process_pool(
+        args_list=args_list,
+        function=run_ff_calculation,
+    )
 
-        for args, result in results:
-            if args[0] in config["target_processes"]:
-                fake_factors[args[0]] = result
-            elif args[0] == "process_fractions":
-                fractions = result
-            elif args[0] == "process_fractions_subleading":
-                fractions_subleading = result
-    else:
-        raise Exception("No target processes are defined!")
+    fake_factors, fractions, fractions_subleading = {}, None, None
+    for args, result in results:
+        if "target_processes" in config and args[0] in config["target_processes"]:
+            fake_factors[args[0]] = result
+        elif args[0] == "process_fractions":
+            fractions = result
+        elif args[0] == "process_fractions_subleading":
+            fractions_subleading = result
 
     corrlib.generate_ff_corrlib_json(
         config=config,
