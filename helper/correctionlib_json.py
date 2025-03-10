@@ -8,7 +8,7 @@ import numpy as np
 import rich
 
 import configs.general_definitions as gd
-import helper.ff_functions as func
+import helper.ff_functions as ff_func
 
 
 def get_edges_and_content(
@@ -53,9 +53,9 @@ def generate_ff_corrlib_json(
     ],
     fractions: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
     fractions_subleading: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
-    output_path: str,
+    output_path: Union[str, None] = None,
     for_corrections: bool = False,
-) -> None:
+) -> cs.CorrectionSet:
     """
     Function which produces a correctionlib file based on the measured fake factors and fractions (including variations).
 
@@ -76,7 +76,7 @@ def generate_ff_corrlib_json(
         if process in ff_functions:
             proc_conf = config["target_processes"][process]
             var = proc_conf["var_dependence"]
-            _, _, binning = func.get_split_combinations(
+            _, _, binning = ff_func.get_split_combinations(
                 categories=proc_conf["split_categories"],
                 binning=proc_conf["var_bins"],
                 convert_binning_to_dict=True,
@@ -101,7 +101,7 @@ def generate_ff_corrlib_json(
     if "process_fractions" in config and fractions is not None:
         frac_conf = config["process_fractions"]
         var = frac_conf["var_dependence"]
-        _, _, binning = func.get_split_combinations(
+        _, _, binning = ff_func.get_split_combinations(
             categories=frac_conf["split_categories"],
             binning=frac_conf["var_bins"],
             convert_binning_to_dict=True,
@@ -123,7 +123,7 @@ def generate_ff_corrlib_json(
     if "process_fractions_subleading" in config and fractions_subleading is not None:
         frac_conf = config["process_fractions_subleading"]
         var = frac_conf["var_dependence"]
-        _, _, binning = func.get_split_combinations(
+        _, _, binning = ff_func.get_split_combinations(
             categories=frac_conf["split_categories"],
             binning=frac_conf["var_bins"],
             convert_binning_to_dict=True,
@@ -149,10 +149,12 @@ def generate_ff_corrlib_json(
         compound_corrections=None,
     )
 
-    base_filepath = os.path.join(output_path, f"fake_factors_{config['channel']}")
-    suffix = "_for_corrections" if for_corrections else ""
-    write_json(f"{base_filepath}{suffix}.json", cset)
-    write_json(f"{base_filepath}{suffix}.json.gz", cset)
+    if output_path is not None:
+        base_filepath = os.path.join(output_path, f"fake_factors_{config['channel']}")
+        suffix = "_for_corrections" if for_corrections else ""
+        write_json(f"{base_filepath}{suffix}.json", cset)
+        write_json(f"{base_filepath}{suffix}.json.gz", cset)
+    return cset
 
 
 def make_1D_ff(
@@ -511,19 +513,19 @@ def make_1D_fractions(
     return frac
 
 
-def generate_correction_corrlib_json(
+def generate_correction_corrlib(
     config: Dict[str, Union[str, Dict, List]],
     corrections: Dict[str, Dict[str, Dict[str, np.ndarray]]],
-    output_path: str,
+    output_path: Union[str, None] = None,
     for_DRtoSR: bool = False,
-) -> None:
+) -> cs.CorrectionSet:
     """
     Function which produces a correctionlib file based on the measured fake factor corrections (including variations).
 
     Args:
         config: A dictionary with all the relevant information for the fake factors
         corrections: Dictionary of correction arrays, e.g. corrections[PROCESS][CORRECTION][VARIATION]
-        output_path: Path where the generated correctionlib files should be stored
+        output_path: Path where the generated correctionlib files should be stored if provided
         for_DRtoSR: Boolean which decides where the produced correctionlib file is stored, this is needed because additional
                     fake factor corrections are needed to calculate the DR to SR correction and therefore they are stored in
                     a different place (default: False)
@@ -598,10 +600,13 @@ def generate_correction_corrlib_json(
         ],
     )
 
-    base_filepath = os.path.join(output_path, f"FF_corrections_{config['channel']}")
-    suffix = "_for_DRtoSR" if for_DRtoSR else ""
-    write_json(f"{base_filepath}{suffix}.json", cset)
-    write_json(f"{base_filepath}{suffix}.json.gz", cset)
+    if output_path is not None:
+        base_filepath = os.path.join(output_path, f"FF_corrections_{config['channel']}")
+        suffix = "_for_DRtoSR" if for_DRtoSR else ""
+        write_json(f"{base_filepath}{suffix}.json", cset)
+        write_json(f"{base_filepath}{suffix}.json.gz", cset)
+
+    return cset
 
 
 def make_1D_correction(

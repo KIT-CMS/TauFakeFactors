@@ -12,8 +12,32 @@ from typing import Any, Dict, List, Union, Tuple
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.ff_functions as func
+import helper.functions as func
+import helper.ff_functions as ff_func
 import helper.plotting as plotting
+
+
+def controlplot_samples(
+    config: Dict[str, Union[str, Dict, List]],
+) -> List[str]:
+    samples = [
+        "QCD",
+        "diboson_J",
+        "diboson_L",
+        "Wjets",
+        "ttbar_J",
+        "ttbar_L",
+        "DYjets_J",
+        "DYjets_L",
+        "ST_J",
+        "ST_L",
+    ]
+    if config["use_embedding"]:
+        samples.append("embedding")
+    else:
+        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
+
+    return samples
 
 
 def _split_fraction_calculation(
@@ -66,7 +90,7 @@ def _split_fraction_calculation(
 
         # event filter for application region
         region_conf = copy.deepcopy(process_conf["AR_cuts"])
-        rdf_AR = func.apply_region_filters(
+        rdf_AR = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
@@ -84,7 +108,7 @@ def _split_fraction_calculation(
 
         # event filter for signal region; this is not needed for the FF calculation, just for control plots
         region_conf = copy.deepcopy(process_conf["SR_cuts"])
-        rdf_SR = func.apply_region_filters(
+        rdf_SR = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
@@ -120,18 +144,18 @@ def _split_fraction_calculation(
         SR_hists[sample] = h.GetValue()
 
     # calculate QCD estimation; here directly estimated as difference between mc and data without SS/OS
-    AR_hists["QCD"] = func.QCD_SS_estimate(hists=AR_hists)
-    SR_hists["QCD"] = func.QCD_SS_estimate(hists=SR_hists)
+    AR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=AR_hists)
+    SR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SR_hists)
 
     frac_hists = dict()
 
     for p in config[process]["processes"]:
-        frac_hists[p] = func.calc_fraction(
+        frac_hists[p] = ff_func.calc_fraction(
             hists=AR_hists,
             target=p,
             processes=config[process]["processes"],
         )
-    frac_hists = func.add_fraction_variations(
+    frac_hists = ff_func.add_fraction_variations(
         hists=frac_hists,
         processes=config[process]["processes"],
     )
@@ -139,12 +163,12 @@ def _split_fraction_calculation(
     SR_frac_hists = dict()
 
     for p in config[process]["processes"]:
-        SR_frac_hists[p] = func.calc_fraction(
+        SR_frac_hists[p] = ff_func.calc_fraction(
             hists=SR_hists,
             target=p,
             processes=config[process]["processes"],
         )
-    SR_frac_hists = func.add_fraction_variations(
+    SR_frac_hists = ff_func.add_fraction_variations(
         hists=SR_frac_hists,
         processes=config[process]["processes"],
     )
@@ -177,27 +201,9 @@ def _split_fraction_calculation(
     )
 
     # producing some control plots
-    data = "data"
-    samples = [
-        "QCD",
-        "diboson_J",
-        "diboson_L",
-        "Wjets",
-        "ttbar_J",
-        "ttbar_L",
-        "DYjets_J",
-        "DYjets_L",
-        "ST_J",
-        "ST_L",
-    ]
-    if config["use_embedding"]:
-        samples.append("embedding")
-    else:
-        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-
-    for _hist, _region, _data, _samples in [
-        (SR_hists, "SR", data, samples),
-        (AR_hists, "AR", data, samples),
+    for _hist, _region in [
+        (SR_hists, "SR"),
+        (AR_hists, "AR"),
     ]:
         for yscale, save_data in zip(["linear", "log"], [True, False]):
             plotting.plot_data_mc_ratio(
@@ -207,8 +213,8 @@ def _split_fraction_calculation(
                 channel=config["channel"],
                 process=process,
                 region=_region,
-                data=_data,
-                samples=_samples,
+                data="data",
+                samples=controlplot_samples(config),
                 category=split,
                 output_path=output_path,
                 logger=logger,
@@ -244,41 +250,37 @@ def fraction_calculation(
         Dictionary where the categories are defined as keys and the values are fractions of a process
     """
     process_conf = config[process]
-    split_variables, split_combinations, split_binnings = func.get_split_combinations(
+    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
         categories=process_conf["split_categories"],
         binning=process_conf["var_bins"],
     )
 
     assert len(split_variables) == 1, "Category splitting for fractions is only defined up to 1 dimensions for now."
 
-    args_list = [
-        (
-            split,
-            binning,
-            config,
-            process_conf,
-            process,
-            split_variables,
-            sample_paths,
-            output_path,
-            logger,
-        )
-        for split, binning in zip(split_combinations, split_binnings)
-    ]
-
-    if len(args_list) == 1:
-        results = [_split_fraction_calculation(args_list[0])]
-
-    else:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=len(split_combinations)) as executor:
-            results = list(executor.map(_split_fraction_calculation, args_list))
+    results = func.optional_process_pool(
+        args_list=[
+            (
+                split,
+                binning,
+                config,
+                process_conf,
+                process,
+                split_variables,
+                sample_paths,
+                output_path,
+                logger,
+            )
+            for split, binning in zip(split_combinations, split_binnings)
+        ],
+        func=_split_fraction_calculation,
+    )
 
     fractions = dict()
     for result in results:
         fractions.update(result)
 
     # transform histograms to fraction values for correctionlib
-    fractions = func.get_yields_from_hists(
+    fractions = ff_func.get_yields_from_hists(
         hists=fractions,
         processes=config[process]["processes"],
     )
