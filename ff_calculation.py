@@ -23,6 +23,12 @@ parser.add_argument(
     help="Path to the config file which contains information for the fake factor calculation step.",
 )
 
+parser.add_argument(
+    "--disable-multiprocessing",
+    action="store_true",
+    help="Flag to disable multiprocessing for debugging purposes.",
+)
+
 FF_CALCULATION_FUNCTIONS = {
     "QCD": FF_QCD.calculation_QCD_FFs,
     "QCD_subleading": FF_QCD.calculation_QCD_FFs,
@@ -68,6 +74,8 @@ def run_ff_calculation(
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)

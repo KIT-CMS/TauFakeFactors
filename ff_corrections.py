@@ -35,6 +35,11 @@ parser.add_argument(
     help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
 )
 
+parser.add_argument(
+    "--disable-multiprocessing",
+    action="store_true",
+    help="Flag to disable multiprocessing for debugging purposes.",
+)
 
 NON_CLOSURE_CORRECTION_FUNCTIONS = {
     "QCD": FF_QCD.non_closure_correction,
@@ -232,9 +237,10 @@ def run_correction(
             corr_evaluators = list()
 
             for n in range(idx):
+                assert correction_set is not None, "Correction set must be calculated first!"
                 corr_evaluators.append(
                     FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
-                        correction=correction_sets[n],
+                        correction=correction_set,
                         process=process,
                         corr_variable=all_non_closure_corr_vars[n],
                         for_DRtoSR=False,
@@ -260,23 +266,13 @@ def run_correction(
 
             corrections[process]["non_closure_" + closure_corr] = corr
 
-            correction_sets.append(
-                corrlib.generate_correction_corrlib(
-                    config=corr_config,
-                    corrections=corrections,
-                    for_DRtoSR=False,
-                )
+            correction_set = corrlib.generate_correction_corrlib(
+                config=corr_config,
+                corrections=corrections,
+                for_DRtoSR=False,
             )
 
-        combined_correction_sets = corrlib.generate_correction_corrlib(
-            config=corr_config,
-            corrections=corrections,
-            for_DRtoSR=False,
-        )
-
     if "DR_SR" in corr_config["target_processes"][process]:
-        assert combined_correction_sets is not None, "Non-closure corrections must be calculated first!"
-
         evaluator = FakeFactorEvaluator.loading_from_file(
             config=config,
             process=process,
@@ -284,8 +280,8 @@ def run_correction(
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
-        corr_evaluator = FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
-            correction=combined_correction_sets,
+        corr_evaluator = FakeFactorCorrectionEvaluator.loading_from_file(
+            config=config,
             process=process,
             corr_variable=list(corr_config["target_processes"][process]["DR_SR"]["non_closure"].keys())[0],
             for_DRtoSR=True,
@@ -321,6 +317,8 @@ def run_correction(
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)

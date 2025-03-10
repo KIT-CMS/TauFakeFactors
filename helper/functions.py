@@ -14,13 +14,28 @@ import yaml
 from XRootD import client
 
 
+class RuntimeVariables(object):
+    """
+    A singleton-like container class holding variables that can be adjusted at runtime.
+
+    Attributes:
+        USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
+    """
+    USE_MULTIPROCESSING = True
+
+    def __new__(cls) -> "RuntimeVariables":
+        if not hasattr(cls, "instance"):
+            cls.instance = super(RuntimeVariables, cls).__new__(cls)
+            return cls.instance
+
+
 def optional_process_pool(
     args_list: List[Tuple[Any, ...]],
     function: Callable,
     max_workers: Union[int, None] = None,
 ) -> List[Any]:
-    if len(args_list) == 1:
-        results = [function(args_list[0])]
+    if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
+        results = [function(args) for args in args_list]
     else:
         n = max_workers if max_workers is not None else len(args_list)
         with concurrent.futures.ProcessPoolExecutor(max_workers=n) as executor:
