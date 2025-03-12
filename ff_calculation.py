@@ -40,6 +40,19 @@ FF_CALCULATION_FUNCTIONS = {
     "process_fractions_subleading": fraction_calculation,
 }
 
+FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS = {
+    **{k: lambda *args, **kwargs: (None, None) for k in {
+        "QCD",
+        "QCD_subleading",
+        "Wjets",
+        "process_fractions",
+        "process_fractions_subleading",
+    }
+    },  # only necessary for ttbar and ttbar_subleading
+    "ttbar": FF_ttbar.calculation_FF_data_scaling_factor,
+    "ttbar_subleading": FF_ttbar.calculation_FF_data_scaling_factor,
+}
+
 
 def FF_calculation(
     config: Dict[str, Union[str, Dict, List]],
@@ -55,7 +68,7 @@ def FF_calculation(
         config: A dictionary with all the relevant information for the fake factor calculation
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
+        process: Process for which the fake factors are calculated
         logger: Name of the logger that should be used
 
     Return:
@@ -64,7 +77,6 @@ def FF_calculation(
     """
 
     is_fraction = "fraction" in process
-    is_ttbar = "ttbar" in process
     split_limit = 1 if is_fraction else 2
 
     process_conf = config[process] if is_fraction else config["target_processes"][process]
@@ -74,38 +86,37 @@ def FF_calculation(
         binning=process_conf["var_bins"],
     )
 
-    assert len(split_variables) <= split_limit, "Category splitting is only defined up to 2 dimensions."
+    assert len(split_variables) <= split_limit, f"Category splitting of {process} is only defined up to {split_limit} dimensions."
 
-    if is_ttbar:
-        SRlike_hists, ARlike_hists = FF_ttbar.calculation_FF_prerequisites(
+    try:
+        SRlike_hists, ARlike_hists = FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS[process](
             config=config,
             process_conf=process_conf,
             sample_paths=sample_paths,
             process=process,
             logger=logger,
         )
-    else:
-        SRlike_hists, ARlike_hists = None, None
-
-    results = func.optional_process_pool(
-        args_list=[
-            (
-                split,
-                binning,
-                config,
-                process_conf,
-                process,
-                split_variables,
-                sample_paths,
-                output_path,
-                logger,
-                SRlike_hists,
-                ARlike_hists,
-            )
-            for split, binning in zip(split_combinations, split_binnings)
-        ],
-        function=FF_CALCULATION_FUNCTIONS[process],
-    )
+        results = func.optional_process_pool(
+            args_list=[
+                (
+                    split,
+                    binning,
+                    config,
+                    process_conf,
+                    process,
+                    split_variables,
+                    sample_paths,
+                    output_path,
+                    logger,
+                    SRlike_hists,
+                    ARlike_hists,
+                )
+                for split, binning in zip(split_combinations, split_binnings)
+            ],
+            function=FF_CALCULATION_FUNCTIONS[process],
+        )
+    except KeyError:
+        raise Exception(f"Target process: Such a process is not known: {process}")
 
     if is_fraction:
         fractions = dict()
@@ -135,21 +146,18 @@ def run_ff_calculation(
     process, config, sample_paths, output_path = args
     log = logging.getLogger(f"ff_calculation.{process}")
 
-    try:
-        log.info(f"Calculating fake factors for the {process} process.")
-        log.info("-" * 50)
-        return (
-            args,
-            FF_calculation(
-                config=config,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                process=process,
-                logger=f"ff_calculation.{process}",
-            ),
-        )
-    except KeyError:
-        raise Exception(f"Target process: Such a process is not known: {process}")
+    log.info(f"Calculating fake factors for the {process} process.")
+    log.info("-" * 50)
+    return (
+        args,
+        FF_calculation(
+            config=config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            process=process,
+            logger=f"ff_calculation.{process}",
+        ),
+    )
 
 
 if __name__ == "__main__":

@@ -12,50 +12,17 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.functions as func
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 import configs.general_definitions as gd
 
 
-def controlplot_samples(
-    config: Dict[str, Union[str, Dict, List]],
-) -> List[str]:
-    """
-    Returns the list of samples that should be used for the control plots (QCD FFs).
-
-    Args:
-        config: Dictionary containing "use_embedding" key
-
-    Returns:
-        List of samples
-    """
-    samples = [
-        "diboson_J",
-        "diboson_L",
-        "Wjets",
-        "ttbar_J",
-        "ttbar_L",
-        "DYjets_J",
-        "DYjets_L",
-        "ST_J",
-        "ST_L",
-    ]
-    if config["use_embedding"]:
-        samples.append("embedding")
-    else:
-        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-    return samples
-
-
 def calculation_QCD_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
     """
-    This function calculates fake factors for the QCD process for a specific category.
-
-    Intended to be used in a multiprocessing environment.
+    This function calculates fake factors for the QCD process for a specific category (split).
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the fake factors
@@ -230,7 +197,7 @@ def calculation_QCD_FFs(
                 process=process,
                 region=_region,
                 data="data",
-                samples=controlplot_samples(config),
+                samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
                 category=split,
                 output_path=output_path,
                 logger=logger,
@@ -448,7 +415,7 @@ def non_closure_correction(
             process=process,
             region="non_closure_" + closure_variable + add_str + "_SRlike_hist",
             data="data",
-            samples=controlplot_samples(config),
+            samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
             category=split if split is not None else {"incl": ""},
             output_path=output_path,
             logger=logger,
@@ -651,7 +618,7 @@ def DR_SR_correction(
             process=process,
             region="DR_SR" + "_SRlike_hist",
             data="data",
-            samples=controlplot_samples(config),
+            samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
             category={"incl": ""},
             output_path=output_path,
             logger=logger,

@@ -12,52 +12,16 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.functions as func
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 import configs.general_definitions as gd
-
-
-def controlplot_samples(
-    config: Dict[str, Union[str, Dict, List]],
-) -> List[str]:
-    """
-    Returns the list of samples that should be used for the control plots (ttbar FFs).
-
-    Args:
-        config: Dictionary containing "use_embedding" key
-
-    Returns:
-        List of samples
-    """
-    samples = [
-        "QCD",
-        "diboson_J",
-        "diboson_L",
-        "Wjets",
-        "ttbar_J",
-        "ttbar_L",
-        "DYjets_J",
-        "DYjets_L",
-        "ST_J",
-        "ST_L",
-    ]
-    if config["use_embedding"]:
-        samples.append("embedding")
-    else:
-        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-
-    return samples
 
 
 def calculation_ttbar_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
     """
-    This function calculates fake factors for ttbar for a given category.
-
-    Intended to be used in a multiprocessing environment.
+    This function calculates fake factors for the ttbar process for a specific category (split).
 
     Args:
         args: Tuple of arguments that are passed to the function
@@ -201,13 +165,13 @@ def calculation_ttbar_FFs(
         output_path=output_path,
         logger=logger,
         draw_option=used_fit,
-        save_data=True
+        save_data=True,
     )
 
     # doing some control plots
     for _hist, _region, _data, _samples in [
-        (SRlike_hists, "SR_like", "data", controlplot_samples(config)),
-        (ARlike_hists, "AR_like", "data", controlplot_samples(config)),
+        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
+        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
         (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
     ]:
@@ -232,7 +196,7 @@ def calculation_ttbar_FFs(
     return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
 
 
-def calculation_FF_prerequisites(
+def calculation_FF_data_scaling_factor(
     config: Dict[str, Union[str, Dict, List]],
     process_conf: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
@@ -240,8 +204,8 @@ def calculation_FF_prerequisites(
     logger: str,
 ) -> Tuple[Dict[str, ROOT.TH1D], Dict[str, ROOT.TH1D]]:
     """
-    This function calculates the global SR and AR histograms for the ttbar process
-    that are used for process normalization.
+    This function calculates the global SR-like and AR-like histograms for the ttbar process
+    that are used for process normalization to data.
 
     Args:
         config: Dictionary with all the relevant information for the fake factor calculation
@@ -433,7 +397,7 @@ def non_closure_correction(
         logger,
         evaluator,
         corr_evaluators,
-        *_,
+        *_,  # for_DRtoSR not needed for ttbar
     ) = args
 
     log = logging.getLogger(logger)

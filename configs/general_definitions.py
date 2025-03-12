@@ -1,6 +1,6 @@
 import ROOT
 
-# ### For fake factor fits ### #
+#### For fake factor fits ####
 
 default_fit_options = {
     "QCD": "poly_1",
@@ -19,7 +19,7 @@ def get_default_fit_function_limit_kwargs(binning):
     }
 
 
-# ### For plotting ### #
+#### For plotting ####
 
 # label definitions for y-axis
 FF_YAxis = {

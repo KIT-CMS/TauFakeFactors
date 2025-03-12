@@ -72,7 +72,7 @@ def non_closure_correction(
     logger: str,
 ) -> Dict[str, np.ndarray]:
     """
-    This function calculates non closure corrections for a given process splitting 
+    This function calculates non closure corrections for a given process and splitting
     the calculation into different categories if necessary.
 
     Args:
@@ -80,10 +80,10 @@ def non_closure_correction(
         corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
+        process: This is relevant for the tt channel where two different fake factors are calculated, one for each hadronic tau
         closure_variable: Name of the variable the correction is calculated for
-        evaluator: Evaluator with QCD fake factors
-        corr_evaluators: List of evaluators with corrections to QCD fake factors
+        evaluator: Evaluator with fake factors
+        corr_evaluators: List of evaluators with corrections to fake factors
         for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
         logger: Name of the logger that should be used
 
@@ -286,7 +286,7 @@ def run_correction(
             logger=f"ff_corrections.{process}",
         )
 
-        all_non_closure_corr_vars, corrections, correction_set = [], [], None
+        all_non_closure_corr_vars, correction_set = [], None
         for idx, (closure_corr, _corr_config) in enumerate(
             corr_config["target_processes"][process]["non_closure"].items(),
         ):
@@ -420,7 +420,7 @@ if __name__ == "__main__":
     if len(sample_paths) == 0:
         raise Exception("No input files found!")
 
-    # ########## needed precalculations for DR to SR corrections ########## #
+    ########### needed precalculations for DR to SR corrections ###########
 
     if not args.only_main_corrections:
         # initializing the fake factor calculation for DR to SR corrections
@@ -489,7 +489,7 @@ if __name__ == "__main__":
             for_DRtoSR=True,
         )
 
-    # ########## real fake factor corrections ########## #
+    ########### real fake factor corrections ###########
 
     corrections = {
         "QCD": dict(),
@@ -500,7 +500,7 @@ if __name__ == "__main__":
     }
 
     if "target_processes" in corr_config:
-        results = func.optional(
+        results = func.optional_process_pool(
             args_list=[
                 (process, config, corr_config, sample_paths, save_path_plots)
                 for process in corr_config["target_processes"]

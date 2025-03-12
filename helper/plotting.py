@@ -22,10 +22,10 @@ def save_plots_and_data(
 
     This function creates subdirectories for each file extension (e.g. "png", "pdf", "root") in the
     provided output path if they do not already exist and saves the corresponding object there.
-    Plot objects that curretly work are TCanvas objects, while data objects can be either a ROOT object
+    Plot objects that currently work are TCanvas objects, while data objects can be either a ROOT object
     (e.g. a histogram) or a dictionary of ROOT objects (e.g. a dictionary of ROOT histograms).
 
-    Parameters:
+    Args:
         output_path (str): Base directory where output subfolders (e.g. "png", "pdf", "root") will be created.
         plot_filename_and_obj (Optional[Tuple[str, Any]]):
             A tuple containing the base filename (without extension) and the plot object (e.g. a TCanvas) to be saved.
@@ -100,6 +100,7 @@ def plot_FFs(
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
         draw_option: Based on chosen fit_option to correctly plot a fitted function or a histogram as measurement
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -206,6 +207,8 @@ def plot_data_mc(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        yscale: String do set the scaling of the y-axis, options are "linear" or "log"
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -328,6 +331,8 @@ def plot_data_mc_ratio(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        yscale: String do set the scaling of the y-axis, options are "linear" or "log"
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -485,6 +490,7 @@ def plot_fractions(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -580,6 +586,8 @@ def plot_correction(
         process: Name of the target process the correction is calculated for
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        category: Information about the category split is added to the plot
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -640,10 +648,14 @@ def plot_correction(
     text = ROOT.TLatex()
     text.SetNDC()
     text.SetTextSize(0.03)
+    if category is not None:
+        plot_text = f"channel: {gd.channel_dict[channel]}, {process}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}"
+    else:
+        plot_text = f"channel: {gd.channel_dict[channel]}, {process}"
     text.DrawLatex(
         0.165,
         0.917,
-        f"channel: {gd.channel_dict[channel]}, {process}",
+        plot_text,
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, "{}".format(gd.era_dict[era]))

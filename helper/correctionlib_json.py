@@ -11,6 +11,59 @@ import configs.general_definitions as gd
 import helper.ff_functions as ff_func
 
 
+def replace_varmin_varmax(string: str, obj: Dict[str, Any]) -> str:
+    """
+    This function replaces the placeholders for the variable minimum and maximum with the actual values.
+
+    Args:
+        string: String where the placeholders should be replaced
+        obj: Dictionary with the actual values for the placeholders
+
+    Return:
+        String with the replaced placeholders
+
+    """
+    # 1D FF, 1D fractions
+    if isinstance(obj, dict) and all(isinstance(it, list) for it in obj.values()):
+        string = string.replace(
+            "#var_min and #var_max GeV",
+            '; '.join(f"({k.replace('#', '')}): ({min(obj[k])}, {max(obj[k])}) GeV" for k in obj),
+        )
+    # 2D FF
+    elif isinstance(obj, dict) and all(
+        isinstance(subdict, dict) and all(
+            isinstance(lst, list) for lst in subdict.values()
+        )
+        for subdict in obj.values()
+    ):
+        string = string.replace(
+            "#var_min and #var_max GeV",
+            '; '.join(
+                f"({outer.replace('#', '')} && {inner.replace('#', '')}): ({min(lst)}, {max(lst)}) GeV"
+                for outer, subdict in obj.items()
+                for inner, lst in subdict.items()
+            )
+        )
+    # 2D corrections v1
+    elif isinstance(obj, dict) and all("edges" in subdict for subdict in obj.values()):
+        string = string.replace(
+            "#var_min and #var_max GeV",
+            '; '.join(f"({k.replace('#', '')}): ({min(obj[k]['edges'])}, {max(obj[k]['edges'])}) GeV" for k in obj),
+        )
+    # 2D corrections v2 (TODO: might be generalized)
+    elif isinstance(obj, dict) and all(isinstance(it, list) for it in obj.values()):
+        string = string.replace(
+            "#var_min and #var_max GeV",
+            '; '.join(f"({k.replace('#', '')}): ({min(obj[k])}, {max(obj[k])}) GeV" for k in obj),
+        )
+    # 1D corrections categories string
+    elif isinstance(obj, dict) and "edges" in obj:
+        if "GeV" not in string and "#var_min" not in string and "#var_max" not in string:
+            string += str(list(obj["edges"])).replace("[", "(").replace("]", ")")
+
+    return string
+
+
 def get_edges_and_content(
     item: Union[str, Any],
     variable_name: str,
@@ -188,7 +241,10 @@ def make_1D_ff(
             cs.Variable(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_description[variable_info[0]]
+                description=replace_varmin_varmax(
+                    gd.variable_description[variable_info[0]],
+                    variable_info[1],
+                )
             ),
             cs.Variable(
                 name=cat_inputs[0],
@@ -290,7 +346,10 @@ def make_2D_ff(
             cs.Variable(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_description[variable_info[0]]
+                description=replace_varmin_varmax(
+                    gd.variable_description[variable_info[0]],
+                    variable_info[1],
+                )
             ),
             cs.Variable(
                 name=cat_inputs[0],
@@ -422,13 +481,15 @@ def make_1D_fractions(
             cs.Variable(
                 name=variable_info[0],
                 type=gd.variable_type[variable_info[0]],
-                description=gd.variable_description[variable_info[0]],
+                description=replace_varmin_varmax(
+                    gd.variable_description[variable_info[0]],
+                    variable_info[1],
+                )
             ),
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=gd.variable_description[cat_inputs[0]]
-                + ", ".join(cat_values[0]),
+                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values[0])}",
             ),
             cs.Variable(
                 name="syst",
@@ -437,7 +498,9 @@ def make_1D_fractions(
             ),
         ],
         output=cs.Variable(
-            name="fraction", type="real", description="process fraction"
+            name="fraction",
+            type="real",
+            description="process fraction",
         ),
         data=cs.Category(
             nodetype="category",
@@ -454,9 +517,7 @@ def make_1D_fractions(
                                 value=cs.Binning(
                                     nodetype="binning",
                                     input=cat_inputs[0],
-                                    edges=fraction_conf["split_categories_binedges"][
-                                        cat_inputs[0]
-                                    ],
+                                    edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
                                     content=[
                                         cs.Binning(
                                             nodetype="binning",
@@ -538,37 +599,73 @@ def generate_correction_corrlib(
     compound_correction_names = dict()
     compound_inputs = dict()
 
+    class UniqueList(list):
+        def unique_insert(self, idx, item):
+            if item not in self:
+                self.insert(idx, item)
+
     for process in corrections:
         compound_correction_names[process] = list()
-        compound_inputs[process] = list()
+        compound_inputs[process] = UniqueList()
 
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
                 variable = config["target_processes"][process]["non_closure"][tmp_var]["var_dependence"]
+                correction_conf = config["target_processes"][process]["non_closure"][tmp_var]
             elif "non_closure" in correction and for_DRtoSR:
                 tmp_var = correction.split("non_closure_")[1]
                 variable = config["target_processes"][process]["DR_SR"]["non_closure"][tmp_var]["var_dependence"]
+                correction_conf = config["target_processes"][process]["DR_SR"]["non_closure"][tmp_var]
             else:
                 variable = config["target_processes"][process][correction]["var_dependence"]
+                correction_conf = config["target_processes"][process][correction]
+
             correction_dict = corrections[process][correction]
-            corr = make_1D_correction(
-                process,
-                variable,
-                correction,
-                correction_dict,
-            )
+            is_2D = "split_categories" in correction_conf
+
+            if is_2D:
+                split_variables, _, binning = ff_func.get_split_combinations(
+                    categories=correction_conf["split_categories"],
+                    binning=correction_conf["var_bins"],
+                    convert_binning_to_dict=True,
+                )
+                corr = make_2D_correction(
+                    process=process,
+                    corr_conf=correction_conf,
+                    correction_name=correction,
+                    corrections=correction_dict,
+                    variable=variable,
+                )
+            else:
+                corr = make_1D_correction(
+                    process,
+                    variable,
+                    correction,
+                    correction_dict,
+                )
+
             corrlib_ff_corrections.append(corr)
 
             if "non_closure" in correction:
                 compound_correction_names[process].append(f"{process}_{correction}_correction")
+                if is_2D:
+                    compound_inputs[process].unique_insert(
+                        0,
+                        cs.Variable(
+                            name=split_variables[0],
+                            type=gd.variable_type[split_variables[0]],
+                            description=gd.variable_description[split_variables[0]],
+                        ),
+                    )
                 compound_inputs[process].append(
                     cs.Variable(
                         name=variable,
                         type=gd.variable_type[variable],
-                        description=gd.variable_description[variable]
-                        .replace("#var_min", str(min(correction_dict["edges"])))
-                        .replace("#var_max", str(max(correction_dict["edges"]))),
+                        description=replace_varmin_varmax(
+                            gd.variable_description[variable],
+                            binning,
+                        ),
                     )
                 )
 
@@ -610,7 +707,10 @@ def generate_correction_corrlib(
 
 
 def make_1D_correction(
-    process: str, variable: str, correction_name: str, correction: Dict[str, np.ndarray]
+    process: str,
+    variable: str,
+    correction_name: str,
+    correction: Dict[str, np.ndarray],
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factor corrections (including variations).
@@ -633,9 +733,10 @@ def make_1D_correction(
             cs.Variable(
                 name=variable,
                 type=gd.variable_type[variable],
-                description=gd.variable_description[variable]
-                .replace("#var_min", str(min(correction["edges"])))
-                .replace("#var_max", str(max(correction["edges"]))),
+                description=replace_varmin_varmax(
+                    gd.variable_description[variable],
+                    correction,
+                ),
             ),
             cs.Variable(
                 name="syst",
@@ -653,31 +754,110 @@ def make_1D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + f"_{correction_name}_CorrUp",
+                    key=f"{process}_{correction_name}_Corr{direction.capitalize()}",
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
                         edges=list(correction["edges"]),
-                        content=list(correction["up"]),
+                        content=list(correction[direction]),
                         flow="clamp",
                     ),
-                ),
-                cs.CategoryItem(
-                    key=process + f"_{correction_name}_CorrDown",
-                    value=cs.Binning(
-                        nodetype="binning",
-                        input=variable,
-                        edges=list(correction["edges"]),
-                        content=list(correction["down"]),
-                        flow="clamp",
-                    ),
-                ),
+                )
+                for direction in ["up", "down"]
             ],
             default=cs.Binning(
                 nodetype="binning",
                 input=variable,
                 edges=list(correction["edges"]),
                 content=list(correction["nominal"]),
+                flow="clamp",
+            ),
+        ),
+    )
+    rich.print(corr)
+
+    return corr
+
+
+def make_2D_correction(
+    process,
+    corr_conf,
+    corrections,
+    correction_name,
+    variable,
+) -> cs.Correction:
+    cat_inputs = list(corr_conf["split_categories"].keys())
+    cat_values = [corr_conf["split_categories"][cat] for cat in corr_conf["split_categories"]]
+
+    corr = cs.Correction(
+        name=f"{process}_{correction_name}_correction",
+        description=f"Calculation of the {correction_name} correction for {process} for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
+        version=1,
+        generic_formulas=None,
+        inputs=[
+            cs.Variable(
+                name=variable,
+                type=gd.variable_type[variable],
+                description=replace_varmin_varmax(
+                    gd.variable_description[variable],
+                    corrections,
+                ),
+            ),
+            cs.Variable(
+                name=cat_inputs[0],
+                type=gd.variable_type[cat_inputs[0]],
+                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values[0])}",
+            ),
+            cs.Variable(
+                name="syst",
+                type="string",
+                description="Uncertainty from the correction measurement",
+            ),
+        ],
+        output=cs.Variable(
+            name=f"{process}_{correction_name}_correction",
+            type="real",
+            description=f"{correction_name} correction for {process}",
+        ),
+        data=cs.Category(
+            nodetype="category",
+            input="syst",
+            content=[
+                cs.CategoryItem(
+                    key=f"{process}_{correction_name}_Corr{direction.capitalize()}",
+                    value=cs.Binning(
+                        nodetype="binning",
+                        input=cat_inputs[0],
+                        edges=corr_conf["split_categories_binedges"][cat_inputs[0]],
+                        content=[
+                            cs.Binning(
+                                nodetype="binning",
+                                input=variable,
+                                edges=list(corrections[cat1]["edges"]),
+                                content=list(corrections[cat1][direction]),
+                                flow="clamp",
+                            )
+                            for cat1 in corrections
+                        ],
+                        flow="clamp",
+                    ),
+                )
+                for direction in ["up", "down"]
+            ],
+            default=cs.Binning(
+                nodetype="binning",
+                input=cat_inputs[0],
+                edges=corr_conf["split_categories_binedges"][cat_inputs[0]],
+                content=[
+                    cs.Binning(
+                        nodetype="binning",
+                        input=variable,
+                        edges=list(corrections[cat1]["edges"]),
+                        content=list(corrections[cat1]["nominal"]),
+                        flow="clamp",
+                    )
+                    for cat1 in corrections
+                ],
                 flow="clamp",
             ),
         ),

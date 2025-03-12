@@ -11,50 +11,15 @@ from typing import Any, Dict, List, Union, Tuple
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.functions as func
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
-
-
-def controlplot_samples(
-    config: Dict[str, Union[str, Dict, List]],
-) -> List[str]:
-    """
-    Returns the list of samples that should be used for the control plots (fractions).
-
-    Args:
-        config: Dictionary containing "use_embedding" key
-
-    Returns:
-        List of samples
-    """
-    samples = [
-        "QCD",
-        "diboson_J",
-        "diboson_L",
-        "Wjets",
-        "ttbar_J",
-        "ttbar_L",
-        "DYjets_J",
-        "DYjets_L",
-        "ST_J",
-        "ST_L",
-    ]
-    if config["use_embedding"]:
-        samples.append("embedding")
-    else:
-        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-
-    return samples
 
 
 def fraction_calculation(
     args: Tuple[Any, ...],
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
-    This function calculates the fractions of the processes for the fake factor calculation.
-
-    Intended to be used in a multiprocessing environment.
+    This function calculates the fractions of the processes for the fake factor calculation for a given category.
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the fake factors
@@ -223,7 +188,7 @@ def fraction_calculation(
                 process=process,
                 region=_region,
                 data="data",
-                samples=controlplot_samples(config),
+                samples=ff_func.controlplot_samples(config["use_embedding"]),
                 category=split,
                 output_path=output_path,
                 logger=logger,

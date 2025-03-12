@@ -10,9 +10,44 @@ import numpy as np
 import ROOT
 
 import itertools as itt
-from copy import deepcopy
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
+
+
+def controlplot_samples(
+    use_embedding: bool,
+    add_qcd: bool = True,
+) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots (Wjets FFs).
+
+    Args:
+        use_embedding: Boolean to use embedding or MC for genuine tau processes
+        add_qcd: Add QCD samples to the collection of samples to be plotted.
+
+    Returns:
+        List of samples used for controlplots
+    """
+    samples = [
+        "diboson_J",
+        "diboson_L",
+        "Wjets",
+        "ttbar_J",
+        "ttbar_L",
+        "DYjets_J",
+        "DYjets_L",
+        "ST_J",
+        "ST_L",
+    ]
+    if add_qcd:
+        samples.append("QCD")
+
+    if use_embedding:
+        samples.append("embedding")
+    else:
+        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
+
+    return samples
 
 
 def fill_corrlib_expression(
@@ -38,7 +73,7 @@ def fill_corrlib_expression(
         Dict: Dictionary with the filled correctionlib expressions    
     """
     results = {}
-    if split is not None and not isinstance(item, list):  # Single result from multiprocessing
+    if split is not None and not isinstance(item, list) and isinstance(item, dict):  # Single result from multiprocessing
         keys = [f"{var}#{split[var]}" for var in split_variables]
         if len(keys) == 1:
             results[keys[0]] = item
@@ -47,13 +82,15 @@ def fill_corrlib_expression(
         else:
             raise Exception("Something went wrong with the category splitting.")
 
-    elif split is None and isinstance(item, list):  # Multiple results from multiprocessing
+    elif split is None and isinstance(item, list) and all(isinstance(it, dict) for it in item):  # Multiple results from multiprocessing
         for it in item:
             if len(split_variables) == 1:
                 results.update(it)
             elif len(split_variables) == 2:
                 key = list(it.keys())[0]
                 results.setdefault(key, {}).update(it[key])
+    else:
+        raise ValueError("Item can only be a list (of dictionaries) or a dictionary")
 
     return results
 
@@ -86,6 +123,7 @@ def get_split_combinations(
     Args:
         categories: Dictionary with the category definitions
         binning: Binning for the dependent variable
+        convert_binning_to_dict: Boolean to convert the binning to a dictionary of binnings at the end
 
     Return:
         1. List of variables the categories are defined in,
@@ -102,6 +140,8 @@ def get_split_combinations(
         for v in itt.product(*(categories[_v] for _v in split_variables))
     ]
 
+    assert len(combinations) > 0, "No category combinations defined"
+
     if isinstance(binning, list):
         binnings = [binning] * len(combinations)
     elif isinstance(binning, dict):
@@ -113,7 +153,6 @@ def get_split_combinations(
             elif len(values) == 2 and isinstance(_binning, dict):
                 binnings.append(_binning.get(values[1]))
             elif len(values) == 2 and isinstance(_binning, list):
-                print(f"Using default binning for {values} of {_binning}")
                 logging.warning(f"Using default binning for {values} of {_binning}")
                 binnings.append(_binning)
             else:
@@ -121,7 +160,6 @@ def get_split_combinations(
     else:
         raise Exception("Invalid type for binning")
 
-    assert len(combinations) > 0, "No category combinations defined"
     assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
 
     if convert_binning_to_dict:

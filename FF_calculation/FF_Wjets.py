@@ -14,52 +14,17 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.functions as func
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 import configs.general_definitions as gd
 
 
-def controlplot_samples(
-    config: Dict[str, Union[str, Dict, List]],
-) -> List[str]:
-    """
-    Returns the list of samples that should be used for the control plots (Wjets FFs).
-
-    Args:
-        config: Dictionary containing "use_embedding" key
-
-    Returns:
-        List of samples
-    """
-    samples = [
-        "QCD",
-        "diboson_J",
-        "diboson_L",
-        "Wjets",
-        "ttbar_J",
-        "ttbar_L",
-        "DYjets_J",
-        "DYjets_L",
-        "ST_J",
-        "ST_L",
-    ]
-    if config["use_embedding"]:
-        samples.append("embedding")
-    else:
-        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
-
-    return samples
-
-
 def calculation_Wjets_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
-    This function calculates fake factors for the WJet process for a specific category.
-
-    Intended to be used in a multiprocessing environment.
+    This function calculates fake factors for the Wjets process for a specific category (split).
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the fake factors
@@ -289,8 +254,8 @@ def calculation_Wjets_FFs(
 
     # producing some control plots
     for _hist, _region, _data, _samples in [
-        (SRlike_hists, "SR_like", "data", controlplot_samples(config)),
-        (ARlike_hists, "AR_like", "data", controlplot_samples(config)),
+        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
+        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
         (SRlike_hists, "SR_like", "data_subtracted", ["Wjets"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["Wjets"]),
     ]:
@@ -584,7 +549,7 @@ def non_closure_correction(
             process=process,
             region=f"non_closure_{closure_variable}{add_str}_SRlike",
             data="data",
-            samples=controlplot_samples(config),
+            samples=ff_func.controlplot_samples(config["use_embedding"]),
             category={"incl": ""},
             output_path=output_path,
             logger=logger,

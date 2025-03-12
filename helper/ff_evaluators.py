@@ -153,7 +153,7 @@ class FakeFactorCorrectionEvaluator:
             f'->at("{process}_non_closure_{variable}_correction");'
         )
 
-        return cls(process, corr_variable, for_DRtoSR, logger)
+        return cls(process, corr_variable, for_DRtoSR)
 
     @classmethod
     def loading_from_CorrectionSet(
@@ -179,7 +179,7 @@ class FakeFactorCorrectionEvaluator:
             f'->at("{process}_non_closure_{variable}_correction");'
         )
 
-        return cls(process, corr_variable, for_DRtoSR, logger)
+        return cls(process, corr_variable, for_DRtoSR)
 
     def __init__(
         self,
