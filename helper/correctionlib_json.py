@@ -60,6 +60,12 @@ def replace_varmin_varmax(string: str, obj: Dict[str, Any]) -> str:
     elif isinstance(obj, dict) and "edges" in obj:
         if "GeV" not in string and "#var_min" not in string and "#var_max" not in string:
             string += str(list(obj["edges"])).replace("[", "(").replace("]", ")")
+    # 1D corrections categories without splitting
+    elif isinstance(obj, list):
+        string = string.replace(
+            "#var_min and #var_max GeV",
+            f"({min(obj)}, {max(obj)}) GeV",
+        )
 
     return string
 
@@ -621,6 +627,7 @@ def generate_correction_corrlib(
             correction_dict = corrections[process][correction]
             is_2D = "split_categories" in correction_conf
 
+            binning = correction_conf["var_bins"]
             if is_2D:
                 split_variables, _, binning = ff_func.get_split_combinations(
                     categories=correction_conf["split_categories"],
