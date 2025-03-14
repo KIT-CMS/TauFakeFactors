@@ -664,8 +664,8 @@ def generate_correction_corrlib(
                         ),
                     )
                 )
+        compound_inputs[process].extend(compound_inputs_splits[process])
 
-    compound_inputs[process].extend(compound_inputs_splits[process])
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",
