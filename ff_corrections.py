@@ -293,7 +293,7 @@ def run_correction(
 
             if "split_categories" in _corr_config:
                 split_variables = list(_corr_config["split_categories"].keys())
-                assert len(split_variables) >= 1, "Only one split variable is supported"
+                assert len(split_variables) == 1, "Only one split variable is supported"
                 all_non_closure_corr_vars.append((closure_corr, split_variables[0]))
             else:
                 all_non_closure_corr_vars.append(closure_corr)
