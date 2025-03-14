@@ -594,19 +594,16 @@ def generate_correction_corrlib(
     Return:
         None
     """
-    corrlib_ff_corrections = list()
+    corrlib_ff_corrections = []
 
-    compound_correction_names = dict()
-    compound_inputs = dict()
-
-    class UniqueList(list):
-        def unique_insert(self, idx, item):
-            if item not in self:
-                self.insert(idx, item)
+    compound_correction_names = {}
+    compound_inputs = {}
+    compound_inputs_splits = {}
 
     for process in corrections:
-        compound_correction_names[process] = list()
-        compound_inputs[process] = UniqueList()
+        compound_correction_names[process] = []
+        compound_inputs[process] = []
+        compound_inputs_splits[process] = []
 
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
@@ -650,8 +647,7 @@ def generate_correction_corrlib(
             if "non_closure" in correction:
                 compound_correction_names[process].append(f"{process}_{correction}_correction")
                 if is_2D:
-                    compound_inputs[process].unique_insert(
-                        0,
+                    compound_inputs_splits[process].append(
                         cs.Variable(
                             name=split_variables[0],
                             type=gd.variable_type[split_variables[0]],
@@ -669,6 +665,7 @@ def generate_correction_corrlib(
                     )
                 )
 
+    compound_inputs[process].extend(compound_inputs_splits[process])
     cset = cs.CorrectionSet(
         schema_version=2,
         description="Corrections for fake factors for tau analysis",

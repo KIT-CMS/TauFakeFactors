@@ -7,8 +7,9 @@ import glob
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Union, Tuple, Callable
+from typing import Any, Callable, Dict, List, Tuple, Union
 
+import numpy as np
 import ROOT
 import yaml
 from XRootD import client
@@ -27,6 +28,42 @@ class RuntimeVariables(object):
         if not hasattr(cls, "instance"):
             cls.instance = super(RuntimeVariables, cls).__new__(cls)
             return cls.instance
+
+
+def remove_empty_keys(data: Union[Dict, List, Any]) -> Union[Dict, List, Any]:
+    """
+    Recursively remove keys from a dictionary whose values are:
+        * empty lists
+        * empty dictionaries
+        * empty numpy arrays.
+    arrays/lists with at least one element are retained.
+
+    Args:
+        data (dict, list, or any): Input data to filter.
+
+    Returns:
+        Filtered data without empty lists, dicts, numpy arrays.
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            cleaned_value = remove_empty_keys(value)
+            if isinstance(cleaned_value, np.ndarray) and cleaned_value.size > 0:
+                new_dict[key] = cleaned_value
+            elif isinstance(cleaned_value, (list, dict)) and cleaned_value:
+                new_dict[key] = cleaned_value
+        return new_dict
+    elif isinstance(data, list):
+        new_list = [remove_empty_keys(item) for item in data]
+        filtered = []
+        for item in new_list:
+            if isinstance(item, np.ndarray) and item.size > 0:
+                filtered.append(item)
+            elif isinstance(item, (list, dict)) and item:
+                filtered.append(item)
+        return filtered
+    else:
+        return data
 
 
 def optional_process_pool(

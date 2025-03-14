@@ -293,8 +293,8 @@ def run_correction(
 
             if "split_categories" in _corr_config:
                 split_variables = list(_corr_config["split_categories"].keys())
-                assert len(split_variables) == 1, "Only one split variable is supported"
-                all_non_closure_corr_vars.append((split_variables[0], closure_corr))
+                assert len(split_variables) >= 1, "Only one split variable is supported"
+                all_non_closure_corr_vars.append((closure_corr, split_variables[0]))
             else:
                 all_non_closure_corr_vars.append(closure_corr)
 
@@ -461,10 +461,9 @@ if __name__ == "__main__":
             ), "Fake factors for DR to SR corrections are missing!"
 
         DR_SR_corrections = {
-            "QCD": dict(),
-            "QCD_subleading": dict(),
-            "Wjets": dict(),
-            "ttbar": dict(),
+            "QCD": {},
+            "QCD_subleading": {},
+            "Wjets": {},
         }
 
         if "target_processes" in corr_config:
@@ -492,11 +491,11 @@ if __name__ == "__main__":
     ########### real fake factor corrections ###########
 
     corrections = {
-        "QCD": dict(),
-        "QCD_subleading": dict(),
-        "Wjets": dict(),
-        "ttbar": dict(),
-        "ttbar_subleading": dict(),
+        "QCD": {},
+        "QCD_subleading": {},
+        "Wjets": {},
+        "ttbar": {},
+        "ttbar_subleading": {},
     }
 
     if "target_processes" in corr_config:
@@ -513,7 +512,7 @@ if __name__ == "__main__":
 
     corrlib.generate_correction_corrlib(
         config=corr_config,
-        corrections=corrections,
+        corrections=func.remove_empty_keys(corrections),
         output_path=workdir_path,
         for_DRtoSR=False,
     )

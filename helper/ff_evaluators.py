@@ -168,7 +168,7 @@ class FakeFactorCorrectionEvaluator:
 
         assert isinstance(correction, cs.CorrectionSet), "Correction must be of type correctionlib.schemav2.CorrectionSet"
 
-        variable = corr_variable if isinstance(corr_variable, str) else corr_variable[-1]
+        variable = corr_variable if isinstance(corr_variable, str) else corr_variable[0]
         literal = correction.json().replace('"', r'\"')
 
         log.info(f"Loading fake factor correction from string for process {process}")
@@ -201,8 +201,8 @@ class FakeFactorCorrectionEvaluator:
         self.for_DRtoSR = "for_DRtoSR" if for_DRtoSR else ""
 
         self.process = process
-        if not isinstance(corr_variable, str) and isinstance(corr_variable[-1], str):
-            self.variable = corr_variable[-1]
+        if not isinstance(corr_variable, str) and isinstance(corr_variable[0], str):
+            self.variable = corr_variable[0]
             self.var_dependences = corr_variable
         else:
             self.variable = corr_variable
