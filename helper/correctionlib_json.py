@@ -606,10 +606,15 @@ def generate_correction_corrlib(
     compound_inputs = {}
     compound_inputs_splits = {}
 
+    class UniqueList(list):
+        def unique_append(self, item):
+            if item not in self:
+                self.append(item)
+
     for process in corrections:
         compound_correction_names[process] = []
         compound_inputs[process] = []
-        compound_inputs_splits[process] = []
+        compound_inputs_splits[process] = UniqueList()
 
         for correction in corrections[process]:
             if "non_closure" in correction and not for_DRtoSR:
@@ -654,7 +659,7 @@ def generate_correction_corrlib(
             if "non_closure" in correction:
                 compound_correction_names[process].append(f"{process}_{correction}_correction")
                 if is_2D:
-                    compound_inputs_splits[process].append(
+                    compound_inputs_splits[process].unique_append(
                         cs.Variable(
                             name=split_variables[0],
                             type=gd.variable_type[split_variables[0]],
