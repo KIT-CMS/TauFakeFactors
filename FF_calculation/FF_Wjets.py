@@ -568,8 +568,9 @@ def DR_SR_correction(
     corr_config: Dict[str, Union[str, Dict]],
     sample_paths: List[str],
     output_path: str,
+    process: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     logger: str,
     **kwargs,
 ) -> Dict[str, np.ndarray]:
@@ -582,7 +583,7 @@ def DR_SR_correction(
         sample_paths: List of file paths where the samples are stored
         output_path: Path where the generated plots should be stored
         evaluator: Evaluator with Wjets fake factors
-        corr_evaluator: Evaluator with corrections to Wjets fake factors
+        corr_evaluators: List of evaluators with corrections to Wjets fake factors
         logger: Name of the logger that should be used
 
     Return:
@@ -642,10 +643,16 @@ def DR_SR_correction(
             )
 
             rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
-            rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
+            # additionally evaluate the previous corrections
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_ARlike = corr_evaluator.evaluate_correction(
+                    rdf=rdf_ARlike,
+                )
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+
             rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff",
-                f"weight * Wjets_fake_factor * Wjets_ff_corr_{corr_evaluator.variable}",
+                "weight_ff", f"weight * {process}_fake_factor{corr_str}"
             )
 
             # redirecting C++ stdout for Report() to python stdout

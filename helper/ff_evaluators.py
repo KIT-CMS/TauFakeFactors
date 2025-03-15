@@ -143,7 +143,7 @@ class FakeFactorCorrectionEvaluator:
                 f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json",
             )
 
-        variable = corr_variable if isinstance(corr_variable, str) else corr_variable[-1]
+        variable = corr_variable if isinstance(corr_variable, str) else corr_variable[0]
 
         correctionlib.register_pyroot_binding()
         log.info(f"Loading fake factor correction file {path} for process {process}")

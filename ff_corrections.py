@@ -208,7 +208,9 @@ def run_non_closure_for_DRtoSR(
     """
 
     process, config, corr_config, sample_paths, output_path = args
+    assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
     log = logging.getLogger(f"ff_corrections.{process}")
+    corrections = {process: dict()}
 
     process_config = deepcopy(corr_config["target_processes"][process])
     if ("DR_SR" in process_config and "non_closure" in process_config["DR_SR"]):
@@ -220,45 +222,77 @@ def run_non_closure_for_DRtoSR(
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
-        temp_conf = copy.deepcopy(config)
-        func.modify_config(
-            config=temp_conf,
-            corr_config=process_config["DR_SR"],
-            process=process,
-            to_AR_SR=False,
-        )
-
-        closure_correction = list(process_config["DR_SR"]["non_closure"])[0]
-        func.modify_config(
-            config=temp_conf,
-            corr_config=process_config["DR_SR"]["non_closure"][closure_correction],
-            process=process,
-            to_AR_SR=False,
-        )
-
-        assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
-        try:
-            log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_correction}.")
+        
+        all_non_closure_corr_vars, correction_set = [], None
+        for idx, (closure_corr, _corr_config) in enumerate(
+            process_config["DR_SR"]["non_closure"].items(),
+        ):
+            
+            log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_corr}.")
             log.info("-" * 50)
-            result = non_closure_correction(
+            temp_conf = copy.deepcopy(config)
+            func.modify_config(
                 config=temp_conf,
-                corr_config=corr_config,
-                sample_paths=sample_paths,
-                output_path=output_path,
+                corr_config=process_config["DR_SR"],
                 process=process,
-                closure_variable=closure_correction,
-                evaluator=evaluator,
-                corr_evaluators=[],
-                for_DRtoSR=True,
-                logger=f"ff_corrections.{process}",
+                to_AR_SR=False,
             )
-        except KeyError:
-            raise ValueError(f"Process {process} not known!")
+
+            if "split_categories" in _corr_config:
+                split_variables = list(_corr_config["split_categories"].keys())
+                assert len(split_variables) == 1, "Only one split variable is supported"
+                all_non_closure_corr_vars.append((closure_corr, split_variables[0]))
+            else:
+                all_non_closure_corr_vars.append(closure_corr)
+            
+            func.modify_config(
+                config=temp_conf,
+                corr_config=process_config["DR_SR"]["non_closure"][closure_corr],
+                process=process,
+                to_AR_SR=False,
+            )
+
+            corr_evaluators = []
+
+            for n in range(idx):
+                assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
+                corr_evaluators.append(
+                    FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
+                        correction=correction_set,
+                        process=process,
+                        corr_variable=all_non_closure_corr_vars[n],
+                        for_DRtoSR=True,
+                        logger=f"ff_corrections.{process}",
+                    )
+                )
+            try:
+                result = non_closure_correction(
+                    config=temp_conf,
+                    corr_config=corr_config,
+                    sample_paths=sample_paths,
+                    output_path=output_path,
+                    process=process,
+                    closure_variable=closure_corr,
+                    evaluator=evaluator,
+                    corr_evaluators=corr_evaluators,
+                    for_DRtoSR=True,
+                    logger=f"ff_corrections.{process}",
+                )
+            except KeyError:
+                raise ValueError(f"Process {process} not known!")
+            
+            corrections[process]["non_closure_" + closure_corr] = result
+            
+            correction_set = corrlib.generate_correction_corrlib(
+                config=corr_config,
+                corrections=corrections,
+                for_DRtoSR=True,
+            )
     else:
         log.info(f"Target process {process} has no closure correction for DR to SR calculation defined.")
-        result, closure_correction = None, None
+        result = None
 
-    return args, (result, closure_correction)
+    return args, func.remove_empty_keys(corrections)
 
 
 def run_correction(
@@ -308,7 +342,7 @@ def run_correction(
                 to_AR_SR=False,
             )
 
-            corr_evaluators = list()
+            corr_evaluators = []
 
             for n in range(idx):
                 assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
@@ -354,20 +388,33 @@ def run_correction(
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
-        corr_evaluator = FakeFactorCorrectionEvaluator.loading_from_file(
-            config=config,
-            process=process,
-            corr_variable=list(corr_config["target_processes"][process]["DR_SR"]["non_closure"].keys())[0],
-            for_DRtoSR=True,
-            logger=f"ff_corrections.{process}",
-        )
+        
+        corr_evaluators = []
+        DR_SR_config = corr_config["target_processes"][process]["DR_SR"]
+        
+        for corr_var in DR_SR_config["non_closure"].keys():
+            non_closure_corr_vars_DR_SR = corr_var
+            if "split_categories" in DR_SR_config["non_closure"][corr_var]:
+                split_variables = list(DR_SR_config["non_closure"][corr_var]["split_categories"].keys())
+                assert len(split_variables) == 1, "Only one split variable is supported"
+                non_closure_corr_vars_DR_SR = (corr_var, split_variables[0])
+            
+            corr_evaluators.append(
+                FakeFactorCorrectionEvaluator.loading_from_file(
+                    config=config,
+                    process=process,
+                    corr_variable=non_closure_corr_vars_DR_SR,
+                    for_DRtoSR=True,
+                    logger=f"ff_corrections.{process}",
+                )
+            )
 
         log.info(f"Calculating DR to SR correction for the {process} process.")
         log.info("-" * 50)
         temp_conf = copy.deepcopy(config)
         func.modify_config(
             config=temp_conf,
-            corr_config=corr_config["target_processes"][process]["DR_SR"],
+            corr_config=DR_SR_config,
             process=process,
             to_AR_SR=True,
         )
@@ -380,7 +427,7 @@ def run_correction(
                 output_path=save_path_plots,
                 process=process,
                 evaluator=evaluator,
-                corr_evaluator=corr_evaluator,
+                corr_evaluators=corr_evaluators,
                 logger=f"ff_corrections.{process}",
             )
         except KeyError:
@@ -475,9 +522,9 @@ if __name__ == "__main__":
                 function=run_non_closure_for_DRtoSR,
             )
 
-            for args, (result, closure_correction) in results:
+            for args, result in results:
                 if result is not None:
-                    DR_SR_corrections[args[0]]["non_closure_" + closure_correction] = result
+                    DR_SR_corrections.update(result)
         else:
             raise Exception("No target processes are defined!")
 

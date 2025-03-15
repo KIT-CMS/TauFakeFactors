@@ -436,7 +436,7 @@ def DR_SR_correction(
     output_path: str,
     process: str,
     evaluator: FakeFactorEvaluator,
-    corr_evaluator: FakeFactorCorrectionEvaluator,
+    corr_evaluators: List[FakeFactorCorrectionEvaluator],
     logger: str,
     **kwargs,
 ) -> Dict[str, np.ndarray]:
@@ -450,7 +450,7 @@ def DR_SR_correction(
         output_path: Path where the generated plots should be stored
         process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
         evaluator: Evaluator with QCD fake factors
-        corr_evaluator: Evaluator with corrections to QCD fake factors
+        corr_evaluators: List of evaluators with corrections to QCD fake factors
         logger: Name of the logger that should be used
 
     Return:
@@ -511,10 +511,16 @@ def DR_SR_correction(
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
-            rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
+            
+            # additionally evaluate the previous corrections
+            corr_str = ""
+            for corr_evaluator in corr_evaluators:
+                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
+                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff",
-                f"weight * {process}_fake_factor * {process}_ff_corr_{corr_evaluator.variable}",
+                f"weight * {process}_fake_factor{corr_str}",
             )
 
         # redirecting C++ stdout for Report() to python stdout
