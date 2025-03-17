@@ -6,7 +6,7 @@ import array
 import copy
 import logging
 from io import StringIO
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, Union, Tuple
 
 import numpy as np
 import ROOT
@@ -14,7 +14,6 @@ from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
-from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
 import configs.general_definitions as gd
 
 
@@ -465,7 +464,7 @@ def DR_SR_correction(
         evaluator,
         corr_evaluators,
     ) = args
-    
+
     log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
@@ -493,9 +492,7 @@ def DR_SR_correction(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         # redirecting C++ stdout for Report() to python stdout
         out = StringIO()
         with pipes(stdout=out, stderr=STDOUT):
@@ -513,14 +510,12 @@ def DR_SR_correction(
             region_cuts=region_conf,
         )
 
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
             rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
-            
+
             # additionally evaluate the previous corrections
             corr_str = ""
             for corr_evaluator in corr_evaluators:

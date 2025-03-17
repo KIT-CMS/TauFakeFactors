@@ -216,12 +216,12 @@ def run_non_closure_for_DRtoSR(
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
-        
+
         all_non_closure_corr_vars, correction_set = [], None
         for idx, (closure_corr, _corr_config) in enumerate(
             process_config["DR_SR"]["non_closure"].items(),
         ):
-            
+
             log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_corr}.")
             log.info("-" * 50)
             temp_conf = copy.deepcopy(config)
@@ -238,7 +238,7 @@ def run_non_closure_for_DRtoSR(
                 all_non_closure_corr_vars.append((closure_corr, split_variables[0]))
             else:
                 all_non_closure_corr_vars.append(closure_corr)
-            
+
             func.modify_config(
                 config=temp_conf,
                 corr_config=process_config["DR_SR"]["non_closure"][closure_corr],
@@ -274,9 +274,9 @@ def run_non_closure_for_DRtoSR(
                 )
             except KeyError:
                 raise ValueError(f"Process {process} not known!")
-            
+
             corrections[process]["non_closure_" + closure_corr] = result
-            
+
             correction_set = corrlib.generate_correction_corrlib(
                 config=corr_config,
                 corrections=corrections,

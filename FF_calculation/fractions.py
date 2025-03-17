@@ -6,7 +6,7 @@ import array
 import copy
 import logging
 from io import StringIO
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, List, Tuple
 
 import ROOT
 from wurlitzer import STDOUT, pipes
