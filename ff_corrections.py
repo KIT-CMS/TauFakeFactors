@@ -164,17 +164,17 @@ def run_non_closure_correction(
         Dictionary with the process name as key and a dictionary with the corrections
     """
 
-    log = logger
+    log = logging.getLogger(logger)
     corrections = {process: {}}
     all_non_closure_corr_vars, correction_set = [], None
     for idx, (closure_corr, _corr_config) in enumerate(
         process_config["non_closure"].items(),
     ):
+        temp_conf = copy.deepcopy(config)
 
         if for_DRtoSR:
             log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_corr}.")
             log.info("-" * 50)
-            temp_conf = copy.deepcopy(config)
             func.modify_config(
                 config=temp_conf,
                 corr_config=process_config,
