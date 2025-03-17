@@ -164,20 +164,15 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-        try:
-            log.info(
-                f"Calculating fake factors for the SR-DR correction for the {process} process."
-            )
-            log.info("-" * 50)
-            result = FF_calculation(
-                config=temp_conf,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                process=process,
-                logger=f"ff_corrections.{process}",
-            )
-        except KeyError:
-            raise ValueError(f"Process {process} not known!")
+        log.info(f"Calculating fake factors for the SR-DR correction for the {process} process.")
+        log.info("-" * 50)
+        result = FF_calculation(
+            config=temp_conf,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            process=process,
+            logger=f"ff_corrections.{process}",
+        )
     else:
         log.info(f"Target process {process} has no DR to SR calculation defined.")
         result = None
