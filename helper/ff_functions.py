@@ -19,7 +19,7 @@ def controlplot_samples(
     add_qcd: bool = True,
 ) -> List[str]:
     """
-    Returns the list of samples that should be used for the control plots (Wjets FFs).
+    Returns the list of samples that should be used for the control plots.
 
     Args:
         use_embedding: Boolean to use embedding or MC for genuine tau processes
