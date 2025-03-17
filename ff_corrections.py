@@ -136,16 +136,34 @@ def non_closure_correction(
 
 
 def run_non_closure_correction(
-    config,
-    process_config,
-    process,
-    evaluator,
-    sample_paths,
-    output_path,
-    corr_config,
-    for_DRtoSR,
-    logger,
+    config: Dict[str, Union[str, Dict, List]],
+    corr_config: Dict[str, Union[str, Dict]],
+    process_config: Dict[str, Union[str, Dict]],
+    process: str,
+    evaluator: FakeFactorEvaluator,
+    sample_paths: List[str],
+    output_path: str,
+    for_DRtoSR: bool,
+    logger: str,
 ):
+    """
+    Function to calculate the non closure corrections for a given process.
+
+    Args:
+        config: Dictionary with information for fake factor calculation
+        corr_config: A dictionary with information for calculating corrections
+        process_config: A dictionary with information for calculating corrections for the specific process
+        process: Name of the process
+        evaluator: Fake factor evaluator
+        sample_paths: List of file paths where samples are stored
+        output_path: Path where generated plots are stored
+        for_DRtoSR: If True closure correction for the DR to SR correction will be calculated
+        logger: Name of the logger that should be used
+
+    Return:
+        Dictionary with the process name as key and a dictionary with the corrections
+    """
+
     log = logger
     corrections = {process: {}}
     all_non_closure_corr_vars, correction_set = [], None
@@ -153,7 +171,7 @@ def run_non_closure_correction(
         process_config["non_closure"].items(),
     ):
 
-        if for_DRtoSR,
+        if for_DRtoSR:
             log.info(f"Calculating closure correction for the DR to SR correction of the {process} process dependent on {closure_corr}.")
             log.info("-" * 50)
             temp_conf = copy.deepcopy(config)
@@ -187,32 +205,30 @@ def run_non_closure_correction(
                     correction=correction_set,
                     process=process,
                     corr_variable=all_non_closure_corr_vars[n],
-                    for_DRtoSR=True,
+                    for_DRtoSR=for_DRtoSR,
                     logger=f"ff_corrections.{process}",
                 )
             )
-        try:
-            result = non_closure_correction(
-                config=temp_conf,
-                corr_config=corr_config,
-                sample_paths=sample_paths,
-                output_path=output_path,
-                process=process,
-                closure_variable=closure_corr,
-                evaluator=evaluator,
-                corr_evaluators=corr_evaluators,
-                for_DRtoSR=True,
-                logger=f"ff_corrections.{process}",
-            )
-        except KeyError:
-            raise ValueError(f"Process {process} not known!")
+
+        result = non_closure_correction(
+            config=temp_conf,
+            corr_config=corr_config,
+            sample_paths=sample_paths,
+            output_path=output_path,
+            process=process,
+            closure_variable=closure_corr,
+            evaluator=evaluator,
+            corr_evaluators=corr_evaluators,
+            for_DRtoSR=for_DRtoSR,
+            logger=f"ff_corrections.{process}",
+        )
 
         corrections[process]["non_closure_" + closure_corr] = result
 
         correction_set = corrlib.generate_correction_corrlib(
             config=corr_config,
             corrections=corrections,
-            for_DRtoSR=True,
+            for_DRtoSR=for_DRtoSR,
         )
 
     return corrections
@@ -228,7 +244,7 @@ def run_ff_calculation_for_DRtoSR(
     ]
 ) -> Union[Dict, None]:
     """
-    This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process.
+    This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process for the DR to SR correction region.
 
     Args:
         args: Tuple with a process name, a configuration for this process, a configration for the correction for this process, a list of all sample paths and a path for the output
@@ -263,7 +279,7 @@ def run_ff_calculation_for_DRtoSR(
     return args, result
 
 
-def run_non_closure_for_DRtoSR(
+def run_non_closure_correction_for_DRtoSR(
     args: Tuple[
         str,
         Dict[str, Union[Dict, List, str]],
@@ -273,10 +289,15 @@ def run_non_closure_for_DRtoSR(
     ]
 ) -> Union[Dict, None]:
     """
-    This function can be used for multiprocessing. It runs the non closure correction calculation step for a specified process.
+    This function can be used for multiprocessing. It prepares and runs the non closure correction calculation step for a specified process for the DR to SR correction region.
 
     Args:
         args: Tuple with a process name, a configuration for this process, a configration for the correction for this process, a list of all sample paths and a path for the output
+            process: Name of the process
+            config: Dictionary with information for fake factor calculation
+            corr_config: Dictionary with information for the correction calculation
+            sample_paths: List of file paths where samples are stored
+            output_path: Path where generated plots are
 
     Return:
         If a non closure correction for the DR to SR correction is defined for the "process"
@@ -303,12 +324,12 @@ def run_non_closure_for_DRtoSR(
         corrections.update(
             run_non_closure_correction(
                 config=config,
+                corr_config=corr_config,
                 process_config=process_config["DR_SR"],
                 process=process,
                 evaluator=evaluator,
                 sample_paths=sample_paths,
                 output_path=output_path,
-                corr_config=corr_config,
                 for_DRtoSR=True,
                 logger=f"ff_corrections.{process}",
             )
@@ -322,6 +343,20 @@ def run_non_closure_for_DRtoSR(
 def run_correction(
     args,
 ) -> Dict[str, Dict[str, Any]]:
+    """
+    Function to calculate the fake factor corrections for a given process.
+
+    Args:
+        args: Tuple containing all the necessary information for the calculation of the fake factors
+            process: Name of the process
+            config: Dictionary with information for fake factor calculation
+            corr_config: Dictionary with information for the correction calculation
+            sample_paths: List of file paths where samples are stored
+            save_path_plots: Path where generated plots are stored
+
+    Return:
+        Dictionary with the process name as key and a dictionary with the corrections
+    """
     (
         process,
         config,
@@ -347,12 +382,12 @@ def run_correction(
         corrections.update(
             run_non_closure_correction(
                 config=config,
+                corr_config=corr_config,
                 process_config=corr_config["target_processes"][process],
                 process=process,
                 evaluator=evaluator,
                 sample_paths=sample_paths,
                 output_path=save_path_plots,
-                corr_config=corr_config,
                 for_DRtoSR=False,
                 logger=f"ff_corrections.{process}",
             )
@@ -366,17 +401,17 @@ def run_correction(
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}",
         )
-        
+
         corr_evaluators = []
         DR_SR_conf = corr_config["target_processes"][process]["DR_SR"]
-        
+
         for corr_var in DR_SR_conf["non_closure"].keys():
             non_closure_corr_vars_DR_SR = corr_var
             if "split_categories" in DR_SR_conf["non_closure"][corr_var]:
                 split_variables = list(DR_SR_conf["non_closure"][corr_var]["split_categories"].keys())
                 assert len(split_variables) == 1, "Only one split variable is supported"
                 non_closure_corr_vars_DR_SR = (corr_var, split_variables[0])
-            
+
             corr_evaluators.append(
                 FakeFactorCorrectionEvaluator.loading_from_file(
                     config=config,
@@ -396,7 +431,7 @@ def run_correction(
             process=process,
             to_AR_SR=True,
         )
-        
+
         if "split_categories" in DR_SR_conf:
             split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
                 categories=DR_SR_conf["split_categories"],
@@ -518,7 +553,7 @@ if __name__ == "__main__":
                     (process, config, corr_config, sample_paths, save_path_plots)
                     for process in corr_config["target_processes"]
                 ],
-                function=run_non_closure_for_DRtoSR,
+                function=run_non_closure_correction_for_DRtoSR,
             )
 
             for args, result in results:
