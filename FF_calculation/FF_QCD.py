@@ -223,7 +223,6 @@ def non_closure_correction(
             binning: List of bin edges for the dependent variable
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the correction calculation
-            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
             process: Name of the process
             closure_variable: Name of the variable the correction is calculated for
             split_variables: List of variables that are used for the category splitting
@@ -239,7 +238,6 @@ def non_closure_correction(
         binning,
         config,
         correction_conf,
-        process_conf,
         process,
         closure_variable,
         split_variables,
@@ -260,13 +258,16 @@ def non_closure_correction(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the non closure correction for {process}.")
+        if split is not None:
+            log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+        else:
+            log.info(f"Processing {sample} for the non closure correction for {process}.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
-        region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
+        region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -284,7 +285,7 @@ def non_closure_correction(
         log.info("-" * 50)
 
         # event filter for QCD application-like region
-        region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
+        region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -396,10 +397,10 @@ def non_closure_correction(
             era=config["era"],
             channel=config["channel"],
             process=process,
-            region="non_closure_" + closure_variable + add_str,
+            region=f"non_closure_{closure_variable}{add_str}",
             data="data_subtracted",
             samples=["data_ff"],
-            category=split if split is not None else {"incl": ""},
+            category={"incl": ""} if split is None else split,
             output_path=output_path,
             logger=logger,
             yscale=yscale,
@@ -413,10 +414,10 @@ def non_closure_correction(
             era=config["era"],
             channel=config["channel"],
             process=process,
-            region="non_closure_" + closure_variable + add_str + "_SRlike_hist",
+            region=f"non_closure_{closure_variable}{add_str}_SRlike_hist",
             data="data",
             samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
-            category=split if split is not None else {"incl": ""},
+            category={"incl": ""} if split is None else split,
             output_path=output_path,
             logger=logger,
             yscale=yscale,
@@ -430,57 +431,65 @@ def non_closure_correction(
 
 
 def DR_SR_correction(
-    config: Dict[str, Union[str, Dict, List]],
-    corr_config: Dict[str, Union[str, Dict]],
-    sample_paths: List[str],
-    output_path: str,
-    process: str,
-    evaluator: FakeFactorEvaluator,
-    corr_evaluators: List[FakeFactorCorrectionEvaluator],
-    logger: str,
-    **kwargs,
+    args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
     """
-    This function calculates DR to SR corrections for fake factors for QCD.
+    This function calculates DR to SR correction for fake factors for QCD.
+
+    Intended to be used in a multiprocessing environment.
 
     Args:
-        config: A dictionary with all the relevant information for the fake factor calculation
-        corr_config: A dictionary with all the relevant information for calculating corrections to the measured fake factors
-        sample_paths: List of file paths where the samples are stored
-        output_path: Path where the generated plots should be stored
-        process: This is relevant for QCD because for the tt channel two different QCD fake factors are calculated, one for each hadronic tau
-        evaluator: Evaluator with QCD fake factors
-        corr_evaluators: List of evaluators with corrections to QCD fake factors
-        logger: Name of the logger that should be used
-
-    Return:
-        Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+        args: Tuple containing all the necessary information for the calculation of the DR to SR correction
+            split: Dictionary containing the category information
+            binning: List of bin edges for the dependent variable
+            config: Dictionary with all the relevant information for the fake factor calculation
+            correction_conf: Dictionary with all the relevant information for the correction calculation
+            process: Name of the process
+            split_variables: List of variables that are used for the category splitting
+            sample_paths: List of file paths where the samples are stored
+            output_path: Path where the generated plots should be stored
+            logger: Name of the logger that should be used
+            evaluator: Evaluator with QCD fake factors
+            corr_evaluators: List of evaluators with corrections to QCD fake factors
     """
+    (
+        split,
+        binning,
+        config,
+        correction_conf,
+        process,
+        split_variables,
+        sample_paths,
+        output_path,
+        logger,
+        evaluator,
+        corr_evaluators,
+    ) = args
+    
     log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
 
-    # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
-    correction_conf = corr_config["target_processes"][process]["DR_SR"]
-
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the DR to SR correction for {process}.")
+        if split is not None:
+            log.info(f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+        else:
+            log.info(f"Processing {sample} for the DR to SR correction for {process}.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
-        region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
+        region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
@@ -495,12 +504,12 @@ def DR_SR_correction(
         log.info("-" * 50)
 
         # event filter for QCD application-like region
-        region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
+        region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
@@ -531,8 +540,7 @@ def DR_SR_correction(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning = array.array("d", correction_conf["var_bins"])
-        nbinsx = len(correction_conf["var_bins"]) - 1
+        xbinning, nbinsx = array.array("d", binning), len(binning) - 1
 
         # making the histograms
         h = rdf_SRlike.Histo1D(
@@ -577,7 +585,7 @@ def DR_SR_correction(
 
     smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=correction_conf["var_bins"],
+        bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
     )
 
@@ -590,7 +598,9 @@ def DR_SR_correction(
         channel=config["channel"],
         process=process,
         output_path=output_path,
+        category=split,
         logger=logger,
+        save_data=True,
     )
 
     plot_hists = dict()
@@ -609,7 +619,7 @@ def DR_SR_correction(
             region="DR_SR",
             data="data_subtracted",
             samples=["data_ff"],
-            category={"incl": ""},
+            category={"incl": ""} if split is None else split,
             output_path=output_path,
             logger=logger,
             yscale=yscale,
@@ -625,11 +635,14 @@ def DR_SR_correction(
             region="DR_SR" + "_SRlike_hist",
             data="data",
             samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
-            category={"incl": ""},
+            category={"incl": ""} if split is None else split,
             output_path=output_path,
             logger=logger,
             yscale=yscale,
             save_data=save_data,
         )
 
-    return correction_dict
+    if split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    else:
+        return correction_dict

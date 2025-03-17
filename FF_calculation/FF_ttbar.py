@@ -369,7 +369,6 @@ def non_closure_correction(
             binning: List of bin edges for the dependent variable
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the non closure correction
-            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
             process: Name of the process
             closure_variable: Name of the variable for which the non closure correction is calculated
             split_variables: List of variables that are used for the category splitting
@@ -388,7 +387,6 @@ def non_closure_correction(
         binning,
         config,
         correction_conf,
-        process_conf,
         process,
         closure_variable,
         split_variables,
@@ -410,15 +408,16 @@ def non_closure_correction(
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "ttbar_J":
-            log.info(
-                f"Processing {sample} for the non closure correction for {process}."
-            )
+            if split is not None:
+                log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+            else:
+                log.info(f"Processing {sample} for the non closure correction for {process}.")
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for ttbar signal region
-            region_conf = copy.deepcopy(process_conf["SR_cuts"])
+            region_conf = copy.deepcopy(config["target_processes"][process]["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
                 rdf=rdf,
                 channel=config["channel"],
@@ -438,7 +437,7 @@ def non_closure_correction(
             log.info("-" * 50)
 
             # event filter for ttbar application region
-            region_conf = copy.deepcopy(process_conf["AR_cuts"])
+            region_conf = copy.deepcopy(config["target_processes"][process]["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
                 rdf=rdf,
                 channel=config["channel"],

@@ -92,7 +92,6 @@ def non_closure_correction(
     """
 
     # get process specific config information
-    process_conf = copy.deepcopy(config["target_processes"][process])
     if for_DRtoSR:
         correction_conf = corr_config["target_processes"][process]["DR_SR"]["non_closure"][closure_variable]
     else:
@@ -115,7 +114,6 @@ def non_closure_correction(
                 binning,
                 config,
                 correction_conf,
-                process_conf,
                 process,
                 closure_variable,
                 split_variables,
@@ -208,12 +206,13 @@ def run_non_closure_for_DRtoSR(
     """
 
     process, config, corr_config, sample_paths, output_path = args
-    assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
     log = logging.getLogger(f"ff_corrections.{process}")
     corrections = {process: dict()}
 
     process_config = deepcopy(corr_config["target_processes"][process])
     if ("DR_SR" in process_config and "non_closure" in process_config["DR_SR"]):
+        assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
+
         var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
         evaluator = FakeFactorEvaluator.loading_from_file(
             config=config,
@@ -292,7 +291,7 @@ def run_non_closure_for_DRtoSR(
         log.info(f"Target process {process} has no closure correction for DR to SR calculation defined.")
         result = None
 
-    return args, func.remove_empty_keys(corrections)
+    return args, corrections
 
 
 def run_correction(
@@ -390,12 +389,12 @@ def run_correction(
         )
         
         corr_evaluators = []
-        DR_SR_config = corr_config["target_processes"][process]["DR_SR"]
+        DR_SR_conf = corr_config["target_processes"][process]["DR_SR"]
         
-        for corr_var in DR_SR_config["non_closure"].keys():
+        for corr_var in DR_SR_conf["non_closure"].keys():
             non_closure_corr_vars_DR_SR = corr_var
-            if "split_categories" in DR_SR_config["non_closure"][corr_var]:
-                split_variables = list(DR_SR_config["non_closure"][corr_var]["split_categories"].keys())
+            if "split_categories" in DR_SR_conf["non_closure"][corr_var]:
+                split_variables = list(DR_SR_conf["non_closure"][corr_var]["split_categories"].keys())
                 assert len(split_variables) == 1, "Only one split variable is supported"
                 non_closure_corr_vars_DR_SR = (corr_var, split_variables[0])
             
@@ -414,24 +413,45 @@ def run_correction(
         temp_conf = copy.deepcopy(config)
         func.modify_config(
             config=temp_conf,
-            corr_config=DR_SR_config,
+            corr_config=DR_SR_conf,
             process=process,
             to_AR_SR=True,
         )
-
-        try:
-            corrections[process]["DR_SR"] = DR_SR_CORRECTION_FUNCTIONS[process](
-                config=temp_conf,
-                corr_config=corr_config,
-                sample_paths=sample_paths,
-                output_path=save_path_plots,
-                process=process,
-                evaluator=evaluator,
-                corr_evaluators=corr_evaluators,
-                logger=f"ff_corrections.{process}",
+        
+        if "split_categories" in DR_SR_conf:
+            split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+                categories=DR_SR_conf["split_categories"],
+                binning=DR_SR_conf["var_bins"],
             )
-        except KeyError:
-            raise ValueError(f"Process {process} not known or DR to SR correction not defined!")
+        else:
+            split_variables = []
+            split_combinations = [None]
+            split_binnings = [DR_SR_conf["var_bins"]]
+
+        results = func.optional_process_pool(
+            args_list=[
+                (
+                    split,
+                    binning,
+                    config,
+                    DR_SR_conf,
+                    process,
+                    split_variables,
+                    sample_paths,
+                    save_path_plots,
+                    f"ff_corrections.{process}",
+                    evaluator,
+                    corr_evaluators,
+                )
+                for split, binning in zip(split_combinations, split_binnings)
+            ],
+            function=DR_SR_CORRECTION_FUNCTIONS[process],
+        )
+
+        if len(split_combinations) == 1 and split_combinations[0] is None:
+            corrections[process]["DR_SR"] = results[0]
+        else:
+            corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_variables)
 
     return corrections
 
@@ -489,7 +509,7 @@ if __name__ == "__main__":
             else:
                 raise Exception("No target processes are defined!")
 
-            ff_DRtoSR = corrlib.generate_ff_corrlib_json(
+            corrlib.generate_ff_corrlib_json(
                 config=config,
                 ff_functions=fake_factors,
                 fractions=None,
@@ -528,9 +548,9 @@ if __name__ == "__main__":
         else:
             raise Exception("No target processes are defined!")
 
-        non_closure_DRtoSR_corrections = corrlib.generate_correction_corrlib(
+        corrlib.generate_correction_corrlib(
             config=corr_config,
-            corrections=DR_SR_corrections,
+            corrections=func.remove_empty_keys(DR_SR_corrections),
             output_path=save_path_plots,
             for_DRtoSR=True,
         )
