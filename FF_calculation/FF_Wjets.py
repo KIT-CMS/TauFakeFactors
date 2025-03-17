@@ -425,7 +425,7 @@ def non_closure_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=None,
+            category_cuts=split,
             region_cuts=region_conf,
         )
 
@@ -516,6 +516,7 @@ def non_closure_correction(
         process=process,
         output_path=output_path,
         logger=logger,
+        category=split,
     )
 
     plot_hists = dict()

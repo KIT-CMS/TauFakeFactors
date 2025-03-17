@@ -406,7 +406,7 @@ if __name__ == "__main__":
     func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
 
     with open(save_path_plots + "/config.yaml", "w") as config_file:
-        yaml.dump(corr_config, config_file, default_flow_style=False)
+        yaml.dump(corr_config, config_file, default_flow_style=False, sort_keys=False)
 
     # start output logging
     func.setup_logger(
