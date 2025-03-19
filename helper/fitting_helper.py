@@ -279,7 +279,7 @@ def get_default_limit_kwargs(
     if isinstance(limit_y, tuple) and limit_y == _no_limit_default:
         msg = " ".join(
             [
-                f"No custom limit_y was provided, using default of (0.0, float('inf')) for ",
+                "No custom limit_y was provided, using default of (0.0, float('inf')) for ",
                 "nominal, up and down functions",
             ],
         )
@@ -297,10 +297,10 @@ def get_default_limit_kwargs(
 
 
 def get_wrapped_functions_from_fits(
-    graph: ROOT.TGraphAsymmErrors,
     bounds: Tuple[float, float],
-    ff_hist_up: ROOT.TH1,
-    ff_hist_down: ROOT.TH1,
+    ff_hist: ROOT.TGraphAsymmErrors,
+    ff_hist_up: ROOT.TGraphAsymmErrors,
+    ff_hist_down: ROOT.TGraphAsymmErrors,
     do_mc_subtr_unc: bool,
     logger: str,
     function_collection: Union[List[Callable], Tuple[Callable, ...]] = ("poly_1",),
@@ -320,10 +320,10 @@ def get_wrapped_functions_from_fits(
     (nominal, nominal + error, nominal - error) for the best fit.
 
     Args:
-        graph (ROOT.TGraphAsymmErrors): The graph to fit.
         bounds (Tuple[float, float]): The bounds for the fit.
-        ff_hist_up (ROOT.TH1): Histogram for the upward variation of the fit.
-        ff_hist_down (ROOT.TH1): Histogram for the downward variation of the fit.
+        ff_hist (ROOT.TGraphAsymmErrors): Histogram for the nominal fit.
+        ff_hist_up (ROOT.TGraphAsymmErrors): Histogram for the upward variation of the fit.
+        ff_hist_down (ROOT.TGraphAsymmErrors): Histogram for the downward variation of the fit.
         do_mc_subtr_unc (bool): Whether to consider MC subtraction.
         logger (str): Logger name for logging fit information.
         function_collection (Tuple[str, ...], optional):
@@ -372,7 +372,7 @@ def get_wrapped_functions_from_fits(
         func, _, _ = _functions[func_collection_name]
         func_name, n_params = func.__name__, func.__n_param__
         TF1s[func_name] = ROOT.TF1(func_name, func, a, b, n_params)
-        Fits[func_name] = graph.Fit(TF1s[func_name], "SFN")
+        Fits[func_name] = ff_hist.Fit(TF1s[func_name], "SFN")
 
         try:
             chi2_over_ndf = Fits[func_name].Chi2() / Fits[func_name].Ndf()
@@ -394,8 +394,7 @@ def get_wrapped_functions_from_fits(
                         ],
                     )
                 ),
-            )
-            and len(function_collection) > 1
+            ) and len(function_collection) > 1
         ):
             chi2_over_ndf = float("inf")
 

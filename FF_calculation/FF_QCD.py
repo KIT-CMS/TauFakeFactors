@@ -15,6 +15,7 @@ from wurlitzer import STDOUT, pipes
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 import configs.general_definitions as gd
+from helper.hooks_and_patches import PatchedRDataFrame
 
 
 def calculation_QCD_FFs(
@@ -106,14 +107,14 @@ def calculation_QCD_FFs(
         nbinsx = len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = PatchedRDataFrame(rdf_SRlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = PatchedRDataFrame(rdf_ARlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -157,7 +158,7 @@ def calculation_QCD_FFs(
         ARlike=ARlike_hists,
     )
     # performing the fit and calculating the fit uncertainties
-    fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
+    ff_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
         bin_edges=binning,
         logger=logger,
@@ -168,9 +169,11 @@ def calculation_QCD_FFs(
         ),
     )
 
+    import ipdb; ipdb.set_trace()
+
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
-        ff_ratio=FF_hist,
+        ff_ratio=ff_draw_obj,
         uncertainties=fit_graphs,
         era=config["era"],
         channel=config["channel"],
@@ -181,6 +184,9 @@ def calculation_QCD_FFs(
         draw_option=used_fit,
         save_data=True,
     )
+    
+    import ipdb; ipdb.set_trace()
+
 
     # producing some control plots
     for _hist, _region in [
