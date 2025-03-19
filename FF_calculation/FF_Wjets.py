@@ -17,6 +17,7 @@ from wurlitzer import STDOUT, pipes
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 import configs.general_definitions as gd
+from helper.hooks_and_patches import PatchedRDataFrame
 
 
 def calculation_Wjets_FFs(
@@ -157,14 +158,14 @@ def calculation_Wjets_FFs(
         nbinsx = len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = PatchedRDataFrame(rdf_SRlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = PatchedRDataFrame(rdf_ARlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -172,14 +173,14 @@ def calculation_Wjets_FFs(
         ARlike_hists[sample] = h.GetValue()
 
         # making the histograms for QCD estimation
-        h_qcd = rdf_SRlike_qcd.Histo1D(
+        h_qcd = PatchedRDataFrame(rdf_SRlike_qcd).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
-        h_qcd = rdf_ARlike_qcd.Histo1D(
+        h_qcd = PatchedRDataFrame(rdf_ARlike_qcd).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -226,7 +227,7 @@ def calculation_Wjets_FFs(
         SRlike=SRlike_hists, ARlike=ARlike_hists
     )
     # performing the fit and calculating the uncertainties
-    fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
+    ff_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
         bin_edges=binning,
         logger=logger,
@@ -239,7 +240,7 @@ def calculation_Wjets_FFs(
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
-        ff_ratio=FF_hist,
+        ff_ratio=ff_draw_obj,
         uncertainties=fit_graphs,
         era=config["era"],
         channel=config["channel"],

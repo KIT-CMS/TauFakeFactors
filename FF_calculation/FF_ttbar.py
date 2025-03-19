@@ -15,6 +15,7 @@ from wurlitzer import STDOUT, pipes
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 import configs.general_definitions as gd
+from helper.hooks_and_patches import PatchedRDataFrame
 
 
 def calculation_ttbar_FFs(
@@ -111,7 +112,7 @@ def calculation_ttbar_FFs(
             nbinsx = len(binning) - 1
 
             # making the histograms
-            h = rdf_SR.Histo1D(
+            h = PatchedRDataFrame(rdf_SR).Histo1D(
                 (
                     process_conf["var_dependence"],
                     f"{sample}",
@@ -123,7 +124,7 @@ def calculation_ttbar_FFs(
             )
             SR_hists[sample] = h.GetValue()
 
-            h = rdf_AR.Histo1D(
+            h = PatchedRDataFrame(rdf_AR).Histo1D(
                 (
                     process_conf["var_dependence"],
                     f"{sample}",
@@ -143,7 +144,7 @@ def calculation_ttbar_FFs(
         ARlike=ARlike_hists,
     )
     # performing the fit and calculating the uncertainties
-    fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
+    ff_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=FF_hist.Clone(),
         bin_edges=binning,
         logger=logger,
@@ -156,7 +157,7 @@ def calculation_ttbar_FFs(
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
-        ff_ratio=FF_hist,
+        ff_ratio=ff_draw_obj,
         uncertainties=fit_graphs,
         era=config["era"],
         channel=config["channel"],
@@ -316,23 +317,23 @@ def calculation_FF_data_scaling_factor(
         log.info("-" * 50)
 
         # make yield histograms for FF data correction
-        h = rdf_SRlike.Histo1D(
+        h = PatchedRDataFrame(rdf_SRlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = PatchedRDataFrame(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         # make yield histograms for QCD estimation
-        h_qcd = rdf_SRlike_qcd.Histo1D(
+        h_qcd = PatchedRDataFrame(rdf_SRlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
-        h_qcd = rdf_ARlike_qcd.Histo1D(
+        h_qcd = PatchedRDataFrame(rdf_ARlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()

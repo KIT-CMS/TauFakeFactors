@@ -169,8 +169,6 @@ def calculation_QCD_FFs(
         ),
     )
 
-    import ipdb; ipdb.set_trace()
-
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
         ff_ratio=ff_draw_obj,
@@ -184,9 +182,6 @@ def calculation_QCD_FFs(
         draw_option=used_fit,
         save_data=True,
     )
-    
-    import ipdb; ipdb.set_trace()
-
 
     # producing some control plots
     for _hist, _region in [
