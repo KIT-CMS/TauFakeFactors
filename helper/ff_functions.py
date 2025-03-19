@@ -2,45 +2,177 @@
 Collection of helpful functions for the fake factor calculation scripts
 """
 
+import logging
 import array
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
 
+import itertools as itt
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 
 
+def controlplot_samples(
+    use_embedding: bool,
+    add_qcd: bool = True,
+) -> List[str]:
+    """
+    Returns the list of samples that should be used for the control plots.
+
+    Args:
+        use_embedding: Boolean to use embedding or MC for genuine tau processes
+        add_qcd: Add QCD samples to the collection of samples to be plotted.
+
+    Returns:
+        List of samples used for controlplots
+    """
+    samples = [
+        "diboson_J",
+        "diboson_L",
+        "Wjets",
+        "ttbar_J",
+        "ttbar_L",
+        "DYjets_J",
+        "DYjets_L",
+        "ST_J",
+        "ST_L",
+    ]
+    if add_qcd:
+        samples.append("QCD")
+
+    if use_embedding:
+        samples.append("embedding")
+    else:
+        samples.extend(["diboson_T", "ttbar_T", "DYjets_T", "ST_T"])
+
+    return samples
+
+
+def fill_corrlib_expression(
+    item: Union[List[dict], dict],
+    split_variables: List[str],
+    split: Union[None, dict] = None,
+):
+    """
+    This function fills the correctionlib expressions with the results from the fake factor
+    calculation, process fraction or non-closure correction calculation (if a split is
+    provided). If a Dictionary is provided, the function will fill the correctionlib 
+    expressions for each category cut combination. If a List is provided, the function will
+    fill a Dictionary with the individual results.
+
+    Args:
+        item (Union[List[dict], dict]): Results from the fake factor calculation, process
+                                        fraction or non-closure correction calculation
+        split_variables (List[str]): List of variables the categories are defined in
+        split (Union[None, dict], optional): Dictionary with the category cut combinations.
+                                             Defaults to None.
+
+    Returns:
+        Dict: Dictionary with the filled correctionlib expressions    
+    """
+    results = {}
+    if split is not None and not isinstance(item, list) and isinstance(item, dict):  # Single result from multiprocessing
+        keys = [f"{var}#{split[var]}" for var in split_variables]
+        if len(keys) == 1:
+            results[keys[0]] = item
+        elif len(keys) == 2:
+            results.setdefault(keys[0], {})[keys[1]] = item
+        else:
+            raise Exception("Something went wrong with the category splitting.")
+
+    elif split is None and isinstance(item, list) and all(isinstance(it, dict) for it in item):  # Multiple results from multiprocessing
+        for it in item:
+            if len(split_variables) == 1:
+                results.update(it)
+            elif len(split_variables) == 2:
+                key = list(it.keys())[0]
+                results.setdefault(key, {}).update(it[key])
+    else:
+        raise ValueError("Item can only be a list (of dictionaries) or a dictionary")
+
+    return results
+
+
 def get_split_combinations(
-    categories: Dict[str, List[str]]
-) -> Tuple[List[str], List[Dict[str, str]]]:
+    categories: Dict[str, List[str]],
+    binning: Union[
+        List[float],
+        Dict[str, List[float]],
+        Dict[str, Dict[str, List[float]]],
+        None,
+    ],
+    convert_binning_to_dict: bool = False,
+) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
     """
     This function generates a dictionary for all category cut combinations.
     Categories can be defined based on one or two variables (more are not supported).
     Each variable has a list of cuts it should be split into.
 
+    Further, if binning for individual categories is provided, the function will return the
+    binning for each category cut combination.
+    If binning is a list, the same binning is used for all category cut combinations.
+    If binning is a dictionary, the binning is defined for each variable separately, where
+    the first variable is the key of the first dictionary and the second variable is the key of the second dictionary.
+
+    In case of two variables, the binning needs to be defined at least for the first variable,
+    the second splitting variable can be defined in a nested dictionary, if not then the default binning of first
+    variable is used for the second variable.
+
     Args:
         categories: Dictionary with the category definitions
+        binning: Binning for the dependent variable
+        convert_binning_to_dict: Boolean to convert the binning to a dictionary of binnings at the end
 
     Return:
         1. List of variables the categories are defined in,
         2. List of all combinations of variable splits
+        3. List of binning for each category cut combination
     """
-    combinations = list()
+    combinations, binnings = [], []
     split_variables = list(categories.keys())
 
-    if len(split_variables) == 1:
-        for n in categories[split_variables[0]]:
-            combinations.append({split_variables[0]: n})
-    elif len(split_variables) == 2:
-        for n in categories[split_variables[0]]:
-            for m in categories[split_variables[1]]:
-                combinations.append({split_variables[0]: n, split_variables[1]: m})
-    else:
-        raise Exception("Category splitting is only defined up to 2 dimensions.")
+    assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
 
-    return split_variables, combinations
+    combinations = [
+        dict(zip(split_variables, v))
+        for v in itt.product(*(categories[_v] for _v in split_variables))
+    ]
+
+    assert len(combinations) > 0, "No category combinations defined"
+
+    if isinstance(binning, list):
+        binnings = [binning] * len(combinations)
+    elif isinstance(binning, dict):
+        for values in (c.values() for c in combinations):
+            values = list(values)
+            _binning = binning.get(values[0])
+            if len(values) == 1:
+                binnings.append(_binning)
+            elif len(values) == 2 and isinstance(_binning, dict):
+                binnings.append(_binning.get(values[1]))
+            elif len(values) == 2 and isinstance(_binning, list):
+                logging.warning(f"Using default binning for {values} of {_binning}")
+                binnings.append(_binning)
+            else:
+                raise Exception("Invalid type for binning")
+    else:
+        raise Exception("Invalid type for binning")
+
+    assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
+
+    if convert_binning_to_dict:
+        _binnings = {}
+        for split, _binning in zip(combinations, binnings):
+            keys = [f"{var}#{split[var]}" for var in split_variables]
+            if len(keys) == 1:
+                _binnings.update({keys[0]: _binning})
+            elif len(keys) == 2:
+                _binnings.setdefault(keys[0], {})[keys[1]] = _binning
+        binnings = _binnings
+
+    return split_variables, combinations, binnings
 
 
 def apply_region_filters(

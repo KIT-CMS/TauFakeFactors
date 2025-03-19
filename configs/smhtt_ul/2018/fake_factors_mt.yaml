@@ -15,7 +15,7 @@ target_processes:
       lep_mt: (mt_1 < 50)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) > 0)
-      lep_iso: ((iso_1 > 0.05) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.05) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
@@ -25,13 +25,17 @@ target_processes:
       lep_mt: (mt_1 < 50)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) > 0)
-      lep_iso: ((iso_1 > 0.05) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.05) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
     var_dependence: pt_2
-    var_bins: [30, 35, 40, 50, 65, 80, 115]
-    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+    # in case of individual splitting
+    var_bins: 
+      "==0": [30, 35, 40, 50, 60, 70, 110]
+      "==1": [30,     40,     60,     110]
+      ">=2": [30,     40,     60,     110]
+    fit_option: "binwise"
 
   Wjets:
     split_categories:
@@ -40,8 +44,8 @@ target_processes:
         - "==1"
         - ">=2"
       deltaR_ditaupair:
-        - "<3"
-        - ">=3"
+        - "<=3"
+        - ">3"
     split_categories_binedges:
       njets: [-0.5, 0.5, 1.5, 12.5]
       deltaR_ditaupair: [0.0, 3.0, 10.0]
@@ -52,7 +56,7 @@ target_processes:
       lep_mt: (mt_1 > 70)
       nbtag: (nbtag == 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
@@ -62,13 +66,16 @@ target_processes:
       lep_mt: (mt_1 > 70)
       nbtag: (nbtag == 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
     var_dependence: pt_2
-    var_bins: [30, 35, 40, 50, 65, 80, 115]
-    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+    var_bins:
+      "==0": [30, 35, 40, 45, 50, 60, 70, 90, 110]
+      "==1": [30, 35, 40,     50,     70,     110]
+      ">=2": [30, 35, 40,     50,     70,     110]
+    fit_option: "binwise"
 
   ttbar:
     split_categories:
@@ -84,7 +91,7 @@ target_processes:
       lep_mt: (mt_1 < 70)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
@@ -94,7 +101,7 @@ target_processes:
       lep_mt: (mt_1 < 70)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
@@ -104,7 +111,7 @@ target_processes:
       lep_mt: (mt_1 < 70)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5))'
 
@@ -114,13 +121,13 @@ target_processes:
       lep_mt: (mt_1 < 70)
       nbtag: (nbtag >= 0)
       tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       # -------------------------------------------
       no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5))'
 
     var_dependence: pt_2
-    var_bins: [30, 35, 40, 50, 65, 80, 115]
-    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3", "poly_4", "poly_5"]
+    var_bins: [30, 40, 50, 70, 110]
+    fit_option: "binwise"
 
 process_fractions:
   processes: ["QCD", "Wjets", "ttbar_J"]
@@ -139,7 +146,7 @@ process_fractions:
     lep_mt: (mt_1 < 70)
     nbtag: (nbtag >= 0)
     tau_pair_sign: ((q_1*q_2) < 0)
-    lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+    lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
   AR_cuts:
@@ -148,10 +155,10 @@ process_fractions:
     lep_mt: (mt_1 < 70)
     nbtag: (nbtag >= 0)
     tau_pair_sign: ((q_1*q_2) < 0)
-    lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+    lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5)
 
   var_dependence: mt_1
-  var_bins: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+  var_bins: [0, 10, 20, 30, 40, 50, 60, 70]
 

@@ -1,14 +1,25 @@
 import ROOT
 
-### For fake factor fits ###
+#### For fake factor fits ####
 
 default_fit_options = {
     "QCD": "poly_1",
     "Wjets": "poly_1",
-    "ttbar": "poly_1", 
+    "ttbar": "poly_1",
 }
 
-### For plotting ###
+
+def get_default_fit_function_limit_kwargs(binning):
+    return {
+        "limit_x": {
+            "nominal": (binning[0], binning[-1]),
+            "up": (-float("inf"), float("inf")),
+            "down": (-float("inf"), float("inf")),
+        },
+    }
+
+
+#### For plotting ####
 
 # label definitions for y-axis
 FF_YAxis = {

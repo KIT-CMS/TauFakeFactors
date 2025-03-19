@@ -2,15 +2,97 @@
 Collection of helpful functions for other scripts
 """
 
+import concurrent.futures
 import glob
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
+import numpy as np
 import ROOT
 import yaml
 from XRootD import client
+
+
+class RuntimeVariables(object):
+    """
+    A singleton-like container class holding variables that can be adjusted at runtime.
+
+    Attributes:
+        USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
+    """
+    USE_MULTIPROCESSING = True
+
+    def __new__(cls) -> "RuntimeVariables":
+        if not hasattr(cls, "instance"):
+            cls.instance = super(RuntimeVariables, cls).__new__(cls)
+            return cls.instance
+
+
+def remove_empty_keys(data: Union[Dict, List, Any]) -> Union[Dict, List, Any]:
+    """
+    Recursively remove keys from a dictionary whose values are:
+        * empty lists
+        * empty dictionaries
+        * empty numpy arrays.
+    arrays/lists with at least one element are retained.
+
+    Args:
+        data (dict, list, or any): Input data to filter.
+
+    Returns:
+        Filtered data without empty lists, dicts, numpy arrays.
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            cleaned_value = remove_empty_keys(value)
+            if isinstance(cleaned_value, np.ndarray) and cleaned_value.size > 0:
+                new_dict[key] = cleaned_value
+            elif isinstance(cleaned_value, (list, dict)) and cleaned_value:
+                new_dict[key] = cleaned_value
+        return new_dict
+    elif isinstance(data, list):
+        new_list = [remove_empty_keys(item) for item in data]
+        filtered = []
+        for item in new_list:
+            if isinstance(item, np.ndarray) and item.size > 0:
+                filtered.append(item)
+            elif isinstance(item, (list, dict)) and item:
+                filtered.append(item)
+        return filtered
+    else:
+        return data
+
+
+def optional_process_pool(
+    args_list: List[Tuple[Any, ...]],
+    function: Callable,
+    max_workers: Union[int, None] = None,
+) -> List[Any]:
+    """
+    Running a function with a list of arguments in parallel using multiprocessing if
+    the list of arguments is longer than one and multiprocessing is enabled.
+
+    Args:
+        args_list: List of tuples with arguments for the function
+        function: Function to be executed
+        max_workers: Number of workers to be used in the multiprocessing pool (default: None)
+
+    Return:
+        List of results of the function
+
+    """
+
+    if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
+        results = [function(args) for args in args_list]
+    else:
+        n = max_workers if max_workers is not None else len(args_list)
+        with concurrent.futures.ProcessPoolExecutor(max_workers=n) as executor:
+            results = list(executor.map(function, args_list))
+
+    return results
 
 
 def load_config(config_file: str) -> Dict:

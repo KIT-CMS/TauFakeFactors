@@ -6,7 +6,6 @@ import argparse
 import yaml
 import os
 import logging
-import concurrent.futures
 from typing import Dict, Union, List, Tuple
 
 import FF_calculation.FF_QCD as FF_QCD
@@ -15,6 +14,7 @@ import FF_calculation.FF_ttbar as FF_ttbar
 from FF_calculation.fractions import fraction_calculation
 import helper.correctionlib_json as corrlib
 import helper.functions as func
+import helper.ff_functions as ff_func
 
 parser = argparse.ArgumentParser()
 
@@ -24,10 +24,116 @@ parser.add_argument(
     help="Path to the config file which contains information for the fake factor calculation step.",
 )
 
+parser.add_argument(
+    "--disable-multiprocessing",
+    action="store_true",
+    help="Flag to disable multiprocessing for debugging purposes.",
+)
+
+FF_CALCULATION_FUNCTIONS = {
+    "QCD": FF_QCD.calculation_QCD_FFs,
+    "QCD_subleading": FF_QCD.calculation_QCD_FFs,
+    "Wjets": FF_Wjets.calculation_Wjets_FFs,
+    "ttbar": FF_ttbar.calculation_ttbar_FFs,
+    "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
+    "process_fractions": fraction_calculation,
+    "process_fractions_subleading": fraction_calculation,
+}
+
+FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS = {
+    **{k: lambda *args, **kwargs: (None, None) for k in {
+        "QCD",
+        "QCD_subleading",
+        "Wjets",
+        "process_fractions",
+        "process_fractions_subleading",
+    }
+    },  # only necessary for ttbar and ttbar_subleading
+    "ttbar": FF_ttbar.calculation_FF_data_scaling_factor,
+    "ttbar_subleading": FF_ttbar.calculation_FF_data_scaling_factor,
+}
+
+
+def FF_calculation(
+    config: Dict[str, Union[str, Dict, List]],
+    sample_paths: List[str],
+    output_path: str,
+    process: str,
+    logger: str,
+) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
+    """
+    This function calculates fake factors for a given process or fractions of the processes.
+
+    Args:
+        config: A dictionary with all the relevant information for the fake factor calculation
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        process: Process for which the fake factors are calculated
+        logger: Name of the logger that should be used
+
+    Return:
+        Dictionary where the categories are defined as keys and and the values are the fitted functions (including variations)
+        e.g. corrlib_expressions[CATEGORY_1][CATEGORY_2][VARIATION] if dimension of categories is 2
+    """
+
+    is_fraction = "fraction" in process
+    split_limit = 1 if is_fraction else 2
+
+    process_conf = config[process] if is_fraction else config["target_processes"][process]
+
+    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+        categories=process_conf["split_categories"],
+        binning=process_conf["var_bins"],
+    )
+
+    assert len(split_variables) <= split_limit, f"Category splitting of {process} is only defined up to {split_limit} dimensions."
+
+    try:
+        SRlike_hists, ARlike_hists = FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS[process](
+            config=config,
+            process_conf=process_conf,
+            sample_paths=sample_paths,
+            process=process,
+            logger=logger,
+        )
+        results = func.optional_process_pool(
+            args_list=[
+                (
+                    split,
+                    binning,
+                    config,
+                    process_conf,
+                    process,
+                    split_variables,
+                    sample_paths,
+                    output_path,
+                    logger,
+                    SRlike_hists,
+                    ARlike_hists,
+                )
+                for split, binning in zip(split_combinations, split_binnings)
+            ],
+            function=FF_CALCULATION_FUNCTIONS[process],
+        )
+    except KeyError:
+        raise Exception(f"Target process: Such a process is not known: {process}")
+
+    if is_fraction:
+        fractions = dict()
+        for result in results:
+            fractions.update(result)
+
+        return ff_func.get_yields_from_hists(
+            hists=fractions,
+            processes=config[process]["processes"],
+        )
+    else:
+        return ff_func.fill_corrlib_expression(results, split_variables)
+
 
 def run_ff_calculation(
     args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
-) -> Dict:
+) -> Tuple[Tuple, Dict]:
     """
     This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process.
 
@@ -40,31 +146,24 @@ def run_ff_calculation(
     process, config, sample_paths, output_path = args
     log = logging.getLogger(f"ff_calculation.{process}")
 
-    ff_calculation_functions = {
-        "QCD": FF_QCD.calculation_QCD_FFs,
-        "QCD_subleading": FF_QCD.calculation_QCD_FFs,
-        "Wjets": FF_Wjets.calculation_Wjets_FFs,
-        "ttbar": FF_ttbar.calculation_ttbar_FFs,
-        "ttbar_subleading": FF_ttbar.calculation_ttbar_FFs,
-        "process_fractions": fraction_calculation,
-        "process_fractions_subleading": fraction_calculation,
-    }
-    try:
-        log.info(f"Calculating fake factors for the {process} process.")
-        log.info("-" * 50)
-        return ff_calculation_functions[process](
+    log.info(f"Calculating fake factors for the {process} process.")
+    log.info("-" * 50)
+    return (
+        args,
+        FF_calculation(
             config=config,
             sample_paths=sample_paths,
             output_path=output_path,
             process=process,
             logger=f"ff_calculation.{process}",
-        )
-    except KeyError:
-        raise Exception(f"Target process: Such a process is not known: {process}")
+        ),
+    )
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)
@@ -102,10 +201,6 @@ if __name__ == "__main__":
     func.check_categories(config=config)
 
     # initializing the fake factor calculation
-    fake_factors = dict()
-    fractions = None
-    fractions_subleading = None
-
     if "target_processes" in config:
         args_list = [
             (process, config, sample_paths, save_path_plots)
@@ -120,16 +215,19 @@ if __name__ == "__main__":
                 ("process_fractions_subleading", config, sample_paths, save_path_plots)
             )
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
-            for args, result in zip(
-                args_list, executor.map(run_ff_calculation, args_list)
-            ):
-                if args[0] in config["target_processes"]:
-                    fake_factors[args[0]] = result
-                elif args[0] == "process_fractions":
-                    fractions = result
-                elif args[0] == "process_fractions_subleading":
-                    fractions_subleading = result
+        results = func.optional_process_pool(
+            args_list=args_list,
+            function=run_ff_calculation,
+        )
+
+        fake_factors, fractions, fractions_subleading = {}, None, None
+        for args, result in results:
+            if args[0] in config["target_processes"]:
+                fake_factors[args[0]] = result
+            elif args[0] == "process_fractions":
+                fractions = result
+            elif args[0] == "process_fractions_subleading":
+                fractions_subleading = result
     else:
         raise Exception("No target processes are defined!")
 
@@ -144,7 +242,7 @@ if __name__ == "__main__":
 
     # dumping config to output directory for documentation
     with open(save_path_plots + "/config.yaml", "w") as config_file:
-        yaml.dump(config, config_file, default_flow_style=False)
+        yaml.dump(config, config_file, default_flow_style=False, sort_keys=False)
 
     with open(os.path.join(save_path_plots, "done"), "w") as done_file:
         done_file.write("")

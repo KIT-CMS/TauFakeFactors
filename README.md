@@ -21,7 +21,6 @@ parameter | type | description
   `era` | `string` | data taking era (e.g. "2018, "2017", "2016preVFP", "2016postVFP")
   `tau_vs_jet_wps` | `list` | list of tau ID vsJet working points to be written out in the preselection step (e.g. ["Medium", "VVVLoose"])
   `tau_vs_jet_wgt_wps` | `list` | list of tau ID vsJet working point scale factors to be written out in the preselection step (e.g. ["Medium"])
-  `write_corrections` | `string` | two options are available `"smoothed"` or `"binwise"` (default: `"smoothed"`); this option decides how the corrections are written out to the correctionlib json, based on a smoothed fit or just the measured histograms
 
 The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
   parameter | type | description
@@ -115,14 +114,14 @@ The FF calculation config has the following parameters:
   Each target process needs some specifications:
     parameter | type | description
     ---|---|---
-    `split_categories` | `dict` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li>implemented split variables are "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair"</li><li>at least one inclusive category needs to be specified</li></ul>
+    `split_categories` | `dict` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li> "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair" are already possible, other variables should be added during preprocessing step accordingly </li><li>at least one inclusive category needs to be specified (assuming variable is written out in preselection step)</li></ul>
     `split_categories_binedges` | `dict` | bin edge values for each `split_categories` variable <ul><li>number of bin edges should always be N(variable cuts)+1</li></ul>
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process
     `SR_cuts` | `dict` | event selections for the signal region (normally only needed for ttbar)
     `AR_cuts` | `dict` | event selections for the application region (normally only needed for ttbar)
     `var_dependence` | `string` | variable the FF measurement should depend on (normally pt of the hadronic tau e.g. `"pt_2"`)
-    `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
+    `var_bins` | `list` or `dict[list]` | bin edges for the variable specified in `var_dependence`. <br><br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in `split_categories`. <br><br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.
     `fit_options` | `list` | a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: `["poly_1"]`); futher it is possible to specify `"binwise"` which means that the histograms are written out directly without a fit 
     `limit_kwargs` | `dict` | this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0
      
@@ -135,6 +134,8 @@ The FF calculation config has the following parameters:
     `split_categories` | `dict` | see `target_processes` (only in 1D)
     `AR_cuts` | `list` | see `target_processes`
     `SR_cuts` | `list` | see `target_processes`, (optional) not needed for the fraction calculation
+
+    **Note:** When using split binning for process fraction calculations, the `var_bins` parameter can also be defined in the same manner as for `target_processes`.
   
 To run the FF calculation step, execute the python script and specify the config file (relative path possible):
 ```bash
@@ -164,7 +165,8 @@ The FF correction config has the following parameters:
     ---|---|---
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
 
-* In `target_processes` the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined. \
+* In `target_processes` the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined.
+* `split_categories` can be set for `non_closure` and `DR_SR` corrections (1D only) accordingly. `var_bins` declaration follow the specifications named in `FakeFactor calculation` section \
   Each target process needs some specifications:
     parameter | type | description
     ---|---|---
@@ -175,11 +177,13 @@ The FF correction config has the following parameters:
     parameter | type | description
     ---|---|---
     `var_dependence` | `string` | variable the FF correction measurement should depend on (e.g. `"pt_1"`)
-    `var_bins` | `list` | bin edges for the variable specified in `var_dependence`
+    `split_categories` | `dict` | Optional, analogous to `FakeFactor calculation` (only 1D).
+    `var_bins` | `list` or `dict[list]` | Analogous to `var_bins` in `FakeFactor calculation`
+    `write_corrections` | `str` | "smoothed" or "binwise"; Definition of written out correction. "smoothed" applies a gaussian density kernel.
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `AR_SR_cuts` | `dict` | event selections for a switch from the determination region to the signal/application region, this is only relevant for `DR_SR` corrections
-    `non_closure` | `dict` | this is only relevant for `DR_SR` corrections, since for this corrections additional fake factors are calculated it's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction
+    `non_closure` | `dict` | this is only relevant for `DR_SR` corrections, since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.
     
 To run the FF correction step, execute the python script and specify the config file (relative path possible):
 ```bash
@@ -194,4 +198,4 @@ The last step is to calculate all the specified corrections for the main fake fa
 ## Hints
 
 * check out `configs/general_definitions.py`, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information
-* check `ntuple_path` and `output_path` (preselection) and `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs 
+* check `ntuple_path` and `output_path` (preselection) and `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs

@@ -1,11 +1,76 @@
 import logging
+import os
 from io import StringIO
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union, Iterable
 
 import ROOT
 from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
+
+
+def save_plots_and_data(
+    output_path: str,
+    plot_filename_and_obj: Union[Tuple[str, Any], None] = None,
+    data_filename_and_obj: Union[Tuple[str, Any], None] = None,
+    plot_extensions: Iterable[str] = ("png", "pdf"),
+    data_extensions: Iterable[str] = ("root",),
+    logger: Union[logging.Logger, None] = None,
+) -> None:
+    """
+    Save plot and/or data ROOT objects to disk in designated subdirectories within the output path.
+
+    This function creates subdirectories for each file extension (e.g. "png", "pdf", "root") in the
+    provided output path if they do not already exist and saves the corresponding object there.
+    Plot objects that currently work are TCanvas objects, while data objects can be either a ROOT object
+    (e.g. a histogram) or a dictionary of ROOT objects (e.g. a dictionary of ROOT histograms).
+
+    Args:
+        output_path (str): Base directory where output subfolders (e.g. "png", "pdf", "root") will be created.
+        plot_filename_and_obj (Optional[Tuple[str, Any]]):
+            A tuple containing the base filename (without extension) and the plot object (e.g. a TCanvas) to be saved.
+            If None, no plot will be saved.
+        data_filename_and_obj (Optional[Tuple[str, Any]]):
+            A tuple containing the base filename (without extension) and the data object
+        plot_extensions (Iterable[str]): Iterable of file extensions for plot outputs. Default is ("png", "pdf").
+        data_extensions (Iterable[str]): Iterable of file extensions for data outputs. Default is ("root",).
+        logger (Optional[logging.Logger]): Logger object to which status messages will be written; if None, logging is skipped.
+
+    Returns:
+        None
+    """
+    base_filename_plot, plot_obj = "", None
+    base_filename_data, data_obj = "", None
+
+    def save_root_canvas(ext):
+        plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+
+    def save_root_hists(ext):
+        root_filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
+        root_file = ROOT.TFile(root_filepath, "RECREATE")
+        if isinstance(data_obj, dict):
+            for key, hist in data_obj.items():
+                hist.Write(key)
+        elif isinstance(data_obj, ROOT.TH1D):
+            data_obj.Write(base_filename_data)
+        root_file.Close()
+
+    tasks = []
+    if plot_filename_and_obj is not None:
+        base_filename_plot, plot_obj = plot_filename_and_obj
+        tasks.append((plot_extensions, save_root_canvas))
+    if data_filename_and_obj is not None:
+        base_filename_data, data_obj = data_filename_and_obj
+        tasks.append((data_extensions, save_root_hists))
+
+    for extensions, _func in tasks:
+        for extension in extensions:
+            os.makedirs(os.path.join(output_path, extension), exist_ok=True)
+            out = StringIO()
+            with pipes(stdout=out, stderr=STDOUT):
+                _func(extension)
+            if logger:
+                logger.info(out.getvalue())
 
 
 def plot_FFs(
@@ -19,6 +84,7 @@ def plot_FFs(
     output_path: str,
     logger: str,
     draw_option: str,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a fake factor plot.
@@ -34,6 +100,7 @@ def plot_FFs(
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
         draw_option: Based on chosen fit_option to correctly plot a fitted function or a histogram as measurement
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -99,15 +166,14 @@ def plot_FFs(
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, f"{gd.era_dict[era]}")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/ff_{process}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
-        )
-    log.info(out.getvalue())
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"ff_{variable}_{process}_{selection}"
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"{base_filename}", c),
+        data_filename_and_obj=(f"data_{base_filename}", {"ff_ratio": ff_ratio, **uncertainties}) if save_data else None,
+        logger=log,
+    )
     c.Close()
 
 
@@ -124,6 +190,7 @@ def plot_data_mc(
     output_path: str,
     logger: str,
     yscale: str = "linear",
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a data to MC control plot.
@@ -140,6 +207,8 @@ def plot_data_mc(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        yscale: String do set the scaling of the y-axis, options are "linear" or "log"
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -220,20 +289,15 @@ def plot_data_mc(
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(gd.era_dict[era]))
 
-    if data == "data_subtracted":
-        hist_str = "reduced"
-    else:
-        hist_str = "full"
-
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/hist_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
-        )
-    log.info(out.getvalue())
+    hist_str = "reduced" if data == "data_subtracted" else "full"
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"hist_{hist_str}_{variable}_{process}_{region}_{selection}"
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        logger=log,
+    )
     c.Close()
 
 
@@ -250,6 +314,7 @@ def plot_data_mc_ratio(
     output_path: str,
     logger: str,
     yscale: str = "linear",
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a data to MC control plot with a ratio plot.
@@ -266,6 +331,8 @@ def plot_data_mc_ratio(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        yscale: String do set the scaling of the y-axis, options are "linear" or "log"
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -380,23 +447,18 @@ def plot_data_mc_ratio(
     pad2.cd()
     ratio.Draw("ep")
 
-    if data == "data_subtracted":
-        hist_str = "reduced"
-    else:
-        hist_str = "full"
-
     if yscale == "log":
         c.SetLogy()
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/hist_ratio_{hist_str}_{variable}_{process}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}_{yscale}.pdf"
-        )
-    log.info(out.getvalue())
+    hist_str = "reduced" if data == "data_subtracted" else "full"
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"hist_ratio_{hist_str}_{variable}_{process}_{region}_{selection}"
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        logger=log,
+    )
     c.Close()
 
 
@@ -411,6 +473,7 @@ def plot_fractions(
     category: Dict[str, str],
     output_path: str,
     logger: str,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a fraction plot where the sum of all considered process contributions
@@ -427,6 +490,7 @@ def plot_fractions(
         category: Information about the category split is added to the plot
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -484,15 +548,14 @@ def plot_fractions(
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, f"{gd.era_dict[era]}")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(
-            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.png"
-        )
-        c.SaveAs(
-            f"{output_path}/{fraction_name}_{variable}_{region}_{'_'.join([f'{var}_{category[var]}' for var in category.keys()])}.pdf"
-        )
-    log.info(out.getvalue())
+    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    base_filename = f"fraction_{fraction_name}_{variable}_{region}_{selection}"
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"{base_filename}", c),
+        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        logger=log,
+    )
     c.Close()
 
 
@@ -506,6 +569,8 @@ def plot_correction(
     process: str,
     output_path: str,
     logger: str,
+    category: Dict[str, str] = None,
+    save_data: bool = False,
 ) -> None:
     """
     Function which produces a plot of the correction including the correction histogram
@@ -521,6 +586,8 @@ def plot_correction(
         process: Name of the target process the correction is calculated for
         output_path: Path where the plot should be stored
         logger: Name of the logger that should be used
+        category: Information about the category split is added to the plot
+        save_data: Boolean to additionally save the histograms to a root file
 
     Return:
         None
@@ -581,10 +648,14 @@ def plot_correction(
     text = ROOT.TLatex()
     text.SetNDC()
     text.SetTextSize(0.03)
+    if category is not None:
+        plot_text = f"channel: {gd.channel_dict[channel]}, {process}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}"
+    else:
+        plot_text = f"channel: {gd.channel_dict[channel]}, {process}"
     text.DrawLatex(
         0.165,
         0.917,
-        f"channel: {gd.channel_dict[channel]}, {process}",
+        plot_text,
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, "{}".format(gd.era_dict[era]))
@@ -594,9 +665,17 @@ def plot_correction(
     elif "DR_SR" in corr_name:
         text.DrawLatex(0.2, 0.8, "DR to SR correction")
 
-    out = StringIO()
-    with pipes(stdout=out, stderr=STDOUT):
-        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.png")
-        c.SaveAs(f"{output_path}/corr_{process}_{corr_name}.pdf")
-    log.info(out.getvalue())
+    selection = ""
+    if category is not None:
+        selection = '_'.join([""] + [f'{var}_{category[var]}' for var in category.keys()])
+
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", c),
+        data_filename_and_obj=(
+            f"data_corr_{process}_{corr_name}{selection}",
+            {"corr_hist": corr_hist, "corr_graph": corr_graph},
+        ) if save_data else None,
+        logger=log,
+    )
     c.Close()
