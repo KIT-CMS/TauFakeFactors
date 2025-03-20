@@ -3,18 +3,20 @@ Main script initializing the fake factor calculation
 """
 
 import argparse
-import yaml
-import os
 import logging
-from typing import Dict, Union, List, Tuple
+import os
+from typing import Dict, List, Tuple, Union
+
+import yaml
 
 import FF_calculation.FF_QCD as FF_QCD
-import FF_calculation.FF_Wjets as FF_Wjets
 import FF_calculation.FF_ttbar as FF_ttbar
-from FF_calculation.fractions import fraction_calculation
+import FF_calculation.FF_Wjets as FF_Wjets
 import helper.correctionlib_json as corrlib
-import helper.functions as func
 import helper.ff_functions as ff_func
+import helper.functions as func
+from FF_calculation.fractions import fraction_calculation
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 
 parser = argparse.ArgumentParser()
 
@@ -199,6 +201,10 @@ if __name__ == "__main__":
 
     # check binning of defined categories in the config
     func.check_categories(config=config)
+
+    func.RuntimeVariables.RDataFrameWrapper = PassThroughWrapper
+    if config.get("use_center_of_mass_bins", True):
+        func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
     # initializing the fake factor calculation
     if "target_processes" in config:

@@ -3,22 +3,24 @@ Main script initializing the fake factor correction calculation
 """
 
 import argparse
-import yaml
-import os
 import copy
 import logging
-import numpy as np
+import os
 from copy import deepcopy
-from typing import Tuple, Dict, List, Union, Any
+from typing import Any, Dict, List, Tuple, Union
+
+import numpy as np
+import yaml
 
 import FF_calculation.FF_QCD as FF_QCD
-import FF_calculation.FF_Wjets as FF_Wjets
 import FF_calculation.FF_ttbar as FF_ttbar
-import helper.ff_functions as ff_func
+import FF_calculation.FF_Wjets as FF_Wjets
 import helper.correctionlib_json as corrlib
+import helper.ff_functions as ff_func
 import helper.functions as func
-from helper.ff_evaluators import FakeFactorEvaluator, FakeFactorCorrectionEvaluator
 from ff_calculation import FF_calculation
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 
 parser = argparse.ArgumentParser()
 
@@ -500,6 +502,10 @@ if __name__ == "__main__":
     sample_paths = func.get_samples(config=config)
     if len(sample_paths) == 0:
         raise Exception("No input files found!")
+
+    func.RuntimeVariables.RDataFrameWrapper = PassThroughWrapper
+    if config.get("use_center_of_mass_bins", True):
+        func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
     ########### needed precalculations for DR to SR corrections ###########
 

@@ -6,16 +6,16 @@ import array
 import copy
 import logging
 from io import StringIO
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
+import configs.general_definitions as gd
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
-import configs.general_definitions as gd
-from helper.hooks_and_patches import Histo1DPatchedRDataFrame
+from helper.functions import RuntimeVariables
 
 
 def calculation_ttbar_FFs(
@@ -112,7 +112,7 @@ def calculation_ttbar_FFs(
             nbinsx = len(binning) - 1
 
             # making the histograms
-            h = Histo1DPatchedRDataFrame(rdf_SR).Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
                 (
                     process_conf["var_dependence"],
                     f"{sample}",
@@ -124,7 +124,7 @@ def calculation_ttbar_FFs(
             )
             SR_hists[sample] = h.GetValue()
 
-            h = Histo1DPatchedRDataFrame(rdf_AR).Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
                 (
                     process_conf["var_dependence"],
                     f"{sample}",
@@ -317,23 +317,23 @@ def calculation_FF_data_scaling_factor(
         log.info("-" * 50)
 
         # make yield histograms for FF data correction
-        h = Histo1DPatchedRDataFrame(rdf_SRlike).Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         # make yield histograms for QCD estimation
-        h_qcd = Histo1DPatchedRDataFrame(rdf_SRlike_qcd).Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
-        h_qcd = Histo1DPatchedRDataFrame(rdf_ARlike_qcd).Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
@@ -477,7 +477,7 @@ def non_closure_correction(
             nbinsx = len(binning) - 1
 
             # making the histograms
-            h = rdf_SR.Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}",
@@ -489,7 +489,7 @@ def non_closure_correction(
             )
             SR_hists[sample] = h.GetValue()
 
-            h = rdf_AR.Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}",
