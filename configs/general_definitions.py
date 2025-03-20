@@ -1,6 +1,6 @@
 import ROOT
 from typing import Union, List
-from helper.hooks_and_patches import _EXTRA_PARAM_FLAG
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
 
 #### For fake factor fits ####
 
@@ -15,16 +15,18 @@ def get_default_fit_function_limit_kwargs(
     binning: List[float],
     hist: Union[ROOT.TH1, None] = None,
 ) -> dict:
-    if hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
-        pass
-    else:
-        return {
-            "limit_x": {
-                "nominal": (binning[0], binning[-1]),
-                "up": (-float("inf"), float("inf")),
-                "down": (-float("inf"), float("inf")),
-            },
-        }
+    params = {
+        "limit_x": {
+            "nominal": (binning[0], binning[-1]),
+            "up": (-float("inf"), float("inf")),
+            "down": (-float("inf"), float("inf")),
+        },
+    }
+    if hist is not None and hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+        x, n = getattr(hist, _EXTRA_PARAM_MEANS)[-1], hist.GetNbinsX()
+        a, b = hist.GetBinLowEdge(n), hist.GetBinLowEdge(n + 1)
+        params["limit_x"]["nominal"] = (binning[0], x + min(b - x, x - a))
+    return params
 
 
 #### For plotting ####

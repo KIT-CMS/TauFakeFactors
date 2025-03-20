@@ -151,7 +151,7 @@ def calculation_ttbar_FFs(
         fit_option=process_conf.get("fit_option", gd.default_fit_options["ttbar"]),
         limit_kwargs=process_conf.get(
             "limit_kwargs",
-            gd.get_default_fit_function_limit_kwargs(binning),
+            gd.get_default_fit_function_limit_kwargs(binning=binning, hist=FF_hist),
         ),
     )
 

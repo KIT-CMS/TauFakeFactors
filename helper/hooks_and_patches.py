@@ -1,7 +1,8 @@
-import ROOT
+from itertools import islice, tee
+from typing import Any, Callable, List, Tuple, Union
+
 import numpy as np
-import warnings
-from typing import List, Tuple, Union, Any
+import ROOT
 
 _EXTRA_PARAM_MEANS = "_extra_weighted_means"
 _EXTRA_PARAM_COUNTS = "_extra_weighted_counts"
@@ -109,7 +110,7 @@ class Histo1DPatchedRDataFrame(PassThroughWrapper):
                 if len(histo_params) == 5:
                     _, _, nbins, low, high = histo_params  # dont care about name and title
                     bins = np.linspace(low, high, int(nbins) + 1)
-                elif len(histo_params) >= 4:
+                elif len(histo_params) == 4:
                     _, _, nbins, bins = histo_params  # dont care about name and title
                 else:
                     raise ValueError("Wrapper only supports 4 or 5 parameters")
@@ -139,7 +140,9 @@ class Histo1DPatchedRDataFrame(PassThroughWrapper):
 def calc_center_of_mass(
     means: List[List[float]],
     weights: List[List[float]],
+    bin_edges: List[float],
     factor: float = 1.0,
+    weights_combination_operation: Callable = lambda a, b: a + b,
 ) -> Tuple[List[float], List[float]]:
     """
     Calculate the center of mass for the given means and weights.
@@ -147,21 +150,25 @@ def calc_center_of_mass(
     Args:
         means (List[List[float]]): List of means for each bin.
         weights (List[List[float]]): List of weights for each bin.
+        bin_edges (List[float]): List of bin edges.
         factor (float): Scaling factor for the weights.
+        weights_combination_operation (Callable): Function to combine weights, default is addition.
 
     Returns:
         Tuple[List[float], List[float]]: Tuple containing the updated counts and means.
     """
     assert len(means) == len(weights) == 2, "Means and weights must be lists of two elements each."
 
+    def nwise(g, *, n=2):
+        return zip(*(islice(g, i, None) for i, g in enumerate(tee(g, n))))
+
     _counts, _means = [], []
-    for m1, m2, w1, w2 in zip(*means, *weights):
-        tot = w1 + factor * w2
-        _counts.append(tot)
-        if tot != 0:
+    for m1, m2, w1, w2, (bin_low, bin_high) in zip(*means, *weights, nwise(bin_edges, n=2)):
+        _counts.append(weights_combination_operation(w1, w2))
+        if (tot := w1 + factor * w2) != 0:
             _means.append((w1 * m1 + factor * w2 * m2) / tot)
         else:
-            _means.append(0)
+            _means.append((bin_low + bin_high) / 2)  # Default to bin center if no counts
     return _counts, _means
 
 
@@ -199,9 +206,11 @@ def patched_Add(
 
     if (hasattr(self, _EXTRA_PARAM_FLAG)):
         _counts, _means = calc_center_of_mass(
-            (getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
-            (getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
-            factor,
+            means=(getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
+            weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
+            bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
+            factor=factor,
+            weights_combination_operation=lambda a, b: a + factor * b,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
         setattr(self, _EXTRA_PARAM_MEANS, _means)
@@ -234,9 +243,11 @@ def patched_Multiply(
 
     if (hasattr(self, _EXTRA_PARAM_FLAG)):
         _counts, _means = calc_center_of_mass(
-            (getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
-            (getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
-            factor,
+            means=(getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
+            weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
+            bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
+            factor=factor,
+            weights_combination_operation=lambda a, b: a * factor * b,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
         setattr(self, _EXTRA_PARAM_MEANS, _means)
@@ -268,9 +279,11 @@ def patched_Divide(
 
     if (hasattr(self, _EXTRA_PARAM_FLAG)):
         _counts, _means = calc_center_of_mass(
-            (getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
-            (getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
-            factor,
+            means=(getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
+            weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
+            bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
+            factor=-factor,
+            weights_combination_operation=lambda a, b: a / (factor * b) if b != 0 else 0,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
         setattr(self, _EXTRA_PARAM_MEANS, _means)
@@ -298,9 +311,11 @@ def patched_Scale(
 
     if (hasattr(self, _EXTRA_PARAM_FLAG)):
         _counts, _means = calc_center_of_mass(
-            (getattr(self, _EXTRA_PARAM_MEANS), getattr(self, _EXTRA_PARAM_COUNTS)),
-            (getattr(self, _EXTRA_PARAM_COUNTS), getattr(self, _EXTRA_PARAM_COUNTS)),
-            factor,
+            means=(getattr(self, _EXTRA_PARAM_MEANS), getattr(self, _EXTRA_PARAM_COUNTS)),
+            weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(self, _EXTRA_PARAM_COUNTS)),
+            bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
+            factor=factor,
+            weights_combination_operation=lambda a, b: a * factor * b,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
         setattr(self, _EXTRA_PARAM_MEANS, _means)
