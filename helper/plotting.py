@@ -74,6 +74,27 @@ def save_plots_and_data(
                 logger.info(out.getvalue())
 
 
+def set_optional_TGraph_style_and_draw(obj: ROOT.TGraphAsymmErrors) -> None:
+    """
+    Function to set the style of a TGraphAsymmErrors object and draw it.
+
+    Args:
+        obj: TGraphAsymmErrors object to be styled and drawn.
+    """
+    n = obj.GetN()
+    if n > 0:
+        x0, y0 = array.array("d", [0.]), array.array("d", [0.])
+        xn, yn = array.array("d", [0.]), array.array("d", [0.])
+        obj.GetPoint(0, x0, y0)
+        obj.GetPoint(n - 1, xn, yn)
+        # Set x-axis limits: first point minus lower error, last point plus upper error.
+        x_low = x0[0] - obj.GetErrorXlow(0)
+        x_high = xn[0] + obj.GetErrorXhigh(n - 1)
+        obj.GetXaxis().SetLimits(x_low, x_high)
+    obj.SetLineStyle(0)  # Disable connecting lines
+    obj.Draw("AP")  # Plot the axis and markers (and errors)
+
+
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
@@ -139,20 +160,7 @@ def plot_FFs(
     ff_ratio.GetXaxis().SetTitleSize(0.05)
 
     if isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
-        n = ff_ratio.GetN()
-        if n > 0:
-            x0, y0 = array.array("d", [0.]), array.array("d", [0.])
-            xn, yn = array.array("d", [0.]), array.array("d", [0.])
-            ff_ratio.GetPoint(0, x0, y0)
-            ff_ratio.GetPoint(n - 1, xn, yn)
-            # Set the x-axis limits based on first point minus its lower error and last point plus its upper error.
-            x_low = x0[0] - ff_ratio.GetErrorXlow(0)
-            x_high = xn[0] + ff_ratio.GetErrorXhigh(n - 1)
-            ff_ratio.GetXaxis().SetLimits(x_low, x_high)
-        # Disable connecting lines
-        ff_ratio.SetLineStyle(0)  
-        # Draw the graph with "AP" to plot the axis and markers (and errors)
-        ff_ratio.Draw("AP")
+        set_optional_TGraph_style_and_draw(ff_ratio)
     else:
         ff_ratio.Draw()
 
@@ -644,7 +652,10 @@ def plot_correction(
     corr_hist.GetYaxis().SetTitleSize(0.05)
     corr_hist.GetXaxis().SetTitleSize(0.05)
 
-    corr_hist.Draw()
+    if isinstance(corr_hist, ROOT.TGraphAsymmErrors):
+        set_optional_TGraph_style_and_draw(corr_hist)
+    else:
+        corr_hist.Draw()
 
     corr_graph.SetLineWidth(2)
     corr_graph.SetLineColor(ROOT.kOrange)
