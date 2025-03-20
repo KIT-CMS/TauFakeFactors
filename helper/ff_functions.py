@@ -748,9 +748,7 @@ def smooth_function(
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
-    smooth_y = list()
-    smooth_y_up = list()
-    smooth_y_down = list()
+    smooth_y, smooth_y_up, smooth_y_down = [], [], []
 
     for b in fit_y_binned:
         smooth_y.append(np.mean(b))

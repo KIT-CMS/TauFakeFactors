@@ -1,4 +1,6 @@
 import ROOT
+from typing import Union, List
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG
 
 #### For fake factor fits ####
 
@@ -9,14 +11,20 @@ default_fit_options = {
 }
 
 
-def get_default_fit_function_limit_kwargs(binning):
-    return {
-        "limit_x": {
-            "nominal": (binning[0], binning[-1]),
-            "up": (-float("inf"), float("inf")),
-            "down": (-float("inf"), float("inf")),
-        },
-    }
+def get_default_fit_function_limit_kwargs(
+    binning: List[float],
+    hist: Union[ROOT.TH1, None] = None,
+) -> dict:
+    if hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+        pass
+    else:
+        return {
+            "limit_x": {
+                "nominal": (binning[0], binning[-1]),
+                "up": (-float("inf"), float("inf")),
+                "down": (-float("inf"), float("inf")),
+            },
+        }
 
 
 #### For plotting ####

@@ -8,14 +8,98 @@ _EXTRA_PARAM_COUNTS = "_extra_weighted_counts"
 _EXTRA_PARAM_FLAG = "_has_extra_params"
 
 
-class PatchedRDataFrame:
+class PassThroughWrapper:
+    """
+    A transparent pass-through wrapper that delegates attribute access,
+    assignment, and deletion to the wrapped object.
+
+    This wrapper does not alter the underlying object's methods or attributes.
+    If inherited from, any overridden methods or attributes in the subclass
+    will be triggered first.
+    """
+
+    def __init__(self, obj: Any) -> None:
+        """
+        Initialize with given object.
+
+        Args:
+            obj: Object to wrap.
+        """
+        object.__setattr__(self, "_obj", obj)
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Retrieve attribute 'name'. If attribute is defined on this wrapper (or its subclass),
+        that attribute is returned then. Otherwise, it is delegated to the wrapped object.
+
+        Args:
+            name: Name of the attribute to retrieve.
+
+        Returns:
+            Attribute value.
+        """
+        try: # Try to get the attribute from this instance or subclass.
+            return object.__getattribute__(self, name)
+        except AttributeError:  # Fallback: delegate to the wrapped object.
+            _obj = object.__getattribute__(self, "_obj")
+            return getattr(_obj, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Delegate setting of attribute 'name' to the wrapped object.
+
+        Args:
+            name: Name of the attribute to set.
+            value: The value to set.
+        """
+        _obj = object.__getattribute__(self, "_obj")
+        setattr(_obj, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        """
+        Delegate deletion of attribute 'name' to the wrapped object.
+
+        Args:
+            name: Name of the attribute to delete.
+        """
+        _obj = object.__getattribute__(self, "_obj")
+        delattr(_obj, name)
+
+
+class Histo1DPatchedRDataFrame(PassThroughWrapper):
+    """
+    A wrapper around ROOT.RDataFrame patching Histo1D method adding extra attributes 
+    (weighted counts and weighted means) to the produced histograms.
+    """
+
     def __init__(self, base_rdf: ROOT.RDataFrame):
-        self.base_rdf = base_rdf
+        """
+        Initialization.
 
-    def __getattr__(self, attr: str) -> Any:
-        return getattr(self.base_rdf, attr)  # any attribute not overridden shall be used
+        Args:
+            base_rdf (ROOT.RDataFrame): The original RDataFrame instance.
+        """
+        super().__init__(base_rdf)
+        self.base_rdf: ROOT.RDataFrame = base_rdf
 
-    def Histo1D(self, histo_params, x_expr, weight_expr):
+    def Histo1D(
+        self,
+        histo_params: Union[List[Any], Tuple[Any, ...]],
+        x_expr: str,
+        weight_expr: str,
+    ) -> Any:
+        """
+        Create a 1D histogram with extra attributes injecting additional processing
+        information into the histogram, replacing the original Histo1D method.
+
+        Args:
+            histo_params (Union[List, Tuple]): Parameters for the histogram (expects 4 or 5 elements).
+            x_expr (str): Expression to select the x values.
+            weight_expr (str): Expression to select the weights.
+
+        Returns:
+            ROOT.TH1: Patched histogram with extra attributes.
+        """
         hist = self.base_rdf.Histo1D(histo_params, x_expr, weight_expr)
         _GetValue = hist.GetValue
 
@@ -86,6 +170,7 @@ _original_Add = object.__getattribute__(ROOT.TH1, "Add")
 _original_Multiply = object.__getattribute__(ROOT.TH1, "Multiply")
 _original_Divide = object.__getattribute__(ROOT.TH1, "Divide")
 _original_Clone = object.__getattribute__(ROOT.TH1, "Clone")
+_original_Scale = object.__getattribute__(ROOT.TH1, "Scale")
 
 
 def patched_Add(
@@ -106,6 +191,9 @@ def patched_Add(
         self (ROOT.TH1): The histogram to which the other histogram is added.
         other (ROOT.TH1): The histogram to be added.
         factor (float): The scaling factor for the other histogram.
+
+    Returns:
+        ROOT.TH1: The histogram after addition.
     """
     _original_Add(self, other, factor)
 
@@ -132,6 +220,14 @@ def patched_Multiply(
     Calls the original Multiply (which accepts only the other histogram),
     and then updates the extra attributes (_extra_weighted_counts and _extra_weighted_means)
     using calc_center_of_mass and our supplied factor.
+
+    Args:
+        self (ROOT.TH1): The histogram to be multiplied.
+        other (ROOT.TH1): The histogram by which to multiply.
+        factor (float): The scaling factor for the other histogram.
+
+    Returns:
+        ROOT.TH1: The histogram after multiplication.
     """
     # Call original Multiply without factor (because the overload expects a single argument).
     _original_Multiply(self, other)
@@ -158,6 +254,14 @@ def patched_Divide(
     Patched version of TH1.Divide.
     Calls the original Divide (which accepts only the other histogram),
     and then updates extra attributes using calc_center_of_mass with a scaling factor.
+
+    Args:
+        self (ROOT.TH1): The histogram to be divided.
+        other (ROOT.TH1): The histogram by which to divide.
+        factor (float): The scaling factor for the other histogram.
+
+    Returns:
+        ROOT.TH1: The histogram after division.
     """
     # Call original Divide without factor.
     _original_Divide(self, other)
@@ -166,6 +270,36 @@ def patched_Divide(
         _counts, _means = calc_center_of_mass(
             (getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
             (getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
+            factor,
+        )
+        setattr(self, _EXTRA_PARAM_COUNTS, _counts)
+        setattr(self, _EXTRA_PARAM_MEANS, _means)
+        setattr(self, _EXTRA_PARAM_FLAG, True)
+
+    return self
+
+
+def patched_Scale(
+    self: ROOT.TH1,
+    factor: float,
+) -> ROOT.TH1:
+    """
+    Patched version of TH1.Scale, accepting a scaling factor only.
+    Calls the original Scale and then updates extra attributes using calc_center_of_mass.
+
+    Args:
+        self (ROOT.TH1): The histogram to scale.
+        factor (float): The scaling factor.
+
+    Returns:
+        ROOT.TH1: The scaled histogram.
+    """
+    _original_Scale(self, factor)
+
+    if (hasattr(self, _EXTRA_PARAM_FLAG)):
+        _counts, _means = calc_center_of_mass(
+            (getattr(self, _EXTRA_PARAM_MEANS), getattr(self, _EXTRA_PARAM_COUNTS)),
+            (getattr(self, _EXTRA_PARAM_COUNTS), getattr(self, _EXTRA_PARAM_COUNTS)),
             factor,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
@@ -185,6 +319,9 @@ def patched_Clone(
     Args:
         self (ROOT.TH1): The histogram to clone.
         name (str): The name of the new histogram.
+
+    Returns:
+        ROOT.TH1: The cloned histogram.
     """
     if name is not None:
         clone = _original_Clone(self, name)

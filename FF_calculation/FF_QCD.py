@@ -15,7 +15,7 @@ from wurlitzer import STDOUT, pipes
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 import configs.general_definitions as gd
-from helper.hooks_and_patches import PatchedRDataFrame
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame
 
 
 def calculation_QCD_FFs(
@@ -107,14 +107,14 @@ def calculation_QCD_FFs(
         nbinsx = len(binning) - 1
 
         # making the histograms
-        h = PatchedRDataFrame(rdf_SRlike).Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_SRlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = PatchedRDataFrame(rdf_ARlike).Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -158,20 +158,20 @@ def calculation_QCD_FFs(
         ARlike=ARlike_hists,
     )
     # performing the fit and calculating the fit uncertainties
-    ff_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
+    nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
         bin_edges=binning,
         logger=logger,
         fit_option=process_conf.get("fit_option", gd.default_fit_options["QCD"]),
         limit_kwargs=process_conf.get(
             "limit_kwargs",
-            gd.get_default_fit_function_limit_kwargs(binning),
+            gd.get_default_fit_function_limit_kwargs(binning=binning, hist=FF_hist),
         ),
     )
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
-        ff_ratio=ff_draw_obj,
+        ff_ratio=nominal_draw_obj,
         uncertainties=fit_graphs,
         era=config["era"],
         channel=config["channel"],
@@ -322,20 +322,20 @@ def non_closure_correction(
         xbinning, nbinsx = array.array("d", binning), len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_SRlike).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         if sample == "data":
-            h = rdf_ARlike.Histo1D(
+            h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}_ff",
@@ -362,7 +362,7 @@ def non_closure_correction(
         ARlike=ARlike_hists,
     )
 
-    smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
@@ -372,7 +372,7 @@ def non_closure_correction(
 
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
-        corr_hist=correction_hist,
+        corr_hist=nominal_draw_obj,
         corr_graph=smoothed_graph,
         corr_name=f"non_closure_{closure_variable}{add_str}",
         era=config["era"],
@@ -539,20 +539,20 @@ def DR_SR_correction(
         xbinning, nbinsx = array.array("d", binning), len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_SRlike).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         if sample == "data":
-            h = rdf_ARlike.Histo1D(
+            h = Histo1DPatchedRDataFrame(rdf_ARlike).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}_ff",
