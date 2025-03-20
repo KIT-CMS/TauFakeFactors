@@ -109,6 +109,7 @@ The FF calculation config has the following parameters:
     ---|---|---
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
+    `use_center_of_mass_bins` | `bool` | Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to `"binwise"` (the x-data values although displayed in plots are not used)
 
 * In `target_processes` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. \
   Each target process needs some specifications:
