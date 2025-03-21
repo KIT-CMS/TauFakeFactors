@@ -23,6 +23,7 @@ class RuntimeVariables(object):
         USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
     """
     USE_MULTIPROCESSING = True
+    RDataFrameWrapper = None
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):

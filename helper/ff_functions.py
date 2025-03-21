@@ -2,16 +2,43 @@
 Collection of helpful functions for the fake factor calculation scripts
 """
 
-import logging
 import array
-from typing import Any, Dict, List, Tuple, Union
+import itertools as itt
+import logging
+import random
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, List, Tuple, Union
 
 import numpy as np
 import ROOT
 
-import itertools as itt
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
+from configs.general_definitions import random_seed
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS, _EXTRA_PARAM_COUNTS
+
+
+@contextmanager
+def rng_seed(seed: int) -> Generator[None, None, None]:
+    """
+    Context manager to set the random seed for numpy and python random.
+    This is used to ensure reproducibility of the results (and help with debugging).
+
+    Args:
+        seed (int, optional): Seed to be used. Defaults to 19.
+
+    Yields:
+        None
+    """
+    np_rng_state, py_rng_state = np.random.get_state(), random.getstate()
+
+    np.random.seed(seed)
+    random.seed(seed)
+    try:
+        yield
+    finally:
+        np.random.set_state(np_rng_state)
+        random.setstate(py_rng_state)
 
 
 def controlplot_samples(
@@ -291,7 +318,7 @@ def QCD_SS_estimate(hists: Dict[str, Any]) -> Any:
             qcd.Add(hists[sample], -1)
 
     # check for negative bins
-    for i in range(qcd.GetNbinsX()):
+    for i in range(1, qcd.GetNbinsX() + 1):
         if qcd.GetBinContent(i) < 0.0:
             qcd.SetBinContent(i, 0.0)
 
@@ -472,13 +499,67 @@ def get_yields_from_hists(
             for p in processes:
                 h = hists[category][variation][p]
                 l = list()
-                for b in range(h.GetNbinsX()):
-                    l.append(h.GetBinContent(b + 1))
+                for b in range(1, h.GetNbinsX() + 1):
+                    l.append(h.GetBinContent(b))
                 p_fracs[p] = l
             v_fracs[variation] = p_fracs
         fracs[category] = v_fracs
 
     return fracs
+
+
+def build_TGraph(
+    hist: Union[ROOT.TH1, None] = None,
+    return_components: bool = False,
+    add_xerrors_in_graph: bool = False,
+) -> Union[ROOT.TGraphAsymmErrors, Tuple[ROOT.TGraphAsymmErrors, List[Any]], None]:
+    """
+    Function which builds a TGraph from a histogram. The TGraph is built from the bin
+    centers and the bin contents of the histogram. If the histogram is None, None is
+    returned, if the histogram has the _EXTRA_PARAM_FLAG set to True, the bin centers are
+    taken from the _EXTRA_PARAM_MEANS attribute of the histogram.
+
+    Args:
+        hist: Histogram to be converted to TGraph
+        return_components: Boolean to return the components of the TGraph as well
+        add_xerrors_in_graph: Boolean to add x errors to the TGraph, if not set, the x errors are set to 0
+    Return:
+        1. TGraph of the histogram,
+        2. List of components of the TGraph if return_components is True containing:
+            (x, y, y_err_up, y_err_down, x_err_up, x_err_down) 
+    """
+    if hist is None:
+        return None
+
+    nbins = hist.GetNbinsX()
+    x, y, y_err_up, y_err_down, x_err_up, x_err_down = [], [], [], [], [], []
+
+    for nbin in range(nbins):
+        if hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+            nominal = getattr(hist, _EXTRA_PARAM_MEANS)[nbin]
+        else:
+            nominal = hist.GetBinCenter(nbin + 1)
+        x.append(nominal)
+        x_err_down.append(nominal - hist.GetBinLowEdge(nbin + 1))
+        x_err_up.append(hist.GetBinLowEdge(nbin + 2) - nominal)
+
+        y.append(hist.GetBinContent(nbin + 1))
+        y_err_down.append(hist.GetBinErrorLow(nbin + 1))
+        y_err_up.append(hist.GetBinErrorUp(nbin + 1))
+
+    x, y = array.array("d", x), array.array("d", y)
+    y_err_up, y_err_down = array.array("d", y_err_up), array.array("d", y_err_down)
+    x_err_up, x_err_down = array.array("d", x_err_up), array.array("d", x_err_down)
+
+    if add_xerrors_in_graph:
+        args = (x, y, x_err_down, x_err_up, y_err_down, y_err_up)
+    else:
+        args = (x, y, 0, 0, y_err_down, y_err_up)
+
+    if return_components:
+        return (ROOT.TGraphAsymmErrors(nbins, *args), *args)
+    else:
+        return ROOT.TGraphAsymmErrors(nbins, *args)
 
 
 def fit_function(
@@ -487,7 +568,12 @@ def fit_function(
     logger: str,
     fit_option: Union[str, List[str]],
     limit_kwargs: Dict[str, Any],
-) -> Tuple[Dict[str, Any], Dict[str, str], str]:
+) -> Tuple[
+    Union[ROOT.TH1, ROOT.TGraphAsymmErrors],
+    Dict[str, Any],
+    Dict[str, str],
+    str,
+]:
     """
     This function performs fits of the ratio histogram. The fitted function is then used
     to produce expressions for correctionlib (including variations). Additionally graphs of
@@ -503,8 +589,9 @@ def fit_function(
                     str: "poly_n" or "binwise", where n is the order of the polynomial fit
 
     Return:
-        1. Dictionary with graphs for each variation,
-        2. Dictionary of function expressions for correctionlib (nominal and variations)
+        1. Dictionary with the fitted function for each variation,
+        2. Dictionary with graphs for each variation,
+        3. Dictionary of function expressions for correctionlib (nominal and variations)
     """
     if not isinstance(fit_option, list) and fit_option != "binwise":
         fit_option = [fit_option]
@@ -516,33 +603,15 @@ def fit_function(
     else:
         ff_hist = ff_hists
 
-    # Producing a graph based on the provided root histograms
-    nbins = ff_hist.GetNbinsX()
-    x, y, error_y_up, error_y_down = [], [], [], []
-
-    for nbin in range(nbins):
-        x.append(ff_hist.GetBinCenter(nbin + 1))
-        y.append(ff_hist.GetBinContent(nbin + 1))
-        error_y_up.append(ff_hist.GetBinErrorUp(nbin + 1))
-        error_y_down.append(ff_hist.GetBinErrorLow(nbin + 1))
-
-    x = array.array("d", x)
-    y = array.array("d", y)
-    error_y_up = array.array("d", error_y_up)
-    error_y_down = array.array("d", error_y_down)
-
-    graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
-
-    retrival_function = fitting_helper.get_wrapped_functions_from_fits
+    retrival_function, convert = fitting_helper.get_wrapped_functions_from_fits, True
     if fit_option == "binwise":
-        retrival_function = fitting_helper.get_wrapped_hists
+        retrival_function, convert = fitting_helper.get_wrapped_hists, False
 
     callable_expression, correctionlib_expression, used_fit = retrival_function(
-        graph=graph,
         bounds=(bin_edges[0], bin_edges[-1]),
-        ff_hist=ff_hist,
-        ff_hist_up=ff_hist_up,
-        ff_hist_down=ff_hist_down,
+        ff_hist=build_TGraph(ff_hist) if convert else ff_hist,
+        ff_hist_up=build_TGraph(ff_hist_up) if convert else ff_hist_up,
+        ff_hist_down=build_TGraph(ff_hist_down) if convert else ff_hist_down,
         do_mc_subtr_unc=do_mc_subtr_unc,
         logger=logger,
         function_collection=fit_option,
@@ -554,7 +623,7 @@ def fit_function(
     if do_mc_subtr_unc:
         y_fit_mc_up, y_fit_mc_down = [], []
 
-    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
+    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * ff_hist.GetNbinsX())
     for value in x_fit:
         nominal, up, down = (
             callable_expression["nominal"](value),
@@ -587,7 +656,12 @@ def fit_function(
             *_args, y_fit_mc_down, y_fit_mc_up
         )
 
-    return results, correctionlib_expression, used_fit
+    return (
+        build_TGraph(ff_hist, add_xerrors_in_graph=True) if convert else ff_hist,
+        results,
+        correctionlib_expression,
+        used_fit,
+    )
 
 
 def calculate_non_closure_correction(
@@ -612,12 +686,18 @@ def calculate_non_closure_correction(
     corr.Divide(predicted)
     hist_bins = corr.GetNbinsX()
 
-    # check for empty bins, if empty the bin value is set to 1 +/- 0.6
-    for x in range(hist_bins):
+    # check for empty bins, if empty the bin value is set to 1 +/- 1
+    for x in range(1, hist_bins + 1):
         bincontent = corr.GetBinContent(x)
         if bincontent <= 0.0:
+            if hasattr(corr, _EXTRA_PARAM_FLAG) and getattr(corr, _EXTRA_PARAM_FLAG):
+                getattr(
+                    corr,
+                    _EXTRA_PARAM_MEANS,
+                )[x - 1] = (corr.GetBinLowEdge(x) + corr.GetBinLowEdge(x + 1)) / 2
+                getattr(corr, _EXTRA_PARAM_COUNTS)[x - 1] = 1.0
             corr.SetBinContent(x, 1.0)
-            corr.SetBinError(x, 0.6)
+            corr.SetBinError(x, 1.0)
 
     return corr, frac
 
@@ -663,7 +743,10 @@ def calculate_non_closure_correction_ttbar_fromMC(
 
 
 def smooth_function(
-    hist: Any, bin_edges: List[float], write_corrections: str
+    hist: Any,
+    bin_edges: List[float],
+    write_corrections: str,
+    bandwidth: float,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -680,28 +763,18 @@ def smooth_function(
     hist_bins = hist.GetNbinsX()
 
     # transforming bin information to arrays
-    x = list()
-    y = list()
-    error_y_up = list()
-    error_y_down = list()
-    for nbin in range(hist_bins):
-        x.append(hist.GetBinCenter(nbin + 1))
-        y.append(hist.GetBinContent(nbin + 1))
-        error_y_up.append(hist.GetBinErrorUp(nbin + 1))
-        error_y_down.append(hist.GetBinErrorLow(nbin + 1))
-
-    x = array.array("d", x)
-    y = array.array("d", y)
-    error_y_up = array.array("d", error_y_up)
-    error_y_down = array.array("d", error_y_down)
+    nominal_graph, x, y, _, _, error_y_down, error_y_up = build_TGraph(
+        hist, return_components=True, add_xerrors_in_graph=True,
+    )
 
     # sampling values for y based on a normal distribution with the bin yield as mean value and with the measured statistical uncertainty
-    n_samples = 20
-    sampled_y = list()
-    for idx in range(len(x)):
-        sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
-    sampled_y = np.array(sampled_y)
-    sampled_y[sampled_y < 0.0] = 0.0
+    with rng_seed(seed=random_seed):
+        n_samples = 20
+        sampled_y = list()
+        for idx in range(len(x)):
+            sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
+        sampled_y = np.array(sampled_y)
+        sampled_y[sampled_y < 0.0] = 0.0
 
     # calculate widths
     fit_y_binned = list()
@@ -711,9 +784,8 @@ def smooth_function(
         fit_y_binned.append(list())
 
     eval_bin_edges, bin_step = np.linspace(
-        bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True
+        bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True,
     )
-    bin_range = bin_edges[-1] - bin_edges[0]
     bin_half = bin_step / 2.0
     smooth_x = (eval_bin_edges + bin_half)[:-1]
     smooth_x = array.array("d", smooth_x)
@@ -722,13 +794,11 @@ def smooth_function(
         y_arr = array.array("d", sampled_y[:, sample])
         graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", (bin_range / 5.0), n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", bandwidth, n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
-    smooth_y = list()
-    smooth_y_up = list()
-    smooth_y_down = list()
+    smooth_y, smooth_y_up, smooth_y_down = [], [], []
 
     for b in fit_y_binned:
         smooth_y.append(np.mean(b))
@@ -749,19 +819,14 @@ def smooth_function(
         _nom = np.array(smooth_y)
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
-        
+
     _nom[_nom < 0] = 0
     _up[_up < 0] = 0
     _down[_down < 0] = 0
-    
-    corr_dict = {
-            "edges": _bins,
-            "nominal": _nom,
-            "up": _up,
-            "down": _down,
-        }
+
+    corr_dict = {"edges": _bins, "nominal": _nom, "up": _up, "down": _down}
 
     smooth_graph = ROOT.TGraphAsymmErrors(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
-    return smooth_graph, corr_dict
+    return nominal_graph, smooth_graph, corr_dict

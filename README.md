@@ -109,6 +109,7 @@ The FF calculation config has the following parameters:
     ---|---|---
     `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
     `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
+    `use_center_of_mass_bins` | `bool` | Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to `"binwise"` (the x-data values although displayed in plots are not used)
 
 * In `target_processes` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. \
   Each target process needs some specifications:
@@ -180,6 +181,7 @@ The FF correction config has the following parameters:
     `split_categories` | `dict` | Optional, analogous to `FakeFactor calculation` (only 1D).
     `var_bins` | `list` or `dict[list]` | Analogous to `var_bins` in `FakeFactor calculation`
     `write_corrections` | `str` | "smoothed" or "binwise"; Definition of written out correction. "smoothed" applies a gaussian density kernel.
+    `bandwidth` | `float` | if `write_corrections` is set to `"smoothed"` this value can be set to adjust for the bandwidth used during smoothing procedure (has no effect on the result in case of `"binwise"`). If not set the default value of histogram range divided by 5 is chosen.
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `AR_SR_cuts` | `dict` | event selections for a switch from the determination region to the signal/application region, this is only relevant for `DR_SR` corrections

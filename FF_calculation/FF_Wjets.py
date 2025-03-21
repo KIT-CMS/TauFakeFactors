@@ -5,18 +5,17 @@ Function for calculating fake factors for the W-jets process
 import array
 import copy
 import logging
-
-# from collections import defaultdict
 from io import StringIO
-from typing import Any, Dict, Union, Tuple
+from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
+import configs.general_definitions as gd
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
-import configs.general_definitions as gd
+from helper.functions import RuntimeVariables
 
 
 def calculation_Wjets_FFs(
@@ -157,14 +156,14 @@ def calculation_Wjets_FFs(
         nbinsx = len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -172,14 +171,14 @@ def calculation_Wjets_FFs(
         ARlike_hists[sample] = h.GetValue()
 
         # making the histograms for QCD estimation
-        h_qcd = rdf_SRlike_qcd.Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
-        h_qcd = rdf_ARlike_qcd.Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -226,20 +225,20 @@ def calculation_Wjets_FFs(
         SRlike=SRlike_hists, ARlike=ARlike_hists
     )
     # performing the fit and calculating the uncertainties
-    fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
+    nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
         bin_edges=binning,
         logger=logger,
         fit_option=process_conf.get("fit_option", gd.default_fit_options["Wjets"]),
         limit_kwargs=process_conf.get(
             "limit_kwargs",
-            gd.get_default_fit_function_limit_kwargs(binning),
+            gd.get_default_fit_function_limit_kwargs(binning=binning, hist=FF_hist),
         ),
     )
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
-        ff_ratio=FF_hist,
+        ff_ratio=nominal_draw_obj,
         uncertainties=fit_graphs,
         era=config["era"],
         channel=config["channel"],
@@ -442,20 +441,20 @@ def non_closure_correction(
         nbinsx = len(binning) - 1
 
         # making the histograms
-        h = rdf_SRlike.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
         )
         SRlike_hists[sample] = h.GetValue()
 
-        h = rdf_ARlike.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists[sample] = h.GetValue()
 
         if sample == "data":
-            h = rdf_ARlike.Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}_ff",
@@ -468,14 +467,14 @@ def non_closure_correction(
             ARlike_hists["data_ff"] = h.GetValue()
 
         # making the histograms for QCD estimation
-        h_qcd = rdf_SRlike_qcd.Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
         )
         SRlike_hists_qcd[sample] = h_qcd.GetValue()
 
-        h_qcd = rdf_ARlike_qcd.Histo1D(
+        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
         )
         ARlike_hists_qcd[sample] = h_qcd.GetValue()
@@ -499,16 +498,20 @@ def non_closure_correction(
         ARlike=ARlike_hists,
     )
 
-    smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning),
+        )
     )
 
     add_str = "_DRtoSR" if for_DRtoSR else ""
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
-        corr_hist=correction_hist,
+        corr_hist=nominal_draw_obj,
         corr_graph=smoothed_graph,
         corr_name=f"non_closure_{closure_variable}{add_str}",
         era=config["era"],
@@ -671,7 +674,7 @@ def DR_SR_correction(
             xbinning, nbinsx = array.array("d", binning), len(binning) - 1
 
             # making the histograms
-            h = rdf_SRlike.Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}",
@@ -683,7 +686,7 @@ def DR_SR_correction(
             )
             SRlike_hists[sample] = h.GetValue()
 
-            h = rdf_ARlike.Histo1D(
+            h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
                 (
                     correction_conf["var_dependence"],
                     f"{sample}_ff",
@@ -699,15 +702,19 @@ def DR_SR_correction(
         SRlike=SRlike_hists, ARlike=ARlike_hists
     )
 
-    smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning),
+        )
     )
 
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
-        corr_hist=correction_hist,
+        corr_hist=nominal_draw_obj,
         corr_graph=smoothed_graph,
         corr_name="DR_SR",
         era=config["era"],

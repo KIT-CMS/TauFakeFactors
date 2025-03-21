@@ -1,7 +1,8 @@
+import array
 import logging
 import os
 from io import StringIO
-from typing import Any, Dict, List, Tuple, Union, Iterable
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
 import ROOT
 from wurlitzer import STDOUT, pipes
@@ -73,6 +74,27 @@ def save_plots_and_data(
                 logger.info(out.getvalue())
 
 
+def set_optional_TGraph_style_and_draw(obj: ROOT.TGraphAsymmErrors) -> None:
+    """
+    Function to set the style of a TGraphAsymmErrors object and draw it.
+
+    Args:
+        obj: TGraphAsymmErrors object to be styled and drawn.
+    """
+    n = obj.GetN()
+    if n > 0:
+        x0, y0 = array.array("d", [0.]), array.array("d", [0.])
+        xn, yn = array.array("d", [0.]), array.array("d", [0.])
+        obj.GetPoint(0, x0, y0)
+        obj.GetPoint(n - 1, xn, yn)
+        # Set x-axis limits: first point minus lower error, last point plus upper error.
+        x_low = x0[0] - obj.GetErrorXlow(0)
+        x_high = xn[0] + obj.GetErrorXhigh(n - 1)
+        obj.GetXaxis().SetLimits(x_low, x_high)
+    obj.SetLineStyle(0)  # Disable connecting lines
+    obj.Draw("AP")  # Plot the axis and markers (and errors)
+
+
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
@@ -91,7 +113,7 @@ def plot_FFs(
 
     Args:
         variable: Name of the variable the fake factor is measured in
-        ff_ratio: Histogram of the ratio (fake factor)
+        ff_ratio: Histogram of the ratio (fake factor) or TGraph
         uncertainties: Dictionary with graphs for each uncertainty/variation corresponding to "ff_ratio"
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
@@ -121,7 +143,6 @@ def plot_FFs(
 
     ff_ratio.SetMaximum(max(ff_ratio.GetMaximum() + 0.4 * ff_ratio.GetMaximum(), 0.5))
     ff_ratio.SetMinimum(0.0)
-    # ff_ratio.SetAxisRange(0, 0.5, "Y")
     ff_ratio.SetMarkerStyle(20)
     ff_ratio.SetMarkerSize(1.2)
     ff_ratio.SetLineWidth(2)
@@ -138,7 +159,11 @@ def plot_FFs(
     ff_ratio.GetYaxis().SetTitleSize(0.05)
     ff_ratio.GetXaxis().SetTitleSize(0.05)
 
-    ff_ratio.Draw()
+    if isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
+        set_optional_TGraph_style_and_draw(ff_ratio)
+    else:
+        ff_ratio.Draw()
+
     for unc in uncertainties:
         uncertainties[unc].SetLineWidth(2)
         uncertainties[unc].SetLineColor(gd.color_dict[unc])
@@ -627,7 +652,10 @@ def plot_correction(
     corr_hist.GetYaxis().SetTitleSize(0.05)
     corr_hist.GetXaxis().SetTitleSize(0.05)
 
-    corr_hist.Draw()
+    if isinstance(corr_hist, ROOT.TGraphAsymmErrors):
+        set_optional_TGraph_style_and_draw(corr_hist)
+    else:
+        corr_hist.Draw()
 
     corr_graph.SetLineWidth(2)
     corr_graph.SetLineColor(ROOT.kOrange)
