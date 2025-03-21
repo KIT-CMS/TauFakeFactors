@@ -737,7 +737,8 @@ def calculate_non_closure_correction_ttbar_fromMC(
 
 
 def smooth_function(
-    hist: Any, bin_edges: List[float],
+    hist: Any,
+    bin_edges: List[float],
     write_corrections: str,
     bandwidth: float,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
