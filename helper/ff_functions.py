@@ -697,7 +697,7 @@ def calculate_non_closure_correction(
                 )[x - 1] = (corr.GetBinLowEdge(x) + corr.GetBinLowEdge(x + 1)) / 2
                 getattr(corr, _EXTRA_PARAM_COUNTS)[x - 1] = 1.0
             corr.SetBinContent(x, 1.0)
-            corr.SetBinError(x, 0.6)
+            corr.SetBinError(x, 1.0)
 
     return corr, frac
 
