@@ -315,7 +315,7 @@ def patched_Scale(
             weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(self, _EXTRA_PARAM_COUNTS)),
             bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
             factor=factor,
-            weights_combination_operation=lambda a, b: a * factor * b,
+            weights_combination_operation=lambda a, b: factor * a,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
         setattr(self, _EXTRA_PARAM_MEANS, _means)
