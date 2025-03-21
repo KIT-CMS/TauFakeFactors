@@ -22,3 +22,4 @@ tau_vs_jet_wgt_wps:
   - VTight
 
 use_embedding: true
+use_center_of_mass_bins: true

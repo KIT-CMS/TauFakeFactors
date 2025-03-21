@@ -15,7 +15,7 @@ import ROOT
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
-from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS, _EXTRA_PARAM_COUNTS
 
 
 @contextmanager
@@ -318,7 +318,7 @@ def QCD_SS_estimate(hists: Dict[str, Any]) -> Any:
             qcd.Add(hists[sample], -1)
 
     # check for negative bins
-    for i in range(qcd.GetNbinsX()):
+    for i in range(1, qcd.GetNbinsX() + 1):
         if qcd.GetBinContent(i) < 0.0:
             qcd.SetBinContent(i, 0.0)
 
@@ -499,8 +499,8 @@ def get_yields_from_hists(
             for p in processes:
                 h = hists[category][variation][p]
                 l = list()
-                for b in range(h.GetNbinsX()):
-                    l.append(h.GetBinContent(b + 1))
+                for b in range(1, h.GetNbinsX() + 1):
+                    l.append(h.GetBinContent(b))
                 p_fracs[p] = l
             v_fracs[variation] = p_fracs
         fracs[category] = v_fracs
@@ -686,10 +686,16 @@ def calculate_non_closure_correction(
     corr.Divide(predicted)
     hist_bins = corr.GetNbinsX()
 
-    # check for empty bins, if empty the bin value is set to 1 +/- 0.6
-    for x in range(hist_bins):
+    # check for empty bins, if empty the bin value is set to 1 +/- 1
+    for x in range(1, hist_bins + 1):
         bincontent = corr.GetBinContent(x)
         if bincontent <= 0.0:
+            if hasattr(corr, _EXTRA_PARAM_FLAG) and getattr(corr, _EXTRA_PARAM_FLAG):
+                getattr(
+                    corr,
+                    _EXTRA_PARAM_MEANS,
+                )[x - 1] = (corr.GetBinLowEdge(x) + corr.GetBinLowEdge(x + 1)) / 2
+                getattr(corr, _EXTRA_PARAM_COUNTS)[x - 1] = 1.0
             corr.SetBinContent(x, 1.0)
             corr.SetBinError(x, 0.6)
 
