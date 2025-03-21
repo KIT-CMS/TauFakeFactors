@@ -366,6 +366,10 @@ def non_closure_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning, hist=correction_hist),
+        )
     )
 
     add_str = "_for_DRtoSR" if for_DRtoSR else ""
@@ -579,15 +583,19 @@ def DR_SR_correction(
         ARlike=ARlike_hists,
     )
 
-    smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning, hist=correction_hist),
+        )
     )
 
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
-        corr_hist=correction_hist,
+        corr_hist=nominal_draw_obj,
         corr_graph=smoothed_graph,
         corr_name="DR_SR",
         era=config["era"],

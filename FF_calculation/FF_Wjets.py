@@ -502,6 +502,10 @@ def non_closure_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning, hist=correction_hist),
+        )
     )
 
     add_str = "_DRtoSR" if for_DRtoSR else ""
@@ -702,6 +706,10 @@ def DR_SR_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
+        bandwidth=correction_conf.get(
+            "bandwidth",
+            gd.get_default_bandwidth(binning=binning, hist=correction_hist),
+        )
     )
 
     plotting.plot_correction(

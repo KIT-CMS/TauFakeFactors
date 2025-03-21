@@ -511,7 +511,6 @@ def get_yields_from_hists(
 def build_TGraph(
     hist: Union[ROOT.TH1, None] = None,
     return_components: bool = False,
-    convert_components_to_array: bool = True,
 ) -> Union[ROOT.TGraphAsymmErrors, Tuple[ROOT.TGraphAsymmErrors, List[Any]], None]:
     """
     Function which builds a TGraph from a histogram. The TGraph is built from the bin
@@ -553,8 +552,6 @@ def build_TGraph(
     args = (x, y, x_err_down, x_err_up, y_err_down, y_err_up)
 
     if return_components:
-        if convert_components_to_array:
-            args = tuple(array.array("d", it) for it in args)
         return (ROOT.TGraphAsymmErrors(nbins, *args), *args)
     else:
         return ROOT.TGraphAsymmErrors(nbins, *args)
@@ -735,7 +732,9 @@ def calculate_non_closure_correction_ttbar_fromMC(
 
 
 def smooth_function(
-    hist: Any, bin_edges: List[float], write_corrections: str
+    hist: Any, bin_edges: List[float],
+    write_corrections: str,
+    bandwidth: float,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -753,7 +752,7 @@ def smooth_function(
 
     # transforming bin information to arrays
     nominal_graph, x, y, _, _, error_y_down, error_y_up = build_TGraph(
-        hist, return_components=True, convert_components_to_array=True
+        hist, return_components=True,
     )
 
     # sampling values for y based on a normal distribution with the bin yield as mean value and with the measured statistical uncertainty
@@ -775,7 +774,6 @@ def smooth_function(
     eval_bin_edges, bin_step = np.linspace(
         bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True
     )
-    bin_range = bin_edges[-1] - bin_edges[0]
     bin_half = bin_step / 2.0
     smooth_x = (eval_bin_edges + bin_half)[:-1]
     smooth_x = array.array("d", smooth_x)
@@ -784,7 +782,7 @@ def smooth_function(
         y_arr = array.array("d", sampled_y[:, sample])
         graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", (bin_range / 5.0), n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", bandwidth, n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 

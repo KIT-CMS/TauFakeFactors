@@ -17,6 +17,20 @@ def get_default_fit_function_limit_kwargs(
     binning: List[float],
     hist: Union[ROOT.TH1, None] = None,
 ) -> dict:
+    """
+    Function to determine the default fit function limit kwargs for the fit function.
+    Default is set to be the binning range. If the histogram has the extra parameter flag
+    the limits are set to first bin (left edge) and the center of mass of the last bin
+    plus the minimum of the distance to the next bin edge and the distance to the previous
+    bin edge.
+
+    Args:
+        binning: List of floats defining the binning range
+        hist: Histogram object to be used for the fit function
+
+    Returns:
+        dict: Dictionary with the fit function limit kwargs
+    """
     params = {
         "limit_x": {
             "nominal": (binning[0], binning[-1]),
@@ -29,6 +43,31 @@ def get_default_fit_function_limit_kwargs(
         a, b = hist.GetBinLowEdge(n), hist.GetBinLowEdge(n + 1)
         params["limit_x"]["nominal"] = (binning[0], x + min(b - x, x - a))
     return params
+
+
+def get_default_bandwidth(
+    binning: List[float],
+    hist: Union[ROOT.TH1, None] = None,
+) -> float:
+    """
+    Function to determine the smoothness factor for the fit function, default is set to be
+    1/5 of the binning range. If the histogram has been fitted with a polynomial function
+    and the extra parameter flag is set, the smoothness factor is calculated based on the
+    fitted function and the binning range.
+
+    Args:
+        binning: List of floats defining the binning range
+        hist: Histogram object to be used for the fit function
+    Returns:
+        float: Smoothness factor for the fit function
+    """
+
+    factor = (binning[-1] - binning[0]) / 5.0
+    if hist is not None and hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+        x, n = getattr(hist, _EXTRA_PARAM_MEANS)[-1], hist.GetNbinsX()
+        a, b = hist.GetBinLowEdge(n), hist.GetBinLowEdge(n + 1)
+        factor = (x + min(b - x, x - a) - binning[0]) / 5.0
+    return factor
 
 
 #### For plotting ####

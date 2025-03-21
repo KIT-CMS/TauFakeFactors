@@ -181,6 +181,7 @@ The FF correction config has the following parameters:
     `split_categories` | `dict` | Optional, analogous to `FakeFactor calculation` (only 1D).
     `var_bins` | `list` or `dict[list]` | Analogous to `var_bins` in `FakeFactor calculation`
     `write_corrections` | `str` | "smoothed" or "binwise"; Definition of written out correction. "smoothed" applies a gaussian density kernel.
+    `bandwidth` | `float` | if `write_corrections` is set to `"smoothed"` this value can be set to adjust for the bandwidth used during smoothing procedure (has no effect on the result in case of `"binwise"`). If not set the default value of histogram range divided by 5 is chosen.
     `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
     `AR_SR_cuts` | `dict` | event selections for a switch from the determination region to the signal/application region, this is only relevant for `DR_SR` corrections
