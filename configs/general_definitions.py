@@ -47,26 +47,18 @@ def get_default_fit_function_limit_kwargs(
 
 def get_default_bandwidth(
     binning: List[float],
-    hist: Union[ROOT.TH1, None] = None,
 ) -> float:
     """
     Function to determine the smoothness factor for the fit function, default is set to be
-    1/5 of the binning range. If the histogram has been fitted with a polynomial function
-    and the extra parameter flag is set, the smoothness factor is calculated based on the
-    fitted function and the binning range.
+    1/5 of the binning range.
 
     Args:
         binning: List of floats defining the binning range
-        hist: Histogram object to be used for the fit function
     Returns:
         float: Smoothness factor for the fit function
     """
 
     factor = (binning[-1] - binning[0]) / 5.0
-    if hist is not None and hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
-        x, n = getattr(hist, _EXTRA_PARAM_MEANS)[-1], hist.GetNbinsX()
-        a, b = hist.GetBinLowEdge(n), hist.GetBinLowEdge(n + 1)
-        factor = (x + min(b - x, x - a) - binning[0]) / 5.0
     return factor
 
 

@@ -511,7 +511,7 @@ def non_closure_correction(
         write_corrections=correction_conf["write_corrections"],
         bandwidth=correction_conf.get(
             "bandwidth",
-            gd.get_default_bandwidth(binning=binning, hist=correction_hist),
+            gd.get_default_bandwidth(binning=binning),
         )
     )
 
