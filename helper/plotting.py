@@ -186,7 +186,11 @@ def plot_FFs(
     text.DrawLatex(
         0.165,
         0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+        f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.6, 0.915, f"{gd.era_dict[era]}")
@@ -309,7 +313,11 @@ def plot_data_mc(
     text.DrawLatex(
         0.23,
         0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+        f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, "{}".format(gd.era_dict[era]))
@@ -464,7 +472,11 @@ def plot_data_mc_ratio(
     text.DrawLatex(
         0.23,
         0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+        f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.65, 0.915, "{}".format(gd.era_dict[era]))
@@ -568,7 +580,11 @@ def plot_fractions(
     text.DrawLatex(
         0.23,
         0.915,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+        f"{gd.channel_dict[channel]}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        ),
     )
     text.SetTextSize(0.035)
     text.DrawLatex(0.66, 0.915, f"{gd.era_dict[era]}")
@@ -677,9 +693,13 @@ def plot_correction(
     text.SetNDC()
     text.SetTextSize(0.03)
     if category is not None:
-        plot_text = f"channel: {gd.channel_dict[channel]}, {process}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}"
+        plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        )
     else:
-        plot_text = f"channel: {gd.channel_dict[channel]}, {process}"
+        plot_text = f"{gd.channel_dict[channel]}, {process}"
     text.DrawLatex(
         0.165,
         0.917,

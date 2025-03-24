@@ -210,6 +210,7 @@ category_dict = {
     "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
     "tau_decaymode_1": "#tau_{h, 1}^{DM}",
     "tau_decaymode_2": "#tau_{h, 2}^{DM}",
+    "pt_1": "p_{T}(#mu)",
 }
 
 ### For correctionlib ###
