@@ -32,10 +32,10 @@ target_processes:
     var_dependence: pt_2
     # in case of individual splitting
     var_bins: 
-      "==0": [30, 35, 40, 50, 60, 70, 110]
-      "==1": [30,     40,     60,     110]
-      ">=2": [30,     40,     60,     110]
-    fit_option: "binwise"
+      "==0": [30, 32.5, 35, 40, 45, 50, 60, 80, 150]
+      "==1": [30,       35, 40,     50, 60, 80, 150]
+      ">=2": [30, 35, 40,     60,     150]
+    fit_option: ["poly_1", "poly_2", "poly_3"]
 
   Wjets:
     split_categories:
@@ -72,10 +72,16 @@ target_processes:
 
     var_dependence: pt_2
     var_bins:
-      "==0": [30, 35, 40, 45, 50, 60, 70, 90, 110]
-      "==1": [30, 35, 40,     50,     70,     110]
-      ">=2": [30, 35, 40,     50,     70,     110]
-    fit_option: "binwise"
+      "==0":
+        "<=3": [30, 32.5, 35, 37.5, 40, 42.5, 45, 50, 60, 70, 100, 150]
+        ">3":  [30, 32.5, 35,       40,       45, 50, 60, 70, 100, 150]
+      "==1":
+        "<=3": [30, 32.5, 35, 37.5, 40, 42.5, 45, 50, 60, 70, 100, 150]
+        ">3":  [30,       35,       40,       45, 50, 60, 70,      150]
+      ">=2":
+        "<=3": [30,       35,       40,       45, 50,     70,      150]
+        ">3":  [30,       35,       40,           50,     70,      150]
+    fit_option: ["poly_1", "poly_2", "poly_3"]
 
   ttbar:
     split_categories:
@@ -126,8 +132,8 @@ target_processes:
       no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dimuon_veto < 0.5))'
 
     var_dependence: pt_2
-    var_bins: [30, 40, 50, 70, 110]
-    fit_option: "binwise"
+    var_bins: [30, 32.5, 35, 37.5, 40, 42.5, 45, 50, 60, 70, 80, 100, 150]
+    fit_option: ["poly_1", "poly_2", "poly_3"]
 
 process_fractions:
   processes: ["QCD", "Wjets", "ttbar_J"]

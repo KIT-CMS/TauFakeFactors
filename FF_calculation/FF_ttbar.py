@@ -525,6 +525,7 @@ def non_closure_correction(
         process=process,
         output_path=output_path,
         logger=logger,
+        category=split,
     )
 
     plot_hists = dict()

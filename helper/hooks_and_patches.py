@@ -166,7 +166,7 @@ def calc_center_of_mass(
     for m1, m2, w1, w2, (bin_low, bin_high) in zip(*means, *weights, nwise(bin_edges, n=2)):
         _counts.append(weights_combination_operation(w1, w2))
         if (tot := w1 + factor * w2) != 0:
-            _means.append((w1 * m1 + factor * w2 * m2) / tot)
+            _means.append((max(min((w1 * m1 + factor * w2 * m2) / tot, bin_high), bin_low)))
         else:
             _means.append((bin_low + bin_high) / 2)  # Default to bin center if no counts
     return _counts, _means
@@ -282,7 +282,7 @@ def patched_Divide(
             means=(getattr(self, _EXTRA_PARAM_MEANS), getattr(other, _EXTRA_PARAM_MEANS)),
             weights=(getattr(self, _EXTRA_PARAM_COUNTS), getattr(other, _EXTRA_PARAM_COUNTS)),
             bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
-            factor=-factor,
+            factor=factor,
             weights_combination_operation=lambda a, b: a / (factor * b) if b != 0 else 0,
         )
         setattr(self, _EXTRA_PARAM_COUNTS, _counts)
