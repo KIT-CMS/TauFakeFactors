@@ -226,7 +226,11 @@ def apply_region_filters(
     tmp = dict()
     if category_cuts is not None:
         for cut in category_cuts:
-            tmp[cut] = f"{cut} {category_cuts[cut]}"
+            if "#" not in category_cuts[cut]:
+                tmp[cut] = f"{cut} {category_cuts[cut]}"
+            else:
+                a, op, b = category_cuts[cut].split("#")
+                tmp[cut] = f"({cut} {a}) {op} ({cut} {b})"
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:
