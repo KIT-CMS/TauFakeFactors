@@ -83,7 +83,7 @@ def FF_calculation(
 
     process_conf = config[process] if is_fraction else config["target_processes"][process]
 
-    split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+    split_variables, split_combinations, split_binnings, *_ = ff_func.get_split_combinations(
         categories=process_conf["split_categories"],
         binning=process_conf["var_bins"],
     )

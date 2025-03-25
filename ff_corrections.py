@@ -442,20 +442,23 @@ def run_correction(
         )
 
         if "split_categories" in DR_SR_conf:
-            split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+            split_variables, split_combinations, split_binnings, split_bandwidths = ff_func.get_split_combinations(
                 categories=DR_SR_conf["split_categories"],
                 binning=DR_SR_conf["var_bins"],
+                bandwidth=DR_SR_conf.get("bandwidth", None),
             )
         else:
             split_variables = []
             split_combinations = [None]
             split_binnings = [DR_SR_conf["var_bins"]]
+            split_bandwidths = [DR_SR_conf.get("bandwidth", None)]
 
         results = func.optional_process_pool(
             args_list=[
                 (
                     split,
                     binning,
+                    bandwidth,
                     config,
                     DR_SR_conf,
                     process,
@@ -466,7 +469,11 @@ def run_correction(
                     evaluator,
                     corr_evaluators,
                 )
-                for split, binning in zip(split_combinations, split_binnings)
+                for split, binning, bandwidth in zip(
+                    split_combinations,
+                    split_binnings,
+                    split_bandwidths,
+                )
             ],
             function=DR_SR_CORRECTION_FUNCTIONS[process],
         )

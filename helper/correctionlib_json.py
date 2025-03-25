@@ -135,7 +135,7 @@ def generate_ff_corrlib_json(
         if process in ff_functions:
             proc_conf = config["target_processes"][process]
             var = proc_conf["var_dependence"]
-            _, _, binning = ff_func.get_split_combinations(
+            _, _, binning, *_ = ff_func.get_split_combinations(
                 categories=proc_conf["split_categories"],
                 binning=proc_conf["var_bins"],
                 convert_binning_to_dict=True,
@@ -160,7 +160,7 @@ def generate_ff_corrlib_json(
     if "process_fractions" in config and fractions is not None:
         frac_conf = config["process_fractions"]
         var = frac_conf["var_dependence"]
-        _, _, binning = ff_func.get_split_combinations(
+        _, _, binning, *_ = ff_func.get_split_combinations(
             categories=frac_conf["split_categories"],
             binning=frac_conf["var_bins"],
             convert_binning_to_dict=True,
@@ -182,7 +182,7 @@ def generate_ff_corrlib_json(
     if "process_fractions_subleading" in config and fractions_subleading is not None:
         frac_conf = config["process_fractions_subleading"]
         var = frac_conf["var_dependence"]
-        _, _, binning = ff_func.get_split_combinations(
+        _, _, binning, *_ = ff_func.get_split_combinations(
             categories=frac_conf["split_categories"],
             binning=frac_conf["var_bins"],
             convert_binning_to_dict=True,
@@ -634,7 +634,7 @@ def generate_correction_corrlib(
 
             binning = correction_conf["var_bins"]
             if is_2D:
-                split_variables, _, binning = ff_func.get_split_combinations(
+                split_variables, _, binning, *_ = ff_func.get_split_combinations(
                     categories=correction_conf["split_categories"],
                     binning=correction_conf["var_bins"],
                     convert_binning_to_dict=True,
