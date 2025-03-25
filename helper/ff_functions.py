@@ -165,12 +165,12 @@ def get_split_combinations(
         1. List of variables the categories are defined in,
         2. List of all combinations of variable splits
         3. List of binning for each category cut combination
+        4. List of bandwidth for each category cut combination
     """
-    results, combinations, binnings = [], [], []
+    combinations, binnings = [], []
     split_variables = list(categories.keys())
 
     assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
-    results.append(split_variables)
 
     combinations = [
         dict(zip(split_variables, v))
@@ -178,7 +178,6 @@ def get_split_combinations(
     ]
 
     assert len(combinations) > 0, "No category combinations defined"
-    results.append(combinations)
 
     if isinstance(binning, list):
         binnings = [binning] * len(combinations)
@@ -209,15 +208,13 @@ def get_split_combinations(
             elif len(keys) == 2:
                 _binnings.setdefault(keys[0], {})[keys[1]] = _binning
         binnings = _binnings
-    results.append(binnings)
 
-    if bandwidth is not None:
-        if isinstance(bandwidth, dict):
-            results.append([bandwidth.get(list(v)[0]) for v in (c.values() for c in combinations)])
-        else:
-            results.append([bandwidth] * len(combinations))
+    if isinstance(bandwidth, dict):
+        bandwidths = [bandwidth.get(list(v)[0]) for v in (c.values() for c in combinations)]
+    else:
+        bandwidths = [bandwidth] * len(combinations)  # including None
 
-    return tuple(results)
+    return split_variables, combinations, binnings, bandwidths
 
 
 def apply_region_filters(
