@@ -221,6 +221,7 @@ def non_closure_correction(
         args: Tuple containing all the necessary information for the calculation of the non closure corrections
             split: Dictionary containing the category information
             binning: List of bin edges for the dependent variable
+            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the correction calculation
             process: Name of the process
@@ -236,6 +237,7 @@ def non_closure_correction(
     (
         split,
         binning,
+        bandwidth,
         config,
         correction_conf,
         process,
@@ -366,10 +368,7 @@ def non_closure_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
-        bandwidth=correction_conf.get(
-            "bandwidth",
-            gd.get_default_bandwidth(binning=binning),
-        )
+        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
     )
 
     add_str = "_for_DRtoSR" if for_DRtoSR else ""
@@ -446,6 +445,7 @@ def DR_SR_correction(
         args: Tuple containing all the necessary information for the calculation of the DR to SR correction
             split: Dictionary containing the category information
             binning: List of bin edges for the dependent variable
+            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the correction calculation
             process: Name of the process
@@ -459,6 +459,7 @@ def DR_SR_correction(
     (
         split,
         binning,
+        bandwidth,
         config,
         correction_conf,
         process,
@@ -587,10 +588,7 @@ def DR_SR_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
-        bandwidth=correction_conf.get(
-            "bandwidth",
-            gd.get_default_bandwidth(binning=binning),
-        )
+        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
     )
 
     plotting.plot_correction(

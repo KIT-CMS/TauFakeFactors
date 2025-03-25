@@ -368,6 +368,7 @@ def non_closure_correction(
         args: Tuple of arguments that are passed to the function
             split: Dictionary containing the category information
             binning: List of bin edges for the dependent variable
+            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the non closure correction
             process: Name of the process
@@ -386,6 +387,7 @@ def non_closure_correction(
     (
         split,
         binning,
+        bandwidth,
         config,
         correction_conf,
         process,
@@ -509,10 +511,7 @@ def non_closure_correction(
         hist=correction_hist.Clone(),
         bin_edges=binning,
         write_corrections=correction_conf["write_corrections"],
-        bandwidth=correction_conf.get(
-            "bandwidth",
-            gd.get_default_bandwidth(binning=binning),
-        )
+        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
     )
 
     plotting.plot_correction(

@@ -100,20 +100,23 @@ def non_closure_correction(
         correction_conf = corr_config["target_processes"][process]["non_closure"][closure_variable]
 
     if "split_categories" in correction_conf:
-        split_variables, split_combinations, split_binnings = ff_func.get_split_combinations(
+        split_variables, split_combinations, split_binnings, split_bandwidths = ff_func.get_split_combinations(
             categories=correction_conf["split_categories"],
             binning=correction_conf["var_bins"],
+            bandwidth=correction_conf.get("bandwidth", None),
         )
     else:
         split_variables = []
         split_combinations = [None]
         split_binnings = [correction_conf["var_bins"]]
+        split_bandwidths = [correction_conf.get("bandwidth", None)]
 
     results = func.optional_process_pool(
         args_list=[
             (
                 split,
                 binning,
+                bandwidth,
                 config,
                 correction_conf,
                 process,
@@ -126,7 +129,11 @@ def non_closure_correction(
                 corr_evaluators,
                 for_DRtoSR,
             )
-            for split, binning in zip(split_combinations, split_binnings)
+            for split, binning, bandwidth in zip(
+                split_combinations,
+                split_binnings,
+                split_bandwidths,
+            )
         ],
         function=NON_CLOSURE_CORRECTION_FUNCTIONS[process],
     )

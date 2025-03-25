@@ -131,6 +131,11 @@ def get_split_combinations(
         None,
     ],
     convert_binning_to_dict: bool = False,
+    bandwidth: Union[
+        float,
+        Dict[str, float],
+        None,
+    ] = None,
 ) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
     """
     This function generates a dictionary for all category cut combinations.
@@ -147,20 +152,25 @@ def get_split_combinations(
     the second splitting variable can be defined in a nested dictionary, if not then the default binning of first
     variable is used for the second variable.
 
+    Analogous to the binning, the bandwidth for the kernel regression can be defined for each category cut combination.
+    (Supported up to one dimensional category splitting)
+
     Args:
         categories: Dictionary with the category definitions
         binning: Binning for the dependent variable
         convert_binning_to_dict: Boolean to convert the binning to a dictionary of binnings at the end
+        bandwidth: Bandwidth for the kernel regression
 
     Return:
         1. List of variables the categories are defined in,
         2. List of all combinations of variable splits
         3. List of binning for each category cut combination
     """
-    combinations, binnings = [], []
+    results, combinations, binnings = [], [], []
     split_variables = list(categories.keys())
 
     assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
+    results.append(split_variables)
 
     combinations = [
         dict(zip(split_variables, v))
@@ -168,6 +178,7 @@ def get_split_combinations(
     ]
 
     assert len(combinations) > 0, "No category combinations defined"
+    results.append(combinations)
 
     if isinstance(binning, list):
         binnings = [binning] * len(combinations)
@@ -198,8 +209,15 @@ def get_split_combinations(
             elif len(keys) == 2:
                 _binnings.setdefault(keys[0], {})[keys[1]] = _binning
         binnings = _binnings
+    results.append(binnings)
 
-    return split_variables, combinations, binnings
+    if bandwidth is not None:
+        if isinstance(bandwidth, dict):
+            results.append([bandwidth.get(list(v)[0]) for v in (c.values() for c in combinations)])
+        else:
+            results.append([bandwidth] * len(combinations))
+
+    return tuple(results)
 
 
 def apply_region_filters(
