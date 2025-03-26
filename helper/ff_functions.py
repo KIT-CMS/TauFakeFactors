@@ -22,6 +22,25 @@ from helper.hooks_and_patches import _EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG, _EX
 
 @dataclass
 class SplitQuantitiesContainer:
+    """
+    Container for split quantities.
+
+    Stores quantities associated with a given split combination, including variables being
+    split, category definitions, current split, and the binning. It also caches derived
+    options such as the correction_option, fit_option, bandwidth for smoothing, and
+    additional keyword arguments used in fitting (limit_kwargs).
+
+    Attributes:
+        variables (list): List of variable names used for splitting.
+        categories (dict): Dictionary defining available category cuts.
+        split (dict): Dictionary holding  current split combination.
+        var_bins (list): Edges of the bins for histograms creation
+        _correction_option (Union[str, None]): Correction option (set explicitly or from defaults in general definitions).
+        _fit_option (Union[list, None]): Fitting option(s) (set explicitly or from defaults).
+        _bandwidth (Union[float, int, None]): Bandwidth for smoothing corrections, derived from var_bins.
+        _limit_kwargs (Union[dict, None]): Additional configuration (limits) for fit functions, derived from var_bins and an optional histogram.
+    """
+
     variables: list
     categories: dict
     split: dict
@@ -33,6 +52,19 @@ class SplitQuantitiesContainer:
     _limit_kwargs: Union[dict, None] = None  # derived from var_bins and optional hist
 
     def limit_kwargs(self, hist: Union[None, ROOT.TH1] = None) -> dict:
+        """
+        Returns the keyword arguments for fit function limits.
+
+        If already set this value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration and optional histogram.
+
+        Args:
+            hist (Union[None, ROOT.TH1], optional): ROOT histogram from which to derive limits.
+
+        Returns:
+            dict: Dictionary of keyword arguments for the fit limits.
+        """
+
         if self._limit_kwargs is not None:
             return self._limit_kwargs
 
@@ -45,6 +77,16 @@ class SplitQuantitiesContainer:
 
     @property
     def bandwidth(self) -> float:
+        """
+        Retrieves the bandwidth parameter used for smoothing fits.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration.
+
+        Returns:
+            float: The computed bandwidth value.
+        """
+
         if self._bandwidth is not None:
             return self._bandwidth
 
@@ -54,6 +96,16 @@ class SplitQuantitiesContainer:
 
     @property
     def fit_option(self) -> Union[str, list]:
+        """
+        Retrieves the fitting option(s) for applying the fit.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration.
+
+        Returns:
+            Union[str, list]: The fit option(s) used for fitting.
+        """
+
         if self._fit_option is not None:
             return self._fit_option
 
@@ -63,6 +115,16 @@ class SplitQuantitiesContainer:
 
     @property
     def correction_option(self) -> Union[str, None]:
+        """
+        Retrieves the correction option to be used with correctionlib.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the general definitions.
+
+        Returns:
+            Union[str, None]: The correction option.
+        """
+
         if self._correction_option is not None:
             return self._correction_option
 
@@ -72,15 +134,55 @@ class SplitQuantitiesContainer:
 
 
 class SplitQuantities:
+    """
+    Handles splitting of quantities based on a sprovided split from configuration dictionary.
+
+    This class processes a configuration (from YAML) that defines how the data are to be split
+    into categories based on split category cuts. 
+    Supports iteration over all split combinations (via __iter__), returning a
+    SplitQuantitiesContainer for each split.
+
+    New options can be added by:
+      - Extending the configuration dictionary with a new key (e.g. "new_option").
+      - Implementing a corresponding property accessor here (similar to fit_option, bandwidth, etc.).
+      - Adding new option in the __iter__ method.
+      - Adding the new option to the SplitQuantitiesContainer class with the appropriate logic.
+
+    Attributes:
+        config (dict): Dictionary containing the overall configuration.
+        categories (dict): Dictionary with category definitions (split_categories).
+        split_variables (list): List of variable names dictating the available split dimensions.
+    """
     def __init__(
         self,
         config: dict,
     ) -> None:
+        """
+        Initialization using a configuration dictionary.
+
+        Args:
+            config (dict): Configuration with at least "split_categories".
+        """
+
         self.config = config
         self.categories = config.get("split_categories", None)
         self.split_variables = list(self.categories.keys()) if self.categories else []
 
     def to_dict(self, item: Union[list, str]) -> dict:
+        """
+        Converts a list or a property name into a dictionary of split options.
+
+        Creates a dictionary with keys formatted as "variable#value". For a single split
+        variable, the resulting dictionary maps "variable#value" to corresponding value in
+        item; for two or more, nested dictionaries are created.
+
+        Args:
+            item (Union[list, str]): List of values corresponding to each split combination or the name of an attribute in the config.
+
+        Returns:
+            dict: Dictionary with keys based on split variable names and their values.
+        """
+
         if isinstance(item, str):
             try:
                 item = getattr(self, item)
@@ -98,6 +200,20 @@ class SplitQuantities:
         return collection
 
     def _fill_dict_based(self, key: str) -> list:
+        """
+        Fill and return a list from a nested dictionary configuration for a given key.
+
+        For each split combination, checks if first value is present in the configuration
+        under 'key', then returns direct object or the corresponding nested value. Asserts
+        the number of split combinations matching the length of the filled list.
+
+        Args:
+            key (str): The configuration key for which to fill the list.
+
+        Returns:
+            list: List with each element corresponds to the configuration for each split combination.
+        """
+
         collection = []
         for values in (c.values() for c in self.split):
             values = list(values)
@@ -118,6 +234,21 @@ class SplitQuantities:
         return collection
 
     def _fill(self, key: str, variable_condition: bool) -> Any:
+        """
+        Generic helper to fill a configuration value for a given key from the config.
+
+        Based on whether the item is a list, a dict, or missing, returns either a cycle over
+        a single element, the dictionary-based filled list, or raises an exception if the
+        type is invalid.
+
+        Args:
+            key (str): Configuration key.
+            variable_condition (bool): Flag indicating whether the config value should be treated as a simple list-based option.
+
+        Returns:
+            Any: Iterator (itertools.cycle) over configuration values or a list of filled values.
+        """
+
         if key not in self.config:
             return itt.cycle([None])
         elif variable_condition:
@@ -128,7 +259,15 @@ class SplitQuantities:
             raise Exception(f"Invalid type for {key}")
 
     @property
-    def split(self):
+    def split(self) -> list:
+        """
+        Generate all combinations of split options based on the split_variables and categories.
+        if split_variables are defined else returns [None].
+
+        Returns:
+            list: List of dictionaries; each dictionary maps split variable names to category values.
+        """
+
         if self._split is not None:
             return self._split
 
@@ -141,7 +280,14 @@ class SplitQuantities:
             return [None]
 
     @property
-    def var_bins(self):
+    def var_bins(self) -> List[float]:
+        """
+        Retrieves binning configuration ("var_bins") from the configuration.
+
+        Returns:
+            List[float]: Binning configuration as defined in the configuration (could be a list or a nested configuration).
+        """
+
         if hasattr(self, "_var_bins") and self._var_bins is not None:
             return self._var_bins
 
@@ -156,7 +302,14 @@ class SplitQuantities:
         return self._var_bins
 
     @property
-    def fit_option(self):
+    def fit_option(self) -> Union[str, list, None]:
+        """
+        Retrieves the fit option(s) from the configuration.
+
+        Returns:
+            Union[str, list]: The fit option(s) to be used.
+        """
+
         if hasattr(self, "_fit_option") and self._fit_option is not None:
             return self._fit_option
 
@@ -172,7 +325,14 @@ class SplitQuantities:
         return self._fit_option
 
     @property
-    def limit_kwargs(self):
+    def limit_kwargs(self) -> Union[dict, None]:
+        """
+        Retrieves the limit keyword arguments for fitting from the configuration.
+
+        Returns:
+            Union[dict, None]: The limit keyword arguments for fitting.
+        """
+
         if hasattr(self, "_limit_kwargs") and self._limit_kwargs is not None:
             return self._limit_kwargs
 
@@ -189,7 +349,14 @@ class SplitQuantities:
         return self._limit_kwargs
 
     @property
-    def bandwidth(self):
+    def bandwidth(self) -> Union[float, int, None]:
+        """
+        Retrieves the bandwidth for smoothing from the configuration.
+
+        Returns:
+            Union[float, int, None]: The bandwidth value or None (if not set).
+        """
+
         if hasattr(self, "_bandwidth") and self._bandwidth is not None:
             return self._bandwidth
 
@@ -205,7 +372,14 @@ class SplitQuantities:
         return self._bandwidth
 
     @property
-    def correction_option(self):
+    def correction_option(self) -> Union[str, None]:
+        """
+        Retrieves the correction option for correctionlib from the configuration.
+
+        Returns:
+            Union[str, None]: The correction option (if set) or None.
+        """
+
         if hasattr(self, "_correction_option") and self._correction_option is not None:
             return self._correction_option
 
@@ -221,6 +395,22 @@ class SplitQuantities:
         return self._correction_option
 
     def __iter__(self) -> Iterator[Any]:
+        """
+        Iterates over all split combinations and yields a SplitQuantitiesContainer for each.
+
+        For each combination of:
+            - split (unique category combination),
+            - var_bins,
+            - fit_option,
+            - limit_kwargs,
+            - bandwidth, and
+            - correction_option,
+        a new SplitQuantitiesContainer is constructed and yielded.
+
+        Yields:
+            SplitQuantitiesContainer: One container for each split combination.
+        """
+
         for (
             split,
             var_bins,
@@ -248,12 +438,31 @@ class SplitQuantities:
             )
 
     def __len__(self) -> int:
+        """
+        Returns the number of split combinations.
+
+        Returns:
+            int: Total number of unique splits based on the defined split variables.
+        """
+
         return len(self.split)
 
     def __getitem__(
         self,
         index: Union[int, slice],
     ) -> Union[SplitQuantitiesContainer, List[SplitQuantitiesContainer]]:
+        """
+        Retrieves one or more SplitQuantitiesContainer objects by index.
+
+        Supports both integer indexing and slicing.
+
+        Args:
+            index (Union[int, slice]): Index or slice for the requested container(s).
+
+        Returns:
+            Union[SplitQuantitiesContainer, List[SplitQuantitiesContainer]]: The split container or list of containers.
+        """
+
         if isinstance(index, int):
             return list(self)[index]
         elif isinstance(index, slice):
@@ -951,8 +1160,18 @@ def smooth_function(
     for i in range(n_bins):
         fit_y_binned.append(list())
 
+    start_idx, end_idx, prepend = 0, -1, False
+    is_hybrid = "binwise" in correction_option and "smoothed" in correction_option
+    if is_hybrid:
+        _splitted = correction_option.split("+")
+        _idx = np.array(eval([it for it in _splitted if "binwise" in it][0].split("#")[1]))
+        if _idx[-1] >= 0:
+            prepend, start_idx = True, _idx[-1] + 1
+        else:
+            end_idx = _idx[-1] - 1
+
     eval_bin_edges, bin_step = np.linspace(
-        bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True,
+        bin_edges[start_idx], bin_edges[end_idx], (n_bins + 1), retstep=True,
     )
     bin_half = bin_step / 2.0
     smooth_x = (eval_bin_edges + bin_half)[:-1]
@@ -982,11 +1201,25 @@ def smooth_function(
         _nom = np.array(y)
         _up = _nom + np.array(error_y_up)
         _down = _nom - np.array(error_y_down)
-    else:
+    elif correction_option == "smoothed":
         _bins = np.array(eval_bin_edges)
         _nom = np.array(smooth_y)
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
+    elif is_hybrid:
+        _slice = slice(None, start_idx) if prepend else slice(end_idx + 1, None)
+        if prepend:
+            _bins = np.concatenate((bin_edges[_slice], np.array(eval_bin_edges)))
+            _nom = np.concatenate((y[_slice], np.array(smooth_y)))
+            _up = _nom + np.concatenate((error_y_up[_slice], np.array(smooth_y_up)))
+            _down = _nom - np.concatenate((error_y_down[_slice], np.array(smooth_y_down)))
+        else:
+            _bins = np.concatenate((np.array(eval_bin_edges)[:-1], bin_edges[_slice]))
+            _nom = np.concatenate((np.array(smooth_y)[:-1], y[_slice]))
+            _up = _nom + np.concatenate((np.array(smooth_y_up)[:-1], error_y_up[_slice]))
+            _down = _nom - np.concatenate((np.array(smooth_y_down)[:-1], error_y_down[_slice]))
+    else:
+        raise ValueError("Invalid correction option")
 
     _nom[_nom < 0] = 0
     _up[_up < 0] = 0
