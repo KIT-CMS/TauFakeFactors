@@ -5,12 +5,8 @@ from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
 #### For fake factor fits ####
 
 random_seed = 19
-
-default_fit_options = {
-    "QCD": "poly_1",
-    "Wjets": "poly_1",
-    "ttbar": "poly_1",
-}
+default_fit_option = "poly_1"
+default_write_corrections = "smoothed"
 
 
 def get_default_fit_function_limit_kwargs(

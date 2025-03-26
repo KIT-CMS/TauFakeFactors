@@ -99,29 +99,16 @@ def non_closure_correction(
     else:
         correction_conf = corr_config["target_processes"][process]["non_closure"][closure_variable]
 
-    if "split_categories" in correction_conf:
-        split_variables, split_combinations, split_binnings, split_bandwidths = ff_func.get_split_combinations(
-            categories=correction_conf["split_categories"],
-            binning=correction_conf["var_bins"],
-            bandwidth=correction_conf.get("bandwidth", None),
-        )
-    else:
-        split_variables = []
-        split_combinations = [None]
-        split_binnings = [correction_conf["var_bins"]]
-        split_bandwidths = [correction_conf.get("bandwidth", None)]
+    split_collections = ff_func.SplitQuantities(correction_conf)
 
     results = func.optional_process_pool(
         args_list=[
             (
-                split,
-                binning,
-                bandwidth,
+                split_collection,
                 config,
                 correction_conf,
                 process,
                 closure_variable,
-                split_variables,
                 sample_paths,
                 output_path,
                 logger,
@@ -129,19 +116,15 @@ def non_closure_correction(
                 corr_evaluators,
                 for_DRtoSR,
             )
-            for split, binning, bandwidth in zip(
-                split_combinations,
-                split_binnings,
-                split_bandwidths,
-            )
+            for split_collection in split_collections
         ],
         function=NON_CLOSURE_CORRECTION_FUNCTIONS[process],
     )
 
-    if len(split_combinations) == 1 and split_combinations[0] is None:
+    if len(split_collections) == 1 and split_collections.split[0] is None:
         return results[0]
     else:
-        return ff_func.fill_corrlib_expression(results, split_variables)
+        return ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
 
 def run_non_closure_correction(
@@ -441,47 +424,30 @@ def run_correction(
             to_AR_SR=True,
         )
 
-        if "split_categories" in DR_SR_conf:
-            split_variables, split_combinations, split_binnings, split_bandwidths = ff_func.get_split_combinations(
-                categories=DR_SR_conf["split_categories"],
-                binning=DR_SR_conf["var_bins"],
-                bandwidth=DR_SR_conf.get("bandwidth", None),
-            )
-        else:
-            split_variables = []
-            split_combinations = [None]
-            split_binnings = [DR_SR_conf["var_bins"]]
-            split_bandwidths = [DR_SR_conf.get("bandwidth", None)]
+        split_collections = ff_func.SplitQuantities(DR_SR_conf)
 
         results = func.optional_process_pool(
             args_list=[
                 (
-                    split,
-                    binning,
-                    bandwidth,
+                    split_collection,
                     config,
                     DR_SR_conf,
                     process,
-                    split_variables,
                     sample_paths,
                     save_path_plots,
                     f"ff_corrections.{process}",
                     evaluator,
                     corr_evaluators,
                 )
-                for split, binning, bandwidth in zip(
-                    split_combinations,
-                    split_binnings,
-                    split_bandwidths,
-                )
+                for split_collection in split_collections
             ],
             function=DR_SR_CORRECTION_FUNCTIONS[process],
         )
 
-        if len(split_combinations) == 1 and split_combinations[0] is None:
+        if len(split_collections) == 1 and split_collections.split[0] is None:
             corrections[process]["DR_SR"] = results[0]
         else:
-            corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_variables)
+            corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
     return corrections
 

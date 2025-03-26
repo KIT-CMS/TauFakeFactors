@@ -26,12 +26,10 @@ def calculation_ttbar_FFs(
 
     Args:
         args: Tuple of arguments that are passed to the function
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
             process: Name of the process
-            split_variables: List of variables that are used for the category splitting
             sample_paths: List of file paths where the samples are stored
             output_path: Path where the generated plots should be stored
             logger: Name of the logger that should be used
@@ -43,12 +41,10 @@ def calculation_ttbar_FFs(
     """
 
     (
-        split,  # split: Dict[str, str],
-        binning,  # binning: List[float],
+        splitting,  # splitting: Dict[str, str],
         config,  # config: Dict[str, Union[str, Dict, List]],
         process_conf,  # process_conf: Dict[str, Union[str, Dict, List]],
         process,  # process: str,
-        split_variables,  # split_variables: List[str],
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
@@ -67,7 +63,7 @@ def calculation_ttbar_FFs(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
         if sample in ["ttbar_J"]:
-            log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
+            log.info(f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category.")
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -78,7 +74,7 @@ def calculation_ttbar_FFs(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=split,
+                category_cuts=splitting.split,
                 region_cuts=region_conf,
             )
 
@@ -96,7 +92,7 @@ def calculation_ttbar_FFs(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=split,
+                category_cuts=splitting.split,
                 region_cuts=region_conf,
             )
             log.info(f"Filtering events for the application region. Target process: {process}")
@@ -108,8 +104,8 @@ def calculation_ttbar_FFs(
             log.info("-" * 50)
 
             # get binning of the dependent variable
-            xbinning = array.array("d", binning)
-            nbinsx = len(binning) - 1
+            xbinning = array.array("d", splitting.var_bins)
+            nbinsx = len(splitting.var_bins) - 1
 
             # making the histograms
             h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
@@ -146,13 +142,10 @@ def calculation_ttbar_FFs(
     # performing the fit and calculating the uncertainties
     nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=FF_hist.Clone(),
-        bin_edges=binning,
+        bin_edges=splitting.var_bins,
         logger=logger,
-        fit_option=process_conf.get("fit_option", gd.default_fit_options["ttbar"]),
-        limit_kwargs=process_conf.get(
-            "limit_kwargs",
-            gd.get_default_fit_function_limit_kwargs(binning=binning, hist=FF_hist),
-        ),
+        fit_option=splitting.fit_option,
+        limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
     )
 
     plotting.plot_FFs(
@@ -162,7 +155,7 @@ def calculation_ttbar_FFs(
         era=config["era"],
         channel=config["channel"],
         process=process,
-        category=split,
+        category=splitting.split,
         output_path=output_path,
         logger=logger,
         draw_option=used_fit,
@@ -186,7 +179,7 @@ def calculation_ttbar_FFs(
                 region=_region,
                 data=_data,
                 samples=_samples,
-                category=split,
+                category=splitting.split,
                 output_path=output_path,
                 logger=logger,
                 yscale=yscale,
@@ -194,7 +187,7 @@ def calculation_ttbar_FFs(
             )
     log.info("-" * 50)
 
-    return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
+    return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
 
 
 def calculation_FF_data_scaling_factor(
@@ -366,9 +359,7 @@ def non_closure_correction(
 
     Args:
         args: Tuple of arguments that are passed to the function
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
-            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the non closure correction
             process: Name of the process
@@ -385,14 +376,11 @@ def non_closure_correction(
 
     """
     (
-        split,
-        binning,
-        bandwidth,
+        splitting,
         config,
         correction_conf,
         process,
         closure_variable,
-        split_variables,
         sample_paths,
         output_path,
         logger,
@@ -411,8 +399,8 @@ def non_closure_correction(
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "ttbar_J":
-            if split is not None:
-                log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+            if splitting.split is not None:
+                log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
             else:
                 log.info(f"Processing {sample} for the non closure correction for {process}.")
             log.info("-" * 50)
@@ -425,7 +413,7 @@ def non_closure_correction(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=split,
+                category_cuts=splitting.split,
                 region_cuts=region_conf,
             )
 
@@ -445,7 +433,7 @@ def non_closure_correction(
                 rdf=rdf,
                 channel=config["channel"],
                 sample=sample,
-                category_cuts=split,
+                category_cuts=splitting.split,
                 region_cuts=region_conf,
             )
 
@@ -475,8 +463,8 @@ def non_closure_correction(
             log.info("-" * 50)
 
             # get binning of the dependent variable
-            xbinning = array.array("d", binning)
-            nbinsx = len(binning) - 1
+            xbinning = array.array("d", splitting.var_bins)
+            nbinsx = len(splitting.var_bins) - 1
 
             # making the histograms
             h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
@@ -509,9 +497,9 @@ def non_closure_correction(
 
     nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=binning,
-        write_corrections=correction_conf["write_corrections"],
-        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
+        bin_edges=splitting.var_bins,
+        write_corrections=splitting.write_corrections,
+        bandwidth=splitting.bandwidth,
     )
 
     plotting.plot_correction(
@@ -524,7 +512,7 @@ def non_closure_correction(
         process=process,
         output_path=output_path,
         logger=logger,
-        category=split,
+        category=splitting.split,
     )
 
     plot_hists = dict()
@@ -548,7 +536,7 @@ def non_closure_correction(
             yscale=yscale,
         )
 
-    if split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    if splitting.split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
     else:
         return correction_dict

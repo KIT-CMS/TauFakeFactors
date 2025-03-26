@@ -7,15 +7,263 @@ import itertools as itt
 import logging
 import random
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Tuple, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
 
+import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
-from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS, _EXTRA_PARAM_COUNTS
+from helper.hooks_and_patches import _EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+
+
+@dataclass
+class SplitQuantitiesContainer:
+    variables: list
+    categories: dict
+    split: dict
+    var_bins: list
+    # --------------------------
+    _write_corrections: Union[str, None] = None  # set or from general_definitions
+    _fit_option: Union[list, None] = None  # set or from general_definitions
+    _bandwidth: Union[float, int, None] = None  # derived from var_bins
+    _limit_kwargs: Union[dict, None] = None  # derived from var_bins and optional hist
+
+    def limit_kwargs(self, hist: Union[None, ROOT.TH1] = None) -> dict:
+        if self._limit_kwargs is not None:
+            return self._limit_kwargs
+
+        self._limit_kwargs = gd.get_default_fit_function_limit_kwargs(
+            binning=self.var_bins,
+            hist=hist,
+        )
+
+        return self._limit_kwargs
+
+    @property
+    def bandwidth(self) -> float:
+        if self._bandwidth is not None:
+            return self._bandwidth
+
+        self._bandwidth = gd.get_default_bandwidth(self.var_bins)
+
+        return self._bandwidth
+
+    @property
+    def fit_option(self) -> Union[str, list]:
+        if self._fit_option is not None:
+            return self._fit_option
+
+        self._fit_option = gd.default_fit_option
+
+        return self._fit_option
+
+    @property
+    def write_corrections(self) -> Union[str, None]:
+        if self._write_corrections is not None:
+            return self._write_corrections
+
+        self._write_corrections = gd.default_write_corrections
+
+        return self._write_corrections
+
+
+class SplitQuantities:
+    def __init__(
+        self,
+        config: dict,
+        convert_to_dict: bool = False,
+    ) -> None:
+        self.config = config
+        self.categories = config.get("split_categories", None)
+        self.split_variables = list(self.categories.keys()) if self.categories else []
+
+        self.convert_to_dict = convert_to_dict
+
+        self._split = None
+        self._var_bins = None
+        self._fit_option = None
+        self._limit_kwargs = None
+        self._bandwidth = None
+        self._write_corrections = None
+
+    def _fill_dict_based(self, key: str) -> list:
+        collection = []
+        for values in (c.values() for c in self.split):
+            values = list(values)
+            assert values[0] in self.config[key], f"Key {values[0]} not found in {key}"
+            _obj = self.config[key].get(values[0])
+            if len(values) == 1:
+                collection.append(_obj)
+            elif len(values) == 2 and isinstance(_obj, dict):
+                assert values[1] in _obj, f"Key {values[1]} not found in {key}-{values[0]}"
+                collection.append(_obj.get(values[1]))
+            elif len(values) == 2 and isinstance(_obj, list):
+                collection.append(_obj)
+            else:
+                raise Exception(f"Invalid type for {key}")
+
+        assert len(self) == len(collection), f"Length of split combinations and {key} do not match"
+
+        return collection
+
+    def _fill(self, key: str, variable_condition: bool) -> Any:
+        if key not in self.config:
+            return itt.cycle([None])
+        elif variable_condition:
+            return itt.cycle([self.config[key]])
+        elif isinstance(self.config[key], dict):
+            return self._fill_dict_based(key)
+        else:
+            raise Exception(f"Invalid type for {key}")
+
+    @property
+    def split(self):
+        if self._split is not None:
+            return self._split
+
+        if self.split_variables:
+            return [
+                dict(zip(self.split_variables, v))
+                for v in itt.product(*(self.categories[_v] for _v in self.split_variables))
+            ]
+        else:
+            return [None]
+
+    @property
+    def var_bins(self):
+        if self._var_bins is not None:
+            return self._var_bins
+
+        key = "var_bins"
+        assert key in self.config, f"{key} must always be defined"
+        binnings = self._fill(
+            key=key,
+            variable_condition=isinstance(self.config[key], list),
+        )
+
+        if self.convert_to_dict:
+            _binnings = {}
+            for split, _binning in zip(self.split, binnings):
+                keys = [f"{var}#{split[var]}" for var in self.split_variables]
+                if len(keys) == 1:
+                    _binnings.update({keys[0]: _binning})
+                elif len(keys) == 2:
+                    _binnings.setdefault(keys[0], {})[keys[1]] = _binning
+            binnings = _binnings
+
+        self._var_bins = binnings
+
+        return binnings
+
+    @property
+    def fit_option(self):
+        if self._fit_option is not None:
+            return self._fit_option
+
+        key = "fit_option"
+        self._fit_option = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config
+                and isinstance(self.config[key], (str, list))
+            ),
+        )
+
+        return self._fit_option
+
+    @property
+    def limit_kwargs(self):
+        if self._limit_kwargs is not None:
+            return self._limit_kwargs
+
+        key = "limit_kwargs"
+        self._limit_kwargs = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config
+                and isinstance(self.config[key], dict) 
+                and self.config[key].get("limit_x") is not None
+            ),
+        )
+
+        return self._limit_kwargs
+
+    @property
+    def bandwidth(self):
+        if self._bandwidth is not None:
+            return self._bandwidth
+
+        key = "bandwidth"
+        self._bandwidth = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config 
+                and isinstance(self.config[key], (float, int))
+            ),
+        )
+
+        return self._bandwidth
+
+    @property
+    def write_corrections(self):
+        if self._write_corrections is not None:
+            return self._write_corrections
+
+        key = "write_corrections"
+        self._write_corrections = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config 
+                and isinstance(self.config[key], str)
+            ),
+        )
+
+        return self._write_corrections
+
+    def __iter__(self) -> Iterator[Any]:
+        for (
+            split,
+            var_bins,
+            fit_option,
+            limit_kwargs,
+            bandwidth,
+            write_corrections,
+        ) in zip(
+            self.split,
+            self.var_bins,
+            self.fit_option,
+            self.limit_kwargs,
+            self.bandwidth,
+            self.write_corrections,
+        ):
+            yield SplitQuantitiesContainer(
+                variables=self.split_variables,
+                categories=self.categories,
+                split=split,
+                var_bins=var_bins,
+                _fit_option=fit_option,
+                _limit_kwargs=limit_kwargs,
+                _bandwidth=bandwidth,
+                _write_corrections=write_corrections,
+            )
+
+    def __len__(self) -> int:
+        return len(self.split)
+
+    def __getitem__(
+        self,
+        index: Union[int, slice],
+    ) -> Union[SplitQuantitiesContainer, List[SplitQuantitiesContainer]]:
+        if isinstance(index, int):
+            return list(self)[index]
+        elif isinstance(index, slice):
+            return [list(self)[i] for i in range(len(self))[index]]
+        else:
+            raise TypeError("Index must be an integer or a slice.")
 
 
 @contextmanager
@@ -120,101 +368,6 @@ def fill_corrlib_expression(
         raise ValueError("Item can only be a list (of dictionaries) or a dictionary")
 
     return results
-
-
-def get_split_combinations(
-    categories: Dict[str, List[str]],
-    binning: Union[
-        List[float],
-        Dict[str, List[float]],
-        Dict[str, Dict[str, List[float]]],
-        None,
-    ],
-    convert_binning_to_dict: bool = False,
-    bandwidth: Union[
-        float,
-        Dict[str, float],
-        None,
-    ] = None,
-) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
-    """
-    This function generates a dictionary for all category cut combinations.
-    Categories can be defined based on one or two variables (more are not supported).
-    Each variable has a list of cuts it should be split into.
-
-    Further, if binning for individual categories is provided, the function will return the
-    binning for each category cut combination.
-    If binning is a list, the same binning is used for all category cut combinations.
-    If binning is a dictionary, the binning is defined for each variable separately, where
-    the first variable is the key of the first dictionary and the second variable is the key of the second dictionary.
-
-    In case of two variables, the binning needs to be defined at least for the first variable,
-    the second splitting variable can be defined in a nested dictionary, if not then the default binning of first
-    variable is used for the second variable.
-
-    Analogous to the binning, the bandwidth for the kernel regression can be defined for each category cut combination.
-    (Supported up to one dimensional category splitting)
-
-    Args:
-        categories: Dictionary with the category definitions
-        binning: Binning for the dependent variable
-        convert_binning_to_dict: Boolean to convert the binning to a dictionary of binnings at the end
-        bandwidth: Bandwidth for the kernel regression
-
-    Return:
-        1. List of variables the categories are defined in,
-        2. List of all combinations of variable splits
-        3. List of binning for each category cut combination
-        4. List of bandwidth for each category cut combination
-    """
-    combinations, binnings = [], []
-    split_variables = list(categories.keys())
-
-    assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
-
-    combinations = [
-        dict(zip(split_variables, v))
-        for v in itt.product(*(categories[_v] for _v in split_variables))
-    ]
-
-    assert len(combinations) > 0, "No category combinations defined"
-
-    if isinstance(binning, list):
-        binnings = [binning] * len(combinations)
-    elif isinstance(binning, dict):
-        for values in (c.values() for c in combinations):
-            values = list(values)
-            _binning = binning.get(values[0])
-            if len(values) == 1:
-                binnings.append(_binning)
-            elif len(values) == 2 and isinstance(_binning, dict):
-                binnings.append(_binning.get(values[1]))
-            elif len(values) == 2 and isinstance(_binning, list):
-                logging.warning(f"Using default binning for {values} of {_binning}")
-                binnings.append(_binning)
-            else:
-                raise Exception("Invalid type for binning")
-    else:
-        raise Exception("Invalid type for binning")
-
-    assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
-
-    if convert_binning_to_dict:
-        _binnings = {}
-        for split, _binning in zip(combinations, binnings):
-            keys = [f"{var}#{split[var]}" for var in split_variables]
-            if len(keys) == 1:
-                _binnings.update({keys[0]: _binning})
-            elif len(keys) == 2:
-                _binnings.setdefault(keys[0], {})[keys[1]] = _binning
-        binnings = _binnings
-
-    if isinstance(bandwidth, dict):
-        bandwidths = [bandwidth.get(list(v)[0]) for v in (c.values() for c in combinations)]
-    else:
-        bandwidths = [bandwidth] * len(combinations)  # including None
-
-    return split_variables, combinations, binnings, bandwidths
 
 
 def apply_region_filters(

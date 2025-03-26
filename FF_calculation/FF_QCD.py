@@ -26,12 +26,10 @@ def calculation_QCD_FFs(
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the fake factors
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
             process: Name of the process
-            split_variables: List of variables that are used for the category splitting
             sample_paths: List of file paths where the samples are stored
             output_path: Path where the generated plots should be stored
             logger: Name of the logger that should be used
@@ -40,12 +38,10 @@ def calculation_QCD_FFs(
         Dictionary with the category information as keys and the fitted functions (including variations) as values
     """
     (
-        split,  # split: Dict[str, str],
-        binning,  # binning: List[float],
+        splitting,  # splitting: Dict[str, str],
         config,  # config: Dict[str, Union[str, Dict, List]],
         process_conf,  # process_conf: Dict[str, Union[str, Dict, List]],
         process,  # process: str,
-        split_variables,  # split_variables: List[str],
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
@@ -61,7 +57,7 @@ def calculation_QCD_FFs(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the {', '.join(['{} {}'.format(var, split[var]) for var in split_variables])} category.")
+        log.info(f"Processing {sample} for the {', '.join(['{} {}'.format(var, splitting.split[var]) for var in splitting.variables])} category.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -72,7 +68,7 @@ def calculation_QCD_FFs(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -90,7 +86,7 @@ def calculation_QCD_FFs(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -103,8 +99,8 @@ def calculation_QCD_FFs(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning = array.array("d", binning)
-        nbinsx = len(binning) - 1
+        xbinning = array.array("d", splitting.var_bins)
+        nbinsx = len(splitting.var_bins) - 1
 
         # making the histograms
         h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
@@ -160,13 +156,10 @@ def calculation_QCD_FFs(
     # performing the fit and calculating the fit uncertainties
     nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
         ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
-        bin_edges=binning,
+        bin_edges=splitting.var_bins,
         logger=logger,
-        fit_option=process_conf.get("fit_option", gd.default_fit_options["QCD"]),
-        limit_kwargs=process_conf.get(
-            "limit_kwargs",
-            gd.get_default_fit_function_limit_kwargs(binning=binning, hist=FF_hist),
-        ),
+        fit_option=splitting.fit_option,
+        limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
     )
 
     plotting.plot_FFs(
@@ -176,7 +169,7 @@ def calculation_QCD_FFs(
         era=config["era"],
         channel=config["channel"],
         process=process,
-        category=split,
+        category=splitting.split,
         output_path=output_path,
         logger=logger,
         draw_option=used_fit,
@@ -198,7 +191,7 @@ def calculation_QCD_FFs(
                 region=_region,
                 data="data",
                 samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
-                category=split,
+                category=splitting.split,
                 output_path=output_path,
                 logger=logger,
                 yscale=yscale,
@@ -206,7 +199,7 @@ def calculation_QCD_FFs(
             )
     log.info("-" * 50)
 
-    return ff_func.fill_corrlib_expression(corrlib_exp, split_variables, split)
+    return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
 
 
 def non_closure_correction(
@@ -219,14 +212,11 @@ def non_closure_correction(
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the non closure corrections
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
-            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the correction calculation
             process: Name of the process
             closure_variable: Name of the variable the correction is calculated for
-            split_variables: List of variables that are used for the category splitting
             sample_paths: List of file paths where the samples are stored
             output_path: Path where the generated plots should be stored
             logger: Name of the logger that should be used
@@ -235,14 +225,11 @@ def non_closure_correction(
             for_DRtoSR: If True closure correction for the DR to SR correction fake factors will be calculated, if False for the general fake factors
     """
     (
-        split,
-        binning,
-        bandwidth,
+        splitting,
         config,
         correction_conf,
         process,
         closure_variable,
-        split_variables,
         sample_paths,
         output_path,
         logger,
@@ -260,8 +247,8 @@ def non_closure_correction(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        if split is not None:
-            log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+        if splitting.split is not None:
+            log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
         else:
             log.info(f"Processing {sample} for the non closure correction for {process}.")
         log.info("-" * 50)
@@ -274,7 +261,7 @@ def non_closure_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -292,7 +279,7 @@ def non_closure_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -321,7 +308,7 @@ def non_closure_correction(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning, nbinsx = array.array("d", binning), len(binning) - 1
+        xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1
 
         # making the histograms
         h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
@@ -366,9 +353,9 @@ def non_closure_correction(
 
     nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=binning,
-        write_corrections=correction_conf["write_corrections"],
-        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
+        bin_edges=splitting.var_bins,
+        write_corrections=splitting.write_corrections,
+        bandwidth=splitting.bandwidth,
     )
 
     add_str = "_for_DRtoSR" if for_DRtoSR else ""
@@ -382,7 +369,7 @@ def non_closure_correction(
         channel=config["channel"],
         process=process,
         output_path=output_path,
-        category=split,
+        category=splitting.split,
         logger=logger,
         save_data=True,
     )
@@ -403,7 +390,7 @@ def non_closure_correction(
             region=f"non_closure_{closure_variable}{add_str}",
             data="data_subtracted",
             samples=["data_ff"],
-            category={"incl": ""} if split is None else split,
+            category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
             yscale=yscale,
@@ -420,15 +407,15 @@ def non_closure_correction(
             region=f"non_closure_{closure_variable}{add_str}_SRlike_hist",
             data="data",
             samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
-            category={"incl": ""} if split is None else split,
+            category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
             yscale=yscale,
             save_data=save_data,
         )
 
-    if split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    if splitting.split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
     else:
         return correction_dict
 
@@ -443,13 +430,10 @@ def DR_SR_correction(
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the DR to SR correction
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
-            bandwidth: Bandwidth for the smoothing of the correction function (if None, the default bandwidth is used)
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             correction_conf: Dictionary with all the relevant information for the correction calculation
             process: Name of the process
-            split_variables: List of variables that are used for the category splitting
             sample_paths: List of file paths where the samples are stored
             output_path: Path where the generated plots should be stored
             logger: Name of the logger that should be used
@@ -457,13 +441,10 @@ def DR_SR_correction(
             corr_evaluators: List of evaluators with corrections to QCD fake factors
     """
     (
-        split,
-        binning,
-        bandwidth,
+        splitting,
         config,
         correction_conf,
         process,
-        split_variables,
         sample_paths,
         output_path,
         logger,
@@ -480,8 +461,8 @@ def DR_SR_correction(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        if split is not None:
-            log.info(f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {split[var]}' for var in split_variables])}.")
+        if splitting.split is not None:
+            log.info(f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
         else:
             log.info(f"Processing {sample} for the DR to SR correction for {process}.")
         log.info("-" * 50)
@@ -494,7 +475,7 @@ def DR_SR_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -512,7 +493,7 @@ def DR_SR_correction(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -541,7 +522,7 @@ def DR_SR_correction(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning, nbinsx = array.array("d", binning), len(binning) - 1
+        xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1
 
         # making the histograms
         h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
@@ -586,9 +567,9 @@ def DR_SR_correction(
 
     nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
-        bin_edges=binning,
-        write_corrections=correction_conf["write_corrections"],
-        bandwidth=bandwidth or gd.get_default_bandwidth(binning=binning),
+        bin_edges=splitting.var_bins,
+        write_corrections=splitting.write_corrections,
+        bandwidth=splitting.bandwidth,
     )
 
     plotting.plot_correction(
@@ -600,7 +581,7 @@ def DR_SR_correction(
         channel=config["channel"],
         process=process,
         output_path=output_path,
-        category=split,
+        category=splitting.split,
         logger=logger,
         save_data=True,
     )
@@ -621,7 +602,7 @@ def DR_SR_correction(
             region="DR_SR",
             data="data_subtracted",
             samples=["data_ff"],
-            category={"incl": ""} if split is None else split,
+            category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
             yscale=yscale,
@@ -637,14 +618,14 @@ def DR_SR_correction(
             region="DR_SR" + "_SRlike_hist",
             data="data",
             samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
-            category={"incl": ""} if split is None else split,
+            category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
             yscale=yscale,
             save_data=save_data,
         )
 
-    if split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, split_variables, split)
+    if splitting.split is not None:
+        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
     else:
         return correction_dict

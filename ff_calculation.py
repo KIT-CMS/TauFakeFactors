@@ -83,12 +83,9 @@ def FF_calculation(
 
     process_conf = config[process] if is_fraction else config["target_processes"][process]
 
-    split_variables, split_combinations, split_binnings, *_ = ff_func.get_split_combinations(
-        categories=process_conf["split_categories"],
-        binning=process_conf["var_bins"],
-    )
+    split_collections = ff_func.SplitQuantities(process_conf)
 
-    assert len(split_variables) <= split_limit, f"Category splitting of {process} is only defined up to {split_limit} dimensions."
+    assert len(split_collections.split_variables) <= split_limit, f"Category splitting of {process} is only defined up to {split_limit} dimensions."
 
     try:
         SRlike_hists, ARlike_hists = FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS[process](
@@ -101,19 +98,17 @@ def FF_calculation(
         results = func.optional_process_pool(
             args_list=[
                 (
-                    split,
-                    binning,
+                    split_collection,
                     config,
                     process_conf,
                     process,
-                    split_variables,
                     sample_paths,
                     output_path,
                     logger,
                     SRlike_hists,
                     ARlike_hists,
                 )
-                for split, binning in zip(split_combinations, split_binnings)
+                for split_collection in split_collections
             ],
             function=FF_CALCULATION_FUNCTIONS[process],
         )
@@ -130,7 +125,7 @@ def FF_calculation(
             processes=config[process]["processes"],
         )
     else:
-        return ff_func.fill_corrlib_expression(results, split_variables)
+        return ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
 
 def run_ff_calculation(
