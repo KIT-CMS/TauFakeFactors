@@ -6,7 +6,7 @@ from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
 
 random_seed = 19
 default_fit_option = "poly_1"
-default_write_corrections = "smoothed"
+default_correction_option = "smoothed"
 
 
 def get_default_fit_function_limit_kwargs(

@@ -490,7 +490,7 @@ def non_closure_correction(
     nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
-        write_corrections=splitting.write_corrections,
+        correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
     )
 
@@ -688,7 +688,7 @@ def DR_SR_correction(
     nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
-        write_corrections=splitting.write_corrections,
+        correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
     )
 

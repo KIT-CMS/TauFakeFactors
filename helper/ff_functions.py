@@ -27,7 +27,7 @@ class SplitQuantitiesContainer:
     split: dict
     var_bins: list
     # --------------------------
-    _write_corrections: Union[str, None] = None  # set or from general_definitions
+    _correction_option: Union[str, None] = None  # set or from general_definitions
     _fit_option: Union[list, None] = None  # set or from general_definitions
     _bandwidth: Union[float, int, None] = None  # derived from var_bins
     _limit_kwargs: Union[dict, None] = None  # derived from var_bins and optional hist
@@ -62,33 +62,40 @@ class SplitQuantitiesContainer:
         return self._fit_option
 
     @property
-    def write_corrections(self) -> Union[str, None]:
-        if self._write_corrections is not None:
-            return self._write_corrections
+    def correction_option(self) -> Union[str, None]:
+        if self._correction_option is not None:
+            return self._correction_option
 
-        self._write_corrections = gd.default_write_corrections
+        self._correction_option = gd.default_correction_option
 
-        return self._write_corrections
+        return self._correction_option
 
 
 class SplitQuantities:
     def __init__(
         self,
         config: dict,
-        convert_to_dict: bool = False,
     ) -> None:
         self.config = config
         self.categories = config.get("split_categories", None)
         self.split_variables = list(self.categories.keys()) if self.categories else []
 
-        self.convert_to_dict = convert_to_dict
+    def to_dict(self, item: Union[list, str]) -> dict:
+        if isinstance(item, str):
+            try:
+                item = getattr(self, item)
+            except AttributeError:
+                raise KeyError(f"Item {item} not found in SplitQuantities")
 
-        self._split = None
-        self._var_bins = None
-        self._fit_option = None
-        self._limit_kwargs = None
-        self._bandwidth = None
-        self._write_corrections = None
+        collection = {}
+        for split, it in zip(self.split, item):
+            keys = [f"{var}#{split[var]}" for var in self.split_variables]
+            if len(keys) == 1:
+                collection.update({keys[0]: it})
+            elif len(keys) == 2:
+                collection.setdefault(keys[0], {})[keys[1]] = it
+
+        return collection
 
     def _fill_dict_based(self, key: str) -> list:
         collection = []
@@ -135,7 +142,7 @@ class SplitQuantities:
 
     @property
     def var_bins(self):
-        if self._var_bins is not None:
+        if hasattr(self, "_var_bins") and self._var_bins is not None:
             return self._var_bins
 
         key = "var_bins"
@@ -145,23 +152,12 @@ class SplitQuantities:
             variable_condition=isinstance(self.config[key], list),
         )
 
-        if self.convert_to_dict:
-            _binnings = {}
-            for split, _binning in zip(self.split, binnings):
-                keys = [f"{var}#{split[var]}" for var in self.split_variables]
-                if len(keys) == 1:
-                    _binnings.update({keys[0]: _binning})
-                elif len(keys) == 2:
-                    _binnings.setdefault(keys[0], {})[keys[1]] = _binning
-            binnings = _binnings
-
         self._var_bins = binnings
-
-        return binnings
+        return self._var_bins
 
     @property
     def fit_option(self):
-        if self._fit_option is not None:
+        if hasattr(self, "_fit_option") and self._fit_option is not None:
             return self._fit_option
 
         key = "fit_option"
@@ -177,7 +173,7 @@ class SplitQuantities:
 
     @property
     def limit_kwargs(self):
-        if self._limit_kwargs is not None:
+        if hasattr(self, "_limit_kwargs") and self._limit_kwargs is not None:
             return self._limit_kwargs
 
         key = "limit_kwargs"
@@ -194,7 +190,7 @@ class SplitQuantities:
 
     @property
     def bandwidth(self):
-        if self._bandwidth is not None:
+        if hasattr(self, "_bandwidth") and self._bandwidth is not None:
             return self._bandwidth
 
         key = "bandwidth"
@@ -209,12 +205,12 @@ class SplitQuantities:
         return self._bandwidth
 
     @property
-    def write_corrections(self):
-        if self._write_corrections is not None:
-            return self._write_corrections
+    def correction_option(self):
+        if hasattr(self, "_correction_option") and self._correction_option is not None:
+            return self._correction_option
 
-        key = "write_corrections"
-        self._write_corrections = self._fill(
+        key = "correction_option"
+        self._correction_option = self._fill(
             key=key,
             variable_condition=(
                 key in self.config 
@@ -222,7 +218,7 @@ class SplitQuantities:
             ),
         )
 
-        return self._write_corrections
+        return self._correction_option
 
     def __iter__(self) -> Iterator[Any]:
         for (
@@ -231,14 +227,14 @@ class SplitQuantities:
             fit_option,
             limit_kwargs,
             bandwidth,
-            write_corrections,
+            correction_option,
         ) in zip(
             self.split,
             self.var_bins,
             self.fit_option,
             self.limit_kwargs,
             self.bandwidth,
-            self.write_corrections,
+            self.correction_option,
         ):
             yield SplitQuantitiesContainer(
                 variables=self.split_variables,
@@ -248,7 +244,7 @@ class SplitQuantities:
                 _fit_option=fit_option,
                 _limit_kwargs=limit_kwargs,
                 _bandwidth=bandwidth,
-                _write_corrections=write_corrections,
+                _correction_option=correction_option,
             )
 
     def __len__(self) -> int:
@@ -917,7 +913,7 @@ def calculate_non_closure_correction_ttbar_fromMC(
 def smooth_function(
     hist: Any,
     bin_edges: List[float],
-    write_corrections: str,
+    correction_option: str,
     bandwidth: float,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
@@ -981,7 +977,7 @@ def smooth_function(
     smooth_y_up = array.array("d", smooth_y_up)
     smooth_y_down = array.array("d", smooth_y_down)
 
-    if write_corrections == "binwise":
+    if correction_option == "binwise":
         _bins = np.array(bin_edges)
         _nom = np.array(y)
         _up = _nom + np.array(error_y_up)
