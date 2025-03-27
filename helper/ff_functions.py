@@ -1119,6 +1119,61 @@ def calculate_non_closure_correction_ttbar_fromMC(
     return corr
 
 
+def get_index_and_slices(
+    correction_option: str,
+) -> Tuple[int, int, slice, slice, slice, bool, bool, bool]:
+    """
+    This function derives the bin index and slices for the hybrid correction,
+    in case of no hybrid correction, default values are returned.
+
+    Args:
+        correction_option: Correction option string
+
+    Return:
+        1. Start index of the left part of the hybrid correction
+        2. End index of the right part of the hybrid correction
+        3. Slice for the left part of the hybrid correction
+        4. Slice for the right part of the hybrid correction
+        5. Slice for the overlap part of the hybrid correction
+        6. Boolean if the hybrid correction
+    """
+
+    # default values
+    start_idx, end_idx, has_left_part, has_right_part = 0, -1, False, False
+    left_slice, right_slice, overlap_slice = slice(0, 0), slice(-1, -1), slice(None, None)
+
+    if "binwise" in correction_option and "smoothed" in correction_option:
+        binwise_part = next(it for it in correction_option.split("+") if "binwise" in it)
+        bin_idx_groups = [eval(expr) for expr in binwise_part.split("#")[1:]]
+
+        if len(bin_idx_groups) == 2:
+            start_idx, end_idx = bin_idx_groups[0][-1] + 1, bin_idx_groups[1][-1] - 1
+            has_left_part, has_right_part = True, True
+        elif len((group := bin_idx_groups)) == 1:
+            if all(it >= 0 for it in group):
+                start_idx, has_left_part = group[-1] + 1, True
+            elif all(it < 0 for it in group):
+                end_idx, has_right_part = group[-1] - 1, True
+            else:
+                raise ValueError("Invalid bin index for the binned part of the correction")
+
+        left_slice = slice(None, start_idx) if has_left_part else slice(0, 0)
+        right_slice = slice(end_idx + 1, None) if has_right_part else slice(-1, -1)
+        overlap_slice = slice(None, -1) if has_right_part else slice(None, None)
+
+    else:
+        raise ValueError("Unexpected number of bin index groups in correction_option")
+
+    return (
+        start_idx,
+        end_idx,
+        left_slice,
+        right_slice,
+        overlap_slice,
+        has_left_part or has_right_part,
+    )
+
+
 def smooth_function(
     hist: Any,
     bin_edges: List[float],
@@ -1144,7 +1199,18 @@ def smooth_function(
         hist, return_components=True, add_xerrors_in_graph=True,
     )
 
-    # sampling values for y based on a normal distribution with the bin yield as mean value and with the measured statistical uncertainty
+    # values for slicing and range determination in case of hybrid correction
+    (
+        start_idx,
+        end_idx,
+        left_slice,
+        right_slice,
+        overlap_slice,
+        is_hybrid_correction,
+    ) = get_index_and_slices(correction_option)
+
+    # sampling values for y based on a normal distribution with the bin yield as mean
+    # value and with the measured statistical uncertainty
     with rng_seed(seed=random_seed):
         n_samples = 20
         sampled_y = list()
@@ -1160,31 +1226,8 @@ def smooth_function(
     for i in range(n_bins):
         fit_y_binned.append(list())
 
-    start_idx, end_idx, has_left_part, has_right_part = 0, -1, False, False
-    is_hybrid = "binwise" in correction_option and "smoothed" in correction_option
-    if is_hybrid:
-        binwise_part = next(it for it in correction_option.split("+") if "binwise" in it)
-        bin_idx_groups = [eval(expr) for expr in binwise_part.split("#")[1:]]
-
-        if len(bin_idx_groups) == 2:
-            start_idx, end_idx = bin_idx_groups[0][-1] + 1, bin_idx_groups[1][-1] - 1
-            has_left_part, has_right_part = True, True
-        elif len((group := bin_idx_groups)) == 1:
-            if all(it >= 0 for it in group):
-                start_idx, has_left_part = group[-1] + 1, True
-            elif all(it < 0 for it in group):
-                end_idx, has_right_part = group[-1] - 1, True
-            else:
-                raise ValueError("Invalid bin index for the binned part of the correction")
-    else:
-        raise ValueError("Unexpected number of bin index groups in correction_option")
-
-    eval_bin_edges, bin_step = np.linspace(
-        bin_edges[start_idx], bin_edges[end_idx], (n_bins + 1), retstep=True,
-    )
-    bin_half = bin_step / 2.0
-    smooth_x = (eval_bin_edges + bin_half)[:-1]
-    smooth_x = array.array("d", smooth_x)
+    eval_bin_edges = np.linspace(bin_edges[start_idx], bin_edges[end_idx], (n_bins + 1))
+    smooth_x = array.array("d", eval_bin_edges[:-1] + np.diff(eval_bin_edges))
 
     for sample in range(n_samples):
         y_arr = array.array("d", sampled_y[:, sample])
@@ -1215,10 +1258,7 @@ def smooth_function(
         _nom = np.array(smooth_y)
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
-    elif is_hybrid:
-        left_slice = slice(None, start_idx) if has_left_part else slice(0, 0)
-        right_slice = slice(end_idx + 1, None) if has_right_part else slice(-1, -1)
-        overlap_slice = slice(None, -1) if has_right_part else slice(None, None)
+    elif is_hybrid_correction:
         _bins = np.concatenate(
             (
                 bin_edges[left_slice],
