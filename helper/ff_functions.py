@@ -268,7 +268,7 @@ class SplitQuantities:
             list: List of dictionaries; each dictionary maps split variable names to category values.
         """
 
-        if self._split is not None:
+        if hasattr(self, "_split") and self._split is not None:
             return self._split
 
         if self.split_variables:
@@ -1160,15 +1160,24 @@ def smooth_function(
     for i in range(n_bins):
         fit_y_binned.append(list())
 
-    start_idx, end_idx, prepend = 0, -1, False
+    start_idx, end_idx, has_left_part, has_right_part = 0, -1, False, False
     is_hybrid = "binwise" in correction_option and "smoothed" in correction_option
     if is_hybrid:
-        _splitted = correction_option.split("+")
-        _idx = np.array(eval([it for it in _splitted if "binwise" in it][0].split("#")[1]))
-        if _idx[-1] >= 0:
-            prepend, start_idx = True, _idx[-1] + 1
-        else:
-            end_idx = _idx[-1] - 1
+        binwise_part = next(it for it in correction_option.split("+") if "binwise" in it)
+        bin_idx_groups = [eval(expr) for expr in binwise_part.split("#")[1:]]
+
+        if len(bin_idx_groups) == 2:
+            start_idx, end_idx = bin_idx_groups[0][-1] + 1, bin_idx_groups[1][-1] - 1
+            has_left_part, has_right_part = True, True
+        elif len((group := bin_idx_groups)) == 1:
+            if all(it >= 0 for it in group):
+                start_idx, has_left_part = group[-1] + 1, True
+            elif all(it < 0 for it in group):
+                end_idx, has_right_part = group[-1] - 1, True
+            else:
+                raise ValueError("Invalid bin index for the binned part of the correction")
+    else:
+        raise ValueError("Unexpected number of bin index groups in correction_option")
 
     eval_bin_edges, bin_step = np.linspace(
         bin_edges[start_idx], bin_edges[end_idx], (n_bins + 1), retstep=True,
@@ -1207,17 +1216,37 @@ def smooth_function(
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
     elif is_hybrid:
-        _slice = slice(None, start_idx) if prepend else slice(end_idx + 1, None)
-        if prepend:
-            _bins = np.concatenate((bin_edges[_slice], np.array(eval_bin_edges)))
-            _nom = np.concatenate((y[_slice], np.array(smooth_y)))
-            _up = _nom + np.concatenate((error_y_up[_slice], np.array(smooth_y_up)))
-            _down = _nom - np.concatenate((error_y_down[_slice], np.array(smooth_y_down)))
-        else:
-            _bins = np.concatenate((np.array(eval_bin_edges)[:-1], bin_edges[_slice]))
-            _nom = np.concatenate((np.array(smooth_y)[:-1], y[_slice]))
-            _up = _nom + np.concatenate((np.array(smooth_y_up)[:-1], error_y_up[_slice]))
-            _down = _nom - np.concatenate((np.array(smooth_y_down)[:-1], error_y_down[_slice]))
+        left_slice = slice(None, start_idx) if has_left_part else slice(0, 0)
+        right_slice = slice(end_idx + 1, None) if has_right_part else slice(-1, -1)
+        overlap_slice = slice(None, -1) if has_right_part else slice(None, None)
+        _bins = np.concatenate(
+            (
+                bin_edges[left_slice],
+                np.array(eval_bin_edges)[overlap_slice],
+                bin_edges[right_slice],
+            ),
+        )
+        _nom = np.concatenate(
+            (
+                y[left_slice],
+                np.array(smooth_y)[overlap_slice],
+                y[right_slice],
+            ),
+        )
+        _up = _nom + np.concatenate(
+            (
+                error_y_up[left_slice],
+                np.array(smooth_y_up)[overlap_slice],
+                error_y_up[right_slice],
+            ),
+        )
+        _down = _nom - np.concatenate(
+            (
+                error_y_down[left_slice],
+                np.array(smooth_y_down)[overlap_slice],
+                error_y_down[right_slice],
+            ),
+        )
     else:
         raise ValueError("Invalid correction option")
 
