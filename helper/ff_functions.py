@@ -1119,9 +1119,9 @@ def calculate_non_closure_correction_ttbar_fromMC(
     return corr
 
 
-def get_index_and_slices(
+def _get_index_and_slices(
     correction_option: str,
-) -> Tuple[int, int, slice, slice, slice, bool, bool, bool]:
+) -> Tuple[int, int, slice, slice, slice, bool]:
     """
     This function derives the bin index and slices for the hybrid correction,
     in case of no hybrid correction, default values are returned.
@@ -1160,9 +1160,6 @@ def get_index_and_slices(
         left_slice = slice(None, start_idx) if has_left_part else slice(0, 0)
         right_slice = slice(end_idx + 1, None) if has_right_part else slice(-1, -1)
         overlap_slice = slice(None, -1) if has_right_part else slice(None, None)
-
-    else:
-        raise ValueError("Unexpected number of bin index groups in correction_option")
 
     return (
         start_idx,
@@ -1207,7 +1204,7 @@ def smooth_function(
         right_slice,
         overlap_slice,
         is_hybrid_correction,
-    ) = get_index_and_slices(correction_option)
+    ) = _get_index_and_slices(correction_option)
 
     # sampling values for y based on a normal distribution with the bin yield as mean
     # value and with the measured statistical uncertainty
