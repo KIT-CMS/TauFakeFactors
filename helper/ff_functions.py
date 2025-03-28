@@ -1251,28 +1251,36 @@ def smooth_function(
         _bins = np.concatenate(
             (
                 bin_edges[left_slice],
+                [bin_edges[start_idx]] if start_idx != 0 else [],
                 np.array(smooth_x)[overlap_slice],
+                [bin_edges[end_idx]] if end_idx != -1 else [],
                 bin_edges[right_slice],
             ),
         )
         _nom = np.concatenate(
             (
                 y[left_slice],
+                [smooth_y[0]] if start_idx != 0 else [],
                 np.array(smooth_y)[overlap_slice],
+                [smooth_y[-1]] if end_idx != -1 else [],
                 y[right_slice],
             ),
         )
         _up = _nom + np.concatenate(
             (
                 error_y_up[left_slice],
+                [smooth_y_up[0]] if start_idx != 0 else [],
                 np.array(smooth_y_up)[overlap_slice],
+                [smooth_y_up[-1]] if end_idx != -1 else [],
                 error_y_up[right_slice],
             ),
         )
         _down = _nom - np.concatenate(
             (
                 error_y_down[left_slice],
+                [smooth_y_down[0]] if start_idx != 0 else [],
                 np.array(smooth_y_down)[overlap_slice],
+                [smooth_y_down[-1]] if end_idx != -1 else [],
                 error_y_down[right_slice],
             ),
         )

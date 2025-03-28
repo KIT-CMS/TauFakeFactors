@@ -363,7 +363,7 @@ def non_closure_correction(
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=smoothed_graph,
+        corr_graph=correction_dict,
         corr_name=f"non_closure_{closure_variable}{add_str}",
         era=config["era"],
         channel=config["channel"],
@@ -575,7 +575,7 @@ def DR_SR_correction(
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=smoothed_graph,
+        corr_graph=correction_dict,
         corr_name="DR_SR",
         era=config["era"],
         channel=config["channel"],

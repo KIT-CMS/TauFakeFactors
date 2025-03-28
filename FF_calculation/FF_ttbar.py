@@ -505,7 +505,7 @@ def non_closure_correction(
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=smoothed_graph,
+        corr_graph=correction_dict,
         corr_name="non_closure_" + closure_variable,
         era=config["era"],
         channel=config["channel"],
