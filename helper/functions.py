@@ -23,12 +23,86 @@ class RuntimeVariables(object):
         USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
     """
     USE_MULTIPROCESSING = True
+    USE_CACHED_INTERMEDIATE_STEPS = False
     RDataFrameWrapper = None
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
             cls.instance = super(RuntimeVariables, cls).__new__(cls)
             return cls.instance
+
+
+def get_non_closure_cached_path(
+    output_path: str,
+    process: str,
+    variables: List[Tuple[str, ...]],
+    for_DRtoSR: bool = False,
+) -> str:
+    """
+    Function to get the path of the cached file for non-closure correction.
+    The cached file is stored in the ".cache" folder in the output path, the file name
+    is generated based on the process and the variables.
+    If the ".cache" folder does not exist, it is created.
+
+    Args:
+        output_path: Path to the folder where the file should be stored at
+        process: Name of the process the file correspond to
+        variables: List of variables which are used for the non-closure correction
+        for_DRtoSR: If True, the cached path is generated for the DR to SR correction
+    Return:
+        String with the file path
+    """
+
+    cache_path = os.path.join(output_path, ".cache")
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path, exist_ok=True)
+
+    filename = "_".join(
+        "_non_closure",
+        "for_DRtoSR" if for_DRtoSR else "",
+        process,
+        "_".join("_".join(it) for it in variables)
+    ) + ".pickle"
+
+    return os.path.join(cache_path, filename)
+
+
+def custom_nested_copmpare(obj1: Any, obj2: Any) -> bool:
+    """
+    Function to compare two objects of potentially different types.
+    It will return True if they are equal, and False otherwise.
+
+    The function will compare:
+    - int, float, str: by value
+    - list, tuple: by length and value (recursively)
+    - dict: by length and value (recursively)
+    - np.ndarray: by shape and value (using np.array_equal)
+    - Any other type: raises TypeError
+
+    Args:
+        obj1: The first object to compare.
+        obj2: The second object to compare.
+
+    Returns:
+        bool: True if the objects are equal, False otherwise.
+    """
+    if type(obj1) != type(obj2):
+        return False
+    elif isinstance(obj1, (int, float, str)):
+        return obj1 == obj2
+    elif isinstance(obj1, (list, tuple)):
+        return len(obj1) == len(obj2) and all(custom_nested_copmpare(a, b) for a, b in zip(obj1, obj2))
+    elif isinstance(obj1, dict):
+        return set(obj1.keys()) == set(obj2.keys()) and all(custom_nested_copmpare(obj1[k], obj2[k]) for k in obj1)
+    elif isinstance(obj1, np.ndarray):
+        return obj1.shape == obj2.shape and np.array_equal(obj1, obj2)
+    else:
+        raise TypeError(
+            f"""
+                Unsupported type: {type(obj1)}.
+                Add more logic to handle this type or do you really want to compare it?
+            """
+        )
 
 
 def remove_empty_keys(data: Union[Dict, List, Any]) -> Union[Dict, List, Any]:

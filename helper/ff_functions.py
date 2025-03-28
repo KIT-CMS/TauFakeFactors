@@ -1149,7 +1149,8 @@ def _get_index_and_slices(
         if len(bin_idx_groups) == 2:
             start_idx, end_idx = bin_idx_groups[0][-1] + 1, bin_idx_groups[1][-1] - 1
             has_left_part, has_right_part = True, True
-        elif len((group := bin_idx_groups)) == 1:
+        elif len(bin_idx_groups) == 1:
+            group = bin_idx_groups[0]
             if all(it >= 0 for it in group):
                 start_idx, has_left_part = group[-1] + 1, True
             elif all(it < 0 for it in group):
@@ -1208,27 +1209,18 @@ def smooth_function(
 
     # sampling values for y based on a normal distribution with the bin yield as mean
     # value and with the measured statistical uncertainty
+    n_samples = 20
+
     with rng_seed(seed=random_seed):
-        n_samples = 20
-        sampled_y = list()
-        for idx in range(len(x)):
-            sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
-        sampled_y = np.array(sampled_y)
+        sampled_y = np.array([np.random.normal(*it, n_samples) for it in zip(y, error_y_up)])
         sampled_y[sampled_y < 0.0] = 0.0
 
-    # calculate widths
-    fit_y_binned = list()
-
     n_bins = 100 * hist_bins
-    for i in range(n_bins):
-        fit_y_binned.append(list())
+    smooth_x = array.array("d", np.linspace(x[start_idx], x[end_idx], n_bins + 1, endpoint=True))
+    fit_y_binned = [[] for _ in range(n_bins)]
 
-    eval_bin_edges = np.linspace(bin_edges[start_idx], bin_edges[end_idx], (n_bins + 1))
-    smooth_x = array.array("d", eval_bin_edges[:-1] + np.diff(eval_bin_edges))
-
-    for sample in range(n_samples):
-        y_arr = array.array("d", sampled_y[:, sample])
-        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
+    for sample in sampled_y.T:
+        graph = ROOT.TGraphAsymmErrors(len(x), x, array.array("d", sample), 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
         grout = gs.SmoothKern(graph, "normal", bandwidth, n_bins, smooth_x)
         for i in range(n_bins):
@@ -1251,7 +1243,7 @@ def smooth_function(
         _up = _nom + np.array(error_y_up)
         _down = _nom - np.array(error_y_down)
     elif correction_option == "smoothed":
-        _bins = np.array(eval_bin_edges)
+        _bins = np.array(smooth_x)
         _nom = np.array(smooth_y)
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
@@ -1259,7 +1251,7 @@ def smooth_function(
         _bins = np.concatenate(
             (
                 bin_edges[left_slice],
-                np.array(eval_bin_edges)[overlap_slice],
+                np.array(smooth_x)[overlap_slice],
                 bin_edges[right_slice],
             ),
         )
@@ -1290,6 +1282,16 @@ def smooth_function(
     _nom[_nom < 0] = 0
     _up[_up < 0] = 0
     _down[_down < 0] = 0
+
+    # adjustment to bin edges
+    if _bins[0] != bin_edges[0]:
+        _prepend = lambda a, b = None: np.concatenate(([a[0] if b is None else b[0]], a))
+        _bins = _prepend(_bins, bin_edges)
+        _nom, _up, _down = _prepend(_nom), _prepend(_up), _prepend(_down)
+    if _bins[-1] != bin_edges[-1]:
+        _append = lambda a, b = None: np.concatenate((a, [a[-1] if b is None else b[-1]]))
+        _bins = _append(_bins, bin_edges)
+        _nom, _up, _down = _append(_nom), _append(_up), _append(_down)
 
     corr_dict = {"edges": _bins, "nominal": _nom, "up": _up, "down": _down}
 

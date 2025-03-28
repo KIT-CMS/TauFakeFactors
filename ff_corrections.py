@@ -6,6 +6,7 @@ import argparse
 import copy
 import logging
 import os
+import pickle
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Union
 
@@ -32,18 +33,36 @@ parser.add_argument(
 parser.add_argument(
     "--skip-DRtoSR-ffs",
     action="store_true",
-    help="Using this argument means to skip the calculation of the fake factors for the DR to SR correction and directly calculate the corrections. This is useful if you already calculated the needed additional fake factors.",
+    help="""
+        Using this argument means to skip the calculation of the fake factors for the DRtoSR
+        correction and directly calculate the corrections. This is useful if you already
+        calculated the needed additional fake factors.
+    """,
 )
 parser.add_argument(
     "--only-main-corrections",
     action="store_true",
-    help="Using this argument means to skip the calculation of the fake factors and corrections for the DR to SR correction and directly calculate the main corrections. This is useful if you already calculated the needed additional fake factors.",
+    help="""
+        Using this argument means to skip the calculation of the fake factors and
+        corrections for the DR to SR correction and directly calculate the main corrections.
+        This is useful if you already calculated the needed additional fake factors.
+    """,
 )
 
 parser.add_argument(
     "--disable-multiprocessing",
     action="store_true",
     help="Flag to disable multiprocessing for debugging purposes.",
+)
+
+parser.add_argument(
+    "--use-cached-intermediary-steps",
+    action="store_true",
+    help="""
+        Flag to use cached non closure corrections and FF for DRtoSR corrections if
+        available. Will check for existance assuming the same order of all previous 
+        correction calculations.
+    """,
 )
 
 NON_CLOSURE_CORRECTION_FUNCTIONS = {
@@ -158,7 +177,7 @@ def run_non_closure_correction(
 
     log = logging.getLogger(logger)
     corrections = {process: {}}
-    all_non_closure_corr_vars, correction_set = [], None
+    all_non_closure_corr_vars, correction_set, is_valid_cache = [], None, True
     for idx, (closure_corr, _corr_config) in enumerate(
         process_config["non_closure"].items(),
     ):
@@ -188,40 +207,76 @@ def run_non_closure_correction(
             to_AR_SR=False,
         )
 
-        corr_evaluators = []
-
-        for n in range(idx):
-            assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
-            corr_evaluators.append(
-                FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
-                    correction=correction_set,
-                    process=process,
-                    corr_variable=all_non_closure_corr_vars[n],
-                    for_DRtoSR=for_DRtoSR,
-                    logger=f"ff_corrections.{process}",
-                )
-            )
-
-        result = non_closure_correction(
-            config=temp_conf,
-            corr_config=corr_config,
-            sample_paths=sample_paths,
+        cached_config_path = func.get_non_closure_cached_path(
             output_path=output_path,
             process=process,
-            closure_variable=closure_corr,
-            evaluator=evaluator,
-            corr_evaluators=corr_evaluators,
-            for_DRtoSR=for_DRtoSR,
-            logger=f"ff_corrections.{process}",
-        )
-
-        corrections[process]["non_closure_" + closure_corr] = result
-
-        correction_set = corrlib.generate_correction_corrlib(
-            config=corr_config,
-            corrections=corrections,
+            variables=all_non_closure_corr_vars,
             for_DRtoSR=for_DRtoSR,
         )
+
+        if os.path.exists(cached_config_path):
+            with open(cached_config_path, "rb") as f:
+                __corrections, __corr_config, __for_DRtoSR = pickle.load(f)
+                is_valid_cache = func.custom_nested_copmpare(
+                    __corr_config,
+                    _corr_config,
+                )
+        else:
+            is_valid_cache = False
+
+        if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS and is_valid_cache:
+            corrections[process].update(__corrections[process])
+            correction_set = corrlib.generate_correction_corrlib(
+                config=__corr_config,
+                corrections=__corrections,
+                for_DRtoSR=__for_DRtoSR,
+            )
+        else:
+            corr_evaluators = []
+
+            for n in range(idx):
+                assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
+                corr_evaluators.append(
+                    FakeFactorCorrectionEvaluator.loading_from_CorrectionSet(
+                        correction=correction_set,
+                        process=process,
+                        corr_variable=all_non_closure_corr_vars[n],
+                        for_DRtoSR=for_DRtoSR,
+                        logger=f"ff_corrections.{process}",
+                    )
+                )
+
+            result = non_closure_correction(
+                config=temp_conf,
+                corr_config=corr_config,
+                sample_paths=sample_paths,
+                output_path=output_path,
+                process=process,
+                closure_variable=closure_corr,
+                evaluator=evaluator,
+                corr_evaluators=corr_evaluators,
+                for_DRtoSR=for_DRtoSR,
+                logger=f"ff_corrections.{process}",
+            )
+
+            corrections[process]["non_closure_" + closure_corr] = result
+
+            correction_set = corrlib.generate_correction_corrlib(
+                config=corr_config,
+                corrections=corrections,
+                for_DRtoSR=for_DRtoSR,
+            )
+
+            with open(cached_config_path, "wb") as f:
+                pickle.dump(
+                    (
+                        corrections,
+                        corr_config,
+                        for_DRtoSR,
+                    ),
+                    f,
+                    protocol=pickle.HIGHEST_PROTOCOL,
+                )
 
     return corrections
 
@@ -456,6 +511,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
+    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = True
+    # func.RuntimeVariables.USE_MULTIPROCESSING = False
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)
@@ -491,7 +548,15 @@ if __name__ == "__main__":
 
     if not args.only_main_corrections:
         # initializing the fake factor calculation for DR to SR corrections
-        if not args.skip_DRtoSR_ffs:
+
+        ff_for_DRtoSR_file = os.path.join(
+            workdir_path,
+            "corrections",
+            config["channel"],
+            f"fake_factors_{config['channel']}_for_corrections.json",
+        )
+
+        if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS and not os.path.exists(ff_for_DRtoSR_file):
             fake_factors = dict()
 
             if "target_processes" in corr_config:
@@ -509,23 +574,15 @@ if __name__ == "__main__":
             else:
                 raise Exception("No target processes are defined!")
 
-            corrlib.generate_ff_corrlib_json(
-                config=config,
-                ff_functions=fake_factors,
-                fractions=None,
-                fractions_subleading=None,
-                output_path=save_path_plots,
-                for_corrections=True,
-            )
-        else:
-            assert os.path.exists(
-                os.path.join(
-                    workdir_path,
-                    "corrections",
-                    config["channel"],
-                    f"fake_factors_{config['channel']}_for_corrections.json",
-                ),
-            ), "Fake factors for DR to SR corrections are missing!"
+            if fake_factors:
+                corrlib.generate_ff_corrlib_json(
+                    config=config,
+                    ff_functions=fake_factors,
+                    fractions=None,
+                    fractions_subleading=None,
+                    output_path=save_path_plots,
+                    for_corrections=True,
+                )
 
         DR_SR_corrections = {
             "QCD": {},
