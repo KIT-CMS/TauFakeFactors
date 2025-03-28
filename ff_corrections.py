@@ -269,11 +269,7 @@ def run_non_closure_correction(
 
             with open(cached_config_path, "wb") as f:
                 pickle.dump(
-                    (
-                        corrections,
-                        corr_config,
-                        for_DRtoSR,
-                    ),
+                    (corrections, corr_config, for_DRtoSR),
                     f,
                     protocol=pickle.HIGHEST_PROTOCOL,
                 )

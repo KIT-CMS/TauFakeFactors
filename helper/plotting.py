@@ -1,10 +1,16 @@
 import array
 import logging
 import os
+import pickle
 from io import StringIO
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
+import matplotlib.pyplot as plt
+import mplhep as hep
+import numpy as np
 import ROOT
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
@@ -43,15 +49,22 @@ def save_plots_and_data(
     base_filename_plot, plot_obj = "", None
     base_filename_data, data_obj = "", None
 
-    def save_root_canvas(ext):
-        plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+    def save_canvas(ext):
+        if isinstance(plot_obj, ROOT.TCanvas):
+            plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+        elif isinstance(plot_obj, plt.Figure):
+            plot_obj.savefig(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
 
     def save_root_hists(ext):
         root_filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
         root_file = ROOT.TFile(root_filepath, "RECREATE")
         if isinstance(data_obj, dict):
-            for key, hist in data_obj.items():
-                hist.Write(key)
+            try:
+                for key, hist in data_obj.items():
+                    hist.Write(key)
+            except AttributeError:  # except regular python dict
+                with open(base_filename_data, "wb") as f:
+                    pickle.dump(data_obj, f, pickle.HIGHEST_PROTOCOL)
         elif isinstance(data_obj, ROOT.TH1D):
             data_obj.Write(base_filename_data)
         root_file.Close()
@@ -59,7 +72,7 @@ def save_plots_and_data(
     tasks = []
     if plot_filename_and_obj is not None:
         base_filename_plot, plot_obj = plot_filename_and_obj
-        tasks.append((plot_extensions, save_root_canvas))
+        tasks.append((plot_extensions, save_canvas))
     if data_filename_and_obj is not None:
         base_filename_data, data_obj = data_filename_and_obj
         tasks.append((data_extensions, save_root_hists))
@@ -600,7 +613,7 @@ def plot_fractions(
     c.Close()
 
 
-def plot_correction(
+def plot_correction_root(
     variable: str,
     corr_hist: Any,
     corr_graph: Any,
@@ -727,3 +740,148 @@ def plot_correction(
         logger=log,
     )
     c.Close()
+
+
+def plot_correction_mpl(
+    variable: str,
+    corr_hist: Any,
+    corr_graph: Any,
+    corr_name: str,
+    era: str,
+    channel: str,
+    process: str,
+    output_path: str,
+    logger: str,
+    category: Dict[str, str] = None,
+    save_data: bool = False,
+) -> None:
+    """
+    Function which produces a plot of the correction including the correction histogram
+    and the TGraph (with variations) from a smoothed fit which is derived from the histogram.
+
+    Args:
+        variable: Name of the variable the correction is measured in
+        corr_hist: Histogram of the measured correction
+        corr_graph: TGraph of the measured correction which is a smoothed function of "corr_hist" (includes variation)
+        corr_name: Name of the correction
+        era: Information about the era is added to the plot
+        channel: Information about the channel is added to the plot
+        process: Name of the target process the correction is calculated for
+        output_path: Path where the plot should be stored
+        logger: Name of the logger that should be used
+        category: Information about the category split is added to the plot
+        save_data: Boolean to additionally save the histograms to a root file
+
+    Return:
+        None
+    """
+    log = logging.getLogger(logger)
+
+    hep.set_style(hep.style.CMS)
+    _color, _lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3
+
+    n_points = corr_hist.GetN()
+    x_vals, y_vals, ex_low, ex_high, ey_low, ey_high = (np.empty(n_points) for _ in range(6))
+
+    for i in range(n_points):
+        x, y = array.array("d", [0.]), array.array("d", [0.])
+        corr_hist.GetPoint(i, x, y)
+        x_vals[i], y_vals[i] = x[0], y[0]
+        ex_low[i], ex_high[i] = corr_hist.GetErrorXlow(i), corr_hist.GetErrorXhigh(i)
+        ey_low[i], ey_high[i] = corr_hist.GetErrorYlow(i), corr_hist.GetErrorYhigh(i)
+
+    y_err = [ey_low, ey_high]
+    x_err = [ex_low, ex_high]
+
+    fig, ax = plt.subplots(1, 1, figsize=(11, 11))
+    ax.set(
+        xlim=(x_vals[0] - x_err[0][0], x_vals[-1] + x_err[1][-1]),
+        # xlabel="$" + gd.variable_dict[channel].get(variable, variable).replace("#", "\\") + "$",
+        xlabel="$" + gd.variable_dict[channel].get(variable, variable).replace("#", "\\") + "$",
+        ylim=(0, 2.2),
+        ylabel="Correction",
+    )
+
+    if category is not None:
+        plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
+            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            for var in category.keys()
+        )
+    else:
+        plot_text = f"{gd.channel_dict[channel]}, {process}"
+
+    plot_text = "$" + plot_text.replace('#', '\\') + "$"
+    ax.set_title(plot_text, loc="left", fontsize=20)
+    ax.set_title("$" + gd.era_dict[era] + "$", loc="right", fontsize=20)
+
+    if "non_closure" in corr_name:
+        ax.text(0.1, 0.85, "non closure correction", transform=ax.transAxes, fontsize=20)
+    elif "DR_SR" in corr_name:
+        ax.text(0.1, 0.85, "DR to SR correction", transform=ax.transAxes, fontsize=20,)
+
+    hep.cms.text(
+        text="Own work (data/simulation)",
+        ax=ax,
+        loc=1,
+        fontsize=20,
+    )
+
+    ax.fill_between(
+        corr_graph["edges"],
+        np.pad(corr_graph["up"], (0, 1), "edge"),
+        np.pad(corr_graph["down"], (0, 1), "edge"),
+        alpha=0.25,
+        step="post",
+        color=_color,
+        lw=0,
+        label="_nolegend_",
+    )
+
+    ax.step(
+        corr_graph["edges"],
+        np.pad(corr_graph["nominal"], (0, 1), "edge"),
+        lw=_lw,
+        where="post",
+        color=_color,
+        label="smoothed curve",
+    )
+
+    data_handler = ax.errorbar(
+        x_vals,
+        y_vals,
+        xerr=x_err,
+        yerr=y_err,
+        fmt='o',
+        color='black',
+        label='measured',
+    )
+
+    combined_handle = [
+        Patch(color=_color, alpha=0.25),
+        Line2D([0], [0], color=_color, linewidth=_lw),
+    ]
+
+    # Add legend with both the combined entry and the histogram
+    ax.legend(
+        handles=[data_handler, tuple(combined_handle)],
+        labels=["measured", "smoothed curve"],
+        loc="upper right",
+    )
+
+    selection = ""
+    if category is not None:
+        selection = '_'.join([""] + [f'{var}_{category[var]}' for var in category.keys()])
+
+    save_plots_and_data(
+        output_path=output_path,
+        plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", fig),
+        data_filename_and_obj=(
+            f"data_corr_{process}_{corr_name}{selection}",
+            {"corr_hist": corr_hist, "corr_graph": corr_graph},
+        ) if save_data else None,
+        logger=log,
+    )
+
+
+plot_correction = plot_correction_mpl

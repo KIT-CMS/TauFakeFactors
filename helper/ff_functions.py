@@ -1216,7 +1216,7 @@ def smooth_function(
         sampled_y[sampled_y < 0.0] = 0.0
 
     n_bins = 100 * hist_bins
-    smooth_x = array.array("d", np.linspace(x[start_idx], x[end_idx], n_bins + 1 + 4)[2:-2])  # + 4 to bypass ROOT plotting bug
+    smooth_x = array.array("d", np.linspace(x[start_idx], x[end_idx], n_bins + 1))
     fit_y_binned = [[] for _ in range(n_bins)]
 
     for sample in sampled_y.T:
