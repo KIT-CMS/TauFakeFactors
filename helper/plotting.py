@@ -777,7 +777,7 @@ def plot_correction_mpl(
     """
     log = logging.getLogger(logger)
 
-    hep.set_style(hep.style.CMS)
+    hep.style.use(hep.style.CMS)
     _color, _lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3
 
     n_points = corr_hist.GetN()
