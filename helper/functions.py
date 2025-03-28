@@ -58,10 +58,12 @@ def get_non_closure_cached_path(
         os.makedirs(cache_path, exist_ok=True)
 
     filename = "_".join(
-        "_non_closure",
-        "for_DRtoSR" if for_DRtoSR else "",
-        process,
-        "_".join("_".join(it) for it in variables)
+        [
+            "_non_closure",
+            "for_DRtoSR" if for_DRtoSR else "",
+            process,
+            "_".join("_".join(it) for it in variables),
+        ]
     ) + ".pickle"
 
     return os.path.join(cache_path, filename)

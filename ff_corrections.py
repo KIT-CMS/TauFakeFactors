@@ -511,8 +511,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
-    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = True
-    # func.RuntimeVariables.USE_MULTIPROCESSING = False
+    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = args.use_cached_intermediary_steps
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)
