@@ -513,6 +513,7 @@ def non_closure_correction(
         output_path=output_path,
         logger=logger,
         category=splitting.split,
+        save_data=True,
     )
 
     plot_hists = dict()
@@ -520,7 +521,7 @@ def non_closure_correction(
     plot_hists["data_subtracted"] = SR_hists["ttbar_J"].Clone()
     plot_hists["data_ff"] = AR_hists["ttbar_ff"].Clone()
 
-    for yscale in ["linear", "log"]:
+    for yscale, save_data in zip(["linear", "log"], [True, False]):
         plotting.plot_data_mc(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
@@ -534,6 +535,7 @@ def non_closure_correction(
             output_path=output_path,
             logger=logger,
             yscale=yscale,
+            save_data=save_data,
         )
 
     if splitting.split is not None:
