@@ -3,6 +3,7 @@ Main script initializing the fake factor correction calculation
 """
 
 import argparse
+import contextlib
 import copy
 import logging
 import os
@@ -56,7 +57,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--use-cached-intermediary-steps",
+    "--ignore-cached-intermediary-steps",
     action="store_true",
     help="""
         Flag to use cached non closure corrections and FF for DRtoSR corrections if
@@ -207,19 +208,26 @@ def run_non_closure_correction(
             to_AR_SR=False,
         )
 
-        cached_config_path = func.get_non_closure_cached_path(
+        cached_non_closure = func.non_closure_cached_path(
             output_path=output_path,
             process=process,
             variables=all_non_closure_corr_vars,
             for_DRtoSR=for_DRtoSR,
         )
 
-        if os.path.exists(cached_config_path):
-            with open(cached_config_path, "rb") as f:
-                __corrections, __corr_config, __for_DRtoSR = pickle.load(f)
-                is_valid_cache = func.custom_nested_copmpare(
+        if os.path.exists(cached_non_closure):
+            with open(cached_non_closure, "rb") as f:
+                __corrections, __corr_config, __temp_conf = pickle.load(f)
+                is_valid_cache &= func.custom_config_comparison(
                     __corr_config,
-                    _corr_config,
+                    corr_config,
+                    process=process,
+                    closure_corr=closure_corr,
+                    for_DRtoSR=for_DRtoSR,
+                )
+                is_valid_cache &= func.custom_nested_comparison(
+                    __temp_conf,
+                    temp_conf,
                 )
         else:
             is_valid_cache = False
@@ -227,13 +235,17 @@ def run_non_closure_correction(
         if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS and is_valid_cache:
             corrections[process].update(__corrections[process])
             correction_set = corrlib.generate_correction_corrlib(
-                config=__corr_config,
-                corrections=__corrections,
-                for_DRtoSR=__for_DRtoSR,
+                config=corr_config,
+                corrections=corrections,
+                for_DRtoSR=for_DRtoSR,
             )
         else:
-            corr_evaluators = []
+            if for_DRtoSR:
+                log.info(f"Removing cached DR_SR corrections for {process} process due to changes in non closure corrections")
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(func.get_DRtoSR_cached_path(output_path=output_path, process=process))
 
+            corr_evaluators = []
             for n in range(idx):
                 assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
                 corr_evaluators.append(
@@ -267,9 +279,9 @@ def run_non_closure_correction(
                 for_DRtoSR=for_DRtoSR,
             )
 
-            with open(cached_config_path, "wb") as f:
+            with open(cached_non_closure, "wb") as f:
                 pickle.dump(
-                    (corrections, corr_config, for_DRtoSR),
+                    (corrections, corr_config, temp_conf),
                     f,
                     protocol=pickle.HIGHEST_PROTOCOL,
                 )
@@ -477,29 +489,51 @@ def run_correction(
 
         split_collections = ff_func.SplitQuantities(DR_SR_conf)
 
-        results = func.optional_process_pool(
-            args_list=[
-                (
-                    split_collection,
-                    config,
+        is_valid_cache = True
+        cached_DR_SR = func.get_DRtoSR_cached_path(output_path=save_path_plots, process=process)
+        if os.path.exists(cached_DR_SR):
+            with open(cached_DR_SR, "rb") as f:
+                __corrections, __DR_SR_conf = pickle.load(f)
+                is_valid_cache = func.custom_nested_comparison(
+                    __DR_SR_conf,
                     DR_SR_conf,
-                    process,
-                    sample_paths,
-                    save_path_plots,
-                    f"ff_corrections.{process}",
-                    evaluator,
-                    corr_evaluators,
                 )
-                for split_collection in split_collections
-            ],
-            function=DR_SR_CORRECTION_FUNCTIONS[process],
-        )
-
-        if len(split_collections) == 1 and split_collections.split[0] is None:
-            corrections[process]["DR_SR"] = results[0]
         else:
-            corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_collections.split_variables)
+            is_valid_cache = False
 
+        if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS and is_valid_cache:
+            log.info(f"Using cached DR to SR corrections for {process} process.")
+            corrections[process]["DR_SR"] = __corrections[process]["DR_SR"]
+        else:
+            results = func.optional_process_pool(
+                args_list=[
+                    (
+                        split_collection,
+                        config,
+                        DR_SR_conf,
+                        process,
+                        sample_paths,
+                        save_path_plots,
+                        f"ff_corrections.{process}",
+                        evaluator,
+                        corr_evaluators,
+                    )
+                    for split_collection in split_collections
+                ],
+                function=DR_SR_CORRECTION_FUNCTIONS[process],
+            )
+
+            if len(split_collections) == 1 and split_collections.split[0] is None:
+                corrections[process]["DR_SR"] = results[0]
+            else:
+                corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_collections.split_variables)
+
+            with open(cached_DR_SR, "wb") as f:
+                pickle.dump(
+                    (corrections, DR_SR_conf),
+                    f,
+                    protocol=pickle.HIGHEST_PROTOCOL,
+                )
     return corrections
 
 
@@ -507,7 +541,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
-    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = args.use_cached_intermediary_steps
+    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = not args.ignore_cached_intermediary_steps
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)

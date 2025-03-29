@@ -32,7 +32,39 @@ class RuntimeVariables(object):
             return cls.instance
 
 
-def get_non_closure_cached_path(
+def _cached_filename(
+    process: str,
+    variables: Union[List[Tuple[str, ...]], None] = None,
+    for_DRtoSR: bool = False,
+) -> str:
+    """
+    Function to generate the name of the cached file. The name is generated based on the process
+    and the variables. The variables, if given, are joined by an underscore.
+
+    In case of DR_SR correction the name is generated without the variables.
+    The file name is generated in the following format:
+    <corr_type>_<for_DRtoSR>_<process>_<variables>.pickle
+    where <corr_type> is either "_DR_SR_" or "_non_closure" depending on the variables.
+    The <for_DRtoSR> is only added if the for_DRtoSR argument is set to True.
+    The <process> is the name of the process the file correspond to.
+    The <variables> are the variables which are used for the non-closure correction, joined by an underscore if given.
+
+    Args:
+        process: Name of the process the file correspond to
+        variables: List of variables which are used for the non-closure correction
+        for_DRtoSR: If True, the cached path is generated for the DR to SR correction
+    Return:
+        String with the file name
+    """
+
+    variables_str = "" if variables is None else "_".join("_".join(it) for it in variables)
+    corr_type_str = "_DR_SR_" if variables is None else "_non_closure"
+    for_DRtoSR_str = "for_DRtoSR" if for_DRtoSR else ""
+
+    return "_".join([corr_type_str, for_DRtoSR_str, process, variables_str]) + ".pickle"
+
+
+def non_closure_cached_path(
     output_path: str,
     process: str,
     variables: List[Tuple[str, ...]],
@@ -57,19 +89,78 @@ def get_non_closure_cached_path(
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
 
-    filename = "_".join(
-        [
-            "_non_closure",
-            "for_DRtoSR" if for_DRtoSR else "",
-            process,
-            "_".join("_".join(it) for it in variables),
-        ]
-    ) + ".pickle"
+    filename = _cached_filename(process=process, variables=variables, for_DRtoSR=for_DRtoSR)
 
     return os.path.join(cache_path, filename)
 
 
-def custom_nested_copmpare(obj1: Any, obj2: Any) -> bool:
+def get_DRtoSR_cached_path(
+    output_path: str,
+    process: str,
+) -> str:
+    """
+    Function to get the path of the cached file for DR to SR correction.
+    The cached file is stored in the ".cache" folder in the output path, the file name
+    is generated based on the process.
+    If the ".cache" folder does not exist, it is created.
+
+    Args:
+        output_path: Path to the folder where the file should be stored at
+        process: Name of the process the file correspond to
+    Return:
+        String with the file path
+    """
+
+    cache_path = os.path.join(output_path, ".cache")
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path, exist_ok=True)
+
+    return os.path.join(cache_path, _cached_filename(process=process))
+
+
+def custom_config_comparison(
+    test_config: dict,
+    config: dict,
+    *,
+    process: str,
+    closure_corr: str,
+    for_DRtoSR: bool = False,
+) -> bool:
+    """
+    Function to compare two configurations for a specific process non-closure correction.
+    It will compare the non-closure correction configuration for the specified process,
+    in case of non-closure for DR to SR correction it will also compare the SRlike and
+    ARlike cuts.
+
+    Args:
+        test_config: The configuration to be tested for equality
+        config: The reference configuration
+        process: The process to be compared
+        closure_corr: The non-closure correction to be compared
+    Returns:
+        bool: True if the configurations are equal, False otherwise
+    """
+
+    _test_config = test_config["target_processes"][process]
+    _config = config["target_processes"][process]
+
+    is_same = True
+    if ("DR_SR" in _test_config or "DR_SR" in _config) and for_DRtoSR:
+        if "DR_SR" not in _test_config or "DR_SR" not in _config:
+            return False
+
+        _test_config, _config = _config["DR_SR"], _test_config["DR_SR"]
+
+        is_same &= custom_nested_comparison(_test_config["SRlike_cuts"], _config["SRlike_cuts"])
+        is_same &= custom_nested_comparison(_test_config["ARlike_cuts"], _config["ARlike_cuts"])
+
+    _test_config = _test_config["non_closure"][closure_corr]
+    _config = _config["non_closure"][closure_corr]
+
+    return is_same and custom_nested_comparison(_test_config, _config)
+
+
+def custom_nested_comparison(obj1: Any, obj2: Any) -> bool:
     """
     Function to compare two objects of potentially different types.
     It will return True if they are equal, and False otherwise.
@@ -93,9 +184,9 @@ def custom_nested_copmpare(obj1: Any, obj2: Any) -> bool:
     elif isinstance(obj1, (int, float, str)):
         return obj1 == obj2
     elif isinstance(obj1, (list, tuple)):
-        return len(obj1) == len(obj2) and all(custom_nested_copmpare(a, b) for a, b in zip(obj1, obj2))
+        return len(obj1) == len(obj2) and all(custom_nested_comparison(a, b) for a, b in zip(obj1, obj2))
     elif isinstance(obj1, dict):
-        return set(obj1.keys()) == set(obj2.keys()) and all(custom_nested_copmpare(obj1[k], obj2[k]) for k in obj1)
+        return set(obj1.keys()) == set(obj2.keys()) and all(custom_nested_comparison(obj1[k], obj2[k]) for k in obj1)
     elif isinstance(obj1, np.ndarray):
         return obj1.shape == obj2.shape and np.array_equal(obj1, obj2)
     else:

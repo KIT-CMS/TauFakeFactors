@@ -63,7 +63,7 @@ def save_plots_and_data(
                 for key, hist in data_obj.items():
                     hist.Write(key)
             except AttributeError:  # except regular python dict
-                with open(base_filename_data, "wb") as f:
+                with open(root_filepath, "wb") as f:
                     pickle.dump(data_obj, f, pickle.HIGHEST_PROTOCOL)
         elif isinstance(data_obj, ROOT.TH1D):
             data_obj.Write(base_filename_data)
@@ -796,24 +796,22 @@ def plot_correction_mpl(
     fig, ax = plt.subplots(1, 1, figsize=(11, 11))
     ax.set(
         xlim=(x_vals[0] - x_err[0][0], x_vals[-1] + x_err[1][-1]),
-        # xlabel="$" + gd.variable_dict[channel].get(variable, variable).replace("#", "\\") + "$",
-        xlabel="$" + gd.variable_dict[channel].get(variable, variable).replace("#", "\\") + "$",
+        xlabel=gd.variable_dict_mpl[channel].get(variable, variable),
         ylim=(0, 2.2),
         ylabel="Correction",
     )
 
     if category is not None:
-        plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
-            f"{gd.category_dict[var]}^{category[var].split('#')[0]}_{category[var].split('#')[-1]}"
-            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+        plot_text = f"{gd.channel_dict_mpl[channel]}, {process}, " + ", ".join(
+            gd.category_dict_mpl[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
+            if "#" in category[var] else f"{gd.category_dict_[var]} {category[var]}"
             for var in category.keys()
         )
     else:
-        plot_text = f"{gd.channel_dict[channel]}, {process}"
+        plot_text = f"{gd.category_dict_mpl[channel]}, {process}"
 
-    plot_text = "$" + plot_text.replace('#', '\\') + "$"
     ax.set_title(plot_text, loc="left", fontsize=20)
-    ax.set_title("$" + gd.era_dict[era] + "$", loc="right", fontsize=20)
+    ax.set_title(gd.era_dict_mpl[era], loc="right", fontsize=20)
 
     if "non_closure" in corr_name:
         ax.text(0.1, 0.85, "non closure correction", transform=ax.transAxes, fontsize=20)
@@ -881,7 +879,9 @@ def plot_correction_mpl(
             {"corr_hist": corr_hist, "corr_graph": corr_graph},
         ) if save_data else None,
         logger=log,
+        data_extensions=("pickle",),
     )
+    plt.close()
 
 
 plot_correction = plot_correction_mpl
