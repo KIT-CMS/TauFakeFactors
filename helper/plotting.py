@@ -108,6 +108,65 @@ def set_optional_TGraph_style_and_draw(obj: ROOT.TGraphAsymmErrors) -> None:
     obj.Draw("AP")  # Plot the axis and markers (and errors)
 
 
+def TGraphAsymmErrors_to_numpy(
+    graph: ROOT.TGraphAsymmErrors,
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    List[np.ndarray],
+    List[np.ndarray],
+]:
+    """
+    Convert a ROOT TGraphAsymmErrors to numpy arrays.
+
+    Args:
+        graph: The TGraphAsymmErrors object to convert.
+
+    Returns:
+        Tuple containging:
+            - x: x values as numpy array
+            - y: y values as numpy array
+            - x_errors: List of numpy arrays containing the x errors (low and high)
+            - y_errors: List of numpy arrays containing the y errors (low and high)
+    """
+
+    n = graph.GetN()
+    x, y, xe_low, xe_high, ye_low, ye_high = (np.empty(n) for _ in range(6))
+    for i in range(n):
+        _x, _y = array.array("d", [0.]), array.array("d", [0.])
+        graph.GetPoint(i, _x, _y)
+        x[i], y[i] = _x[0], _y[0]
+        xe_low[i], xe_high[i] = graph.GetErrorXlow(i), graph.GetErrorXhigh(i)
+        ye_low[i], ye_high[i] = graph.GetErrorYlow(i), graph.GetErrorYhigh(i)
+
+    return (
+        np.array(x),
+        np.array(y),
+        [np.array(xe_low), np.array(xe_high)],
+        [np.array(ye_low), np.array(ye_high)],
+    )
+
+
+def latex_adjust_selection_string(string):
+    """
+    Function to adjust the selection operators in the string to be used in a LaTeX formating.
+
+    Args:
+        string: The string to be adjusted.
+
+    Returns:
+        str: The adjusted string.
+    """
+    return (
+        string
+        .replace("==", r"$=\,$")
+        .replace(">=", r"$\geq\,$")
+        .replace("<=", r"$\leq$\,")
+        .replace(">", r"$>\,$")
+        .replace("<", r"$<\,$")
+    )
+
+
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
@@ -775,27 +834,19 @@ def plot_correction_mpl(
     Return:
         None
     """
+
+    def pad(item):
+        return np.pad(item, (0, 1), "edge")
+
     log = logging.getLogger(logger)
+    x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(corr_hist)
 
     hep.style.use(hep.style.CMS)
-    _color, _lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3
-
-    n_points = corr_hist.GetN()
-    x_vals, y_vals, ex_low, ex_high, ey_low, ey_high = (np.empty(n_points) for _ in range(6))
-
-    for i in range(n_points):
-        x, y = array.array("d", [0.]), array.array("d", [0.])
-        corr_hist.GetPoint(i, x, y)
-        x_vals[i], y_vals[i] = x[0], y[0]
-        ex_low[i], ex_high[i] = corr_hist.GetErrorXlow(i), corr_hist.GetErrorXhigh(i)
-        ey_low[i], ey_high[i] = corr_hist.GetErrorYlow(i), corr_hist.GetErrorYhigh(i)
-
-    y_err = [ey_low, ey_high]
-    x_err = [ex_low, ex_high]
+    color, lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3  # style could be outsourced from gd
 
     fig, ax = plt.subplots(1, 1, figsize=(11, 11))
     ax.set(
-        xlim=(x_vals[0] - x_err[0][0], x_vals[-1] + x_err[1][-1]),
+        xlim=(x[0] - x_err[0][0], x[-1] + x_err[1][-1]),
         xlabel=gd.variable_dict_mpl[channel].get(variable, variable),
         ylim=(0, 2.2),
         ylabel="Correction",
@@ -804,11 +855,12 @@ def plot_correction_mpl(
     if category is not None:
         plot_text = f"{gd.channel_dict_mpl[channel]}, {process}, " + ", ".join(
             gd.category_dict_mpl[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
-            if "#" in category[var] else f"{gd.category_dict_[var]} {category[var]}"
+            if "#" in category[var] else f"{gd.category_dict_mpl[var]} {category[var]}"
             for var in category.keys()
         )
     else:
         plot_text = f"{gd.category_dict_mpl[channel]}, {process}"
+    plot_text = latex_adjust_selection_string(plot_text)
 
     ax.set_title(plot_text, loc="left", fontsize=20)
     ax.set_title(gd.era_dict_mpl[era], loc="right", fontsize=20)
@@ -818,46 +870,24 @@ def plot_correction_mpl(
     elif "DR_SR" in corr_name:
         ax.text(0.1, 0.85, "DR to SR correction", transform=ax.transAxes, fontsize=20,)
 
-    hep.cms.text(
-        text="Own work (data/simulation)",
-        ax=ax,
-        loc=1,
-        fontsize=20,
-    )
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=1, fontsize=20)
 
     ax.fill_between(
         corr_graph["edges"],
-        np.pad(corr_graph["up"], (0, 1), "edge"),
-        np.pad(corr_graph["down"], (0, 1), "edge"),
+        pad(corr_graph["up"]),
+        pad(corr_graph["down"]),
         alpha=0.25,
         step="post",
-        color=_color,
+        color=color,
         lw=0,
-        label="_nolegend_",
     )
 
-    ax.step(
-        corr_graph["edges"],
-        np.pad(corr_graph["nominal"], (0, 1), "edge"),
-        lw=_lw,
-        where="post",
-        color=_color,
-        label="smoothed curve",
-    )
-
-    data_handler = ax.errorbar(
-        x_vals,
-        y_vals,
-        xerr=x_err,
-        yerr=y_err,
-        fmt='o',
-        color='black',
-        label='measured',
-    )
+    ax.step(corr_graph["edges"], pad(corr_graph["nominal"]), lw=lw, where="post", color=color)
+    data_handler = ax.errorbar(x, y, xerr=x_err, yerr=y_err, fmt='o', color='black')
 
     combined_handle = [
-        Patch(color=_color, alpha=0.25),
-        Line2D([0], [0], color=_color, linewidth=_lw),
+        Patch(color=color, alpha=0.25),
+        Line2D([0], [0], color=color, linewidth=lw),
     ]
 
     # Add legend with both the combined entry and the histogram

@@ -9,6 +9,8 @@ random_seed = 19
 default_fit_option = "poly_1"
 default_correction_option = "smoothed"
 
+default_CMS_text = "Own work (Data/Simulation)"
+
 
 def get_default_fit_function_limit_kwargs(
     binning: List[float],
