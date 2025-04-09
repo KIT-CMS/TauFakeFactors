@@ -98,10 +98,10 @@ era_dict_root = {
     "2018": "59.8 fb^{-1} (2018, 13 TeV)",
 }
 era_dict_mpl = {
-    "2016preVFP": r"$19.5 fb^{-1}$ (2016preVFP, 13 TeV)",
-    "2016postVFP": r"$16.8 fb^{-1}$ (2016postVFP, 13 TeV)",
-    "2017": r"$41.5 fb^{-1}$ (2017, 13 TeV)",
-    "2018": r"$59.8 fb^{-1}$ (2018, 13 TeV)",
+    "2016preVFP": r"$19.5\,fb^{-1}$ (2016preVFP, 13 TeV)",
+    "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
+    "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
+    "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
 }
 era_dict = era_dict_root  # current default: ROOT plotting
 

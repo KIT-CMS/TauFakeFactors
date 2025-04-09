@@ -859,7 +859,7 @@ def plot_correction_mpl(
             for var in category.keys()
         )
     else:
-        plot_text = f"{gd.category_dict_mpl[channel]}, {process}"
+        plot_text = f"{gd.channel_dict_mpl[channel]}, {process}"
     plot_text = latex_adjust_selection_string(plot_text)
 
     ax.set_title(plot_text, loc="left", fontsize=20)
