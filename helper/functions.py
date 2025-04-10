@@ -35,7 +35,7 @@ class RuntimeVariables(object):
 def get_cached_file_path(
     output_path: str,
     process: Union[str, None] = None,
-    variables: Union[List[Tuple[str, ...]], None] = None,
+    variables: Union[List[Union[Tuple[str, ...], str]], None] = None,
     for_DRtoSR: bool = False,
 ) -> str:
     """
@@ -68,7 +68,19 @@ def get_cached_file_path(
     corr_type_str = "DR_SR" if variables is None else "non_closure"
     for_DRtoSR_str = "for_DRtoSR" if for_DRtoSR else ""
     process_str = "" if process is None else process
-    variables_str = "" if variables is None else "_".join(variables)
+    if variables == None:
+        variables_str = ""
+    elif isinstance(variables[0], str):
+        variables_str = "_".join(variables)
+    elif isinstance(variables[0], Tuple):
+        variables_str = "_".join("_".join(it) for it in variables)
+    else:
+        raise TypeError(
+            f"""
+                Unsupported type: {type(variables)}.
+                You sure you are doing the right thing?
+            """
+        )
     
     file_name = "_".join([corr_type_str, for_DRtoSR_str, process_str, variables_str]) + ".pickle"
 

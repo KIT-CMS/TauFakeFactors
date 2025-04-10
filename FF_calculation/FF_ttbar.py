@@ -522,7 +522,7 @@ def non_closure_correction(
     plot_hists["data_ff"] = AR_hists["ttbar_ff"].Clone()
 
     for yscale, save_data in zip(["linear", "log"], [True, False]):
-        plotting.plot_data_mc(
+        plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
             era=config["era"],

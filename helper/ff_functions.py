@@ -903,7 +903,7 @@ def build_TGraph(
     Return:
         1. TGraph of the histogram,
         2. List of components of the TGraph if return_components is True containing:
-            (x, y, y_err_up, y_err_down, x_err_up, x_err_down) 
+            (x, y, x_err_down, x_err_up, y_err_down, y_err_up) 
     """
     if hist is None:
         return None

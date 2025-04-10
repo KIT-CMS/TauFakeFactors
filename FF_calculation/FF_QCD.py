@@ -182,7 +182,7 @@ def calculation_QCD_FFs(
         (ARlike_hists, "AR_like"),
     ]:
         for yscale, save_data in zip(["linear", "log"], [True, False]):
-            plotting.plot_data_mc(
+            plotting.plot_data_mc_ratio(
                 variable=process_conf["var_dependence"],
                 hists=_hist,
                 era=config["era"],
@@ -381,7 +381,7 @@ def non_closure_correction(
     plot_hists["data_ff"].Scale(process_fraction)
 
     for yscale in ["linear", "log"]:
-        plotting.plot_data_mc(
+        plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
             era=config["era"],
@@ -398,7 +398,7 @@ def non_closure_correction(
 
     # producing some control plots
     for yscale, save_data in zip(["linear", "log"], [True, False]):
-        plotting.plot_data_mc(
+        plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,
             era=config["era"],
@@ -593,7 +593,7 @@ def DR_SR_correction(
     plot_hists["data_ff"].Scale(process_fraction)
 
     for yscale in ["linear", "log"]:
-        plotting.plot_data_mc(
+        plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
             era=config["era"],
@@ -609,7 +609,7 @@ def DR_SR_correction(
         )
 
     for yscale, save_data in zip(["linear", "log"], [True, False]):
-        plotting.plot_data_mc(
+        plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,
             era=config["era"],
