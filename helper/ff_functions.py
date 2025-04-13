@@ -996,46 +996,9 @@ def fit_function(
         limit_x=limit_kwargs["limit_x"],
     )
 
-    y_fit, y_fit_up, y_fit_down = [], [], []
-    if do_mc_subtr_unc:
-        y_fit_mc_up, y_fit_mc_down = [], []
-
-    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * ff_hist.GetNbinsX())
-    for value in x_fit:
-        nominal, up, down = (
-            callable_expression["nominal"](value),
-            callable_expression["unc_up"](value),
-            callable_expression["unc_down"](value),
-        )
-        y_fit.append(nominal)
-        y_fit_up.append(up - nominal)
-        y_fit_down.append(nominal - down)
-        if do_mc_subtr_unc:
-            mc_substr_up, mc_substr_down = (
-                callable_expression["mc_subtraction_unc_up"](value),
-                callable_expression["mc_subtraction_unc_down"](value),
-            )
-            y_fit_mc_up.append(abs(mc_substr_up - nominal))
-            y_fit_mc_down.append(abs(nominal - mc_substr_down))
-
-    x_fit = array.array("d", x_fit)
-    y_fit = array.array("d", y_fit)
-    y_fit_up = array.array("d", y_fit_up)
-    y_fit_down = array.array("d", y_fit_down)
-    if do_mc_subtr_unc:
-        y_fit_mc_up = array.array("d", y_fit_mc_up)
-        y_fit_mc_down = array.array("d", y_fit_mc_down)
-
-    results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
-    results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
-    if do_mc_subtr_unc:
-        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(
-            *_args, y_fit_mc_down, y_fit_mc_up
-        )
-
     return (
         build_TGraph(ff_hist, add_xerrors_in_graph=True) if convert else ff_hist,
-        results,
+        callable_expression,
         correctionlib_expression,
         used_fit,
     )

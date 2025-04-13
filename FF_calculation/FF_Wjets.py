@@ -236,7 +236,7 @@ def calculation_Wjets_FFs(
         era=config["era"],
         channel=config["channel"],
         process=process,
-        category=splitting.split,
+        category=splitting.split or {"incl": ""},
         output_path=output_path,
         logger=logger,
         draw_option=used_fit,
@@ -260,7 +260,7 @@ def calculation_Wjets_FFs(
                 region=_region,
                 data=_data,
                 samples=_samples,
-                category=splitting.split,
+                category=splitting.split or {"incl": ""},
                 output_path=output_path,
                 logger=logger,
                 yscale=yscale,
@@ -505,7 +505,7 @@ def non_closure_correction(
         process=process,
         output_path=output_path,
         logger=logger,
-        category=splitting.split,
+        category=splitting.split or {"incl": ""},
     )
 
     plot_hists = dict()
@@ -701,7 +701,7 @@ def DR_SR_correction(
         channel=config["channel"],
         process="Wjets",
         output_path=output_path,
-        category=splitting.split,
+        category=splitting.split or {"incl": ""},
         logger=logger,
         save_data=True,
     )

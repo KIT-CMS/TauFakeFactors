@@ -3,7 +3,7 @@ import logging
 import os
 import pickle
 from io import StringIO
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union, Callable
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -16,10 +16,19 @@ from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.ff_functions as func
+from copy import deepcopy
+
 
 hep.style.use(hep.style.CMS)
-    
+
+
 class SmartSciFormatter(ticker.Formatter):
+    """
+    A custom formatter for axis tick labels to format numbers using scientific notation.
+    Adapts based on axis scale (logarithmic or linear) and tick values range.
+
+    Converts into a LaTeX implementation with a mantissa and exponent: mantissa · 10^(exponent)
+    """
     def __init__(self, axis, use_dot=True):
         self.axis = axis
         self.use_dot = use_dot
@@ -27,14 +36,14 @@ class SmartSciFormatter(ticker.Formatter):
     def __call__(self, x, pos=None):
         if np.isclose(float(x), 0.0):
             return "0"
-        
+
         ticks = [tick for tick in self.axis.get_ticklocs() if tick != 0.0]
         mantissa, exponent = f"{x:.1e}".split("e")
         mantissa = mantissa.rstrip("0").rstrip(".")
         dot = r"\cdot" if self.use_dot else r"\times"
 
         if self.axis.get_scale() == "log":
-            mantissas = [float(f"{tick:.1e}".split("e")[0]) for tick in ticks if tick != 0.0]            
+            mantissas = [float(f"{tick:.1e}".split("e")[0]) for tick in ticks if tick != 0.0]
             if all(np.isclose(m, 1.0) for m in mantissas):
                 return rf"$10^{{{int(exponent)}}}$"
             else:
@@ -52,7 +61,7 @@ def save_plots_and_data(
     plot_filename_and_obj: Union[Tuple[str, Any], None] = None,
     data_filename_and_obj: Union[Tuple[str, Any], None] = None,
     plot_extensions: Iterable[str] = ("png", "pdf"),
-    data_extensions: Iterable[str] = ("root",),
+    data_extensions: Iterable[str] = ("pickle",),
     logger: Union[logging.Logger, None] = None,
 ) -> None:
     """
@@ -85,19 +94,13 @@ def save_plots_and_data(
         if logger:
             logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_plot}.{ext}')}")
 
-    def save_root_hists(ext):
-        root_filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
-        root_file = ROOT.TFile(root_filepath, "RECREATE")
+    def save_data(ext):
+        filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
         if isinstance(data_obj, dict):
-            try:
-                for key, hist in data_obj.items():
-                    hist.Write(key)
-            except AttributeError:  # except regular python dict
-                with open(root_filepath, "wb") as f:
-                    pickle.dump(data_obj, f, pickle.HIGHEST_PROTOCOL)
-        elif isinstance(data_obj, ROOT.TH1D):
-            data_obj.Write(base_filename_data)
-        root_file.Close()
+            with open(filepath, "wb") as f:
+                pickle.dump(data_obj, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            raise NotImplementedError(f"{ext} type not supported (yet)")
         if logger:
             logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_data}.{ext}')}")
 
@@ -107,7 +110,7 @@ def save_plots_and_data(
         tasks.append((plot_extensions, save_canvas))
     if data_filename_and_obj is not None:
         base_filename_data, data_obj = data_filename_and_obj
-        tasks.append((data_extensions, save_root_hists))
+        tasks.append((data_extensions, save_data))
 
     for extensions, _func in tasks:
         for extension in extensions:
@@ -116,8 +119,15 @@ def save_plots_and_data(
 
 
 def TH1_to_numpy(
-    hist: ROOT.TH1, 
-    is_data: bool=False):
+    hist: ROOT.TH1,
+    is_data: bool = False,
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Union[List[np.ndarray], None],
+    Union[List[np.ndarray], None],
+]:
     """
     Convert a ROOT TH1 histpgram to numpy arrays.
 
@@ -134,24 +144,31 @@ def TH1_to_numpy(
             - y_errors: List of numpy arrays containing the y errors (low and high)
     """
     n_bins = hist.GetNbinsX()
-    edges = np.array([hist.GetBinLowEdge(i + 1) for i in range(n_bins)] 
-                + [hist.GetBinLowEdge(n_bins) + hist.GetBinWidth(n_bins)])
+    edges = np.array(
+        [
+            hist.GetBinLowEdge(i + 1)
+            for i in range(n_bins)
+        ] + [hist.GetBinLowEdge(n_bins) + hist.GetBinWidth(n_bins)]
+    )
     y_errors = [
         np.array([hist.GetBinErrorLow(i + 1) for i in range(n_bins)]),
         np.array([hist.GetBinErrorUp(i + 1) for i in range(n_bins)]),
     ]
-    x_errors = None
-    x = None
-    
-    if is_data:
-        (_, x, y, x_err_down, x_err_up, _, _) = func.build_TGraph(hist, return_components=True, add_xerrors_in_graph=True)
+
+    x_errors, x = None, None
+    if is_data:  # if the histogram has center of mass x: extract during TGraph creation
+        (_, x, y, x_err_down, x_err_up, _, _) = func.build_TGraph(
+            hist,
+            return_components=True,
+            add_xerrors_in_graph=True,
+        )
         x_errors = [np.array(x_err_down), np.array(x_err_up)]
     else:
         y = [hist.GetBinContent(i + 1) for i in range(n_bins)]
-        
+
     return (edges, np.array(x), np.array(y), x_errors, y_errors)
-    
-    
+
+
 def TGraphAsymmErrors_to_numpy(
     graph: ROOT.TGraphAsymmErrors,
 ) -> Tuple[
@@ -176,7 +193,7 @@ def TGraphAsymmErrors_to_numpy(
     """
     n = graph.GetN()
     bin_edges = []
-    
+
     x, y, xe_low, xe_high, ye_low, ye_high = (np.empty(n) for _ in range(6))
     for i in range(n):
         _x, _y = array.array("d", [0.]), array.array("d", [0.])
@@ -197,6 +214,41 @@ def TGraphAsymmErrors_to_numpy(
     )
 
 
+def interval_splitted_category_label(category, var):
+    """
+    Function to split the category label into lower and upper bounds for LaTeX formatting
+    if the category is defined as an interval.
+    Args:
+        category: The category dictionary containing the variable and its corresponding category.
+        var: The variable for which the category is defined.
+    Returns:
+        str: The formatted string for the category label.
+    """
+    unit = r"\ GeV" if any(it in var for it in {'pt_'}) else ""
+    lower, upper = category[var].split("#&&#")
+
+    upper = f"{gd.category_dict[var].replace('$', '')} {upper}" + unit
+    lower = f"{gd.category_dict[var].replace('$', '')} {lower}" + unit
+    return f"$^{{{upper}}}_{{{lower}}}$"
+
+
+def default_category_label(category, var):
+    """
+    Function to format the category label for LaTeX formatting
+
+    Args:
+        category: The category dictionary containing the variable and its corresponding category.
+        var: The variable for which the category is defined.
+    Returns:
+        str: The formatted string for the category label.
+    """
+    unit = r"\ GeV" if any(it in var for it in {'pt_'}) else ""
+    if var and "incl" not in var.lower():
+        return f"{gd.category_dict[var]} ${category[var]}{unit}$"
+    else:
+        return f"{gd.category_dict[var]}"
+
+
 def latex_adjust_selection_string(string):
     """
     Function to adjust the selection operators in the string to be used in a LaTeX formating.
@@ -207,20 +259,21 @@ def latex_adjust_selection_string(string):
     Returns:
         str: The adjusted string.
     """
-    return (
-        string
-        .replace("==", r"$=\,$")
-        .replace(">=", r"$\geq\,$")
-        .replace("<=", r"$\leq\,$")
-        .replace(">", r"$>\,$")
-        .replace("<", r"$<\,$")
-    )
+    for a, b in [
+        ("==", r"=\,"),
+        (">=", r"\geq\,"),
+        ("<=", r"\leq\,"),
+        (">", r">\,"),
+        ("<", r"<\,"),
+    ]:
+        string = string.replace(a, b if "$" in string else "$" + b + "$")
+    return string
 
 
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
-    uncertainties: Dict[str, Any],
+    uncertainties: Dict[str, Callable],
     era: str,
     channel: str,
     process: str,
@@ -249,33 +302,58 @@ def plot_FFs(
     Return:
         None
     """
-
-    def pad(item):
-        return np.pad(item, (0, 1), "edge")
-
     log = logging.getLogger(logger)
-    
+
+    ff_ratio = deepcopy(ff_ratio)
+    uncertainties = deepcopy(uncertainties)
+
+    recreation_summary = dict(
+        variable=variable,
+        # ff_ratio=ff_ratio,  # will be adjusted in the function
+        # uncertainties=uncertainties,  # will be adjusted in the function
+        era=era,
+        channel=channel,
+        process=process,
+        category=category,
+        # output_path=output_path,  # required when recreating the plot
+        # logger=logger,  # required when recreating the plot
+        draw_option=draw_option,
+        # save_data=save_data,  # not needed when recreating the plot
+    )
+
+    nominal_key, unc_up_key, unc_down_key = "nominal", "unc_up", "unc_down"
+    mc_up_key, mc_down_key = "mc_subtraction_unc_up", "mc_subtraction_unc_down"
+
     if isinstance(ff_ratio, ROOT.TH1):
         _, x, y, x_err, y_err = TH1_to_numpy(ff_ratio)
     elif isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
         _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(ff_ratio)
+    elif isinstance(ff_ratio, tuple):  # for recreating the plot
+        x, y, x_err, y_err = ff_ratio
+
+    _xmin, _xmax = x[0] - x_err[0][0], x[-1] + x_err[1][-1]
+    x_sample = np.linspace(_xmin, _xmax, 1000)
+    for k in uncertainties:  # for recreating the plot
+        if not isinstance(uncertainties[k], np.ndarray):
+            uncertainties[k] = np.vectorize(uncertainties[k])(x_sample)
 
     fig, ax = plt.subplots(1, 1, figsize=(11, 8))
     ax.set(
-        xlim=(x[0] - x_err[0][0], x[-1] + x_err[1][-1]),
+        xlim=(_xmin, _xmax),
         xlabel=gd.variable_dict[channel].get(variable, variable),
-        ylim=(0, max(0.3, 1.7*max(y))),
+        ylim=(0, max(0.3, 1.7 * max(y))),
         ylabel=gd.FF_YAxis[process],
     )
 
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, " + ", ".join(
-            gd.category_dict[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
-            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
             for var in category.keys()
         )
     else:
-        plot_text = f"{gd.channel_dict[channel]}"
+        plot_text = gd.channel_dict[channel]
     plot_text = latex_adjust_selection_string(plot_text)
 
     ax.set_title(plot_text, loc="left", fontsize=25)
@@ -284,54 +362,48 @@ def plot_FFs(
     hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
 
     data_handler = ax.errorbar(
-        x, 
-        y, 
-        xerr=x_err, 
-        yerr=y_err, 
-        fmt="o", 
+        x,
+        y,
+        xerr=x_err,
+        yerr=y_err,
+        fmt="o",
         color="black",
         capsize=3,
         elinewidth=2,
     )
-    
-    handler_list = [data_handler]
-    label_list = ["measured"]
-    
-    for unc in uncertainties:
-        unc_edges, _, unc_y, _, unc_y_err = TGraphAsymmErrors_to_numpy(uncertainties[unc])
-        ax.fill_between(
-            unc_edges,
-            pad(unc_y + unc_y_err[1]),
-            pad(unc_y - unc_y_err[0]),
-            alpha=0.25,
-            step="post",
-            color=gd.color_dict[unc],
-            lw=0,
-        )
-        ax.step(
-            unc_edges, 
-            pad(unc_y), 
-            lw=3, 
-            where="post", 
-            color=gd.color_dict[unc],
-        )
 
-        handler_list.append((
-            Patch(color=gd.color_dict[unc], alpha=0.25),
-            Line2D([0], [0], color=gd.color_dict[unc], linewidth=3),
-            )
-        )
-        label_list.append(gd.label_dict[unc][draw_option])
+    handlers, labels = [data_handler], ["measured"]
+
+    color = gd.OFFICIAL_CMS_COLOR_PALLET[10][2]
+    nominal, up, down = (
+        uncertainties[nominal_key],
+        uncertainties[unc_up_key],
+        uncertainties[unc_down_key],
+    )
+
+    ax.plot(x_sample, nominal, lw=3, color=color)
+    ax.fill_between(x_sample, up, down, alpha=0.25, lw=0, color=color)
+
+    handlers.append((Patch(color=color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
+    labels.append(gd.label_dict["fit_graph_unc"][draw_option])
+
+    if mc_up_key in uncertainties and mc_down_key in uncertainties:
+        up_mc, down_mc = uncertainties[mc_up_key], uncertainties[mc_down_key]
+        mc_color = gd.OFFICIAL_CMS_COLOR_PALLET[6][0]
+        ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=mc_color)
+
+        handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
+        labels.append(gd.label_dict["fit_graph_mc_sub"][draw_option])
 
     # Add legend with both the combined entry and the histogram
     ax.legend(
-        handles=handler_list,
-        labels=label_list,
+        handles=handlers,
+        labels=labels,
         loc="upper right",
-        fontsize=20, 
+        fontsize=20,
         labelspacing=0.3,
     )
-    
+
     fig.tight_layout()
 
     selection = "_".join([f"{var}_{category[var]}" for var in category.keys()])
@@ -339,7 +411,14 @@ def plot_FFs(
     save_plots_and_data(
         output_path=output_path,
         plot_filename_and_obj=(f"{base_filename}", fig),
-        data_filename_and_obj=(f"data_{base_filename}", {"ff_ratio": ff_ratio, **uncertainties}) if save_data else None,
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "ff_ratio": (x, y, x_err, y_err),
+                "uncertainties": uncertainties,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
     plt.close()
@@ -383,19 +462,40 @@ def plot_data_mc_ratio(
     """
     log = logging.getLogger(logger)
 
-    edges, *_ = TH1_to_numpy(hists[samples[0]])
-    bin_centers = 0.5 * (edges[:-1] + edges[1:])
-    bin_widths = np.diff(edges)
+    hists = deepcopy(hists)
 
-    mc_stack = []
-    mc_labels = []
-    mc_colors = []
+    recreation_summary = dict(
+        variable=variable,
+        # hists=hists,  # will be adjusted in the function
+        era=era,
+        channel=channel,
+        process=process,
+        region=region,
+        data=data,
+        samples=samples,
+        category=category,
+        # output_path=output_path,  # required when recreating the plot
+        # logger=logger,  # required when recreating the plot
+        yscale=yscale,
+        # save_data=save_data,  # not needed when recreating the plot
+    )
+
+    if "edges" not in hists:  # for recreating the plot
+        hists["edges"] = TH1_to_numpy(hists[samples[0]])[0]
+    edges = hists["edges"]
+    bin_centers, bin_widths = 0.5 * (edges[:-1] + edges[1:]), np.diff(edges)
+
+    mc_stack, mc_labels, mc_colors = [], [], []
     total_mc = np.zeros_like(bin_centers)
     total_mc_err_up2 = np.zeros_like(bin_centers)
     total_mc_err_down2 = np.zeros_like(bin_centers)
 
     for sample in samples:
-        _, _, values, _, y_errors = TH1_to_numpy(hists[sample])
+        if isinstance(hists[sample], ROOT.TH1):  # for recreating the plot
+            _, _, values, _, y_errors = TH1_to_numpy(hists[sample])
+            hists[sample] = (values, y_errors)
+        values, y_errors = hists[sample]
+
         mc_stack.append(values)
         mc_labels.append(gd.label_dict[sample])
         mc_colors.append(gd.color_dict[sample])
@@ -406,13 +506,16 @@ def plot_data_mc_ratio(
     total_mc_err_up = np.sqrt(total_mc_err_up2)
     total_mc_err_down = np.sqrt(total_mc_err_down2)
 
-    _, data_x_values, data_y_values, data_x_errors, data_y_errors = TH1_to_numpy(hists[data], is_data=True)
+    if isinstance(hists[data], ROOT.TH1):  # for recreating the plot
+        _, data_x_values, data_y_values, data_x_errors, data_y_errors = TH1_to_numpy(hists[data], is_data=True)
+        hists[data] = (data_x_values, data_y_values, data_x_errors, data_y_errors)
+    data_x_values, data_y_values, data_x_errors, data_y_errors = hists[data]
 
     fig, (ax_top, ax_ratio) = plt.subplots(
         2, 1, figsize=(13, 12), gridspec_kw={"height_ratios": [0.75, 0.25]}, sharex=True
     )
     fig.subplots_adjust(hspace=0.05)
-    
+
     ax_top.hist(
         [bin_centers] * len(mc_stack),
         bins=edges,
@@ -450,18 +553,33 @@ def plot_data_mc_ratio(
     ax_top.set_ylabel(r"$N_{Events}$")
     ax_top.set_yscale(yscale)
     if yscale == "linear":
-        ax_top.set_ylim(0., 1.9*max(max(data_y_values), max(total_mc))) 
+        ax_top.set_ylim(0., 1.9 * max(max(data_y_values), max(total_mc)))
     else:
-        ax_top.set_ylim(None, 1000.*max(max(data_y_values), max(total_mc)))
+        ax_top.set_ylim(None, 1000.0 * max(max(data_y_values), max(total_mc)))
     ax_top.set_xlim(edges[0], edges[-1])
     ax_top.legend(ncol=2, loc="upper right", fontsize=20, labelspacing=0.1)
 
     formatter = SmartSciFormatter(ax_top.yaxis)
     ax_top.yaxis.set_major_formatter(formatter)
-    
-    ratio = np.divide(data_y_values, total_mc, out=np.ones_like(data_y_values), where=total_mc > 0)
-    ratio_err_down = np.divide(data_y_errors[0], total_mc, out=np.zeros_like(data_y_errors[0]), where=total_mc > 0)
-    ratio_err_up = np.divide(data_y_errors[1], total_mc, out=np.zeros_like(data_y_errors[1]), where=total_mc > 0)
+
+    ratio = np.divide(
+        data_y_values,
+        total_mc,
+        out=np.ones_like(data_y_values),
+        where=total_mc > 0,
+    )
+    ratio_err_down = np.divide(
+        data_y_errors[0],
+        total_mc,
+        out=np.zeros_like(data_y_errors[0]),
+        where=total_mc > 0,
+    )
+    ratio_err_up = np.divide(
+        data_y_errors[1],
+        total_mc,
+        out=np.zeros_like(data_y_errors[1]),
+        where=total_mc > 0,
+    )
 
     ax_ratio.axhline(1.0, color="gray", linestyle="--")
     ax_ratio.bar(
@@ -474,7 +592,7 @@ def plot_data_mc_ratio(
         label="Stat. unc.",
         linewidth=0,
     )
-    
+
     ax_ratio.errorbar(
         data_x_values,
         ratio,
@@ -492,11 +610,12 @@ def plot_data_mc_ratio(
     ax_ratio.grid(axis="y")
 
     hep.cms.text(text=gd.default_CMS_text, ax=ax_top, loc=2, fontsize=20)
-    
+
     if category is not None:
-        plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
-            gd.category_dict[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
-            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+        plot_text = f"{gd.channel_dict[channel]}, {process.replace('_', ' ')}, " + ", ".join(
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
             for var in category.keys()
         )
     else:
@@ -505,7 +624,7 @@ def plot_data_mc_ratio(
 
     ax_top.set_title(plot_text, loc="left", fontsize=25)
     ax_top.set_title(gd.era_dict[era], loc="right", fontsize=25)
-    
+
     fig.tight_layout()
 
     hist_str = "reduced" if data == "data_subtracted" else "full"
@@ -514,11 +633,17 @@ def plot_data_mc_ratio(
     save_plots_and_data(
         output_path=output_path,
         plot_filename_and_obj=(f"{base_filename}_{yscale}", fig),
-        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "hists": hists,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
     plt.close(fig)
-    
+
 
 def plot_fractions(
     variable: str,
@@ -555,22 +680,41 @@ def plot_fractions(
     """
     log = logging.getLogger(logger)
 
-    edges, *_ = TH1_to_numpy(hists[processes[0]])
+    hists = deepcopy(hists)
+
+    recreation_summary = dict(
+        variable=variable,
+        # hists=hists,  # will be adjusted in the function
+        era=era,
+        channel=channel,
+        region=region,
+        fraction_name=fraction_name,
+        processes=processes,
+        category=category,
+        # output_path=output_path,  # required when recreating the plot
+        # logger=logger,  # required when recreating the plot
+        # save_data=save_data,  # not needed when recreating the plot
+    )
+
+    if "edges" not in hists:  # for recreating the plot
+        hists["edges"] = TH1_to_numpy(hists[processes[0]])[0]
+    edges = hists["edges"]
     bin_centers = 0.5 * (edges[:-1] + edges[1:])
 
     # Stack the fractions
-    mc_stack = []
-    mc_labels = []
-    mc_colors = []
+    mc_stack, mc_labels, mc_colors = [], [], []
     total_mc = np.zeros_like(bin_centers)
 
     for sample in processes:
-        _, _, values, _, _ = TH1_to_numpy(hists[sample])
+        if isinstance(hists[sample], ROOT.TH1):  # for recreating the plot
+            _, _, values, _, _ = TH1_to_numpy(hists[sample])
+            hists[sample] = values
+        values = hists[sample]
         mc_stack.append(values)
         mc_labels.append(gd.label_dict[sample])
         mc_colors.append(gd.color_dict[sample])
         total_mc += values
-    
+
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.hist(
         [bin_centers] * len(processes),
@@ -588,15 +732,15 @@ def plot_fractions(
     ax.set_ylim(0, 1.3)
     ax.set_xlim(edges[0], edges[-1])
 
-    # Legend
     ax.legend(loc="upper right", fontsize=20, labelspacing=0.2)
 
     hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
-    
+
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, " + ", ".join(
-            gd.category_dict[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
-            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
             for var in category.keys()
         )
     else:
@@ -613,7 +757,13 @@ def plot_fractions(
     save_plots_and_data(
         output_path=output_path,
         plot_filename_and_obj=(f"{base_filename}", fig),
-        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "hists": hists,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
     plt.close(fig)
@@ -639,7 +789,7 @@ def plot_correction(
     Args:
         variable: Name of the variable the correction is measured in
         corr_hist: Histogram of the measured correction
-        corr_graph: TGraph of the measured correction which is a smoothed function of "corr_hist" (includes variation)
+        corr_graph: Dict of the measured correction which is a smoothed function of "corr_hist" (includes variation)
         corr_name: Name of the correction
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
@@ -652,26 +802,48 @@ def plot_correction(
     Return:
         None
     """
+    log = logging.getLogger(logger)
+
+    corr_hist = deepcopy(corr_hist)
+    corr_graph = deepcopy(corr_graph)
+
+    recreation_summary = dict(
+        variable=variable,
+        # corr_hist=corr_hist,  # will be adjusted in the function
+        corr_graph=corr_graph,
+        corr_name=corr_name,
+        era=era,
+        channel=channel,
+        process=process,
+        # output_path=output_path,  # required when recreating the plot
+        # logger=logger,  # required when recreating the plot
+        category=category,
+        # save_data=save_data,  # not needed when recreating the plot
+    )
+
     def pad(item):
         return np.pad(item, (0, 1), "edge")
 
-    log = logging.getLogger(logger)
-    _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(corr_hist)
+    if isinstance(corr_hist, ROOT.TGraphAsymmErrors):
+        _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(corr_hist)
+    elif isinstance(corr_hist, tuple):  # in case of recreating the plot
+        x, y, x_err, y_err = corr_hist
 
-    color, lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3  # style could be outsourced from gd
+    color, lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     ax.set(
         xlim=(x[0] - x_err[0][0], x[-1] + x_err[1][-1]),
         xlabel=gd.variable_dict[channel].get(variable, variable),
-        ylim=(0, max(2.2, 1.5*max(y))),
+        ylim=(0, max(2.2, 1.5 * max(y))),
         ylabel="Correction",
     )
 
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
-            gd.category_dict[var] + f"$^{{{category[var].split('#')[0]}}}_{{{category[var].split('#')[-1]}}}"
-            if "#" in category[var] else f"{gd.category_dict[var]} {category[var]}"
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
             for var in category.keys()
         )
     else:
@@ -699,18 +871,18 @@ def plot_correction(
     )
 
     ax.step(
-        corr_graph["edges"], 
-        pad(corr_graph["nominal"]), 
-        lw=lw, 
-        where="post", 
+        corr_graph["edges"],
+        pad(corr_graph["nominal"]),
+        lw=lw,
+        where="post",
         color=color,
     )
     data_handler = ax.errorbar(
-        x, 
-        y, 
-        xerr=x_err, 
-        yerr=y_err, 
-        fmt="o", 
+        x,
+        y,
+        xerr=x_err,
+        yerr=y_err,
+        fmt="o",
         color="black",
         capsize=3,
         elinewidth=2,
@@ -725,10 +897,10 @@ def plot_correction(
         handles=[data_handler, tuple(combined_handle)],
         labels=["measured", "smoothed curve"],
         loc="upper right",
-        fontsize=20, 
+        fontsize=20,
         labelspacing=0.3,
     )
-    
+
     fig.tight_layout()
 
     selection = ""
@@ -740,9 +912,11 @@ def plot_correction(
         plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", fig),
         data_filename_and_obj=(
             f"data_corr_{process}_{corr_name}{selection}",
-            {"corr_hist": corr_hist, "corr_graph": corr_graph},
+            {
+                "corr_hist": (x, y, x_err, y_err),
+                **recreation_summary,
+            },
         ) if save_data else None,
         logger=log,
-        data_extensions=("pickle",),
     )
     plt.close()

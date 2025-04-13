@@ -90,23 +90,23 @@ era_dict = {
 
 # definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
-    "QCD": "#B9AC70", # (185, 172, 112)
-    "diboson_J": "#94A484", # (148, 164, 132)
-    "diboson_L": "#94A4A2", # (148, 164, 162)
-    "diboson_T":"#94A4C0", # (148, 164, 192)
-    "Wjets": "#E76300", # (231, 99, 0)
-    "ttbar_J": "#652DB6", # (101, 45, 182)
-    "ttbar_L": "#832DB6", # (131, 45, 182)
-    "ttbar_T": "#A12DB6", # (161, 45, 182)
-    "DYjets_J": "#3F72DA", # (63, 114, 218)
-    "DYjets_L": "#3F90DA", # (63, 144, 218)
-    "DYjets_T": "#3FAEDA", # (63, 174, 218)
-    "ST_J": "#717563", # (113, 117, 99)
-    "ST_L": "#717581", # (113, 117, 129)
-    "ST_T": "#71759F", # (113, 117, 159)
-    "embedding": "#FFA90E", # (255, 169, 14)
-    "tau_fakes": "#B9AC70", # (185, 172, 112)
-    "data_ff": "#FFA90E", # (255, 169, 14)
+    "QCD": "#B9AC70",  # (185, 172, 112)
+    "diboson_J": "#94A484",  # (148, 164, 132)
+    "diboson_L": "#94A4A2",  # (148, 164, 162)
+    "diboson_T":"#94A4C0",  # (148, 164, 192)
+    "Wjets": "#E76300",  # (231, 99, 0)
+    "ttbar_J": "#652DB6",  # (101, 45, 182)
+    "ttbar_L": "#832DB6",  # (131, 45, 182)
+    "ttbar_T": "#A12DB6",  # (161, 45, 182)
+    "DYjets_J": "#3F72DA",  # (63, 114, 218)
+    "DYjets_L": "#3F90DA",  # (63, 144, 218)
+    "DYjets_T": "#3FAEDA",  # (63, 174, 218)
+    "ST_J": "#717563",  # (113, 117, 99)
+    "ST_L": "#717581",  # (113, 117, 129)
+    "ST_T": "#71759F",  # (113, 117, 159)
+    "embedding": "#FFA90E",  # (255, 169, 14)
+    "tau_fakes": "#B9AC70",  # (185, 172, 112)
+    "data_ff": "#FFA90E",  # (255, 169, 14)
     "fit_graph_mc_sub": "#5790fc",
     "fit_graph_unc": "#e42536",
 }
@@ -143,60 +143,55 @@ label_dict = {
 }
 
 # definitions to translate variable to readable language, channel dependent
+channel_indipendent_variable_dict = {
+    "njets": r"$N_{jets}$",
+    "metphi": r"$\phi(p_T^{miss})$",
+    "met": r"$p_T^{miss}$ (GeV)",
+    "m_vis": r"$m_{vis}$ (GeV)",
+    "nbtag": r"$N_{b-jets}$",
+}
 variable_dict = {
     "mt": {
-        "pt_1": r"$p_{T}(\mu)$ (GeV)",
-        "eta_1": r"$\eta(\mu)$",
-        "phi_1": r"$\phi(\mu)$",
-        "iso_1": r"$iso(\mu)$",
+        "pt_1": r"$p_{T}^{\mu}$ (GeV)",
+        "eta_1": r"$\eta^{\mu}$",
+        "phi_1": r"$\phi^{\mu}$",
+        "iso_1": r"$iso^{\mu}$",
         "mt_1": r"$m_{T}(\mu,p_T^{miss})$ (GeV)",
-        "pt_2": r"$p_{T}(\tau_{h})$ (GeV)",
-        "eta_2": r"$\eta(\tau_{h})$",
-        "phi_2": r"$\phi(\tau_{h})$",
+        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h}}$",
+        "phi_2": r"$\phi^{\tau_{h}}$",
         "mass_2": r"$\tau_{h}$ mass",
-        "m_vis": r"$m_{vis}$ (GeV)",
-        "met": r"$p_T^{miss}$ (GeV)",
-        "metphi": r"$\phi(p_T^{miss})$",
-        "njets": r"$N_{jets}$",
-        "nbtag": r"$N_{b-jets}$",
         "deltaR_ditaupair": r"$\Delta R(\mu,\tau_{h})$",
         "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+        **channel_indipendent_variable_dict,
     },
     "et": {
-        "pt_1": r"$p_{T}(e)$ (GeV)",
-        "eta_1": r"$\eta(e)$",
-        "phi_1": r"$\phi(e)$",
-        "iso_1": r"$iso(e)$",
+        "pt_1": r"$p_{T}^{e}$ (GeV)",
+        "eta_1": r"$\eta^{e}$",
+        "phi_1": r"$\phi^{e}$",
+        "iso_1": r"$iso^{e}$",
         "mt_1": r"$m_{T}(e,p_T^{miss})$ (GeV)",
-        "pt_2": r"$p_{T}(\tau_{h})$ (GeV)",
-        "eta_2": r"$\eta(\tau_{h})$",
-        "phi_2": r"$\phi(\tau_{h})$",
+        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h}}$",
+        "phi_2": r"$\phi^{\tau_{h}}$",
         "mass_2": r"$\tau_{h}$ mass",
-        "m_vis": r"$m_{vis}$ (GeV)",
-        "met": r"$p_T^{miss}$ (GeV)",
-        "metphi": r"$\phi(p_T^{miss})$",
-        "njets": r"$N_{jets}$",
-        "nbtag": r"$N_{b-jets}$",
         "deltaR_ditaupair": r"$\Delta R(e,\tau_{h})$",
         "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+        **channel_indipendent_variable_dict,
     },
     "tt": {
-        "pt_1": r"$p_{T}(\tau_{h,1})$ (GeV)",
-        "eta_1": r"$\eta(\tau_{h,1})$",
-        "phi_1": r"$\phi(\tau_{h,1})$",
-        "pt_2": r"$p_{T}(\tau_{h,2})$ (GeV)",
-        "eta_2": r"$\eta(\tau_{h,2})$",
-        "phi_2": r"$\phi(\tau_{h,2})$",
+        "pt_1": r"$p_{T}^{\tau_{h,1}}$ (GeV)",
+        "eta_1": r"$\eta^{\tau_{h,1}}$",
+        "phi_1": r"$\phi^{\tau_{h,1}}$",
+        "pt_2": r"$p_{T}^{\tau_{h,2}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h,2}}$",
+        "phi_2": r"$\phi^{\tau_{h,2}}$",
         "mass_1": r"$\tau_{h,1}$ mass",
         "mass_2": r"$\tau_{h,2}$ mass",
-        "m_vis": r"$m_{vis}$ (GeV)",
-        "met": r"$p_T^{miss}$ (GeV)",
-        "metphi": r"$\phi(p_T^{miss})$",
-        "njets": r"$N_{jets}$",
-        "nbtag": r"$N_{b-jets}$",
-        "deltaR_ditaupair": r"$\Delta R(\tau_{h},\tau_{h})$",
+        "deltaR_ditaupair": r"$\Delta R(\tau_{h, 1},\tau_{h, 2})$",
         "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
         "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
+        **channel_indipendent_variable_dict,
     },
 }
 
@@ -205,11 +200,11 @@ category_dict = {
     "incl": r"incl.",
     "njets": r"$N_{jets}$",
     "nbtag": r"$N_{b-jets}$",
-    "deltaR_ditaupair": r"$\Delta R(\ell\tau_{h})$",
+    "deltaR_ditaupair": r"$\Delta R(\ell,\tau_{h})$",
     "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
     "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
-    "pt_1": r"$p_{T}(e)$",
-    "pt_2": r"$p_{T}(\tau_{h})$",
+    "pt_1": r"$p_{T}^{\mu}$",  # for mt channel
+    "pt_2": r"$p_{T}^{\tau_{h}}$",
 }
 
 ### For correctionlib ###
