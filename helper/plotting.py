@@ -2,8 +2,8 @@ import array
 import logging
 import os
 import pickle
-from io import StringIO
-from typing import Any, Dict, Iterable, List, Tuple, Union, Callable
+from copy import deepcopy
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -12,12 +12,9 @@ import numpy as np
 import ROOT
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.ff_functions as func
-from copy import deepcopy
-
 
 hep.style.use(hep.style.CMS)
 
@@ -156,6 +153,7 @@ def TH1_to_numpy(
     ]
 
     x_errors, x = None, None
+
     if is_data:  # if the histogram has center of mass x: extract during TGraph creation
         (_, x, y, x_err_down, x_err_up, _, _) = func.build_TGraph(
             hist,
@@ -309,16 +307,11 @@ def plot_FFs(
 
     recreation_summary = dict(
         variable=variable,
-        # ff_ratio=ff_ratio,  # will be adjusted in the function
-        # uncertainties=uncertainties,  # will be adjusted in the function
         era=era,
         channel=channel,
         process=process,
         category=category,
-        # output_path=output_path,  # required when recreating the plot
-        # logger=logger,  # required when recreating the plot
         draw_option=draw_option,
-        # save_data=save_data,  # not needed when recreating the plot
     )
 
     nominal_key, unc_up_key, unc_down_key = "nominal", "unc_up", "unc_down"
@@ -374,7 +367,7 @@ def plot_FFs(
 
     handlers, labels = [data_handler], ["measured"]
 
-    color = gd.OFFICIAL_CMS_COLOR_PALLET[10][2]
+    color = gd.color_dict["fit_graph_unc"]
     nominal, up, down = (
         uncertainties[nominal_key],
         uncertainties[unc_up_key],
@@ -389,7 +382,7 @@ def plot_FFs(
 
     if mc_up_key in uncertainties and mc_down_key in uncertainties:
         up_mc, down_mc = uncertainties[mc_up_key], uncertainties[mc_down_key]
-        mc_color = gd.OFFICIAL_CMS_COLOR_PALLET[6][0]
+        mc_color = gd.color_dict["fit_graph_mc_sub"]
         ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=mc_color)
 
         handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
@@ -462,11 +455,10 @@ def plot_data_mc_ratio(
     """
     log = logging.getLogger(logger)
 
-    hists = deepcopy(hists)
+    hists = {k: v.Clone() for k, v in hists.items()}  # clone method accounts for center-of-mass x values
 
     recreation_summary = dict(
         variable=variable,
-        # hists=hists,  # will be adjusted in the function
         era=era,
         channel=channel,
         process=process,
@@ -474,10 +466,7 @@ def plot_data_mc_ratio(
         data=data,
         samples=samples,
         category=category,
-        # output_path=output_path,  # required when recreating the plot
-        # logger=logger,  # required when recreating the plot
         yscale=yscale,
-        # save_data=save_data,  # not needed when recreating the plot
     )
 
     if "edges" not in hists:  # for recreating the plot
@@ -680,20 +669,16 @@ def plot_fractions(
     """
     log = logging.getLogger(logger)
 
-    hists = deepcopy(hists)
+    hists = {k: v.Clone() for k, v in hists.items()}
 
     recreation_summary = dict(
         variable=variable,
-        # hists=hists,  # will be adjusted in the function
         era=era,
         channel=channel,
         region=region,
         fraction_name=fraction_name,
         processes=processes,
         category=category,
-        # output_path=output_path,  # required when recreating the plot
-        # logger=logger,  # required when recreating the plot
-        # save_data=save_data,  # not needed when recreating the plot
     )
 
     if "edges" not in hists:  # for recreating the plot
@@ -809,16 +794,12 @@ def plot_correction(
 
     recreation_summary = dict(
         variable=variable,
-        # corr_hist=corr_hist,  # will be adjusted in the function
         corr_graph=corr_graph,
         corr_name=corr_name,
         era=era,
         channel=channel,
         process=process,
-        # output_path=output_path,  # required when recreating the plot
-        # logger=logger,  # required when recreating the plot
         category=category,
-        # save_data=save_data,  # not needed when recreating the plot
     )
 
     def pad(item):
@@ -829,7 +810,7 @@ def plot_correction(
     elif isinstance(corr_hist, tuple):  # in case of recreating the plot
         x, y, x_err, y_err = corr_hist
 
-    color, lw = gd.OFFICIAL_CMS_COLOR_PALLET[10][0], 3
+    color, lw = gd.color_dict["correction_graph"], 3
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
     ax.set(

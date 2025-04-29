@@ -90,25 +90,26 @@ era_dict = {
 
 # definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
-    "QCD": "#B9AC70",  # (185, 172, 112)
+    "QCD": OFFICIAL_CMS_COLOR_PALLET[10][7],  # (185, 172, 112)
     "diboson_J": "#94A484",  # (148, 164, 132)
-    "diboson_L": "#94A4A2",  # (148, 164, 162)
-    "diboson_T":"#94A4C0",  # (148, 164, 192)
-    "Wjets": "#E76300",  # (231, 99, 0)
+    "diboson_L": OFFICIAL_CMS_COLOR_PALLET[10][3],  # (148, 164, 162)
+    "diboson_T": "#94A4C0",  # (148, 164, 192)
+    "Wjets": OFFICIAL_CMS_COLOR_PALLET[10][6],  # (231, 99, 0)
     "ttbar_J": "#652DB6",  # (101, 45, 182)
-    "ttbar_L": "#832DB6",  # (131, 45, 182)
+    "ttbar_L": OFFICIAL_CMS_COLOR_PALLET[10][4],  # (131, 45, 182)
     "ttbar_T": "#A12DB6",  # (161, 45, 182)
     "DYjets_J": "#3F72DA",  # (63, 114, 218)
-    "DYjets_L": "#3F90DA",  # (63, 144, 218)
+    "DYjets_L": OFFICIAL_CMS_COLOR_PALLET[10][0],  # (63, 144, 218)
     "DYjets_T": "#3FAEDA",  # (63, 174, 218)
     "ST_J": "#717563",  # (113, 117, 99)
-    "ST_L": "#717581",  # (113, 117, 129)
+    "ST_L": OFFICIAL_CMS_COLOR_PALLET[10][8],  # (113, 117, 129)
     "ST_T": "#71759F",  # (113, 117, 159)
-    "embedding": "#FFA90E",  # (255, 169, 14)
+    "embedding": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
     "tau_fakes": "#B9AC70",  # (185, 172, 112)
-    "data_ff": "#FFA90E",  # (255, 169, 14)
-    "fit_graph_mc_sub": "#5790fc",
-    "fit_graph_unc": "#e42536",
+    "data_ff": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
+    "fit_graph_mc_sub": OFFICIAL_CMS_COLOR_PALLET[6][0],
+    "fit_graph_unc": OFFICIAL_CMS_COLOR_PALLET[6][2],
+    "correction_graph": OFFICIAL_CMS_COLOR_PALLET[10][0],
 }
 
 # definitions for process labels on the plots

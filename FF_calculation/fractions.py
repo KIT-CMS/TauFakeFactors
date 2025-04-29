@@ -13,6 +13,7 @@ from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
+from helper.functions import RuntimeVariables
 
 
 def fraction_calculation(
@@ -99,14 +100,14 @@ def fraction_calculation(
         nbinsx = len(splitting.var_bins) - 1
 
         # making the histograms
-        h = rdf_AR.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         AR_hists[sample] = h.GetValue()
 
-        h = rdf_SR.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
