@@ -13,6 +13,7 @@ from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
+from helper.functions import RuntimeVariables
 
 
 def fraction_calculation(
@@ -23,12 +24,10 @@ def fraction_calculation(
 
     Args:
         args: Tuple containing all the necessary information for the calculation of the fake factors
-            split: Dictionary containing the category information
-            binning: List of bin edges for the dependent variable
+            splitting: SplitQuantitiesContainer, contains the splitting information
             config: Dictionary with all the relevant information for the fake factor calculation
             process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
             process: Name of the process
-            split_variables: List of variables that are used for the category splitting
             sample_paths: List of file paths where the samples are stored
             output_path: Path where the generated plots should be stored
             logger: Name of the logger that should be used
@@ -37,12 +36,10 @@ def fraction_calculation(
         Dictionary with the category information as key and the fractions of the processes as value
     """
     (
-        split,  # split: Dict[str, str],
-        binning,  # binning: List[float],
+        splitting,  # splitting: Dict[str, str],
         config,  # config: Dict[str, Union[str, Dict, List]],
         process_conf,  # process_conf: Dict[str, Union[str, Dict, List]],
         process,  # process: str,
-        split_variables,  # split_variables: List[str],
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
@@ -57,7 +54,7 @@ def fraction_calculation(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the {', '.join([f'{var} {split[var]}' for var in split_variables])} category.")
+        log.info(f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -68,7 +65,7 @@ def fraction_calculation(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -86,7 +83,7 @@ def fraction_calculation(
             rdf=rdf,
             channel=config["channel"],
             sample=sample,
-            category_cuts=split,
+            category_cuts=splitting.split,
             region_cuts=region_conf,
         )
 
@@ -99,18 +96,18 @@ def fraction_calculation(
         log.info("-" * 50)
 
         # get binning of the dependent variable
-        xbinning = array.array("d", binning)
-        nbinsx = len(binning) - 1
+        xbinning = array.array("d", splitting.var_bins)
+        nbinsx = len(splitting.var_bins) - 1
 
         # making the histograms
-        h = rdf_AR.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
         )
         AR_hists[sample] = h.GetValue()
 
-        h = rdf_SR.Histo1D(
+        h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
@@ -155,7 +152,7 @@ def fraction_calculation(
         region="AR",
         fraction_name=process,
         processes=config[process]["processes"],
-        category=split,
+        category=splitting.split,
         output_path=output_path,
         logger=logger,
         save_data=True,
@@ -168,7 +165,7 @@ def fraction_calculation(
         region="SR",
         fraction_name=process,
         processes=config[process]["processes"],
-        category=split,
+        category=splitting.split,
         output_path=output_path,
         logger=logger,
         save_data=True,
@@ -189,7 +186,7 @@ def fraction_calculation(
                 region=_region,
                 data="data",
                 samples=ff_func.controlplot_samples(config["use_embedding"]),
-                category=split,
+                category=splitting.split,
                 output_path=output_path,
                 logger=logger,
                 yscale=yscale,
@@ -197,4 +194,4 @@ def fraction_calculation(
             )
     log.info("-" * 50)
 
-    return {f"{split_variables[0]}#{split[split_variables[0]]}": frac_hists}
+    return {f"{splitting.variables[0]}#{splitting.split[splitting.variables[0]]}": frac_hists}

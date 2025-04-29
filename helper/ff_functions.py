@@ -2,16 +2,496 @@
 Collection of helpful functions for the fake factor calculation scripts
 """
 
-import logging
 import array
-from typing import Any, Dict, List, Tuple, Union
+import itertools as itt
+import logging
+import random
+from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Any, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
 
-import itertools as itt
+import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
+from configs.general_definitions import random_seed
+from helper.hooks_and_patches import _EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+
+
+@dataclass
+class SplitQuantitiesContainer:
+    """
+    Container for split quantities.
+
+    Stores quantities associated with a given split combination, including variables being
+    split, category definitions, current split, and the binning. It also caches derived
+    options such as the correction_option, fit_option, bandwidth for smoothing, and
+    additional keyword arguments used in fitting (limit_kwargs).
+
+    Attributes:
+        variables (list): List of variable names used for splitting.
+        categories (dict): Dictionary defining available category cuts.
+        split (dict): Dictionary holding  current split combination.
+        var_bins (list): Edges of the bins for histograms creation
+        _correction_option (Union[str, None]): Correction option (set explicitly or from defaults in general definitions).
+        _fit_option (Union[list, None]): Fitting option(s) (set explicitly or from defaults).
+        _bandwidth (Union[float, int, None]): Bandwidth for smoothing corrections, derived from var_bins.
+        _limit_kwargs (Union[dict, None]): Additional configuration (limits) for fit functions, derived from var_bins and an optional histogram.
+    """
+
+    variables: list
+    categories: dict
+    split: dict
+    var_bins: list
+    # --------------------------
+    _correction_option: Union[str, None] = None  # set or from general_definitions
+    _fit_option: Union[list, None] = None  # set or from general_definitions
+    _bandwidth: Union[float, int, None] = None  # derived from var_bins
+    _limit_kwargs: Union[dict, None] = None  # derived from var_bins and optional hist
+
+    def limit_kwargs(self, hist: Union[None, ROOT.TH1] = None) -> dict:
+        """
+        Returns the keyword arguments for fit function limits.
+
+        If already set this value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration and optional histogram.
+
+        Args:
+            hist (Union[None, ROOT.TH1], optional): ROOT histogram from which to derive limits.
+
+        Returns:
+            dict: Dictionary of keyword arguments for the fit limits.
+        """
+
+        if self._limit_kwargs is not None:
+            return self._limit_kwargs
+
+        self._limit_kwargs = gd.get_default_fit_function_limit_kwargs(
+            binning=self.var_bins,
+            hist=hist,
+        )
+
+        return self._limit_kwargs
+
+    @property
+    def bandwidth(self) -> float:
+        """
+        Retrieves the bandwidth parameter used for smoothing fits.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration.
+
+        Returns:
+            float: The computed bandwidth value.
+        """
+
+        if self._bandwidth is not None:
+            return self._bandwidth
+
+        self._bandwidth = gd.get_default_bandwidth(self.var_bins)
+
+        return self._bandwidth
+
+    @property
+    def fit_option(self) -> Union[str, list]:
+        """
+        Retrieves the fitting option(s) for applying the fit.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the binning configuration.
+
+        Returns:
+            Union[str, list]: The fit option(s) used for fitting.
+        """
+
+        if self._fit_option is not None:
+            return self._fit_option
+
+        self._fit_option = gd.default_fit_option
+
+        return self._fit_option
+
+    @property
+    def correction_option(self) -> Union[str, None]:
+        """
+        Retrieves the correction option to be used with correctionlib.
+
+        If already set, the value is returned from the instance. Otherwise, a default value is
+        obtained from the general definitions.
+
+        Returns:
+            Union[str, None]: The correction option.
+        """
+
+        if self._correction_option is not None:
+            return self._correction_option
+
+        self._correction_option = gd.default_correction_option
+
+        return self._correction_option
+
+
+class SplitQuantities:
+    """
+    Handles splitting of quantities based on a sprovided split from configuration dictionary.
+
+    This class processes a configuration (from YAML) that defines how the data are to be split
+    into categories based on split category cuts. 
+    Supports iteration over all split combinations (via __iter__), returning a
+    SplitQuantitiesContainer for each split.
+
+    New options can be added by:
+      - Extending the configuration dictionary with a new key (e.g. "new_option").
+      - Implementing a corresponding property accessor here (similar to fit_option, bandwidth, etc.).
+      - Adding new option in the __iter__ method.
+      - Adding the new option to the SplitQuantitiesContainer class with the appropriate logic.
+
+    Attributes:
+        config (dict): Dictionary containing the overall configuration.
+        categories (dict): Dictionary with category definitions (split_categories).
+        split_variables (list): List of variable names dictating the available split dimensions.
+    """
+    def __init__(
+        self,
+        config: dict,
+    ) -> None:
+        """
+        Initialization using a configuration dictionary.
+
+        Args:
+            config (dict): Configuration with at least "split_categories".
+        """
+
+        self.config = config
+        self.categories = config.get("split_categories", None)
+        self.split_variables = list(self.categories.keys()) if self.categories else []
+
+    def to_dict(self, item: Union[list, str]) -> dict:
+        """
+        Converts a list or a property name into a dictionary of split options.
+
+        Creates a dictionary with keys formatted as "variable#value". For a single split
+        variable, the resulting dictionary maps "variable#value" to corresponding value in
+        item; for two or more, nested dictionaries are created.
+
+        Args:
+            item (Union[list, str]): List of values corresponding to each split combination or the name of an attribute in the config.
+
+        Returns:
+            dict: Dictionary with keys based on split variable names and their values.
+        """
+
+        if isinstance(item, str):
+            try:
+                item = getattr(self, item)
+            except AttributeError:
+                raise KeyError(f"Item {item} not found in SplitQuantities")
+
+        collection = {}
+        for split, it in zip(self.split, item):
+            keys = [f"{var}#{split[var]}" for var in self.split_variables]
+            if len(keys) == 1:
+                collection.update({keys[0]: it})
+            elif len(keys) == 2:
+                collection.setdefault(keys[0], {})[keys[1]] = it
+
+        return collection
+
+    def _fill_dict_based(self, key: str) -> list:
+        """
+        Fill and return a list from a nested dictionary configuration for a given key.
+
+        For each split combination, checks if first value is present in the configuration
+        under 'key', then returns direct object or the corresponding nested value. Asserts
+        the number of split combinations matching the length of the filled list.
+
+        Args:
+            key (str): The configuration key for which to fill the list.
+
+        Returns:
+            list: List with each element corresponds to the configuration for each split combination.
+        """
+
+        collection = []
+        for values in (c.values() for c in self.split):
+            values = list(values)
+            assert values[0] in self.config[key], f"Key {values[0]} not found in {key}"
+            _obj = self.config[key].get(values[0])
+            if len(values) == 1:
+                collection.append(_obj)
+            elif len(values) == 2 and isinstance(_obj, dict):
+                assert values[1] in _obj, f"Key {values[1]} not found in {key}-{values[0]}"
+                collection.append(_obj.get(values[1]))
+            elif len(values) == 2 and isinstance(_obj, list):
+                collection.append(_obj)
+            else:
+                raise Exception(f"Invalid type for {key}")
+
+        assert len(self) == len(collection), f"Length of split combinations and {key} do not match"
+
+        return collection
+
+    def _fill(self, key: str, variable_condition: bool) -> Any:
+        """
+        Generic helper to fill a configuration value for a given key from the config.
+
+        Based on whether the item is a list, a dict, or missing, returns either a cycle over
+        a single element, the dictionary-based filled list, or raises an exception if the
+        type is invalid.
+
+        Args:
+            key (str): Configuration key.
+            variable_condition (bool): Flag indicating whether the config value should be treated as a simple list-based option.
+
+        Returns:
+            Any: Iterator (itertools.cycle) over configuration values or a list of filled values.
+        """
+
+        if key not in self.config:
+            return itt.cycle([None])
+        elif variable_condition:
+            return itt.cycle([self.config[key]])
+        elif isinstance(self.config[key], dict):
+            return self._fill_dict_based(key)
+        else:
+            raise Exception(f"Invalid type for {key}")
+
+    @property
+    def split(self) -> list:
+        """
+        Generate all combinations of split options based on the split_variables and categories.
+        if split_variables are defined else returns [None].
+
+        Returns:
+            list: List of dictionaries; each dictionary maps split variable names to category values.
+        """
+
+        if hasattr(self, "_split") and self._split is not None:
+            return self._split
+
+        if self.split_variables:
+            return [
+                dict(zip(self.split_variables, v))
+                for v in itt.product(*(self.categories[_v] for _v in self.split_variables))
+            ]
+        else:
+            return [None]
+
+    @property
+    def var_bins(self) -> List[float]:
+        """
+        Retrieves binning configuration ("var_bins") from the configuration.
+
+        Returns:
+            List[float]: Binning configuration as defined in the configuration (could be a list or a nested configuration).
+        """
+
+        if hasattr(self, "_var_bins") and self._var_bins is not None:
+            return self._var_bins
+
+        key = "var_bins"
+        assert key in self.config, f"{key} must always be defined"
+        binnings = self._fill(
+            key=key,
+            variable_condition=isinstance(self.config[key], list),
+        )
+
+        self._var_bins = binnings
+        return self._var_bins
+
+    @property
+    def fit_option(self) -> Union[str, list, None]:
+        """
+        Retrieves the fit option(s) from the configuration.
+
+        Returns:
+            Union[str, list]: The fit option(s) to be used.
+        """
+
+        if hasattr(self, "_fit_option") and self._fit_option is not None:
+            return self._fit_option
+
+        key = "fit_option"
+        self._fit_option = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config
+                and isinstance(self.config[key], (str, list))
+            ),
+        )
+
+        return self._fit_option
+
+    @property
+    def limit_kwargs(self) -> Union[dict, None]:
+        """
+        Retrieves the limit keyword arguments for fitting from the configuration.
+
+        Returns:
+            Union[dict, None]: The limit keyword arguments for fitting.
+        """
+
+        if hasattr(self, "_limit_kwargs") and self._limit_kwargs is not None:
+            return self._limit_kwargs
+
+        key = "limit_kwargs"
+        self._limit_kwargs = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config
+                and isinstance(self.config[key], dict) 
+                and self.config[key].get("limit_x") is not None
+            ),
+        )
+
+        return self._limit_kwargs
+
+    @property
+    def bandwidth(self) -> Union[float, int, None]:
+        """
+        Retrieves the bandwidth for smoothing from the configuration.
+
+        Returns:
+            Union[float, int, None]: The bandwidth value or None (if not set).
+        """
+
+        if hasattr(self, "_bandwidth") and self._bandwidth is not None:
+            return self._bandwidth
+
+        key = "bandwidth"
+        self._bandwidth = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config 
+                and isinstance(self.config[key], (float, int))
+            ),
+        )
+
+        return self._bandwidth
+
+    @property
+    def correction_option(self) -> Union[str, None]:
+        """
+        Retrieves the correction option for correctionlib from the configuration.
+
+        Returns:
+            Union[str, None]: The correction option (if set) or None.
+        """
+
+        if hasattr(self, "_correction_option") and self._correction_option is not None:
+            return self._correction_option
+
+        key = "correction_option"
+        self._correction_option = self._fill(
+            key=key,
+            variable_condition=(
+                key in self.config 
+                and isinstance(self.config[key], str)
+            ),
+        )
+
+        return self._correction_option
+
+    def __iter__(self) -> Iterator[Any]:
+        """
+        Iterates over all split combinations and yields a SplitQuantitiesContainer for each.
+
+        For each combination of:
+            - split (unique category combination),
+            - var_bins,
+            - fit_option,
+            - limit_kwargs,
+            - bandwidth, and
+            - correction_option,
+        a new SplitQuantitiesContainer is constructed and yielded.
+
+        Yields:
+            SplitQuantitiesContainer: One container for each split combination.
+        """
+
+        for (
+            split,
+            var_bins,
+            fit_option,
+            limit_kwargs,
+            bandwidth,
+            correction_option,
+        ) in zip(
+            self.split,
+            self.var_bins,
+            self.fit_option,
+            self.limit_kwargs,
+            self.bandwidth,
+            self.correction_option,
+        ):
+            yield SplitQuantitiesContainer(
+                variables=self.split_variables,
+                categories=self.categories,
+                split=split,
+                var_bins=var_bins,
+                _fit_option=fit_option,
+                _limit_kwargs=limit_kwargs,
+                _bandwidth=bandwidth,
+                _correction_option=correction_option,
+            )
+
+    def __len__(self) -> int:
+        """
+        Returns the number of split combinations.
+
+        Returns:
+            int: Total number of unique splits based on the defined split variables.
+        """
+
+        return len(self.split)
+
+    def __getitem__(
+        self,
+        index: Union[int, slice],
+    ) -> Union[SplitQuantitiesContainer, List[SplitQuantitiesContainer]]:
+        """
+        Retrieves one or more SplitQuantitiesContainer objects by index.
+
+        Supports both integer indexing and slicing.
+
+        Args:
+            index (Union[int, slice]): Index or slice for the requested container(s).
+
+        Returns:
+            Union[SplitQuantitiesContainer, List[SplitQuantitiesContainer]]: The split container or list of containers.
+        """
+
+        if isinstance(index, int):
+            return list(self)[index]
+        elif isinstance(index, slice):
+            return [list(self)[i] for i in range(len(self))[index]]
+        else:
+            raise TypeError("Index must be an integer or a slice.")
+
+
+@contextmanager
+def rng_seed(seed: int) -> Generator[None, None, None]:
+    """
+    Context manager to set the random seed for numpy and python random.
+    This is used to ensure reproducibility of the results (and help with debugging).
+
+    Args:
+        seed (int, optional): Seed to be used. Defaults to 19.
+
+    Yields:
+        None
+    """
+    np_rng_state, py_rng_state = np.random.get_state(), random.getstate()
+
+    np.random.seed(seed)
+    random.seed(seed)
+    try:
+        yield
+    finally:
+        np.random.set_state(np_rng_state)
+        random.setstate(py_rng_state)
 
 
 def controlplot_samples(
@@ -95,86 +575,6 @@ def fill_corrlib_expression(
     return results
 
 
-def get_split_combinations(
-    categories: Dict[str, List[str]],
-    binning: Union[
-        List[float],
-        Dict[str, List[float]],
-        Dict[str, Dict[str, List[float]]],
-        None,
-    ],
-    convert_binning_to_dict: bool = False,
-) -> Tuple[List[str], List[Dict[str, str]], List[List[float]]]:
-    """
-    This function generates a dictionary for all category cut combinations.
-    Categories can be defined based on one or two variables (more are not supported).
-    Each variable has a list of cuts it should be split into.
-
-    Further, if binning for individual categories is provided, the function will return the
-    binning for each category cut combination.
-    If binning is a list, the same binning is used for all category cut combinations.
-    If binning is a dictionary, the binning is defined for each variable separately, where
-    the first variable is the key of the first dictionary and the second variable is the key of the second dictionary.
-
-    In case of two variables, the binning needs to be defined at least for the first variable,
-    the second splitting variable can be defined in a nested dictionary, if not then the default binning of first
-    variable is used for the second variable.
-
-    Args:
-        categories: Dictionary with the category definitions
-        binning: Binning for the dependent variable
-        convert_binning_to_dict: Boolean to convert the binning to a dictionary of binnings at the end
-
-    Return:
-        1. List of variables the categories are defined in,
-        2. List of all combinations of variable splits
-        3. List of binning for each category cut combination
-    """
-    combinations, binnings = [], []
-    split_variables = list(categories.keys())
-
-    assert len(split_variables) <= 2, "Category splitting is only defined up to 2 dimensions."
-
-    combinations = [
-        dict(zip(split_variables, v))
-        for v in itt.product(*(categories[_v] for _v in split_variables))
-    ]
-
-    assert len(combinations) > 0, "No category combinations defined"
-
-    if isinstance(binning, list):
-        binnings = [binning] * len(combinations)
-    elif isinstance(binning, dict):
-        for values in (c.values() for c in combinations):
-            values = list(values)
-            _binning = binning.get(values[0])
-            if len(values) == 1:
-                binnings.append(_binning)
-            elif len(values) == 2 and isinstance(_binning, dict):
-                binnings.append(_binning.get(values[1]))
-            elif len(values) == 2 and isinstance(_binning, list):
-                logging.warning(f"Using default binning for {values} of {_binning}")
-                binnings.append(_binning)
-            else:
-                raise Exception("Invalid type for binning")
-    else:
-        raise Exception("Invalid type for binning")
-
-    assert len(combinations) == len(binnings), "Length of combinations and binnings do not match"
-
-    if convert_binning_to_dict:
-        _binnings = {}
-        for split, _binning in zip(combinations, binnings):
-            keys = [f"{var}#{split[var]}" for var in split_variables]
-            if len(keys) == 1:
-                _binnings.update({keys[0]: _binning})
-            elif len(keys) == 2:
-                _binnings.setdefault(keys[0], {})[keys[1]] = _binning
-        binnings = _binnings
-
-    return split_variables, combinations, binnings
-
-
 def apply_region_filters(
     rdf: Any,
     channel: str,
@@ -199,7 +599,11 @@ def apply_region_filters(
     tmp = dict()
     if category_cuts is not None:
         for cut in category_cuts:
-            tmp[cut] = f"{cut} {category_cuts[cut]}"
+            if "#" not in category_cuts[cut]:
+                tmp[cut] = f"{cut} {category_cuts[cut]}"
+            else:
+                a, op, b = category_cuts[cut].split("#")
+                tmp[cut] = f"({cut} {a}) {op} ({cut} {b})"
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:
@@ -291,7 +695,7 @@ def QCD_SS_estimate(hists: Dict[str, Any]) -> Any:
             qcd.Add(hists[sample], -1)
 
     # check for negative bins
-    for i in range(qcd.GetNbinsX()):
+    for i in range(1, qcd.GetNbinsX() + 1):
         if qcd.GetBinContent(i) < 0.0:
             qcd.SetBinContent(i, 0.0)
 
@@ -472,13 +876,67 @@ def get_yields_from_hists(
             for p in processes:
                 h = hists[category][variation][p]
                 l = list()
-                for b in range(h.GetNbinsX()):
-                    l.append(h.GetBinContent(b + 1))
+                for b in range(1, h.GetNbinsX() + 1):
+                    l.append(h.GetBinContent(b))
                 p_fracs[p] = l
             v_fracs[variation] = p_fracs
         fracs[category] = v_fracs
 
     return fracs
+
+
+def build_TGraph(
+    hist: Union[ROOT.TH1, None] = None,
+    return_components: bool = False,
+    add_xerrors_in_graph: bool = False,
+) -> Union[ROOT.TGraphAsymmErrors, Tuple[ROOT.TGraphAsymmErrors, List[Any]], None]:
+    """
+    Function which builds a TGraph from a histogram. The TGraph is built from the bin
+    centers and the bin contents of the histogram. If the histogram is None, None is
+    returned, if the histogram has the _EXTRA_PARAM_FLAG set to True, the bin centers are
+    taken from the _EXTRA_PARAM_MEANS attribute of the histogram.
+
+    Args:
+        hist: Histogram to be converted to TGraph
+        return_components: Boolean to return the components of the TGraph as well
+        add_xerrors_in_graph: Boolean to add x errors to the TGraph, if not set, the x errors are set to 0
+    Return:
+        1. TGraph of the histogram,
+        2. List of components of the TGraph if return_components is True containing:
+            (x, y, x_err_down, x_err_up, y_err_down, y_err_up) 
+    """
+    if hist is None:
+        return None
+
+    nbins = hist.GetNbinsX()
+    x, y, y_err_up, y_err_down, x_err_up, x_err_down = [], [], [], [], [], []
+
+    for nbin in range(nbins):
+        if hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+            nominal = getattr(hist, _EXTRA_PARAM_MEANS)[nbin]
+        else:
+            nominal = hist.GetBinCenter(nbin + 1)
+        x.append(nominal)
+        x_err_down.append(nominal - hist.GetBinLowEdge(nbin + 1))
+        x_err_up.append(hist.GetBinLowEdge(nbin + 2) - nominal)
+
+        y.append(hist.GetBinContent(nbin + 1))
+        y_err_down.append(hist.GetBinErrorLow(nbin + 1))
+        y_err_up.append(hist.GetBinErrorUp(nbin + 1))
+
+    x, y = array.array("d", x), array.array("d", y)
+    y_err_up, y_err_down = array.array("d", y_err_up), array.array("d", y_err_down)
+    x_err_up, x_err_down = array.array("d", x_err_up), array.array("d", x_err_down)
+
+    if add_xerrors_in_graph:
+        args = (x, y, x_err_down, x_err_up, y_err_down, y_err_up)
+    else:
+        args = (x, y, 0, 0, y_err_down, y_err_up)
+
+    if return_components:
+        return (ROOT.TGraphAsymmErrors(nbins, *args), *args)
+    else:
+        return ROOT.TGraphAsymmErrors(nbins, *args)
 
 
 def fit_function(
@@ -487,7 +945,12 @@ def fit_function(
     logger: str,
     fit_option: Union[str, List[str]],
     limit_kwargs: Dict[str, Any],
-) -> Tuple[Dict[str, Any], Dict[str, str], str]:
+) -> Tuple[
+    Union[ROOT.TH1, ROOT.TGraphAsymmErrors],
+    Dict[str, Any],
+    Dict[str, str],
+    str,
+]:
     """
     This function performs fits of the ratio histogram. The fitted function is then used
     to produce expressions for correctionlib (including variations). Additionally graphs of
@@ -503,8 +966,9 @@ def fit_function(
                     str: "poly_n" or "binwise", where n is the order of the polynomial fit
 
     Return:
-        1. Dictionary with graphs for each variation,
-        2. Dictionary of function expressions for correctionlib (nominal and variations)
+        1. Dictionary with the fitted function for each variation,
+        2. Dictionary with graphs for each variation,
+        3. Dictionary of function expressions for correctionlib (nominal and variations)
     """
     if not isinstance(fit_option, list) and fit_option != "binwise":
         fit_option = [fit_option]
@@ -516,33 +980,15 @@ def fit_function(
     else:
         ff_hist = ff_hists
 
-    # Producing a graph based on the provided root histograms
-    nbins = ff_hist.GetNbinsX()
-    x, y, error_y_up, error_y_down = [], [], [], []
-
-    for nbin in range(nbins):
-        x.append(ff_hist.GetBinCenter(nbin + 1))
-        y.append(ff_hist.GetBinContent(nbin + 1))
-        error_y_up.append(ff_hist.GetBinErrorUp(nbin + 1))
-        error_y_down.append(ff_hist.GetBinErrorLow(nbin + 1))
-
-    x = array.array("d", x)
-    y = array.array("d", y)
-    error_y_up = array.array("d", error_y_up)
-    error_y_down = array.array("d", error_y_down)
-
-    graph = ROOT.TGraphAsymmErrors(nbins, x, y, 0, 0, error_y_down, error_y_up)
-
-    retrival_function = fitting_helper.get_wrapped_functions_from_fits
+    retrival_function, convert = fitting_helper.get_wrapped_functions_from_fits, True
     if fit_option == "binwise":
-        retrival_function = fitting_helper.get_wrapped_hists
+        retrival_function, convert = fitting_helper.get_wrapped_hists, False
 
     callable_expression, correctionlib_expression, used_fit = retrival_function(
-        graph=graph,
         bounds=(bin_edges[0], bin_edges[-1]),
-        ff_hist=ff_hist,
-        ff_hist_up=ff_hist_up,
-        ff_hist_down=ff_hist_down,
+        ff_hist=build_TGraph(ff_hist) if convert else ff_hist,
+        ff_hist_up=build_TGraph(ff_hist_up) if convert else ff_hist_up,
+        ff_hist_down=build_TGraph(ff_hist_down) if convert else ff_hist_down,
         do_mc_subtr_unc=do_mc_subtr_unc,
         logger=logger,
         function_collection=fit_option,
@@ -550,44 +996,12 @@ def fit_function(
         limit_x=limit_kwargs["limit_x"],
     )
 
-    y_fit, y_fit_up, y_fit_down = [], [], []
-    if do_mc_subtr_unc:
-        y_fit_mc_up, y_fit_mc_down = [], []
-
-    x_fit = np.linspace(bin_edges[0], bin_edges[-1], 1000 * nbins)
-    for value in x_fit:
-        nominal, up, down = (
-            callable_expression["nominal"](value),
-            callable_expression["unc_up"](value),
-            callable_expression["unc_down"](value),
-        )
-        y_fit.append(nominal)
-        y_fit_up.append(up - nominal)
-        y_fit_down.append(nominal - down)
-        if do_mc_subtr_unc:
-            mc_substr_up, mc_substr_down = (
-                callable_expression["mc_subtraction_unc_up"](value),
-                callable_expression["mc_subtraction_unc_down"](value),
-            )
-            y_fit_mc_up.append(abs(mc_substr_up - nominal))
-            y_fit_mc_down.append(abs(nominal - mc_substr_down))
-
-    x_fit = array.array("d", x_fit)
-    y_fit = array.array("d", y_fit)
-    y_fit_up = array.array("d", y_fit_up)
-    y_fit_down = array.array("d", y_fit_down)
-    if do_mc_subtr_unc:
-        y_fit_mc_up = array.array("d", y_fit_mc_up)
-        y_fit_mc_down = array.array("d", y_fit_mc_down)
-
-    results, _args = {}, (len(x_fit), x_fit, y_fit, 0, 0)
-    results["fit_graph_unc"] = ROOT.TGraphAsymmErrors(*_args, y_fit_down, y_fit_up)
-    if do_mc_subtr_unc:
-        results["fit_graph_mc_sub"] = ROOT.TGraphAsymmErrors(
-            *_args, y_fit_mc_down, y_fit_mc_up
-        )
-
-    return results, correctionlib_expression, used_fit
+    return (
+        build_TGraph(ff_hist, add_xerrors_in_graph=True) if convert else ff_hist,
+        callable_expression,
+        correctionlib_expression,
+        used_fit,
+    )
 
 
 def calculate_non_closure_correction(
@@ -612,12 +1026,18 @@ def calculate_non_closure_correction(
     corr.Divide(predicted)
     hist_bins = corr.GetNbinsX()
 
-    # check for empty bins, if empty the bin value is set to 1 +/- 0.6
-    for x in range(hist_bins):
+    # check for empty bins, if empty the bin value is set to 1 +/- 1
+    for x in range(1, hist_bins + 1):
         bincontent = corr.GetBinContent(x)
         if bincontent <= 0.0:
+            if hasattr(corr, _EXTRA_PARAM_FLAG) and getattr(corr, _EXTRA_PARAM_FLAG):
+                getattr(
+                    corr,
+                    _EXTRA_PARAM_MEANS,
+                )[x - 1] = (corr.GetBinLowEdge(x) + corr.GetBinLowEdge(x + 1)) / 2
+                getattr(corr, _EXTRA_PARAM_COUNTS)[x - 1] = 1.0
             corr.SetBinContent(x, 1.0)
-            corr.SetBinError(x, 0.6)
+            corr.SetBinError(x, 1.0)
 
     return corr, frac
 
@@ -662,8 +1082,64 @@ def calculate_non_closure_correction_ttbar_fromMC(
     return corr
 
 
+def _get_index_and_slices(
+    correction_option: str,
+) -> Tuple[int, int, slice, slice, slice, bool]:
+    """
+    This function derives the bin index and slices for the hybrid correction,
+    in case of no hybrid correction, default values are returned.
+
+    Args:
+        correction_option: Correction option string
+
+    Return:
+        1. Start index of the left part of the hybrid correction
+        2. End index of the right part of the hybrid correction
+        3. Slice for the left part of the hybrid correction
+        4. Slice for the right part of the hybrid correction
+        5. Slice for the overlap part of the hybrid correction
+        6. Boolean if the hybrid correction
+    """
+
+    # default values
+    start_idx, end_idx, has_left_part, has_right_part = 0, -1, False, False
+    left_slice, right_slice, overlap_slice = slice(0, 0), slice(-1, -1), slice(None, None)
+
+    if "binwise" in correction_option and "smoothed" in correction_option:
+        binwise_part = next(it for it in correction_option.split("+") if "binwise" in it)
+        bin_idx_groups = [eval(expr) for expr in binwise_part.split("#")[1:]]
+
+        if len(bin_idx_groups) == 2:
+            start_idx, end_idx = bin_idx_groups[0][-1] + 1, bin_idx_groups[1][-1] - 1
+            has_left_part, has_right_part = True, True
+        elif len(bin_idx_groups) == 1:
+            group = bin_idx_groups[0]
+            if all(it >= 0 for it in group):
+                start_idx, has_left_part = group[-1] + 1, True
+            elif all(it < 0 for it in group):
+                end_idx, has_right_part = group[-1] - 1, True
+            else:
+                raise ValueError("Invalid bin index for the binned part of the correction")
+
+        left_slice = slice(None, start_idx) if has_left_part else slice(0, 0)
+        right_slice = slice(end_idx + 1, None) if has_right_part else slice(-1, -1)
+        overlap_slice = slice(None, -1) if has_right_part else slice(None, None)
+
+    return (
+        start_idx,
+        end_idx,
+        left_slice,
+        right_slice,
+        overlap_slice,
+        has_left_part or has_right_part,
+    )
+
+
 def smooth_function(
-    hist: Any, bin_edges: List[float], write_corrections: str
+    hist: Any,
+    bin_edges: List[float],
+    correction_option: str,
+    bandwidth: float,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -680,55 +1156,40 @@ def smooth_function(
     hist_bins = hist.GetNbinsX()
 
     # transforming bin information to arrays
-    x = list()
-    y = list()
-    error_y_up = list()
-    error_y_down = list()
-    for nbin in range(hist_bins):
-        x.append(hist.GetBinCenter(nbin + 1))
-        y.append(hist.GetBinContent(nbin + 1))
-        error_y_up.append(hist.GetBinErrorUp(nbin + 1))
-        error_y_down.append(hist.GetBinErrorLow(nbin + 1))
+    nominal_graph, x, y, _, _, error_y_down, error_y_up = build_TGraph(
+        hist, return_components=True, add_xerrors_in_graph=True,
+    )
 
-    x = array.array("d", x)
-    y = array.array("d", y)
-    error_y_up = array.array("d", error_y_up)
-    error_y_down = array.array("d", error_y_down)
+    # values for slicing and range determination in case of hybrid correction
+    (
+        start_idx,
+        end_idx,
+        left_slice,
+        right_slice,
+        overlap_slice,
+        is_hybrid_correction,
+    ) = _get_index_and_slices(correction_option)
 
-    # sampling values for y based on a normal distribution with the bin yield as mean value and with the measured statistical uncertainty
+    # sampling values for y based on a normal distribution with the bin yield as mean
+    # value and with the measured statistical uncertainty
     n_samples = 20
-    sampled_y = list()
-    for idx in range(len(x)):
-        sampled_y.append(np.random.normal(y[idx], error_y_up[idx], n_samples))
-    sampled_y = np.array(sampled_y)
-    sampled_y[sampled_y < 0.0] = 0.0
 
-    # calculate widths
-    fit_y_binned = list()
+    with rng_seed(seed=random_seed):
+        sampled_y = np.array([np.random.normal(*it, n_samples) for it in zip(y, error_y_up)])
+        sampled_y[sampled_y < 0.0] = 0.0
 
     n_bins = 100 * hist_bins
-    for i in range(n_bins):
-        fit_y_binned.append(list())
+    smooth_x = array.array("d", np.linspace(x[start_idx], x[end_idx], n_bins + 1))
+    fit_y_binned = [[] for _ in range(n_bins)]
 
-    eval_bin_edges, bin_step = np.linspace(
-        bin_edges[0], bin_edges[-1], (n_bins + 1), retstep=True
-    )
-    bin_range = bin_edges[-1] - bin_edges[0]
-    bin_half = bin_step / 2.0
-    smooth_x = (eval_bin_edges + bin_half)[:-1]
-    smooth_x = array.array("d", smooth_x)
-
-    for sample in range(n_samples):
-        y_arr = array.array("d", sampled_y[:, sample])
-        graph = ROOT.TGraphAsymmErrors(len(x), x, y_arr, 0, 0, error_y_down, error_y_up)
+    for sample in sampled_y.T:
+        graph = ROOT.TGraphAsymmErrors(len(x), x, array.array("d", sample), 0, 0, error_y_down, error_y_up)
         gs = ROOT.TGraphSmooth("normal")
-        grout = gs.SmoothKern(graph, "normal", (bin_range / 5.0), n_bins, smooth_x)
+        grout = gs.SmoothKern(graph, "normal", bandwidth, n_bins, smooth_x)
         for i in range(n_bins):
             fit_y_binned[i].append(grout.GetPointY(i))
 
-    smooth_y = list()
-    smooth_y_up = list()
-    smooth_y_down = list()
+    smooth_y, smooth_y_up, smooth_y_down = [], [], []
 
     for b in fit_y_binned:
         smooth_y.append(np.mean(b))
@@ -739,29 +1200,73 @@ def smooth_function(
     smooth_y_up = array.array("d", smooth_y_up)
     smooth_y_down = array.array("d", smooth_y_down)
 
-    if write_corrections == "binwise":
+    if correction_option == "binwise":
         _bins = np.array(bin_edges)
         _nom = np.array(y)
         _up = _nom + np.array(error_y_up)
         _down = _nom - np.array(error_y_down)
-    else:
-        _bins = np.array(eval_bin_edges)
+    elif correction_option == "smoothed":
+        _bins = np.array(smooth_x)
         _nom = np.array(smooth_y)
         _up = _nom + np.array(smooth_y_up)
         _down = _nom - np.array(smooth_y_down)
-        
+    elif is_hybrid_correction:
+        _bins = np.concatenate(
+            (
+                bin_edges[left_slice],
+                [bin_edges[start_idx]] if start_idx != 0 else [],
+                np.array(smooth_x)[overlap_slice],
+                [bin_edges[end_idx]] if end_idx != -1 else [],
+                bin_edges[right_slice],
+            ),
+        )
+        _nom = np.concatenate(
+            (
+                y[left_slice],
+                [smooth_y[0]] if start_idx != 0 else [],
+                np.array(smooth_y)[overlap_slice],
+                [smooth_y[-1]] if end_idx != -1 else [],
+                y[right_slice],
+            ),
+        )
+        _up = _nom + np.concatenate(
+            (
+                error_y_up[left_slice],
+                [smooth_y_up[0]] if start_idx != 0 else [],
+                np.array(smooth_y_up)[overlap_slice],
+                [smooth_y_up[-1]] if end_idx != -1 else [],
+                error_y_up[right_slice],
+            ),
+        )
+        _down = _nom - np.concatenate(
+            (
+                error_y_down[left_slice],
+                [smooth_y_down[0]] if start_idx != 0 else [],
+                np.array(smooth_y_down)[overlap_slice],
+                [smooth_y_down[-1]] if end_idx != -1 else [],
+                error_y_down[right_slice],
+            ),
+        )
+    else:
+        raise ValueError("Invalid correction option")
+
     _nom[_nom < 0] = 0
     _up[_up < 0] = 0
     _down[_down < 0] = 0
-    
-    corr_dict = {
-            "edges": _bins,
-            "nominal": _nom,
-            "up": _up,
-            "down": _down,
-        }
+
+    # adjustment to bin edges
+    if _bins[0] != bin_edges[0]:
+        _prepend = lambda a, b = None: np.concatenate(([a[0] if b is None else b[0]], a))
+        _bins = _prepend(_bins, bin_edges)
+        _nom, _up, _down = _prepend(_nom), _prepend(_up), _prepend(_down)
+    if _bins[-1] != bin_edges[-1]:
+        _append = lambda a, b = None: np.concatenate((a, [a[-1] if b is None else b[-1]]))
+        _bins = _append(_bins, bin_edges)
+        _nom, _up, _down = _append(_nom), _append(_up), _append(_down)
+
+    corr_dict = {"edges": _bins, "nominal": _nom, "up": _up, "down": _down}
 
     smooth_graph = ROOT.TGraphAsymmErrors(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
-    return smooth_graph, corr_dict
+    return nominal_graph, smooth_graph, corr_dict

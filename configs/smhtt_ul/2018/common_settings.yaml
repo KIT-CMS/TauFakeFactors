@@ -4,7 +4,7 @@ output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_t
 file_paths: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
 file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt_et_tt__2024-12-31_wo_filterbits_v1
 
-workdir_name: ff_njet_split_y__corr_njet_split_y__w_e__binwise__pt_1__tau_decaymode_2
+workdir_name: ff_dR_njet_split_y__corr_njet_split_y___w_e__poly_best__corr__pt_1__iso_1__tdm_2__mass_2
 
 era: '2018'
 tree: ntuple
@@ -22,3 +22,4 @@ tau_vs_jet_wgt_wps:
   - VTight
 
 use_embedding: true
+use_center_of_mass_bins: true

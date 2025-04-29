@@ -21,19 +21,21 @@ dependencies:
   - binutils=2.40=h4852527_1
   - binutils_impl_linux-64=2.40=ha1999f0_1
   - binutils_linux-64=2.40=hdade7a5_3
+  - black=24.10.0=py311h38be061_0
   - bleach=6.1.0=pyhd8ed1ab_0
   - brotli-python=1.1.0=py311hb755f60_1
   - bzip2=1.0.8=hd590300_5
   - c-ares=1.28.1=hd590300_0
   - c-compiler=1.7.0=hd590300_1
-  - ca-certificates=2024.2.2=hbcca054_0
+  - ca-certificates=2025.1.31=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.18.0=h3faef2a_0
-  - certifi=2024.2.2=pyhd8ed1ab_0
+  - certifi=2024.12.14=pyhd8ed1ab_0
   - cffi=1.16.0=py311hb3a22ac_0
   - cfitsio=4.3.1=hbdc6101_0
   - charset-normalizer=3.3.2=pyhd8ed1ab_0
+  - click=8.1.8=pyh707e725_0
   - colorama=0.4.6=pyhd8ed1ab_0
   - comm=0.2.2=pyhd8ed1ab_0
   - compilers=1.7.0=ha770c72_1
@@ -174,6 +176,7 @@ dependencies:
   - mdurl=0.1.2=pyhd8ed1ab_0
   - metakernel=0.30.2=pyhd8ed1ab_0
   - mistune=3.0.2=pyhd8ed1ab_0
+  - mypy_extensions=1.0.0=pyha770c72_1
   - nbclient=0.10.0=pyhd8ed1ab_0
   - nbconvert-core=7.16.4=pyhd8ed1ab_0
   - nbformat=5.10.4=pyhd8ed1ab_0
@@ -190,6 +193,7 @@ dependencies:
   - pandocfilters=1.5.0=pyhd8ed1ab_0
   - pango=1.52.2=ha41ecd1_0
   - parso=0.8.4=pyhd8ed1ab_0
+  - pathspec=0.12.1=pyhd8ed1ab_1
   - pcre=8.45=h9c3ff4c_0
   - pcre2=10.43=hcad00b1_0
   - pexpect=4.9.0=pyhd8ed1ab_0
@@ -284,4 +288,15 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=h4ab18f5_6
   - zstd=1.5.6=ha6fb4c9_0
+  - pip:
+      - contourpy==1.3.1
+      - cycler==0.12.1
+      - fonttools==4.57.0
+      - kiwisolver==1.4.8
+      - matplotlib==3.10.1
+      - mplhep==0.3.59
+      - mplhep-data==0.0.4
+      - pillow==11.1.0
+      - pyparsing==3.2.3
+      - uhi==0.5.0
 prefix: /work/nshadskiy/miniconda3/envs/fake_factors

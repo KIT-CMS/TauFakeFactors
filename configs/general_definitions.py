@@ -1,172 +1,211 @@
 import ROOT
+from typing import Union, List
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+from copy import deepcopy
 
 #### For fake factor fits ####
 
-default_fit_options = {
-    "QCD": "poly_1",
-    "Wjets": "poly_1",
-    "ttbar": "poly_1",
-}
+random_seed = 19
+default_fit_option = "poly_1"
+default_correction_option = "smoothed"
+
+default_CMS_text = "Own work (Data/Simulation)"
 
 
-def get_default_fit_function_limit_kwargs(binning):
-    return {
+def get_default_fit_function_limit_kwargs(
+    binning: List[float],
+    hist: Union[ROOT.TH1, None] = None,
+) -> dict:
+    """
+    Function to determine the default fit function limit kwargs for the fit function.
+    Default is set to be the binning range. If the histogram has the extra parameter flag
+    the limits are set to first bin (left edge) and the center of mass of the last bin
+    plus the minimum of the distance to the next bin edge and the distance to the previous
+    bin edge.
+
+    Args:
+        binning: List of floats defining the binning range
+        hist: Histogram object to be used for the fit function
+
+    Returns:
+        dict: Dictionary with the fit function limit kwargs
+    """
+    params = {
         "limit_x": {
             "nominal": (binning[0], binning[-1]),
             "up": (-float("inf"), float("inf")),
             "down": (-float("inf"), float("inf")),
         },
     }
+    if hist is not None and hasattr(hist, _EXTRA_PARAM_FLAG) and getattr(hist, _EXTRA_PARAM_FLAG):
+        x, n = getattr(hist, _EXTRA_PARAM_MEANS)[-1], hist.GetNbinsX()
+        a, b = hist.GetBinLowEdge(n), hist.GetBinLowEdge(n + 1)
+        params["limit_x"]["nominal"] = (binning[0], x + min(b - x, x - a))
+    return params
+
+
+def get_default_bandwidth(
+    binning: List[float],
+) -> float:
+    """
+    Function to determine the smoothness factor for the fit function, default is set to be
+    1/5 of the binning range.
+
+    Args:
+        binning: List of floats defining the binning range
+    Returns:
+        float: Smoothness factor for the fit function
+    """
+
+    factor = (binning[-1] - binning[0]) / 5.0
+    return factor
 
 
 #### For plotting ####
+OFFICIAL_CMS_COLOR_PALLET = {
+    6: ["#5790fc", "#f89c20", "#e42536", "#964a8b", "#9c9ca1", "#7a21dd"],
+    10: ["#3f90da", "#ffa90e", "#bd1f01", "#94a4a2", "#832db6", "#a96b59", "#e76300", "#b9ac70", "#717581", "#92dadd"],
+}
+
 
 # label definitions for y-axis
 FF_YAxis = {
-    "ttbar": "FF_{t#bar{t}}",
-    "ttbar_subleading": "FF_{t#bar{t}}",
-    "Wjets": "FF_{Wjets}",
-    "QCD": "FF_{QCD}",
-    "QCD_subleading": "FF_{QCD}",
+    "ttbar": r"$F_{F}^{t\bar{t}}$",
+    "ttbar_subleading": r"$F_{F}^{t\bar{t}}$",
+    "Wjets": r"$F_{F}^{Wjets}$",
+    "QCD": r"$F_{F}^{QCD}$",
+    "QCD_subleading": r"$F_{F}^{QCD}$",
 }
+
 # definitions for channels
-channel_dict = {"et": "e#tau_{h}", "mt": "#mu#tau_{h}", "tt": "#tau_{h}#tau_{h}"}
-# definitions for era and luminosity TODO: 2016
+channel_dict = {"et": r"$e\tau_{h}$", "mt": r"$\mu\tau_{h}$", "tt": r"$\tau_{h}\tau_{h}$"}
+
+# definitions for era and luminosity
 era_dict = {
-    "2016preVFP": "19.5 fb^{-1} (2016preVFP, 13 TeV)",
-    "2016postVFP": "16.8 fb^{-1} (2016postVFP, 13 TeV)",
-    "2017": "41.5 fb^{-1} (2017, 13 TeV)",
-    "2018": "59.8 fb^{-1} (2018, 13 TeV)",
+    "2016preVFP": r"$19.5\,fb^{-1}$ (2016preVFP, 13 TeV)",
+    "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
+    "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
+    "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
 }
+
 # definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
-    "QCD": (185, 172, 112),
-    "diboson_J": (148, 164, 132),
-    "diboson_L": (148, 164, 162),
-    "diboson_T": (148, 164, 192),
-    "Wjets": (231, 99, 0),
-    "ttbar_J": (101, 45, 182),
-    "ttbar_L": (131, 45, 182),
-    "ttbar_T": (161, 45, 182),
-    "DYjets_J": (63, 114, 218),
-    "DYjets_L": (63, 144, 218),
-    "DYjets_T": (63, 174, 218),
-    "ST_J": (113, 117, 99),
-    "ST_L": (113, 117, 129),
-    "ST_T": (113, 117, 159),
-    "embedding": (255, 169, 14),
-    "tau_fakes": (185, 172, 112),
-    "data_ff": (255, 169, 14),
-    "fit_graph_mc_sub": ROOT.kGreen,
-    "fit_graph_unc": ROOT.kRed,
+    "QCD": OFFICIAL_CMS_COLOR_PALLET[10][7],  # (185, 172, 112)
+    "diboson_J": "#94A484",  # (148, 164, 132)
+    "diboson_L": OFFICIAL_CMS_COLOR_PALLET[10][3],  # (148, 164, 162)
+    "diboson_T": "#94A4C0",  # (148, 164, 192)
+    "Wjets": OFFICIAL_CMS_COLOR_PALLET[10][6],  # (231, 99, 0)
+    "ttbar_J": "#652DB6",  # (101, 45, 182)
+    "ttbar_L": OFFICIAL_CMS_COLOR_PALLET[10][4],  # (131, 45, 182)
+    "ttbar_T": "#A12DB6",  # (161, 45, 182)
+    "DYjets_J": "#3F72DA",  # (63, 114, 218)
+    "DYjets_L": OFFICIAL_CMS_COLOR_PALLET[10][0],  # (63, 144, 218)
+    "DYjets_T": "#3FAEDA",  # (63, 174, 218)
+    "ST_J": "#717563",  # (113, 117, 99)
+    "ST_L": OFFICIAL_CMS_COLOR_PALLET[10][8],  # (113, 117, 129)
+    "ST_T": "#71759F",  # (113, 117, 159)
+    "embedding": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
+    "tau_fakes": "#B9AC70",  # (185, 172, 112)
+    "data_ff": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
+    "fit_graph_mc_sub": OFFICIAL_CMS_COLOR_PALLET[6][0],
+    "fit_graph_unc": OFFICIAL_CMS_COLOR_PALLET[6][2],
+    "correction_graph": OFFICIAL_CMS_COLOR_PALLET[10][0],
 }
+
 # definitions for process labels on the plots
 label_dict = {
     "QCD": "QCD multijet",
-    "diboson_J": "Diboson (jet#rightarrow#tau_{h})",
-    "diboson_L": "Diboson (lep#rightarrow#tau_{h})",
-    "diboson_T": "Diboson (genuine #tau_{h})",
-    "Wjets": "W+jets",
-    "ttbar_J": "t#bar{t} (jet#rightarrow#tau_{h})",
-    "ttbar_L": "t#bar{t} (lep#rightarrow#tau_{h})",
-    "ttbar_T": "t#bar{t} (genuine #tau_{h})",
-    "DYjets_J": "Z#rightarrow ll (jet#rightarrow#tau_{h})",
-    "DYjets_L": "Z#rightarrow ll (lep#rightarrow#tau_{h})",
-    "DYjets_T": "Z#rightarrow ll (genuine #tau_{h})",
-    "ST_J": "ST (jet#rightarrow#tau_{h})",
-    "ST_L": "ST (lep#rightarrow#tau_{h})",
-    "ST_T": "ST (genuine #tau_{h})",
-    "embedding": "#tau embedded",
-    "data": "Data",
-    "data_subtracted": "reduced Data",
-    "data_ff": "Data with FFs",
-    "tau_fakes": "jet#rightarrow#tau_{h}",
+    "diboson_J": r"diboson (jet$\rightarrow\tau_{h}$)",
+    "diboson_L": r"diboson ($\ell\rightarrow\tau_{h}$)",
+    "diboson_T": r"diboson ($\tau\rightarrow\tau_{h}$)",
+    "Wjets": r"W$\rightarrow\ell\nu$",
+    "ttbar_J": r"$t\bar{t}$ (jet$\rightarrow\tau_{h}$)",
+    "ttbar_L": r"$t\bar{t}$ ($\ell\rightarrow\tau_{h}$)",
+    "ttbar_T": r"$t\bar{t}$ ($\tau\rightarrow\tau_{h}$)",
+    "DYjets_J": r"$Z\rightarrow\ell\ell$ (jet$\rightarrow\tau_{h}$)",
+    "DYjets_L": r"$Z\rightarrow\ell\ell$ ($\ell\rightarrow\tau_{h}$)",
+    "DYjets_T": r"$Z\rightarrow\ell\ell$ ($\tau\rightarrow\tau_{h}$)",
+    "ST_J": r"t (jet$\rightarrow\tau_{h}$)",
+    "ST_L": r"t ($\ell\rightarrow\tau_{h}$)",
+    "ST_T": r"t ($\tau\rightarrow\tau_{h}$)",
+    "embedding": r"$\tau$ embedded",
+    "data": "data",
+    "data_subtracted": "reduced data",
+    "data_ff": r"data with $F_F$'s",
+    "tau_fakes": r"jet$\rightarrow\tau_{h}$",
     "fit_graph_unc": {
-        "poly_0": "poly(0) best fit uncertainty",
-        "poly_1": "poly(1) best fit uncertainty",
-        "poly_2": "poly(2) best fit uncertainty",
-        "poly_3": "poly(3) best fit uncertainty",
-        "poly_4": "poly(4) best fit uncertainty",
-        "poly_5": "poly(5) best fit uncertainty",
-        "poly_6": "poly(6) best fit uncertainty",
+        **{f"poly_{i}": f"poly({i}) best fit unc." for i in range(7)},
         "binwise": "plain histogram unc.",
     },
     "fit_graph_mc_sub": {
-        "poly_0": "poly(0) best fit (MC subtraction unc.)",
-        "poly_1": "poly(1) best fit (MC subtraction unc.)",
-        "poly_2": "poly(2) best fit (MC subtraction unc.)",
-        "poly_3": "poly(3) best fit (MC subtraction unc.)",
-        "poly_4": "poly(4) best fit (MC subtraction unc.)",
-        "poly_5": "poly(5) best fit (MC subtraction unc.)",
-        "poly_6": "poly(6) best fit (MC subtraction unc.)",
-        "binwise": "plain histogram (MC subtraction unc.)",
+        **{f"poly_{i}": f"poly({i}) best fit (MC subtr. unc.)" for i in range(7)},
+        "binwise": "plain histogram (MC subtr. unc.)",
     },
 }
+
 # definitions to translate variable to readable language, channel dependent
+channel_indipendent_variable_dict = {
+    "njets": r"$N_{jets}$",
+    "metphi": r"$\phi(p_T^{miss})$",
+    "met": r"$p_T^{miss}$ (GeV)",
+    "m_vis": r"$m_{vis}$ (GeV)",
+    "nbtag": r"$N_{b-jets}$",
+}
 variable_dict = {
-    "et": {
-        "pt_1": "p_{T}(e) (GeV)",
-        "eta_1": "#eta(e)",
-        "phi_1": "#phi(e)",
-        "iso_1": "isolation (e)",
-        "mt_1": "m_{T}(e, #slash{E}_{T}) (GeV)",
-        "pt_2": "p_{T}(#tau_{h}) (GeV)",
-        "eta_2": "#eta(#tau_{h})",
-        "phi_2": "#phi(#tau_{h})",
-        "mass_2": "#tau_{h} mass",
-        "m_vis": "m_{vis} (GeV)",
-        "met": "MET (GeV)",
-        "metphi": "MET #phi",
-        "njets": "number of jets",
-        "nbtag": "number of b-tagged jets",
-        "deltaR_ditaupair": "#DeltaR(e#tau_{h})",
-        "tau_decaymode_2": "#tau_{h}^{DM} ",
-    },
     "mt": {
-        "pt_1": "p_{T}(#mu) (GeV)",
-        "eta_1": "#eta(#mu)",
-        "phi_1": "#phi(#mu)",
-        "iso_1": "isolation (#mu)",
-        "mt_1": "m_{T}(#mu, #slash{E}_{T}) (GeV)",
-        "pt_2": "p_{T}(#tau_{h}) (GeV)",
-        "eta_2": "#eta(#tau_{h})",
-        "phi_2": "#phi(#tau_{h})",
-        "mass_2": "#tau_{h} mass",
-        "m_vis": "m_{vis} (GeV)",
-        "met": "MET (GeV)",
-        "metphi": "MET #phi",
-        "njets": "number of jets",
-        "nbtag": "number of b-tagged jets",
-        "deltaR_ditaupair": "#DeltaR(#mu#tau_{h})",
-        "tau_decaymode_2": "#tau_{h}^{DM}",
+        "pt_1": r"$p_{T}^{\mu}$ (GeV)",
+        "eta_1": r"$\eta^{\mu}$",
+        "phi_1": r"$\phi^{\mu}$",
+        "iso_1": r"$iso^{\mu}$",
+        "mt_1": r"$m_{T}(\mu,p_T^{miss})$ (GeV)",
+        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h}}$",
+        "phi_2": r"$\phi^{\tau_{h}}$",
+        "mass_2": r"$\tau_{h}$ mass",
+        "deltaR_ditaupair": r"$\Delta R(\mu,\tau_{h})$",
+        "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+        **channel_indipendent_variable_dict,
+    },
+    "et": {
+        "pt_1": r"$p_{T}^{e}$ (GeV)",
+        "eta_1": r"$\eta^{e}$",
+        "phi_1": r"$\phi^{e}$",
+        "iso_1": r"$iso^{e}$",
+        "mt_1": r"$m_{T}(e,p_T^{miss})$ (GeV)",
+        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h}}$",
+        "phi_2": r"$\phi^{\tau_{h}}$",
+        "mass_2": r"$\tau_{h}$ mass",
+        "deltaR_ditaupair": r"$\Delta R(e,\tau_{h})$",
+        "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+        **channel_indipendent_variable_dict,
     },
     "tt": {
-        "pt_1": "leading p_{T}(#tau_{h}) (GeV)",
-        "eta_1": "leading #eta(#tau_{h})",
-        "phi_1": "leading #phi(#tau_{h})",
-        "pt_2": "subleading p_{T}(#tau_{h}) (GeV)",
-        "eta_2": "subleading #eta(#tau_{h})",
-        "phi_2": "subleading #phi(#tau_{h})",
-        "mass_1": "leading #tau_{h} mass",
-        "mass_2": "subleading #tau_{h} mass",
-        "m_vis": "m_{vis} (GeV)",
-        "met": "MET (GeV)",
-        "metphi": "MET #phi",
-        "njets": "number of jets",
-        "nbtag": "number of b-tagged jets",
-        "deltaR_ditaupair": "#DeltaR(#tau_{h}#tau_{h})",
-        "tau_decaymode_1": "#tau_{h, 1}^{DM}",
-        "tau_decaymode_2": "#tau_{h, 2}^{DM}",
+        "pt_1": r"$p_{T}^{\tau_{h,1}}$ (GeV)",
+        "eta_1": r"$\eta^{\tau_{h,1}}$",
+        "phi_1": r"$\phi^{\tau_{h,1}}$",
+        "pt_2": r"$p_{T}^{\tau_{h,2}}$ (GeV)",
+        "eta_2": r"$\eta^{\tau_{h,2}}$",
+        "phi_2": r"$\phi^{\tau_{h,2}}$",
+        "mass_1": r"$\tau_{h,1}$ mass",
+        "mass_2": r"$\tau_{h,2}$ mass",
+        "deltaR_ditaupair": r"$\Delta R(\tau_{h, 1},\tau_{h, 2})$",
+        "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
+        "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
+        **channel_indipendent_variable_dict,
     },
 }
+
 # definitions to translate category cuts to readable language
 category_dict = {
-    "incl": "incl.",
-    "njets": "N_{jets}",
-    "nbtag": "N_{b-jets}",
-    "deltaR_ditaupair": "#Delta" + "R(l#tau_{h})",
-    "tau_decaymode_1": "#tau_{h, 1}^{DM}",
-    "tau_decaymode_2": "#tau_{h, 2}^{DM}",
+    "incl": r"incl.",
+    "njets": r"$N_{jets}$",
+    "nbtag": r"$N_{b-jets}$",
+    "deltaR_ditaupair": r"$\Delta R(\ell,\tau_{h})$",
+    "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
+    "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
+    "pt_1": r"$p_{T}^{\mu}$",  # for mt channel
+    "pt_2": r"$p_{T}^{\tau_{h}}$",
 }
 
 ### For correctionlib ###
@@ -175,7 +214,7 @@ category_dict = {
 variable_translator = {
     "QCD": "QCD",
     "Wjets": "Wjets",
-    "ttbar_J": "ttbar", 
+    "ttbar_J": "ttbar",
 }
 # definitions for the variable type, needed for correctionlib
 variable_type = {

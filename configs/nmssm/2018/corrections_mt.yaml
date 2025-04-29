@@ -7,7 +7,7 @@ target_processes:
         non_closure:
             pt_1:
                 var_dependence: "pt_1"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "==0"
@@ -17,7 +17,7 @@ target_processes:
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
             mass_2:
                 var_dependence: "mass_2"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "==0"
@@ -35,7 +35,7 @@ target_processes:
                 
         DR_SR:
             var_dependence: "m_vis"
-            write_corrections: "smoothed"  # "binwise"
+            correction_option: "smoothed"  # "binwise"
             split_categories:
                 njets:
                     - "==0"
@@ -52,7 +52,7 @@ target_processes:
             non_closure:
                 pt_1:
                     var_dependence: "pt_1"
-                    write_corrections: "smoothed"  # "binwise"
+                    correction_option: "smoothed"  # "binwise"
                     split_categories:
                         njets:
                             - "==0"
@@ -62,7 +62,7 @@ target_processes:
                     var_bins: [25,30,35,40,45,50,55,60,65,70,80,100]
                 mass_2:
                     var_dependence: "mass_2"
-                    write_corrections: "smoothed"  # "binwise"
+                    correction_option: "smoothed"  # "binwise"
                     split_categories:
                         njets:
                             - "==0"
@@ -75,7 +75,7 @@ target_processes:
         non_closure:
             pt_1:
                 var_dependence: "pt_1"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "==0"
@@ -85,7 +85,7 @@ target_processes:
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
             mass_2:
                 var_dependence: "mass_2"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "==0"
@@ -103,7 +103,7 @@ target_processes:
                 
         DR_SR:
             var_dependence: "m_vis"
-            write_corrections: "smoothed"  # "binwise"
+            correction_option: "smoothed"  # "binwise"
             split_categories:
                 njets:
                     - "==0"
@@ -120,7 +120,7 @@ target_processes:
             non_closure:
                 pt_1:
                     var_dependence: "pt_1"
-                    write_corrections: "smoothed"  # "binwise"
+                    correction_option: "smoothed"  # "binwise"
                     split_categories:
                         njets:
                             - "==0"
@@ -130,7 +130,7 @@ target_processes:
                     var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
                 mass_2:
                     var_dependence: "mass_2"
-                    write_corrections: "smoothed"  # "binwise"
+                    correction_option: "smoothed"  # "binwise"
                     split_categories:
                         njets:
                             - "==0"
@@ -144,7 +144,7 @@ target_processes:
         non_closure:
             pt_1:
                 var_dependence: "pt_1"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "<=1"
@@ -154,7 +154,7 @@ target_processes:
                 var_bins: [25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]
             mass_2:
                 var_dependence: "mass_2"
-                write_corrections: "smoothed"  # "binwise"
+                correction_option: "smoothed"  # "binwise"
                 split_categories:
                     njets:
                         - "<=1"

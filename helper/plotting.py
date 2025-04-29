@@ -1,12 +1,56 @@
+import array
 import logging
 import os
-from io import StringIO
-from typing import Any, Dict, List, Tuple, Union, Iterable
+import pickle
+from copy import deepcopy
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import mplhep as hep
+import numpy as np
 import ROOT
-from wurlitzer import STDOUT, pipes
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 import configs.general_definitions as gd
+import helper.ff_functions as func
+
+hep.style.use(hep.style.CMS)
+
+
+class SmartSciFormatter(ticker.Formatter):
+    """
+    A custom formatter for axis tick labels to format numbers using scientific notation.
+    Adapts based on axis scale (logarithmic or linear) and tick values range.
+
+    Converts into a LaTeX implementation with a mantissa and exponent: mantissa · 10^(exponent)
+    """
+    def __init__(self, axis, use_dot=True):
+        self.axis = axis
+        self.use_dot = use_dot
+
+    def __call__(self, x, pos=None):
+        if np.isclose(float(x), 0.0):
+            return "0"
+
+        ticks = [tick for tick in self.axis.get_ticklocs() if tick != 0.0]
+        mantissa, exponent = f"{x:.1e}".split("e")
+        mantissa = mantissa.rstrip("0").rstrip(".")
+        dot = r"\cdot" if self.use_dot else r"\times"
+
+        if self.axis.get_scale() == "log":
+            mantissas = [float(f"{tick:.1e}".split("e")[0]) for tick in ticks if tick != 0.0]
+            if all(np.isclose(m, 1.0) for m in mantissas):
+                return rf"$10^{{{int(exponent)}}}$"
+            else:
+                return rf"${mantissa}{dot}10^{{{int(exponent)}}}$"
+
+        # this is for linear scale
+        if all(abs(t) > 1e3 or abs(t) < 1e-2 for t in ticks):
+            return rf"${mantissa}{dot}10^{{{int(exponent)}}}$"
+        else:
+            return f"{x}".rstrip("0").rstrip(".")
 
 
 def save_plots_and_data(
@@ -14,7 +58,7 @@ def save_plots_and_data(
     plot_filename_and_obj: Union[Tuple[str, Any], None] = None,
     data_filename_and_obj: Union[Tuple[str, Any], None] = None,
     plot_extensions: Iterable[str] = ("png", "pdf"),
-    data_extensions: Iterable[str] = ("root",),
+    data_extensions: Iterable[str] = ("pickle",),
     logger: Union[logging.Logger, None] = None,
 ) -> None:
     """
@@ -42,41 +86,192 @@ def save_plots_and_data(
     base_filename_plot, plot_obj = "", None
     base_filename_data, data_obj = "", None
 
-    def save_root_canvas(ext):
-        plot_obj.SaveAs(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+    def save_canvas(ext):
+        plot_obj.savefig(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+        if logger:
+            logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_plot}.{ext}')}")
 
-    def save_root_hists(ext):
-        root_filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
-        root_file = ROOT.TFile(root_filepath, "RECREATE")
+    def save_data(ext):
+        filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
         if isinstance(data_obj, dict):
-            for key, hist in data_obj.items():
-                hist.Write(key)
-        elif isinstance(data_obj, ROOT.TH1D):
-            data_obj.Write(base_filename_data)
-        root_file.Close()
+            with open(filepath, "wb") as f:
+                pickle.dump(data_obj, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            raise NotImplementedError(f"{ext} type not supported (yet)")
+        if logger:
+            logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_data}.{ext}')}")
 
     tasks = []
     if plot_filename_and_obj is not None:
         base_filename_plot, plot_obj = plot_filename_and_obj
-        tasks.append((plot_extensions, save_root_canvas))
+        tasks.append((plot_extensions, save_canvas))
     if data_filename_and_obj is not None:
         base_filename_data, data_obj = data_filename_and_obj
-        tasks.append((data_extensions, save_root_hists))
+        tasks.append((data_extensions, save_data))
 
     for extensions, _func in tasks:
         for extension in extensions:
             os.makedirs(os.path.join(output_path, extension), exist_ok=True)
-            out = StringIO()
-            with pipes(stdout=out, stderr=STDOUT):
-                _func(extension)
-            if logger:
-                logger.info(out.getvalue())
+            _func(extension)
+
+
+def TH1_to_numpy(
+    hist: ROOT.TH1,
+    is_data: bool = False,
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Union[List[np.ndarray], None],
+    Union[List[np.ndarray], None],
+]:
+    """
+    Convert a ROOT TH1 histpgram to numpy arrays.
+
+    Args:
+        hist: The TH1 object to convert.
+        is_data: Flag to indicate that it is a data histogram.
+
+    Returns:
+        Tuple containging:
+            - edges: bin edge values as numpy histogram
+            - x: x values as numpy array
+            - y: y values as numpy array
+            - x_errors: List of numpy arrays containing the x errors (low and high)
+            - y_errors: List of numpy arrays containing the y errors (low and high)
+    """
+    n_bins = hist.GetNbinsX()
+    edges = np.array(
+        [
+            hist.GetBinLowEdge(i + 1)
+            for i in range(n_bins)
+        ] + [hist.GetBinLowEdge(n_bins) + hist.GetBinWidth(n_bins)]
+    )
+    y_errors = [
+        np.array([hist.GetBinErrorLow(i + 1) for i in range(n_bins)]),
+        np.array([hist.GetBinErrorUp(i + 1) for i in range(n_bins)]),
+    ]
+
+    x_errors, x = None, None
+
+    if is_data:  # if the histogram has center of mass x: extract during TGraph creation
+        (_, x, y, x_err_down, x_err_up, _, _) = func.build_TGraph(
+            hist,
+            return_components=True,
+            add_xerrors_in_graph=True,
+        )
+        x_errors = [np.array(x_err_down), np.array(x_err_up)]
+    else:
+        y = [hist.GetBinContent(i + 1) for i in range(n_bins)]
+
+    return (edges, np.array(x), np.array(y), x_errors, y_errors)
+
+
+def TGraphAsymmErrors_to_numpy(
+    graph: ROOT.TGraphAsymmErrors,
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    List[np.ndarray],
+    List[np.ndarray],
+]:
+    """
+    Convert a ROOT TGraphAsymmErrors to numpy arrays.
+
+    Args:
+        graph: The TGraphAsymmErrors object to convert.
+
+    Returns:
+        Tuple containging:
+            - edges: bin edge values as numpy histogram
+            - x: x values as numpy array
+            - y: y values as numpy array
+            - x_errors: List of numpy arrays containing the x errors (low and high)
+            - y_errors: List of numpy arrays containing the y errors (low and high)
+    """
+    n = graph.GetN()
+    bin_edges = []
+
+    x, y, xe_low, xe_high, ye_low, ye_high = (np.empty(n) for _ in range(6))
+    for i in range(n):
+        _x, _y = array.array("d", [0.]), array.array("d", [0.])
+        graph.GetPoint(i, _x, _y)
+        x[i], y[i] = _x[0], _y[0]
+        xe_low[i], xe_high[i] = graph.GetErrorXlow(i), graph.GetErrorXhigh(i)
+        ye_low[i], ye_high[i] = graph.GetErrorYlow(i), graph.GetErrorYhigh(i)
+        if i == 0:
+            bin_edges.append(x[i] - xe_low[i])
+        bin_edges.append(x[i] + xe_high[i])
+
+    return (
+        np.array(bin_edges),
+        np.array(x),
+        np.array(y),
+        [np.array(xe_low), np.array(xe_high)],
+        [np.array(ye_low), np.array(ye_high)],
+    )
+
+
+def interval_splitted_category_label(category, var):
+    """
+    Function to split the category label into lower and upper bounds for LaTeX formatting
+    if the category is defined as an interval.
+    Args:
+        category: The category dictionary containing the variable and its corresponding category.
+        var: The variable for which the category is defined.
+    Returns:
+        str: The formatted string for the category label.
+    """
+    unit = r"\ GeV" if any(it in var for it in {'pt_'}) else ""
+    lower, upper = category[var].split("#&&#")
+
+    upper = f"{gd.category_dict[var].replace('$', '')} {upper}" + unit
+    lower = f"{gd.category_dict[var].replace('$', '')} {lower}" + unit
+    return f"$^{{{upper}}}_{{{lower}}}$"
+
+
+def default_category_label(category, var):
+    """
+    Function to format the category label for LaTeX formatting
+
+    Args:
+        category: The category dictionary containing the variable and its corresponding category.
+        var: The variable for which the category is defined.
+    Returns:
+        str: The formatted string for the category label.
+    """
+    unit = r"\ GeV" if any(it in var for it in {'pt_'}) else ""
+    if var and "incl" not in var.lower():
+        return f"{gd.category_dict[var]} ${category[var]}{unit}$"
+    else:
+        return f"{gd.category_dict[var]}"
+
+
+def latex_adjust_selection_string(string):
+    """
+    Function to adjust the selection operators in the string to be used in a LaTeX formating.
+
+    Args:
+        string: The string to be adjusted.
+
+    Returns:
+        str: The adjusted string.
+    """
+    for a, b in [
+        ("==", r"=\,"),
+        (">=", r"\geq\,"),
+        ("<=", r"\leq\,"),
+        (">", r">\,"),
+        ("<", r"<\,"),
+    ]:
+        string = string.replace(a, b if "$" in string else "$" + b + "$")
+    return string
 
 
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
-    uncertainties: Dict[str, Any],
+    uncertainties: Dict[str, Callable],
     era: str,
     channel: str,
     process: str,
@@ -91,7 +286,7 @@ def plot_FFs(
 
     Args:
         variable: Name of the variable the fake factor is measured in
-        ff_ratio: Histogram of the ratio (fake factor)
+        ff_ratio: Histogram of the ratio (fake factor) or TGraph
         uncertainties: Dictionary with graphs for each uncertainty/variation corresponding to "ff_ratio"
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
@@ -107,203 +302,124 @@ def plot_FFs(
     """
     log = logging.getLogger(logger)
 
-    ROOT.PyConfig.IgnoreCommandLineOptions = True
-    ROOT.gROOT.SetBatch(ROOT.kTRUE)
-    c = ROOT.TCanvas("c", "", 700, 700)
-    c.SetRightMargin(0.05)
-    c.SetLeftMargin(0.16)
-    c.SetBottomMargin(0.12)
+    ff_ratio = deepcopy(ff_ratio)
+    uncertainties = deepcopy(uncertainties)
 
-    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
-    ROOT.gStyle.SetTextFont(
-        42
-    )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
-    ff_ratio.SetMaximum(max(ff_ratio.GetMaximum() + 0.4 * ff_ratio.GetMaximum(), 0.5))
-    ff_ratio.SetMinimum(0.0)
-    # ff_ratio.SetAxisRange(0, 0.5, "Y")
-    ff_ratio.SetMarkerStyle(20)
-    ff_ratio.SetMarkerSize(1.2)
-    ff_ratio.SetLineWidth(2)
-    ff_ratio.SetLineColor(ROOT.kBlack)
-    ff_ratio.SetTitle("")
-    ff_ratio.GetXaxis().SetMoreLogLabels()
-    ff_ratio.GetXaxis().SetNoExponent()
-    ff_ratio.GetYaxis().SetTitle(gd.FF_YAxis[process])
-    ff_ratio.GetXaxis().SetTitle(
-        gd.variable_dict[channel].get(variable, variable)
+    recreation_summary = dict(
+        variable=variable,
+        era=era,
+        channel=channel,
+        process=process,
+        category=category,
+        draw_option=draw_option,
     )
-    ff_ratio.GetYaxis().SetLabelSize(0.04)
-    ff_ratio.GetXaxis().SetLabelSize(0.04)
-    ff_ratio.GetYaxis().SetTitleSize(0.05)
-    ff_ratio.GetXaxis().SetTitleSize(0.05)
 
-    ff_ratio.Draw()
-    for unc in uncertainties:
-        uncertainties[unc].SetLineWidth(2)
-        uncertainties[unc].SetLineColor(gd.color_dict[unc])
-        uncertainties[unc].SetFillColorAlpha(gd.color_dict[unc], 0.35)
-        uncertainties[unc].Draw("E3 L SAME")
+    nominal_key, unc_up_key, unc_down_key = "nominal", "unc_up", "unc_down"
+    mc_up_key, mc_down_key = "mc_subtraction_unc_up", "mc_subtraction_unc_down"
 
-    legend = ROOT.TLegend(0.2, 0.68, 0.5, 0.88)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetTextSize(0.03)
-    legend.SetTextAlign(12)
-    legend.AddEntry(ff_ratio, "measured", "lep")
-    for unc in uncertainties:
-        legend.AddEntry(uncertainties[unc], gd.label_dict[unc][draw_option], "fl")
-    legend.Draw("SAME")
+    if isinstance(ff_ratio, ROOT.TH1):
+        _, x, y, x_err, y_err = TH1_to_numpy(ff_ratio)
+    elif isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
+        _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(ff_ratio)
+    elif isinstance(ff_ratio, tuple):  # for recreating the plot
+        x, y, x_err, y_err = ff_ratio
 
-    text = ROOT.TLatex()
-    text.SetNDC()
-    text.SetTextSize(0.03)
-    text.DrawLatex(
-        0.165,
-        0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+    _xmin, _xmax = x[0] - x_err[0][0], x[-1] + x_err[1][-1]
+    x_sample = np.linspace(_xmin, _xmax, 1000)
+    for k in uncertainties:  # for recreating the plot
+        if not isinstance(uncertainties[k], np.ndarray):
+            uncertainties[k] = np.vectorize(uncertainties[k])(x_sample)
+
+    fig, ax = plt.subplots(1, 1, figsize=(11, 8))
+    ax.set(
+        xlim=(_xmin, _xmax),
+        xlabel=gd.variable_dict[channel].get(variable, variable),
+        ylim=(0, max(0.3, 1.7 * max(y))),
+        ylabel=gd.FF_YAxis[process],
     )
-    text.SetTextSize(0.035)
-    text.DrawLatex(0.6, 0.915, f"{gd.era_dict[era]}")
 
-    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
+    if category is not None:
+        plot_text = f"{gd.channel_dict[channel]}, " + ", ".join(
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
+            for var in category.keys()
+        )
+    else:
+        plot_text = gd.channel_dict[channel]
+    plot_text = latex_adjust_selection_string(plot_text)
+
+    ax.set_title(plot_text, loc="left", fontsize=25)
+    ax.set_title(gd.era_dict[era], loc="right", fontsize=25)
+
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
+
+    data_handler = ax.errorbar(
+        x,
+        y,
+        xerr=x_err,
+        yerr=y_err,
+        fmt="o",
+        color="black",
+        capsize=3,
+        elinewidth=2,
+    )
+
+    handlers, labels = [data_handler], ["measured"]
+
+    color = gd.color_dict["fit_graph_unc"]
+    nominal, up, down = (
+        uncertainties[nominal_key],
+        uncertainties[unc_up_key],
+        uncertainties[unc_down_key],
+    )
+
+    ax.plot(x_sample, nominal, lw=3, color=color)
+    ax.fill_between(x_sample, up, down, alpha=0.25, lw=0, color=color)
+
+    handlers.append((Patch(color=color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
+    labels.append(gd.label_dict["fit_graph_unc"][draw_option])
+
+    if mc_up_key in uncertainties and mc_down_key in uncertainties:
+        up_mc, down_mc = uncertainties[mc_up_key], uncertainties[mc_down_key]
+        mc_color = gd.color_dict["fit_graph_mc_sub"]
+        ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=mc_color)
+
+        handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
+        labels.append(gd.label_dict["fit_graph_mc_sub"][draw_option])
+
+    # Add legend with both the combined entry and the histogram
+    ax.legend(
+        handles=handlers,
+        labels=labels,
+        loc="upper right",
+        fontsize=20,
+        labelspacing=0.3,
+    )
+
+    fig.tight_layout()
+
+    selection = "_".join([f"{var}_{category[var]}" for var in category.keys()])
     base_filename = f"ff_{variable}_{process}_{selection}"
     save_plots_and_data(
         output_path=output_path,
-        plot_filename_and_obj=(f"{base_filename}", c),
-        data_filename_and_obj=(f"data_{base_filename}", {"ff_ratio": ff_ratio, **uncertainties}) if save_data else None,
+        plot_filename_and_obj=(f"{base_filename}", fig),
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "ff_ratio": (x, y, x_err, y_err),
+                "uncertainties": uncertainties,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
-    c.Close()
-
-
-def plot_data_mc(
-    variable: str,
-    hists: Dict[str, Any],
-    era: str,
-    channel: str,
-    process: str,
-    region: str,
-    data: str,
-    samples: List[str],
-    category: Dict[str, str],
-    output_path: str,
-    logger: str,
-    yscale: str = "linear",
-    save_data: bool = False,
-) -> None:
-    """
-    Function which produces a data to MC control plot.
-
-    Args:
-        variable: Name of the variable the fake factor is measured in
-        hists: Dictionary with histogram for all processes and data
-        era: Information about the era is added to the plot
-        channel: Information about the channel is added to the plot
-        process: Information about the process is added to the plot
-        region: Information about the fake factor calculation region is added to the plot name
-        data: Name of the data process in "hists"
-        samples: List of processes to be considered from "hists" for MC
-        category: Information about the category split is added to the plot
-        output_path: Path where the plot should be stored
-        logger: Name of the logger that should be used
-        yscale: String do set the scaling of the y-axis, options are "linear" or "log"
-        save_data: Boolean to additionally save the histograms to a root file
-
-    Return:
-        None
-    """
-    log = logging.getLogger(logger)
-
-    ROOT.PyConfig.IgnoreCommandLineOptions = True
-    ROOT.gROOT.SetBatch(ROOT.kTRUE)
-    c = ROOT.TCanvas("c", "", 850, 700)
-    c.SetRightMargin(0.05)
-    c.SetLeftMargin(0.16)
-    c.SetBottomMargin(0.12)
-
-    if yscale == "log":
-        c.SetLogy()
-
-    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
-    ROOT.gStyle.SetTextFont(
-        42
-    )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
-    stack = ROOT.THStack()
-    mc = hists[samples[0]].Clone()
-    for sample in samples:
-        hists[sample].SetLineWidth(1)
-        hists[sample].SetFillStyle(1001)
-        hists[sample].SetLineColor(ROOT.kBlack)
-        color = gd.color_dict[sample]
-        hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
-        stack.Add(hists[sample])
-        if sample != samples[0]:
-            mc.Add(hists[sample])
-    stack.SetTitle("")
-    mc.SetFillStyle(3004)
-    mc.SetFillColor(ROOT.kGray + 2)
-    stack.Draw("HIST")
-    stack.GetYaxis().SetTitle("N_{Events}")
-    stack.GetXaxis().SetTitle(
-        gd.variable_dict[channel].get(variable, variable)
-    )
-    stack.GetYaxis().SetLabelSize(0.04)
-    stack.GetXaxis().SetLabelSize(0.04)
-    stack.GetYaxis().SetTitleSize(0.05)
-    stack.GetXaxis().SetTitleSize(0.05)
-    mc.Draw("E2 SAME")
-
-    obs = hists[data]
-    stack.SetMaximum(
-        max(
-            obs.GetMaximum() + 0.4 * obs.GetMaximum(),
-            stack.GetMaximum() + 0.4 * stack.GetMaximum(),
-        )
-    )
-    obs.SetMarkerStyle(20)
-    obs.SetMarkerSize(1.2)
-    obs.SetLineWidth(2)
-    obs.SetLineColor(ROOT.kBlack)
-    obs.Draw("E SAME")
-
-    legend = ROOT.TLegend(0.65, 0.47, 0.93, 0.88)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetTextSize(0.035)
-    legend.SetTextAlign(12)
-    legend.AddEntry(obs, gd.label_dict[data], "lep")
-    for sample in samples:
-        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
-    legend.Draw("SAME")
-
-    text = ROOT.TLatex()
-    text.SetNDC()
-    text.SetTextSize(0.03)
-    text.DrawLatex(
-        0.23,
-        0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
-    )
-    text.SetTextSize(0.035)
-    text.DrawLatex(0.66, 0.915, "{}".format(gd.era_dict[era]))
-
-    hist_str = "reduced" if data == "data_subtracted" else "full"
-    selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
-    base_filename = f"hist_{hist_str}_{variable}_{process}_{region}_{selection}"
-    save_plots_and_data(
-        output_path=output_path,
-        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
-        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
-        logger=log,
-    )
-    c.Close()
+    plt.close()
 
 
 def plot_data_mc_ratio(
     variable: str,
-    hists: Dict[str, Any],
+    hists: Dict[str, Any],  # TH1F-style ROOT histograms
     era: str,
     channel: str,
     process: str,
@@ -339,127 +455,183 @@ def plot_data_mc_ratio(
     """
     log = logging.getLogger(logger)
 
-    ROOT.PyConfig.IgnoreCommandLineOptions = True
-    ROOT.gROOT.SetBatch(ROOT.kTRUE)
-    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
-    ROOT.gStyle.SetTextFont(
-        42
-    )  # chosing font, see https://root.cern/root/html534/TAttText.html
-    stack = ROOT.THStack()
-    mc = hists[samples[0]].Clone()
-    for sample in samples:
-        hists[sample].SetLineWidth(1)
-        hists[sample].SetFillStyle(1001)
-        hists[sample].SetLineColor(ROOT.kBlack)
-        color = gd.color_dict[sample]
-        hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
-        stack.Add(hists[sample])
-        if sample != samples[0]:
-            mc.Add(hists[sample])
-    stack.SetTitle("")
-    mc.SetFillStyle(3004)
-    mc.SetFillColor(ROOT.kGray + 2)
+    hists = {k: v.Clone() for k, v in hists.items()}  # clone method accounts for center-of-mass x values
 
-    obs = hists[data]
-    obs.SetMarkerStyle(20)
-    obs.SetMarkerSize(1.2)
-    obs.SetLineWidth(2)
-    obs.SetLineColor(ROOT.kBlack)
-
-    ratio = obs.Clone("ratio")
-    ratio.SetLineColor(ROOT.kBlack)
-    ratio.SetMarkerStyle(20)
-    ratio.SetTitle("")
-    ratio.SetMinimum(0.75)
-    ratio.SetMaximum(1.25)
-    ratio.Divide(mc)
-
-    # Adjust y-axis settings
-    y = ratio.GetYaxis()
-    y.SetTitle("#frac{data}{simulation}")
-    y.SetNdivisions(505)
-    y.SetTitleSize(0.10)
-    y.SetTitleOffset(0.5)
-    y.SetLabelSize(0.09)
-
-    # Adjust x-axis settings
-    x = ratio.GetXaxis()
-    x.SetTitle(
-        gd.variable_dict[channel].get(variable, variable)
+    recreation_summary = dict(
+        variable=variable,
+        era=era,
+        channel=channel,
+        process=process,
+        region=region,
+        data=data,
+        samples=samples,
+        category=category,
+        yscale=yscale,
     )
-    x.SetTitleSize(0.12)
-    x.SetLabelSize(0.1)
 
-    c = ROOT.TCanvas("c", "", 700, 800)
+    if "edges" not in hists:  # for recreating the plot
+        hists["edges"] = TH1_to_numpy(hists[samples[0]])[0]
+    edges = hists["edges"]
+    bin_centers, bin_widths = 0.5 * (edges[:-1] + edges[1:]), np.diff(edges)
 
-    # Upper histogram plot is pad1
-    pad1 = ROOT.TPad("pad1", "pad1", 0, 0.25, 1, 1.0)
-    pad1.SetRightMargin(0.05)
-    pad1.SetLeftMargin(0.16)
+    mc_stack, mc_labels, mc_colors = [], [], []
+    total_mc = np.zeros_like(bin_centers)
+    total_mc_err_up2 = np.zeros_like(bin_centers)
+    total_mc_err_down2 = np.zeros_like(bin_centers)
 
-    if yscale == "log":
-        pad1.SetLogy()
-
-    pad1.Draw()
-    # Lower ratio plot is pad2
-    c.cd()
-    pad2 = ROOT.TPad("pad2", "pad2", 0, 0.01, 1, 0.3)
-    pad2.SetBottomMargin(0.3)
-    pad2.SetRightMargin(0.05)
-    pad2.SetLeftMargin(0.16)
-    pad2.SetGridy()
-    pad2.Draw()
-
-    # draw everything
-    pad1.cd()
-    stack.Draw("HIST")
-    stack.GetYaxis().SetTitle("N_{Events}")
-    stack.SetMaximum(obs.GetMaximum() + 0.4 * obs.GetMaximum())
-    stack.GetYaxis().SetLabelSize(0.04)
-    stack.GetXaxis().SetLabelSize(0.0)
-    stack.GetYaxis().SetTitleSize(0.05)
-    stack.GetXaxis().SetTitleSize(0.05)
-    mc.Draw("E2 SAME")
-
-    obs.Draw("E SAME")
-
-    legend = ROOT.TLegend(0.65, 0.47, 0.93, 0.88)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetTextSize(0.035)
-    legend.SetTextAlign(12)
-    legend.AddEntry(obs, gd.label_dict[data], "lep")
     for sample in samples:
-        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
-    legend.Draw("SAME")
+        if isinstance(hists[sample], ROOT.TH1):  # for recreating the plot
+            _, _, values, _, y_errors = TH1_to_numpy(hists[sample])
+            hists[sample] = (values, y_errors)
+        values, y_errors = hists[sample]
 
-    text = ROOT.TLatex()
-    text.SetNDC()
-    text.SetTextSize(0.03)
-    text.DrawLatex(
-        0.23,
-        0.917,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+        mc_stack.append(values)
+        mc_labels.append(gd.label_dict[sample])
+        mc_colors.append(gd.color_dict[sample])
+        total_mc += values
+        total_mc_err_down2 += y_errors[0]**2
+        total_mc_err_up2 += y_errors[1]**2
+
+    total_mc_err_up = np.sqrt(total_mc_err_up2)
+    total_mc_err_down = np.sqrt(total_mc_err_down2)
+
+    if isinstance(hists[data], ROOT.TH1):  # for recreating the plot
+        _, data_x_values, data_y_values, data_x_errors, data_y_errors = TH1_to_numpy(hists[data], is_data=True)
+        hists[data] = (data_x_values, data_y_values, data_x_errors, data_y_errors)
+    data_x_values, data_y_values, data_x_errors, data_y_errors = hists[data]
+
+    fig, (ax_top, ax_ratio) = plt.subplots(
+        2, 1, figsize=(13, 12), gridspec_kw={"height_ratios": [0.75, 0.25]}, sharex=True
     )
-    text.SetTextSize(0.035)
-    text.DrawLatex(0.65, 0.915, "{}".format(gd.era_dict[era]))
+    fig.subplots_adjust(hspace=0.05)
 
-    pad2.cd()
-    ratio.Draw("ep")
+    ax_top.hist(
+        [bin_centers] * len(mc_stack),
+        bins=edges,
+        weights=mc_stack,
+        stacked=True,
+        histtype="stepfilled",
+        label=mc_labels,
+        color=mc_colors,
+        edgecolor="black",
+    )
 
-    if yscale == "log":
-        c.SetLogy()
+    ax_top.bar(
+        bin_centers,
+        height=total_mc_err_up + total_mc_err_down,
+        width=bin_widths,
+        bottom=total_mc - total_mc_err_down,
+        color="gray",
+        alpha=0.5,
+        label="Stat. unc.",
+        linewidth=0,
+    )
+
+    ax_top.errorbar(
+        data_x_values,
+        data_y_values,
+        xerr=data_x_errors,
+        yerr=data_y_errors,
+        fmt="o",
+        color="black",
+        label=gd.label_dict[data],
+        capsize=3,
+        elinewidth=3,
+    )
+
+    ax_top.set_ylabel(r"$N_{Events}$")
+    ax_top.set_yscale(yscale)
+    if yscale == "linear":
+        ax_top.set_ylim(0., 1.9 * max(max(data_y_values), max(total_mc)))
+    else:
+        ax_top.set_ylim(None, 1000.0 * max(max(data_y_values), max(total_mc)))
+    ax_top.set_xlim(edges[0], edges[-1])
+    ax_top.legend(ncol=2, loc="upper right", fontsize=20, labelspacing=0.1)
+
+    formatter = SmartSciFormatter(ax_top.yaxis)
+    ax_top.yaxis.set_major_formatter(formatter)
+
+    ratio = np.divide(
+        data_y_values,
+        total_mc,
+        out=np.ones_like(data_y_values),
+        where=total_mc > 0,
+    )
+    ratio_err_down = np.divide(
+        data_y_errors[0],
+        total_mc,
+        out=np.zeros_like(data_y_errors[0]),
+        where=total_mc > 0,
+    )
+    ratio_err_up = np.divide(
+        data_y_errors[1],
+        total_mc,
+        out=np.zeros_like(data_y_errors[1]),
+        where=total_mc > 0,
+    )
+
+    ax_ratio.axhline(1.0, color="gray", linestyle="--")
+    ax_ratio.bar(
+        bin_centers,
+        height=((total_mc_err_up + total_mc_err_down) / total_mc),
+        width=bin_widths,
+        bottom=(1 - total_mc_err_down / total_mc),
+        color="gray",
+        alpha=0.5,
+        label="Stat. unc.",
+        linewidth=0,
+    )
+
+    ax_ratio.errorbar(
+        data_x_values,
+        ratio,
+        xerr=data_x_errors,
+        yerr=(ratio_err_down, ratio_err_up),
+        fmt="o",
+        color="black",
+        capsize=3,
+        elinewidth=3,
+    )
+
+    ax_ratio.set_ylim(0.75, 1.25)
+    ax_ratio.set_ylabel("Data / MC")
+    ax_ratio.set_xlabel(gd.variable_dict[channel].get(variable, variable))
+    ax_ratio.grid(axis="y")
+
+    hep.cms.text(text=gd.default_CMS_text, ax=ax_top, loc=2, fontsize=20)
+
+    if category is not None:
+        plot_text = f"{gd.channel_dict[channel]}, {process.replace('_', ' ')}, " + ", ".join(
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
+            for var in category.keys()
+        )
+    else:
+        plot_text = f"{gd.channel_dict[channel]}, {process}"
+    plot_text = latex_adjust_selection_string(plot_text)
+
+    ax_top.set_title(plot_text, loc="left", fontsize=25)
+    ax_top.set_title(gd.era_dict[era], loc="right", fontsize=25)
+
+    fig.tight_layout()
 
     hist_str = "reduced" if data == "data_subtracted" else "full"
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"hist_ratio_{hist_str}_{variable}_{process}_{region}_{selection}"
     save_plots_and_data(
         output_path=output_path,
-        plot_filename_and_obj=(f"{base_filename}_{yscale}", c),
-        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        plot_filename_and_obj=(f"{base_filename}_{yscale}", fig),
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "hists": hists,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
-    c.Close()
+    plt.close(fig)
 
 
 def plot_fractions(
@@ -497,66 +669,89 @@ def plot_fractions(
     """
     log = logging.getLogger(logger)
 
-    ROOT.PyConfig.IgnoreCommandLineOptions = True
-    ROOT.gROOT.SetBatch(ROOT.kTRUE)
-    c = ROOT.TCanvas("c", "", 750, 700)
-    c.SetRightMargin(0.05)
-    c.SetLeftMargin(0.16)
-    c.SetBottomMargin(0.12)
+    hists = {k: v.Clone() for k, v in hists.items()}
 
-    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
-    ROOT.gStyle.SetTextFont(
-        42
-    )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
-    stack = ROOT.THStack()
-    for sample in processes:
-        hists[sample].SetLineWidth(1)
-        hists[sample].SetFillStyle(1001)
-        hists[sample].SetLineColor(ROOT.kBlack)
-        color = gd.color_dict[sample]
-        hists[sample].SetFillColor(ROOT.TColor.GetColor(*color))
-        stack.Add(hists[sample])
-    stack.SetTitle("")
-    stack.Draw("HIST")
-    stack.GetYaxis().SetTitle("Fraction")
-    stack.GetXaxis().SetTitle(
-        gd.variable_dict[channel].get(variable, variable)
+    recreation_summary = dict(
+        variable=variable,
+        era=era,
+        channel=channel,
+        region=region,
+        fraction_name=fraction_name,
+        processes=processes,
+        category=category,
     )
-    stack.GetYaxis().SetLabelSize(0.04)
-    stack.GetXaxis().SetLabelSize(0.04)
-    stack.GetYaxis().SetTitleSize(0.05)
-    stack.GetXaxis().SetTitleSize(0.05)
 
-    legend = ROOT.TLegend(0.65, 0.47, 0.93, 0.88)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetTextSize(0.035)
-    legend.SetTextAlign(32)
+    if "edges" not in hists:  # for recreating the plot
+        hists["edges"] = TH1_to_numpy(hists[processes[0]])[0]
+    edges = hists["edges"]
+    bin_centers = 0.5 * (edges[:-1] + edges[1:])
+
+    # Stack the fractions
+    mc_stack, mc_labels, mc_colors = [], [], []
+    total_mc = np.zeros_like(bin_centers)
+
     for sample in processes:
-        legend.AddEntry(hists[sample], gd.label_dict[sample], "f")
-    legend.Draw("SAME")
+        if isinstance(hists[sample], ROOT.TH1):  # for recreating the plot
+            _, _, values, _, _ = TH1_to_numpy(hists[sample])
+            hists[sample] = values
+        values = hists[sample]
+        mc_stack.append(values)
+        mc_labels.append(gd.label_dict[sample])
+        mc_colors.append(gd.color_dict[sample])
+        total_mc += values
 
-    text = ROOT.TLatex()
-    text.SetNDC()
-    text.SetTextSize(0.03)
-    text.DrawLatex(
-        0.23,
-        0.915,
-        f"channel: {gd.channel_dict[channel]}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}",
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.hist(
+        [bin_centers] * len(processes),
+        bins=edges,
+        weights=mc_stack,
+        stacked=True,
+        color=mc_colors,
+        label=mc_labels,
+        histtype="stepfilled",
+        edgecolor="black",
     )
-    text.SetTextSize(0.035)
-    text.DrawLatex(0.66, 0.915, f"{gd.era_dict[era]}")
+
+    ax.set_ylabel("Fraction")
+    ax.set_xlabel(gd.variable_dict[channel].get(variable, variable))
+    ax.set_ylim(0, 1.3)
+    ax.set_xlim(edges[0], edges[-1])
+
+    ax.legend(loc="upper right", fontsize=20, labelspacing=0.2)
+
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
+
+    if category is not None:
+        plot_text = f"{gd.channel_dict[channel]}, " + ", ".join(
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
+            for var in category.keys()
+        )
+    else:
+        plot_text = f"{gd.channel_dict[channel]}"
+    plot_text = latex_adjust_selection_string(plot_text)
+
+    ax.set_title(plot_text, loc="left", fontsize=25)
+    ax.set_title(gd.era_dict[era], loc="right", fontsize=25)
+
+    fig.tight_layout()
 
     selection = '_'.join([f'{var}_{category[var]}' for var in category.keys()])
     base_filename = f"fraction_{fraction_name}_{variable}_{region}_{selection}"
     save_plots_and_data(
         output_path=output_path,
-        plot_filename_and_obj=(f"{base_filename}", c),
-        data_filename_and_obj=(f"data_{base_filename}", hists) if save_data else None,
+        plot_filename_and_obj=(f"{base_filename}", fig),
+        data_filename_and_obj=(
+            f"data_{base_filename}",
+            {
+                "hists": hists,
+                **recreation_summary,
+            },
+        ) if save_data else None,
         logger=log,
     )
-    c.Close()
+    plt.close(fig)
 
 
 def plot_correction(
@@ -579,7 +774,7 @@ def plot_correction(
     Args:
         variable: Name of the variable the correction is measured in
         corr_hist: Histogram of the measured correction
-        corr_graph: TGraph of the measured correction which is a smoothed function of "corr_hist" (includes variation)
+        corr_graph: Dict of the measured correction which is a smoothed function of "corr_hist" (includes variation)
         corr_name: Name of the correction
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
@@ -594,76 +789,100 @@ def plot_correction(
     """
     log = logging.getLogger(logger)
 
-    ROOT.PyConfig.IgnoreCommandLineOptions = True
-    ROOT.gROOT.SetBatch(ROOT.kTRUE)
-    c = ROOT.TCanvas("can", "", 700, 700)
-    c.SetRightMargin(0.05)
-    c.SetLeftMargin(0.16)
-    c.SetBottomMargin(0.12)
+    corr_hist = deepcopy(corr_hist)
+    corr_graph = deepcopy(corr_graph)
 
-    ROOT.gStyle.SetOptStat(0)  # set off of the histogram statistics box
-    ROOT.gStyle.SetTextFont(
-        42
-    )  # chosing font, see https://root.cern/root/html534/TAttText.html
-
-    # corr_hist.SetAxisRange(0, 2, "Y")
-    corr_hist.SetMaximum(
-        max(corr_hist.GetMaximum() + 0.4 * corr_hist.GetMaximum(), 2.0)
+    recreation_summary = dict(
+        variable=variable,
+        corr_graph=corr_graph,
+        corr_name=corr_name,
+        era=era,
+        channel=channel,
+        process=process,
+        category=category,
     )
-    corr_hist.SetMinimum(0.0)
-    corr_hist.SetMarkerStyle(20)
-    corr_hist.SetMarkerSize(1.2)
-    corr_hist.SetLineWidth(2)
-    corr_hist.SetLineColor(ROOT.kBlack)
-    corr_hist.SetTitle("")
-    corr_hist.GetXaxis().SetMoreLogLabels()
-    corr_hist.GetXaxis().SetNoExponent()
-    corr_hist.GetYaxis().SetTitle("Correction")
-    corr_hist.GetXaxis().SetTitle(
-        gd.variable_dict[channel].get(variable, variable)
+
+    def pad(item):
+        return np.pad(item, (0, 1), "edge")
+
+    if isinstance(corr_hist, ROOT.TGraphAsymmErrors):
+        _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(corr_hist)
+    elif isinstance(corr_hist, tuple):  # in case of recreating the plot
+        x, y, x_err, y_err = corr_hist
+
+    color, lw = gd.color_dict["correction_graph"], 3
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    ax.set(
+        xlim=(x[0] - x_err[0][0], x[-1] + x_err[1][-1]),
+        xlabel=gd.variable_dict[channel].get(variable, variable),
+        ylim=(0, max(2.2, 1.5 * max(y))),
+        ylabel="Correction",
     )
-    corr_hist.GetYaxis().SetLabelSize(0.04)
-    corr_hist.GetXaxis().SetLabelSize(0.04)
-    corr_hist.GetYaxis().SetTitleSize(0.05)
-    corr_hist.GetXaxis().SetTitleSize(0.05)
 
-    corr_hist.Draw()
-
-    corr_graph.SetLineWidth(2)
-    corr_graph.SetLineColor(ROOT.kOrange)
-    corr_graph.SetFillColorAlpha(ROOT.kOrange, 0.35)
-
-    corr_graph.Draw("E3 L SAME")
-
-    legend = ROOT.TLegend(0.65, 0.68, 0.9, 0.88)
-    legend.SetFillStyle(0)
-    legend.SetBorderSize(0)
-    legend.SetTextSize(0.03)
-    legend.SetTextAlign(12)
-    legend.AddEntry(corr_hist, "measured", "lep")
-    legend.AddEntry(corr_graph, "smoothed curve", "fl")
-
-    legend.Draw("SAME")
-
-    text = ROOT.TLatex()
-    text.SetNDC()
-    text.SetTextSize(0.03)
     if category is not None:
-        plot_text = f"channel: {gd.channel_dict[channel]}, {process}, {', '.join([f'{gd.category_dict[var]} {category[var]}' for var in category.keys()])}"
+        plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
+            interval_splitted_category_label(category, var)
+            if "#" in category[var]
+            else default_category_label(category, var)
+            for var in category.keys()
+        )
     else:
-        plot_text = f"channel: {gd.channel_dict[channel]}, {process}"
-    text.DrawLatex(
-        0.165,
-        0.917,
-        plot_text,
-    )
-    text.SetTextSize(0.035)
-    text.DrawLatex(0.6, 0.915, "{}".format(gd.era_dict[era]))
-    text.SetTextSize(0.035)
+        plot_text = f"{gd.channel_dict[channel]}, {process}"
+    plot_text = latex_adjust_selection_string(plot_text)
+
+    ax.set_title(plot_text, loc="left", fontsize=20)
+    ax.set_title(gd.era_dict[era], loc="right", fontsize=20)
+
     if "non_closure" in corr_name:
-        text.DrawLatex(0.2, 0.8, "non closure correction")
+        ax.text(0.08, 0.8, "non closure correction", transform=ax.transAxes, fontsize=20)
     elif "DR_SR" in corr_name:
-        text.DrawLatex(0.2, 0.8, "DR to SR correction")
+        ax.text(0.08, 0.8, "DR to SR correction", transform=ax.transAxes, fontsize=20)
+
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=1, fontsize=20)
+
+    ax.fill_between(
+        corr_graph["edges"],
+        pad(corr_graph["up"]),
+        pad(corr_graph["down"]),
+        alpha=0.25,
+        step="post",
+        color=color,
+        lw=0,
+    )
+
+    ax.step(
+        corr_graph["edges"],
+        pad(corr_graph["nominal"]),
+        lw=lw,
+        where="post",
+        color=color,
+    )
+    data_handler = ax.errorbar(
+        x,
+        y,
+        xerr=x_err,
+        yerr=y_err,
+        fmt="o",
+        color="black",
+        capsize=3,
+        elinewidth=2,
+    )
+
+    combined_handle = [
+        Patch(color=color, alpha=0.25),
+        Line2D([0], [0], color=color, linewidth=lw),
+    ]
+
+    ax.legend(
+        handles=[data_handler, tuple(combined_handle)],
+        labels=["measured", "smoothed curve"],
+        loc="upper right",
+        fontsize=20,
+        labelspacing=0.3,
+    )
+
+    fig.tight_layout()
 
     selection = ""
     if category is not None:
@@ -671,11 +890,14 @@ def plot_correction(
 
     save_plots_and_data(
         output_path=output_path,
-        plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", c),
+        plot_filename_and_obj=(f"corr_{process}_{corr_name}{selection}", fig),
         data_filename_and_obj=(
             f"data_corr_{process}_{corr_name}{selection}",
-            {"corr_hist": corr_hist, "corr_graph": corr_graph},
+            {
+                "corr_hist": (x, y, x_err, y_err),
+                **recreation_summary,
+            },
         ) if save_data else None,
         logger=log,
     )
-    c.Close()
+    plt.close()
