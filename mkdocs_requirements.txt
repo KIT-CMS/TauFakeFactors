@@ -1,0 +1,13 @@
+# Requirements for core
+mergedeep
+mkdocs-material
+cairosvg
+pillow
+
+# Requirements for integrations
+mkdocs-git-committers-plugin-2
+mkdocs-git-revision-date-localized-plugin
+mkdocs-glightbox
+mkdocs-minify-plugin
+mkdocs-redirects
+mkdocs-rss-plugin
