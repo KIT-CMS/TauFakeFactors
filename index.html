@@ -503,109 +503,47 @@
 <p>This framework is designed for n-tuples produced with CROWN as input. 
 All information for the preselection step is defined in configuration files in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> file and a more specific config file. </p>
 <p>The preselection config has the following parameters:</p>
-<ul>
-<li>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>channel</code></td>
-<td><code>string</code></td>
-<td>tau pair decay channels ("et", "mt", "tt")</td>
-</tr>
-</tbody>
-</table>
+<ul><li>| parameter | type | description |
+        |---|---|---|
+        | `channel` | `string` | tau pair decay channels ("et", "mt", "tt") |
 </li>
-<li>
-<p>In <code>processes</code> all the processes are defined that should be preprocessed. <br>
-  The names are also used for the output file naming after the processing. <br>
-  Each process needs two specifications:</p>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>tau_gen_modes</code></td>
-<td><code>list</code></td>
-<td>split of the events corresponding to the origin of the hadronic tau</td>
-</tr>
-<tr>
-<td><code>samples</code></td>
-<td><code>list</code></td>
-<td>list of all sample tags corresponding to the specific process</td>
-</tr>
-</tbody>
-</table>
+<li>In `processes` all the processes are defined that should be preprocessed. <br>
+    The names are also used for the output file naming after the processing. <br>
+    Each process needs two specifications:
+
+      | subparameter | type | description |
+      |---|---|---|
+      | `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau |
+      | `samples` | `list` | list of all sample tags corresponding to the specific process |
+
+    The `tau_gen_modes` have following modes:
+
+      | subparameter | type | description |
+      |---|---|---|
+      | `T` | `string` | genuine tau |
+      | `J` | `string` | jet misidentified as a tau |
+      | `L` | `string` | lepton misidentified as a tau |
+      | `all` | `string` | if no split should be performed |
 </li>
-</ul>
-<p>The <code>tau_gen_modes</code> have following modes:</p>
-<div class="highlight"><pre><span></span><code>| subparameter | type | description |
-|---|---|---|
-| `T` | `string` | genuine tau |
-| `J` | `string` | jet misidentified as a tau |
-| `L` | `string` | lepton misidentified as a tau |
-| `all` | `string` | if no split should be performed |
-</code></pre></div>
-<ul>
-<li>
-<p>In <code>event_selection</code>, parameter for all selections that should be applied are defined. <br>
-  This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. <code>had_tau_pt: "pt_2 &gt; 30"</code>. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.</p>
+<li>In `event_selection`, parameter for all selections that should be applied are defined. <br>
+    This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
 </li>
-<li>
-<p>In <code>mc_weights</code> all weights that should be applied for simulated samples are defined. <br>
-  There are two types of weights. <br></p>
-<ol>
-<li>Similar to <code>event_selection</code>, a weight can directly be specified and is then applied to all samples in the same way e.g. <code>lep_id: "id_wgt_mu_1"</code></li>
-<li>But some weights are either sample specific or need additional information. Currently implemented options are:</li>
-</ol>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>generator</code></td>
-<td><code>string</code></td>
-<td>The normal generator weight is applied to all samples, if they aren't specified in the <code>"stitching"</code> sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them.</td>
-</tr>
-<tr>
-<td><code>lumi</code></td>
-<td><code>string</code></td>
-<td>luminosity scaling, this depends on the era and uses the <code>era</code> parameter of the config to get the correct weight, so basically it's not relevant what is in the string</td>
-</tr>
-<tr>
-<td><code>Z_pt_reweight</code></td>
-<td><code>string</code></td>
-<td>reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets</td>
-</tr>
-<tr>
-<td><code>Top_pt_reweight</code></td>
-<td><code>string</code></td>
-<td>reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar</td>
-</tr>
-</tbody>
-</table>
-</li>
-<li>
-<p>In <code>emb_weights</code> all weights that should be applied for embedded samples are defined. <br>
-  Like for <code>event_selection</code> a weight can directly be specified and is then applied to all samples the same way e.g. <code>single_trigger: "trg_wgt_single_mu24ormu27"</code></p>
-</li>
-<li>In <code>output_features</code> the to be saved/needed features for the later calculations are listed.</li>
+<li>In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
+    There are two types of weights. <br>
+      1. Similar to `event_selection`, a weight can directly be specified and is then applied to all samples in the same way e.g. `lep_id: "id_wgt_mu_1"`
+      2. But some weights are either sample specific or need additional information. Currently implemented options are:
+
+        | subparameter | type | description |
+        |---|---|---|
+        | `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them. |
+        | `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string |
+        | `Z_pt_reweight` | `string` | reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets |
+        | `Top_pt_reweight` | `string` | reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar |
+<li>In `emb_weights` all weights that should be applied for embedded samples are defined. <br>
+    Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
+<\li>
+<li>In `output_features` the to be saved/needed features for the later calculations are listed.
+<\li>
 </ul>
 <p>Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. </p>
 <p>To run the preselection step, execute the python script and specify the config file (relative path possible):</p>
@@ -670,34 +608,90 @@ The FF calculation config has the following parameters:</p>
 <tr>
 <td><code>split_categories_binedges</code></td>
 <td><code>dict</code></td>
-<td>bin edge values for each <code>split_categories</code> variable <ul><li>number of bin edges should always be N(variable cuts)+1 calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</td>
+<td>bin edge values for each <code>split_categories</code> variable <ul><li>number of bin edges should always be N(variable cuts)+1rs <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps.\</td>
+</tr>
+<tr>
+<td>The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using <code>--skip-DRtoSR-ffs</code>.\</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using <code>--only-main-corrections</code>.\</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The last step is to calculate all the specified corrections for the main fake factors.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></details>-skip-DRtoSR-ffs<code>and</code>--only-main-corrections`. The correction caclulation is done in 3 steps.\</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using <code>--skip-DRtoSR-ffs</code>.\</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using <code>--only-main-corrections</code>.\</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>The last step is to calculate all the specified corrections for the main fake factors.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></details></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SRlike_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the signal-like region of the target process</td>
+</tr>
+<tr>
+<td><code>ARlike_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the application-like region of the target process</td>
+</tr>
+<tr>
+<td><code>SR_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the signal region (normally only needed for ttbar)</td>
+</tr>
+<tr>
+<td><code>AR_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the application region (normally only needed for ttbar)</td>
+</tr>
+<tr>
+<td><code>var_dependence</code></td>
+<td><code>string</code></td>
+<td>variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)</td>
+</tr>
+<tr>
+<td><code>var_bins</code></td>
+<td><code>list</code> or <code>dict[list]</code></td>
+<td>bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.</td>
+</tr>
+<tr>
+<td><code>fit_options</code></td>
+<td><code>list</code></td>
+<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit</td>
+</tr>
+<tr>
+<td><code>limit_kwargs</code></td>
+<td><code>dict</code></td>
+<td>this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</td>
 </tr>
 </tbody>
 </table>
-<p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
-</code></pre>
-<p>There are two optional parameters <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps.\
-The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using <code>--skip-DRtoSR-ffs</code>.\
-The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using <code>--only-main-corrections</code>.\
-The last step is to calculate all the specified corrections for the main fake factors.
-</details>ulated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</p>
-<p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
-</code></pre>
-<p>There are two optional parameters <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps.\
-The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using <code>--skip-DRtoSR-ffs</code>.\
-The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using <code>--only-main-corrections</code>.\
-The last step is to calculate all the specified corrections for the main fake factors.
-</details>
-  <code>SRlike_cuts</code> | <code>dict</code> | event selections for the signal-like region of the target process
-  <code>ARlike_cuts</code> | <code>dict</code> | event selections for the application-like region of the target process
-  <code>SR_cuts</code> | <code>dict</code> | event selections for the signal region (normally only needed for ttbar)
-  <code>AR_cuts</code> | <code>dict</code> | event selections for the application region (normally only needed for ttbar)
-  <code>var_dependence</code> | <code>string</code> | variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)
-  <code>var_bins</code> | <code>list</code> or <code>dict[list]</code> | bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.
-  <code>fit_options</code> | <code>list</code> | a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit 
-  <code>limit_kwargs</code> | <code>dict</code> | this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</p>
 <div class="highlight"><pre><span></span><code>Event selections can be defined the same way as in the preselection step `event_selection`. Only the tau vs jet ID cut is special because the name should always be `had_tau_id_vs_jet` (or `had_tau_id_vs_jet_*` in tt channel), this is needed to read out the working points from the cut string and apply the correct tau vs jet ID weights.
 </code></pre></div>
 <ul>
