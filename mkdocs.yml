@@ -1,0 +1,52 @@
+# Project information
+site_name: TauFakeFactors
+site_url: https://KIT-CMS.github.io/TauFakeFactors/
+site_author: Nikita Shadskiy
+site_description: >-
+  FakeFactor framework for the estimation of jets misidentified taus with pyROOT.
+
+# Repository
+repo_name: KIT-CMS/TauFakeFactors
+repo_url: https://github.com/KIT-CMS/TauFakeFactors/
+
+# Copyright
+copyright: Copyright &copy; 2025 Nikita Shadskiy, Artur Monsch
+
+# Theme
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.tooltips
+    - navigation.sections
+  # logo: images/logo.svg
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.keys
+  - pymdownx.tabbed:
+      alternate_style: true
