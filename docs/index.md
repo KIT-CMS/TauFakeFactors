@@ -29,14 +29,7 @@ The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
   `file_path` | `string` | absolute path to the folder with the preselected files (should be the same as `output_path`) to be used for the fake factor calculation
   `workdir_name` | `string` | relative path where the fake factor measurement output files will be stored; folder is produced in `workdir/`
 
-
-<details>
-<summary>
-
 ## Event preselection
-
-</summary>
-
 This framework is designed for n-tuples produced with CROWN as input. 
 All information for the preselection step is defined in configuration files in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` file and a more specific config file. 
 
@@ -90,15 +83,7 @@ Further there are additional optional parameters:
 1. `--nthreads=SOME_INTEGER` to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).
 2.  `--ncores=SOME_INTEGER` to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 4.
 
-</details>
-
-<details>
-<summary>
-
 ## Fake Factor calculation
-
-</summary>
-
 In this step the fake factors are calculated. This should be run after the preselection step.
 
 All information for the FF calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. \
@@ -143,15 +128,7 @@ To run the FF calculation step, execute the python script and specify the config
 python ff_calculation.py --config-file PATH/CONFIG.yaml
 ```
 
-</details>
-
-<details>
-<summary>
-
 ## Fake Factor corrections
-
-</summary>
-
 In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.
 
 Currently two different correction types are implemented: 
@@ -198,6 +175,5 @@ The last step is to calculate all the specified corrections for the main fake fa
 </details>
 
 ## Hints
-
 * check out `configs/general_definitions.py`, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information
 * check `ntuple_path` and `output_path` (preselection) and `file_path` and `workdir_name` (fake factors, corrections) in the used config files to avoid wrong inputs or outputs
