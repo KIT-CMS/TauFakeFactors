@@ -506,7 +506,7 @@ All information for the preselection step is defined in configuration files in t
 <table>
 <thead>
 <tr>
-<th>* parameter</th>
+<th>*   parameter</th>
 <th>type</th>
 <th>description</th>
 </tr>
@@ -520,10 +520,10 @@ All information for the preselection step is defined in configuration files in t
 </tbody>
 </table>
 <ul>
-<li>In <code>processes</code> all the processes are defined that should be preprocessed. \
+<li>
+<p>In <code>processes</code> all the processes are defined that should be preprocessed. \
   The names are also used for the output file naming after the processing. \
-  Each process needs two specifications:</li>
-</ul>
+  Each process needs two specifications:</p>
 <table>
 <thead>
 <tr>
@@ -545,38 +545,16 @@ All information for the preselection step is defined in configuration files in t
 </tr>
 </tbody>
 </table>
+</li>
+</ul>
 <p>The <code>tau_gen_modes</code> have following modes:</p>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>T</code></td>
-<td><code>string</code></td>
-<td>genuine tau</td>
-</tr>
-<tr>
-<td><code>J</code></td>
-<td><code>string</code></td>
-<td>jet misidentified as a tau</td>
-</tr>
-<tr>
-<td><code>L</code></td>
-<td><code>string</code></td>
-<td>lepton misidentified as a tau</td>
-</tr>
-<tr>
-<td><code>all</code></td>
-<td><code>string</code></td>
-<td>if no split should be performed</td>
-</tr>
-</tbody>
-</table>
+<div class="highlight"><pre><span></span><code>subparameter | type | description
+---|---|---
+`T` | `string` | genuine tau
+`J` | `string` | jet misidentified as a tau
+`L` | `string` | lepton misidentified as a tau
+`all` | `string` | if no split should be performed
+</code></pre></div>
 <ul>
 <li>
 <p>In <code>event_selection</code>, parameter for all selections that should be applied are defined. \
