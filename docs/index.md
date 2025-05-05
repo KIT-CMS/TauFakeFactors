@@ -37,27 +37,27 @@ All information for the preselection step is defined in configuration files in t
 
 The preselection config has the following parameters:
 
-* parameter | type | description
-  ---|---|---
-  `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+*   parameter | type | description
+    ---|---|---
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
 
 * In `processes` all the processes are defined that should be preprocessed. \
   The names are also used for the output file naming after the processing. \
   Each process needs two specifications:
   
-  subparameter | type | description
-  ---|---|---
-  `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau
-  `samples` | `list` | list of all sample tags corresponding to the specific process
+    | subparameter | type | description |
+    |---|---|---|
+    | `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau |
+    | `samples` | `list` | list of all sample tags corresponding to the specific process |
   
   The `tau_gen_modes` have following modes:
   
-  subparameter | type | description
-  ---|---|---
-  `T` | `string` | genuine tau
-  `J` | `string` | jet misidentified as a tau
-  `L` | `string` | lepton misidentified as a tau
-  `all` | `string` | if no split should be performed
+    subparameter | type | description
+    ---|---|---
+    `T` | `string` | genuine tau
+    `J` | `string` | jet misidentified as a tau
+    `L` | `string` | lepton misidentified as a tau
+    `all` | `string` | if no split should be performed
 
 * In `event_selection`, parameter for all selections that should be applied are defined. \
   This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
