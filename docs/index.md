@@ -37,47 +37,55 @@ All information for the preselection step is defined in configuration files in t
 
 The preselection config has the following parameters:
 
-<ul><li>| parameter | type | description |
-        |---|---|---|
-        | `channel` | `string` | tau pair decay channels ("et", "mt", "tt") |
-</li>
-<li>In `processes` all the processes are defined that should be preprocessed. <br>
+<ul>
+  <li>
+    parameter | type | description
+    ---|---|---
+    `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+  </li>
+  <li>
+    In `processes` all the processes are defined that should be preprocessed. <br>
     The names are also used for the output file naming after the processing. <br>
     Each process needs two specifications:
   
-      | subparameter | type | description |
-      |---|---|---|
-      | `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau |
-      | `samples` | `list` | list of all sample tags corresponding to the specific process |
+      subparameter | type | description
+      ---|---|---
+      `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau
+      `samples` | `list` | list of all sample tags corresponding to the specific process
   
     The `tau_gen_modes` have following modes:
   
-      | subparameter | type | description |
-      |---|---|---|
-      | `T` | `string` | genuine tau |
-      | `J` | `string` | jet misidentified as a tau |
-      | `L` | `string` | lepton misidentified as a tau |
-      | `all` | `string` | if no split should be performed |
-</li>
-<li>In `event_selection`, parameter for all selections that should be applied are defined. <br>
+      subparameter | type | description 
+      ---|---|---
+      `T` | `string` | genuine tau
+      `J` | `string` | jet misidentified as a tau
+      `L` | `string` | lepton misidentified as a tau
+      `all` | `string` | if no split should be performed
+  </li>
+  <li>
+    In `event_selection`, parameter for all selections that should be applied are defined. <br>
     This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
-</li>
-<li>In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
+  </li>
+  <li>
+    In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
     There are two types of weights. <br>
       1. Similar to `event_selection`, a weight can directly be specified and is then applied to all samples in the same way e.g. `lep_id: "id_wgt_mu_1"`
       2. But some weights are either sample specific or need additional information. Currently implemented options are:
 
-        | subparameter | type | description |
-        |---|---|---|
-        | `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them. |
-        | `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string |
-        | `Z_pt_reweight` | `string` | reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets |
-        | `Top_pt_reweight` | `string` | reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar |
-<li>In `emb_weights` all weights that should be applied for embedded samples are defined. <br>
+        subparameter | type | description
+        ---|---|---
+        `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them.
+        `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string
+        `Z_pt_reweight` | `string` | reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets
+        `Top_pt_reweight` | `string` | reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar
+  </li>
+  <li>
+    In `emb_weights` all weights that should be applied for embedded samples are defined. <br>
     Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
-<\li>
-<li>In `output_features` the to be saved/needed features for the later calculations are listed.
-<\li>
+  <\li>
+  <li>
+    In `output_features` the to be saved/needed features for the later calculations are listed.
+  <\li>
 </ul>
 Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. 
 
