@@ -7,7 +7,6 @@ import glob
 import logging
 import os
 import sys
-import tqdm
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
