@@ -186,6 +186,7 @@ if __name__ == "__main__":
     func.setup_logger(
         log_file=save_path_plots + "/ff_calculation.log",
         log_name="ff_calculation",
+        log_level=logging.INFO,
         subcategories=subcategories,
     )
 

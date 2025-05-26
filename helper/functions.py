@@ -7,6 +7,7 @@ import glob
 import logging
 import os
 import sys
+import tqdm
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
@@ -301,7 +302,7 @@ def check_path(path: str) -> None:
 
 
 def setup_logger(
-    log_file: str, log_name: str, subcategories: Union[List[str], None] = None
+    log_file: str, log_name: str, log_level: int, subcategories: Union[List[str], None] = None
 ) -> None:
     """
     Setting up all relevant loggers and handlers.
@@ -309,17 +310,18 @@ def setup_logger(
     Args:
         log_file: Name of the file the logging information will be stored in
         log_name: General name of the logger
+        log_level: Level of the logger, e.g. logging.INFO, logging.DEBUG, etc.
         subcategories: List of different sub logger names e.g. can be used to differentiate between processes (default: None)
 
     Return:
         None
-    """
+    """        
     # create file handler
     fh = logging.FileHandler(log_file)
-    fh.setLevel(logging.INFO)
+    fh.setLevel(log_level)
     # create console handler with a higher log level
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(log_level)
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -330,13 +332,13 @@ def setup_logger(
     if subcategories is not None:
         for cat in subcategories:
             log = logging.getLogger(f"{log_name}.{cat}")
-            log.setLevel(logging.DEBUG)
+            log.setLevel(log_level)
             # add the handlers to logger
             log.addHandler(ch)
             log.addHandler(fh)
     else:
         log = logging.getLogger(f"{log_name}")
-        log.setLevel(logging.DEBUG)
+        log.setLevel(log_level)
         # add the handlers to logger
         log.addHandler(ch)
         log.addHandler(fh)
@@ -368,8 +370,8 @@ def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:
 
     log.info("-" * 50)
     for file in selected_files:
-        log.info(file)
-    log.info("-" * 50)
+        log.debug(file)
+    log.debug("-" * 50)
 
     return selected_files
 
@@ -448,7 +450,7 @@ def rdf_is_empty(rdf: ROOT.RDataFrame) -> bool:
 
 
 def get_output_name(
-    path: str, process: str, tau_gen_mode: str, idx: Union[int, None] = None
+    path: str, process: str, tau_gen_mode: str
 ) -> str:
     """
     Function to generate a file output path where the file will be stored.
@@ -457,7 +459,6 @@ def get_output_name(
         path: Path to the folder where the file should be stored at
         process: Name of the process the file correspond to
         tau_gen_mode: Specifying the applied tau pair origin selection
-        idx: index counter, needed if a process has more than one data sample
 
     Return:
         String with the file path
@@ -467,10 +468,7 @@ def get_output_name(
     else:
         tau_gen_mode = "_" + tau_gen_mode
 
-    if idx is not None:
-        return os.path.join(path, f"{process}{tau_gen_mode}_{idx}.root")
-    else:
-        return os.path.join(path, f"{process}{tau_gen_mode}.root")
+    return os.path.join(path, f"{process}{tau_gen_mode}.root")
 
 
 def rename_boosted_variables(rdf: Any, channel: str) -> Any:
