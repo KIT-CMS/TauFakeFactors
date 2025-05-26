@@ -547,6 +547,7 @@ if __name__ == "__main__":
     func.setup_logger(
         log_file=save_path + "/ff_corrections.log",
         log_name="ff_corrections",
+        log_level=logging.INFO,
         subcategories=corr_config["target_processes"].keys(),
     )
 
