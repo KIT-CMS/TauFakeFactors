@@ -18,7 +18,7 @@ The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.roo
 
   parameter | type | description
   ---|---|---
-  `ntuple_path` | `string` | absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsxrootd-kit.gridka.de//store/user/USER/..."
+  `ntuple_path` | `string` | absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsdcache-kit-disk.gridka.de//store/user/USER/..."
   `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
   `era` | `string` | data taking era (e.g. "2018, "2017", "2016preVFP", "2016postVFP")
   `tau_vs_jet_wps` | `list` | list of tau ID vsJet working points to be written out in the preselection step (e.g. ["Medium", "VVVLoose"])
@@ -87,7 +87,7 @@ python preselection.py --config-file configs/PATH/CONFIG.yaml
 Further there are additional optional parameters: 
 
 1. `--nthreads=SOME_INTEGER` to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).
-2.  `--ncores=SOME_INTEGER` to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 4.
+2.  `--ncores=SOME_INTEGER` to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 2.
 
 ## Fake Factor calculation
 In this step the fake factors are calculated. This should be run after the preselection step.
@@ -109,7 +109,7 @@ Each target process needs some specifications:
   parameter | type | description
   ---|---|---
   `split_categories` | `dict` | names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a `list` of orthogonal cuts (e.g. "njets" with "==1", ">=2")</li><li> "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair" are already possible, other variables should be added during preprocessing step accordingly </li><li>at least one inclusive category needs to be specified (assuming variable is written out in preselection step)</li></ul> If a continous variable is used a window can be defined as `">=lower#&&#<upper"` accordingly.
-  `split_categories_binedges` | `dict` | bin edge values for each `split_categories` variable <ul><li>number of bin edges should always be N(variable cuts)+1</li></ul>
+  `split_categories_binedges` | `dict` | bin edge values for each `split_categories` variable. <br> The number of bin edges should always be N(variable cuts)+1
   `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process
   `ARlike_cuts` | `dict` | event selections for the application-like region of the target process
   `SR_cuts` | `dict` | event selections for the signal region (normally only needed for ttbar)
