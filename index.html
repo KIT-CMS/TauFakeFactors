@@ -467,7 +467,7 @@
 <tr>
 <td><code>ntuple_path</code></td>
 <td><code>string</code></td>
-<td>absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsxrootd-kit.gridka.de//store/user/USER/..."</td>
+<td>absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsdcache-kit-disk.gridka.de//store/user/USER/..."</td>
 </tr>
 <tr>
 <td><code>tree</code></td>
@@ -665,7 +665,7 @@ There are two types of weights.</p>
 <p>Further there are additional optional parameters: </p>
 <ol>
 <li><code>--nthreads=SOME_INTEGER</code> to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).</li>
-<li><code>--ncores=SOME_INTEGER</code> to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 4.</li>
+<li><code>--ncores=SOME_INTEGER</code> to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 2.</li>
 </ol>
 <h2 id="fake-factor-calculation">Fake Factor calculation<a class="headerlink" href="#fake-factor-calculation" title="Permanent link">&para;</a></h2>
 <p>In this step the fake factors are calculated. This should be run after the preselection step.</p>
@@ -717,26 +717,50 @@ Each target process needs some specifications:</p>
 <tr>
 <td><code>split_categories_binedges</code></td>
 <td><code>dict</code></td>
-<td>bin edge values for each <code>split_categories</code> variable <ul><li>number of bin edges should always be N(variable cuts)+1 calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</td>
+<td>bin edge values for each <code>split_categories</code> variable. <br> The number of bin edges should always be N(variable cuts)+1</td>
+</tr>
+<tr>
+<td><code>SRlike_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the signal-like region of the target process</td>
+</tr>
+<tr>
+<td><code>ARlike_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the application-like region of the target process</td>
+</tr>
+<tr>
+<td><code>SR_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the signal region (normally only needed for ttbar)</td>
+</tr>
+<tr>
+<td><code>AR_cuts</code></td>
+<td><code>dict</code></td>
+<td>event selections for the application region (normally only needed for ttbar)</td>
+</tr>
+<tr>
+<td><code>var_dependence</code></td>
+<td><code>string</code></td>
+<td>variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)</td>
+</tr>
+<tr>
+<td><code>var_bins</code></td>
+<td><code>list</code> or <code>dict[list]</code></td>
+<td>bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.</td>
+</tr>
+<tr>
+<td><code>fit_options</code></td>
+<td><code>list</code></td>
+<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit</td>
+</tr>
+<tr>
+<td><code>limit_kwargs</code></td>
+<td><code>dict</code></td>
+<td>this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</td>
 </tr>
 </tbody>
 </table>
-<p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
-</code></pre>
-<p>There are two optional parameters <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps. <br>ulated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</p>
-<p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
-</code></pre>
-<p>There are two optional parameters <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps. <br>
-  <code>SRlike_cuts</code> | <code>dict</code> | event selections for the signal-like region of the target process
-  <code>ARlike_cuts</code> | <code>dict</code> | event selections for the application-like region of the target process
-  <code>SR_cuts</code> | <code>dict</code> | event selections for the signal region (normally only needed for ttbar)
-  <code>AR_cuts</code> | <code>dict</code> | event selections for the application region (normally only needed for ttbar)
-  <code>var_dependence</code> | <code>string</code> | variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)
-  <code>var_bins</code> | <code>list</code> or <code>dict[list]</code> | bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.
-  <code>fit_options</code> | <code>list</code> | a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit 
-  <code>limit_kwargs</code> | <code>dict</code> | this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</p>
 <p>Event selections can be defined the same way as in the preselection step <code>event_selection</code>. Only the tau vs jet ID cut is special because the name should always be <code>had_tau_id_vs_jet</code> (or <code>had_tau_id_vs_jet_*</code> in tt channel), this is needed to read out the working points from the cut string and apply the correct tau vs jet ID weights.</p>
 <p>In <code>process_fractions</code> specifications for the calculation of the process fractions are defined.</p>
 <table>
