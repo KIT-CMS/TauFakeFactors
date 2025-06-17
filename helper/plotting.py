@@ -385,7 +385,7 @@ def plot_FFs(
         mc_color = gd.color_dict["fit_graph_mc_sub"]
         ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=mc_color)
 
-        handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
+        handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=mc_color, lw=3)))
         labels.append(gd.label_dict["fit_graph_mc_sub"][draw_option])
 
     # Add legend with both the combined entry and the histogram
