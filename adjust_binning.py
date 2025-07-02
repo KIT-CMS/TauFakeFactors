@@ -16,11 +16,37 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 EQUIPOPULATED_BINNING_OPTIONS_KEY = "equipopulated_binning_options"
 
 parser = argparse.ArgumentParser(description="Equipopulated binning adjustments of configuration.")
-parser.add_argument("--config", type=str, required=True, help="Path to the YAML configuration.")
-parser.add_argument("--cuts-config", type=str, default=None, help="Path to a YAML correction containing cuts for processes (only for corrections).")
-parser.add_argument("--processes", type=str, nargs="+", required=True, help="List of processes (QCD Wjets ttbar process_fractions) to adjust binning for.")
-parser.add_argument("--cut-region", type=str, default="SRlike", help="Cut region to apply (e.g., SRlike, ARlike), process_fractions will always use AR_cuts.")
-parser.add_argument("--dry-run", action="store_true", help="If set, do not modify the config file.")
+parser.add_argument(
+    "--config",
+    type=str,
+    required=True,
+    help="Path to the YAML configuration that will be adjusted.",
+)
+parser.add_argument(
+    "--cuts-config",
+    type=str,
+    default=None,
+    help="Path to a YAML config that contains cuts for processes (can be the fake factors config). Will not be adjusted.",
+)
+parser.add_argument(
+    "--processes",
+    type=str,
+    nargs="+",
+    required=False,
+    help="List of processes to adjust binning for.",
+    default=["QCD", "Wjets", "ttbar", "process_fractions"],
+)
+parser.add_argument(
+    "--cut-region",
+    type=str,
+    default="SRlike",
+    help="Cut region to apply (e.g., SRlike, ARlike), process_fractions will always use AR_cut."
+)
+parser.add_argument(
+    "--dry-run",
+    action="store_true",
+    help="If set, do not modify the config file.",
+)
 
 
 def to_commented_map(items: dict) -> CommentedMap:
@@ -425,6 +451,8 @@ if __name__ == "__main__":
             if "split_categories_binedges" not in process_config or not process_config["split_categories_binedges"]:
                 process_config["split_categories_binedges"] = CommentedMap()
             process_config["split_categories_binedges"].update(to_commented_map(new_edges))
+        else:
+            console.print(f"[red]Process '{process}' does not have equipopulated_binning_options. Skipping.[/red]")
 
         def get_merged_cuts(
             var_config: Union[dict, CommentedMap],
@@ -461,6 +489,7 @@ if __name__ == "__main__":
         if "non_closure" in process_config:  # top level non_closure corrections
             for var, var_config in process_config["non_closure"].items():
                 if EQUIPOPULATED_BINNING_OPTIONS_KEY not in var_config:
+                    console.print(f"[red]Correction '{var}' does not have equipopulated_binning_options. Skipping.[/red]")
                     continue
 
                 final_cuts = get_merged_cuts(var_config)
@@ -515,6 +544,7 @@ if __name__ == "__main__":
             if "non_closure" in process_config["DR_SR"]:
                 for var, var_config in process_config["DR_SR"]["non_closure"].items():
                     if EQUIPOPULATED_BINNING_OPTIONS_KEY not in var_config:
+                        console.print(f"[red]Correction '{var}' does not have equipopulated_binning_options. Skipping.[/red]")
                         continue
 
                     final_cuts = get_merged_cuts(var_config, parent_config=process_config["DR_SR"])
