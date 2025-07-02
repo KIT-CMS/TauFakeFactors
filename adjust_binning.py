@@ -569,7 +569,9 @@ if __name__ == "__main__":
                         var_config["split_categories_binedges"] = CommentedMap()
                     var_config["split_categories_binedges"].update(to_commented_map(new_edges))
 
-    console.print(f"\n[bold]Writing updated configuration to [cyan]{args.config}[/cyan][/bold]")
-
-    with open(args.config, "w") as f:
-        yaml.dump(config, f)
+    if not args.dry_run:
+        console.print(f"\n[bold]Writing updated configuration to [cyan]{args.config}[/cyan][/bold]")
+        with open(args.config, "w") as f:
+            yaml.dump(config, f)
+    else:
+        console.print("[bold red]Dry run mode: configuration not modified.[/bold red]")
