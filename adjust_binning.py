@@ -111,7 +111,10 @@ def get_binning(
     generated_categories = {}
     remaining_splits = {k: v for k, v in category_splits.items() if k != current_split_var}
 
-    if all(
+    if isinstance(category_splits[current_split_var], (list, CommentedSeq)) and category_splits[current_split_var]:
+        categories = category_splits[current_split_var]
+        generated_categories[current_split_var] = categories
+    elif all(
         [
             current_split_var in binning_config.get("n_bins", {}),
             isinstance(binning_config["n_bins"][current_split_var], int),
@@ -230,24 +233,39 @@ def get_binning(
             temp_config, n_bins = binning_config.get("n_bins", {}), None
             original_split_vars = list(original_category_splits.keys())
 
-            for split_var, key in zip(original_split_vars, current_cat_keys):
-                if not (isinstance(temp_config, dict) and split_var in temp_config):
-                    break
-                temp_config = temp_config[split_var]
-                if isinstance(temp_config, int):
-                    n_bins = temp_config
-                    break
-                if key in temp_config:
-                    temp_config = temp_config[key]
-                else:
+            cat_keys_map = dict(zip(original_split_vars, current_cat_keys))
+            if (search_order := [var for var in original_split_vars if var in temp_config]):
+                temp_config = temp_config[search_order[0]]
+                for split_var in search_order:
                     if isinstance(temp_config, int):
                         n_bins = temp_config
-                    break  # Stop searching deeper
+                        break
+                    if cat_keys_map[split_var] in temp_config:
+                        temp_config = temp_config[cat_keys_map[split_var]]
+                    else:
+                        break
 
             if isinstance(temp_config, int):
                 n_bins = temp_config
 
-            if n_bins > 0:
+            if n_bins is None:  # Fallback for flat n_bins definition
+                for split_var, key in zip(original_split_vars, current_cat_keys):
+                    if not (isinstance(temp_config, dict) and split_var in temp_config):
+                        break
+                    temp_config = temp_config[split_var]
+                    if isinstance(temp_config, int):
+                        n_bins = temp_config
+                        break
+                    if key in temp_config:
+                        temp_config = temp_config[key]
+                    else:
+                        if isinstance(temp_config, int):
+                            n_bins = temp_config
+                        break  # Stop searching deeper
+                if isinstance(temp_config, int):
+                    n_bins = temp_config
+
+            if n_bins and n_bins > 0:
                 var_conf = binning_config.get("variable_config", {}).get(target_variable, {})
 
                 filtered_df = sub_df
