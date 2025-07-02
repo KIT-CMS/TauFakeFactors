@@ -64,7 +64,8 @@ def to_commented_map(items: dict) -> CommentedMap:
         return items
     commented_map = CommentedMap()
     for key, value in items.items():
-        if any(op in str(key) for op in ["<=", ">=", "<", ">", "==", "#"]):
+        operations = ["<=", ">=", "<", ">", "==", "#"]
+        if any(op in str(key) for op in operations):
             key = DoubleQuotedScalarString(key)
 
         if isinstance(value, dict):
@@ -100,16 +101,16 @@ def _equipopulated_binned_variable(item: Union[np.ndarray, pd.Series], n_bins: i
 
 
 def get_n_bins(
-    n_bins_config: Union[int, list, CommentedSeq],
+    n_bins_config: Union[int, list, CommentedSeq, dict, CommentedMap],
     category_splits: dict,
     full_cat_path: list,
 ) -> Union[int, None]:
     """
-    Traverse the nested n_bins_config (lists of lists) according to full_cat_path and category_splits
-    and search for the number of bins to use for the given category path.
+    Traverse the nested n_bins_config (lists of lists or dicts) according to full_cat_path and
+    category_splits and search for the number of bins to use for the given category path.
 
     Args:
-        n_bins_config (int, list, CommentedSeq): Configuration for the number of bins.
+        n_bins_config (int, list, CommentedSeq, dict, CommentedMap): Configuration for the number of bins.
         category_splits (dict): Dictionary defining how to split categories.
         full_cat_path (list): List of category keys representing the path to traverse.
 
@@ -121,6 +122,13 @@ def get_n_bins(
     for split, cat_key in zip(splits, full_cat_path):
         if isinstance(value, int):
             return value
+
+        if isinstance(value, (dict, CommentedMap)):
+            if cat_key in value:
+                value = value[cat_key]
+                continue
+            else:
+                return None
 
         cats = category_splits[split]
         if isinstance(cats, dict):
@@ -148,6 +156,7 @@ def get_binning(
     var_dependence: str,
     prepend_space: int = 0,
     parent_cat_keys: Union[list, None] = None,
+    generated_categories_for_splits: Union[dict, None] = None,
 ) -> tuple:
     """
     Recursively calculates equipopulated binning for a variable based on category splits.
@@ -161,11 +170,13 @@ def get_binning(
         var_dependence (str): The variable to be binned.
         prepend_space (int): Number of spaces to prepend for formatting.
         parent_cat_keys (list, optional): List of parent category keys for recursive calls.
+        generated_categories_for_splits (dict, optional): Dynamically generated categories.
 
     Returns:
         tuple: A tuple containing:
     """
     parent_cat_keys = parent_cat_keys or []
+    generated_categories_for_splits = generated_categories_for_splits or {}
     current_split_var = next(iter(category_splits))
 
     table = Table(
@@ -187,6 +198,7 @@ def get_binning(
     if isinstance(category_splits[current_split_var], (list, CommentedSeq)) and category_splits[current_split_var]:
         categories = category_splits[current_split_var]
         generated_categories[current_split_var] = categories
+        generated_categories_for_splits[current_split_var] = categories
     elif all(
         [
             current_split_var in binning_config.get("n_bins", {}),
@@ -218,6 +230,7 @@ def get_binning(
                 categories.append(f">{lower}#&&#<={upper}")
 
         generated_categories[current_split_var] = categories
+        generated_categories_for_splits[current_split_var] = categories
     else:
         # Categories are explicitly provided in the config: i.e. njets or tau_decaymode_2
         # where the discrete categories are defined.
@@ -248,6 +261,7 @@ def get_binning(
                 for i in range(n_bins)
             ]  # Default categories if none are provided            
             generated_categories[current_split_var] = categories
+            generated_categories_for_splits[current_split_var] = categories
 
     output_bins = OrderedDict()
     table = Table(show_header=True, header_style="bold magenta")
@@ -294,6 +308,7 @@ def get_binning(
                 var_dependence=var_dependence,
                 prepend_space=prepend_space + 2,
                 parent_cat_keys=current_cat_keys,
+                generated_categories_for_splits=generated_categories_for_splits,
             )
             output_bins[cat_key] = nested_bins
             for var, edges in nested_edges.items():
@@ -309,7 +324,7 @@ def get_binning(
 
             n_bins = get_n_bins(
                 n_bins_config=binning_config.get("var_dependence_n_bins"),
-                category_splits=original_category_splits,
+                category_splits=generated_categories_for_splits,
                 full_cat_path=(parent_cat_keys or []) + [cat_key],
             )
 
