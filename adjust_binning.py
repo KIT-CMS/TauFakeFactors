@@ -15,6 +15,13 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
 EQUIPOPULATED_BINNING_OPTIONS_KEY = "equipopulated_binning_options"
 
+parser = argparse.ArgumentParser(description="Equipopulated binning adjustments of configuration.")
+parser.add_argument("--config", type=str, required=True, help="Path to the YAML configuration.")
+parser.add_argument("--cuts-config", type=str, default=None, help="Path to a YAML correction containing cuts for processes (only for corrections).")
+parser.add_argument("--processes", type=str, nargs="+", required=True, help="List of processes (QCD Wjets ttbar process_fractions) to adjust binning for.")
+parser.add_argument("--cut-region", type=str, default="SRlike", help="Cut region to apply (e.g., SRlike, ARlike), process_fractions will always use AR_cuts.")
+parser.add_argument("--dry-run", action="store_true", help="If set, do not modify the config file.")
+
 
 def to_commented_map(items: dict) -> CommentedMap:
     """
@@ -200,6 +207,9 @@ def get_binning(
         if "#&&#" in query_cat_cut:
             sub_cuts = query_cat_cut.split("#&&#")
             query_cat_cut = f"({current_split_var} {sub_cuts[0]} & {current_split_var} {sub_cuts[1]})"
+        elif "#||#" in query_cat_cut:
+            sub_cuts = query_cat_cut.split("#||#")
+            query_cat_cut = f"({current_split_var} {sub_cuts[0]} | {current_split_var} {sub_cuts[1]})"
         else:
             query_cat_cut = f"({current_split_var} {cat_key})"
 
@@ -330,13 +340,6 @@ def get_binning(
     return output_bins, parent_cat_keys, generated_edges, generated_categories
 
 
-parser = argparse.ArgumentParser(description="Equipopulated binning adjustments of configuration.")
-parser.add_argument("--config", type=str, required=True, help="Path to the YAML configuration.")
-parser.add_argument("--cuts-config", type=str, default=None, help="Path to a YAML correction containing cuts for processes (only for corrections).")
-parser.add_argument("--processes", type=str, nargs="+", required=True, help="List of processes (QCD Wjets ttbar process_fractions) to adjust binning for.")
-parser.add_argument("--cut-region", type=str, default="SRlike", help="Cut region to apply (e.g., SRlike, ARlike), process_fractions will always use AR_cuts.")
-parser.add_argument("--dry-run", action="store_true", help="If set, do not modify the config file.")
-
 if __name__ == "__main__":
     args = parser.parse_args()
     args.config = Path(args.config).resolve()
@@ -418,8 +421,10 @@ if __name__ == "__main__":
             )
 
             process_config["var_bins"] = to_commented_map(new_bins)
-            process_config["split_categories"] = to_commented_map(process_config["split_categories"])
-            process_config["split_categories_binedges"] = to_commented_map(process_config["split_categories_binedges"])
+            process_config["split_categories"].update(to_commented_map(new_cats))
+            if "split_categories_binedges" not in process_config or not process_config["split_categories_binedges"]:
+                process_config["split_categories_binedges"] = CommentedMap()
+            process_config["split_categories_binedges"].update(to_commented_map(new_edges))
 
         def get_merged_cuts(
             var_config: Union[dict, CommentedMap],
@@ -475,8 +480,10 @@ if __name__ == "__main__":
                 )
 
                 var_config["var_bins"] = to_commented_map(new_bins)
-                var_config["split_categories"] = to_commented_map(var_config["split_categories"])
-                var_config["split_categories_binedges"] = to_commented_map(var_config.get("split_categories_binedges", {}))
+                var_config["split_categories"].update(to_commented_map(new_cats))
+                if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
+                    var_config["split_categories_binedges"] = CommentedMap()
+                var_config["split_categories_binedges"].update(to_commented_map(new_edges))
 
         if "DR_SR" in process_config:
             if EQUIPOPULATED_BINNING_OPTIONS_KEY not in process_config["DR_SR"]:
@@ -500,8 +507,10 @@ if __name__ == "__main__":
             )
 
             process_config["DR_SR"]["var_bins"] = to_commented_map(new_bins)
-            process_config["DR_SR"]["split_categories"] = to_commented_map(process_config["DR_SR"]["split_categories"])
-            process_config["DR_SR"]["split_categories_binedges"] = to_commented_map(process_config["DR_SR"].get("split_categories_binedges", {}))
+            process_config["DR_SR"]["split_categories"].update(to_commented_map(new_cats))
+            if "split_categories_binedges" not in process_config["DR_SR"] or not process_config["DR_SR"]["split_categories_binedges"]:
+                process_config["DR_SR"]["split_categories_binedges"] = CommentedMap()
+            process_config["DR_SR"]["split_categories_binedges"].update(to_commented_map(new_edges))
 
             if "non_closure" in process_config["DR_SR"]:
                 for var, var_config in process_config["DR_SR"]["non_closure"].items():
@@ -525,8 +534,10 @@ if __name__ == "__main__":
                     )
 
                     var_config["var_bins"] = to_commented_map(new_bins)
-                    var_config["split_categories"] = to_commented_map(var_config["split_categories"])
-                    var_config["split_categories_binedges"] = to_commented_map(var_config.get("split_categories_binedges", {}))
+                    var_config["split_categories"].update(to_commented_map(new_cats))
+                    if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
+                        var_config["split_categories_binedges"] = CommentedMap()
+                    var_config["split_categories_binedges"].update(to_commented_map(new_edges))
 
     console.print(f"\n[bold]Writing updated configuration to [cyan]{args.config}[/cyan][/bold]")
 

@@ -630,7 +630,7 @@ def apply_region_filters(
                 tmp[cut] = f"{cut} {category_cuts[cut]}"
             else:
                 a, op, b = category_cuts[cut].split("#")
-                tmp[cut] = f"({cut} {a}) {op} ({cut} {b})"
+                tmp[cut] = f"(({cut} {a}) {op} ({cut} {b}))"
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:

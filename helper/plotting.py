@@ -263,6 +263,9 @@ def latex_adjust_selection_string(string):
         ("<=", r"\leq\,"),
         (">", r">\,"),
         ("<", r"<\,"),
+        ("&&", r"\wedge\,"),
+        ("||", r"\vee\,"),
+        ("!=", r"\neq\,"),
     ]:
         string = string.replace(a, b if "$" in string else "$" + b + "$")
     return string
