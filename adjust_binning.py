@@ -99,6 +99,46 @@ def _equipopulated_binned_variable(item: Union[np.ndarray, pd.Series], n_bins: i
     return np.quantile(item, np.linspace(0, 1, n_bins + 1))
 
 
+def get_n_bins(
+    n_bins_config: Union[int, list, CommentedSeq],
+    category_splits: dict,
+    full_cat_path: list,
+) -> Union[int, None]:
+    """
+    Traverse the nested n_bins_config (lists of lists) according to full_cat_path and category_splits
+    and search for the number of bins to use for the given category path.
+
+    Args:
+        n_bins_config (int, list, CommentedSeq): Configuration for the number of bins.
+        category_splits (dict): Dictionary defining how to split categories.
+        full_cat_path (list): List of category keys representing the path to traverse.
+
+    Returns:
+        int or None: The number of bins for the given category path, or None if not found.
+    """
+    value, prev_key, splits = n_bins_config, None, list(category_splits)
+
+    for split, cat_key in zip(splits, full_cat_path):
+        if isinstance(value, int):
+            return value
+
+        cats = category_splits[split]
+        if isinstance(cats, dict):
+            cats = cats.get(prev_key, [])
+
+        try:
+            idx = cats.index(cat_key)
+        except ValueError:
+            return None
+
+        if not isinstance(value, (list, CommentedSeq)) or idx >= len(value):
+            return None
+
+        value, prev_key = value[idx], cat_key
+
+    return value if isinstance(value, int) else None
+
+
 def get_binning(
     df: pd.DataFrame,
     binning_config: dict,
@@ -266,40 +306,12 @@ def get_binning(
                 generated_categories[var][cat_key] = cats
         else:  # final level of splitting
             target_variable = var_dependence
-            temp_config, n_bins = binning_config.get("n_bins", {}), None
-            original_split_vars = list(original_category_splits.keys())
 
-            cat_keys_map = dict(zip(original_split_vars, current_cat_keys))
-            if (search_order := [var for var in original_split_vars if var in temp_config]):
-                temp_config = temp_config[search_order[0]]
-                for split_var in search_order:
-                    if isinstance(temp_config, int):
-                        n_bins = temp_config
-                        break
-                    if cat_keys_map[split_var] in temp_config:
-                        temp_config = temp_config[cat_keys_map[split_var]]
-                    else:
-                        break
-
-            if isinstance(temp_config, int):
-                n_bins = temp_config
-
-            if n_bins is None:  # Fallback for flat n_bins definition
-                for split_var, key in zip(original_split_vars, current_cat_keys):
-                    if not (isinstance(temp_config, dict) and split_var in temp_config):
-                        break
-                    temp_config = temp_config[split_var]
-                    if isinstance(temp_config, int):
-                        n_bins = temp_config
-                        break
-                    if key in temp_config:
-                        temp_config = temp_config[key]
-                    else:
-                        if isinstance(temp_config, int):
-                            n_bins = temp_config
-                        break  # Stop searching deeper
-                if isinstance(temp_config, int):
-                    n_bins = temp_config
+            n_bins = get_n_bins(
+                n_bins_config=binning_config.get("var_dependence_n_bins"),
+                category_splits=original_category_splits,
+                full_cat_path=(parent_cat_keys or []) + [cat_key],
+            )
 
             if n_bins and n_bins > 0:
                 var_conf = binning_config.get("variable_config", {}).get(target_variable, {})
