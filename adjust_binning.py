@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.table import Table
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
-from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+import helper.functions as func
 
 EQUIPOPULATED_BINNING_OPTIONS_KEY = "equipopulated_binning_options"
 
@@ -47,41 +47,6 @@ parser.add_argument(
     action="store_true",
     help="If set, do not modify the config file.",
 )
-
-
-def to_commented_map(items: dict) -> CommentedMap:
-    """
-    Recursively converts a python dict to a ruamel.yaml CommentedMap here leaf lists are 
-    formatted using flow style and keys are always quoted.
-
-    Args:
-        items (dict): The dictionary to convert.
-
-    Returns:
-        CommentedMap: A ruamel.yaml CommentedMap with flow style lists and quoted keys
-    """
-    if not isinstance(items, dict):
-        return items
-    commented_map = CommentedMap()
-    for key, value in items.items():
-        operations = ["<=", ">=", "<", ">", "==", "#"]
-        if any(op in str(key) for op in operations):
-            key = DoubleQuotedScalarString(key)
-
-        if isinstance(value, dict):
-            commented_map[key] = to_commented_map(value)
-        elif isinstance(value, list):
-            is_leaf_list = not any(isinstance(item, (dict, list)) for item in value)
-
-            if is_leaf_list:  # create a CommentedSeq and set flow style.
-                comment_sequence = CommentedSeq(value)
-                comment_sequence.fa.set_flow_style()
-                commented_map[key] = comment_sequence
-            else:  # otherwise: recursively process each item.
-                commented_map[key] = [to_commented_map(item) for item in value]
-        else:
-            commented_map[key] = value
-    return commented_map
 
 
 def _equipopulated_binned_variable(item: Union[np.ndarray, pd.Series], n_bins: int) -> np.ndarray:
@@ -259,7 +224,7 @@ def get_binning(
             categories = [
                 f">{min_val + i * range_val / n_bins}#&&#<={min_val + (i + 1) * range_val / n_bins}"
                 for i in range(n_bins)
-            ]  # Default categories if none are provided            
+            ]  # Default categories if none are provided
             generated_categories[current_split_var] = categories
             generated_categories_for_splits[current_split_var] = categories
 
@@ -342,7 +307,7 @@ def get_binning(
                     bins[0] = var_conf.get("min", bins[0])
                     bins[-1] = var_conf.get("max", bins[-1])
 
-                if (rounding := var_conf.get("rounding", 2)) is not None:
+                if (rounding := var_conf.get("rounding", 2)):
                     bins = np.round(bins, rounding).tolist()
 
                 for option in ["add_left", "add_right"]:
@@ -396,27 +361,23 @@ def get_binning(
 if __name__ == "__main__":
     args = parser.parse_args()
     args.config = Path(args.config).resolve()
+
     console = Console()
     console.print(f"Loading configuration from [cyan]{args.config}[/cyan]")
     console.print(f"Processes to adjust binning for: [cyan]{args.processes}[/cyan]")
     console.print(f"Cut region: [cyan]{args.cut_region}[/cyan]")
 
-    yaml = YAML()
-    yaml.preserve_quotes = True
-    yaml.indent(mapping=2, sequence=4, offset=2)
-    yaml.width = 4096
-
     cuts_config = None
     if args.cuts_config:
         console.print(f"Loading cuts from [cyan]{args.cuts_config}[/cyan]")
         with open(Path(args.cuts_config).resolve(), "r") as f:
-            cuts_config = yaml.load(f)
+            cuts_config = func.configured_yaml.load(f)
 
     with open((args.config.parent / "common_settings.yaml").resolve(), "r") as f:
-        common_settings = yaml.load(f)
+        common_settings = func.configured_yaml.load(f)
 
     with open(args.config, "r") as f:
-        config = yaml.load(f)
+        config = func.configured_yaml.load(f)
 
     base_directory, directory, era, channel, tree, file = (
         Path(common_settings["output_path"]),
@@ -473,11 +434,11 @@ if __name__ == "__main__":
                 var_dependence=process_config["var_dependence"],
             )
 
-            process_config["var_bins"] = to_commented_map(new_bins)
-            process_config["split_categories"].update(to_commented_map(new_cats))
+            process_config["var_bins"] = func.to_commented_map(new_bins)
+            process_config["split_categories"].update(func.to_commented_map(new_cats))
             if "split_categories_binedges" not in process_config or not process_config["split_categories_binedges"]:
                 process_config["split_categories_binedges"] = CommentedMap()
-            process_config["split_categories_binedges"].update(to_commented_map(new_edges))
+            process_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
         else:
             console.print(f"[red]Process '{process}' does not have equipopulated_binning_options. Skipping.[/red]")
 
@@ -488,7 +449,7 @@ if __name__ == "__main__":
             """
             Function to merge cuts for corrections, taking into account parent configurations.
             var_config represents the current correction block configuration,
-            parent_config is the parent correction block configuration (if any), i.e. DR_SR 
+            parent_config is the parent correction block configuration (if any), i.e. DR_SR
             if provided.
 
             Args:
@@ -535,11 +496,11 @@ if __name__ == "__main__":
                     var_dependence=var_config["var_dependence"],
                 )
 
-                var_config["var_bins"] = to_commented_map(new_bins)
-                var_config["split_categories"].update(to_commented_map(new_cats))
+                var_config["var_bins"] = func.to_commented_map(new_bins)
+                var_config["split_categories"].update(func.to_commented_map(new_cats))
                 if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
                     var_config["split_categories_binedges"] = CommentedMap()
-                var_config["split_categories_binedges"].update(to_commented_map(new_edges))
+                var_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
 
         if "DR_SR" in process_config:
             if EQUIPOPULATED_BINNING_OPTIONS_KEY not in process_config["DR_SR"]:
@@ -549,7 +510,7 @@ if __name__ == "__main__":
             final_cuts = get_merged_cuts(process_config["DR_SR"])
             temp_cuts = final_cuts.replace('&&', '&').replace('!', '~').replace('||', '|')
 
-            console.print(f"  Processing correction: [bold magenta]DR_SR[/bold magenta]")
+            console.print("  Processing correction: [bold magenta]DR_SR[/bold magenta]")
             console.print(f"    Variable to bin: [bold magenta]{process_config['DR_SR']['var_dependence']}[/bold magenta]")
             console.print(f"    Base cuts: [dim]{temp_cuts}[/dim]")
 
@@ -562,11 +523,11 @@ if __name__ == "__main__":
                 var_dependence=process_config["DR_SR"]["var_dependence"],
             )
 
-            process_config["DR_SR"]["var_bins"] = to_commented_map(new_bins)
-            process_config["DR_SR"]["split_categories"].update(to_commented_map(new_cats))
+            process_config["DR_SR"]["var_bins"] = func.to_commented_map(new_bins)
+            process_config["DR_SR"]["split_categories"].update(func.to_commented_map(new_cats))
             if "split_categories_binedges" not in process_config["DR_SR"] or not process_config["DR_SR"]["split_categories_binedges"]:
                 process_config["DR_SR"]["split_categories_binedges"] = CommentedMap()
-            process_config["DR_SR"]["split_categories_binedges"].update(to_commented_map(new_edges))
+            process_config["DR_SR"]["split_categories_binedges"].update(func.to_commented_map(new_edges))
 
             if "non_closure" in process_config["DR_SR"]:
                 for var, var_config in process_config["DR_SR"]["non_closure"].items():
@@ -590,15 +551,15 @@ if __name__ == "__main__":
                         var_dependence=var_config["var_dependence"],
                     )
 
-                    var_config["var_bins"] = to_commented_map(new_bins)
-                    var_config["split_categories"].update(to_commented_map(new_cats))
+                    var_config["var_bins"] = func.to_commented_map(new_bins)
+                    var_config["split_categories"].update(func.to_commented_map(new_cats))
                     if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
                         var_config["split_categories_binedges"] = CommentedMap()
-                    var_config["split_categories_binedges"].update(to_commented_map(new_edges))
+                    var_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
 
     if not args.dry_run:
         console.print(f"\n[bold]Writing updated configuration to [cyan]{args.config}[/cyan][/bold]")
         with open(args.config, "w") as f:
-            yaml.dump(config, f)
+            func.configured_yaml.dump(config, f)
     else:
         console.print("[bold red]Dry run mode: configuration not modified.[/bold red]")

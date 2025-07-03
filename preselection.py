@@ -2,22 +2,19 @@
 Script for preprocessing n-tuples for the fake factor calculation
 """
 
-import os
 import argparse
-import yaml
 import json
-
-from io import StringIO
-from wurlitzer import pipes, STDOUT
 import logging
-from typing import Tuple, Dict, Union, List
+import os
+from io import StringIO
+from typing import Dict, List, Tuple, Union
+
 import ROOT
+from wurlitzer import STDOUT, pipes
 
 import helper.filters as filters
-import helper.weights as weights
 import helper.functions as func
-from helper.functions import RuntimeVariables
-
+import helper.weights as weights
 
 parser = argparse.ArgumentParser()
 
@@ -36,6 +33,11 @@ parser.add_argument(
     default=2,
     help="Number of cores to use for each pool the preselection step. (default: 2)",
 )
+parser.add_argument(
+    "--disable-multiprocessing",
+    action="store_true",
+    help="Flag to disable multiprocessing for debugging purposes.",
+)
 
 
 def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int, str, str]) -> Tuple[str, str]:
@@ -43,7 +45,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
 
     Args:
-        args: Tuple with a process name, a configuration for this process, the output directory, 
+        args: Tuple with a process name, a configuration for this process, the output directory,
             number of threads to use, a sample name and a tau gen. level mode (e.g. "T", "J", "L", "all")
 
     Return:
@@ -52,7 +54,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     process, config, output_path, ncores, sample, tau_gen_mode = args
     log = logging.getLogger(f"preselection.{process}")
     ROOT.EnableImplicitMT(ncores)
-    
+
     # loading ntuple files
     rdf = ROOT.RDataFrame(
         config["tree"],
@@ -163,7 +165,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         log.info("No events left after filters. Data frame will not be saved.")
         log.info("-" * 50)
         return ()
-    
+
     return (tau_gen_mode, tmp_file_name)
 
 
@@ -172,7 +174,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
 
     Args:
-        args: Tuple with a process name, a configuration for this process, the output directory and 
+        args: Tuple with a process name, a configuration for this process, the output directory and
             number of threads to use
 
     Return:
@@ -194,7 +196,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
     args_list = [
         (process, config, output_path, ncores, sample, tau_gen_mode) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in config["processes"][process]["samples"]
     ]
-    
+
     results = func.optional_process_pool(
         args_list=args_list,
         function=run_sample_preselection,
@@ -235,6 +237,8 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)
@@ -277,7 +281,7 @@ if __name__ == "__main__":
         args_list=args_list,
         function=run_preselection,
     )
-    
+
     # dumping config to output directory for documentation
     with open(output_path + "/config.yaml", "w") as config_file:
-        yaml.dump(config, config_file, default_flow_style=False)
+        func.configured_yaml.dump(config, config_file)

@@ -5,12 +5,19 @@ target_processes:
       m_vis:
         var_dependence: m_vis
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            m_vis:
+              min: 10.0
+              max: 250.0
+              rounding: 2
+          var_dependence_n_bins:
+            "==0": 11
+            "==1": 9
+            ">=2": 7
         correction_option: "smoothed"
         bandwidth:
           "==0": 20
@@ -23,64 +30,83 @@ target_processes:
       mass_2:
         var_dependence: mass_2
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            mass_2:
+              min: 0.2
+              max: 2.0
+              rounding: 4
+          var_dependence_n_bins:
+            "==0": 11
+            "==1": 9
+            ">=2": 7
+          add_left: [0.0]
         correction_option: "binwise#[0]+smoothed"
         bandwidth:
           "==0": 0.22
           "==1": 0.25
           ">=2": 0.25
-        var_bins: 
+        var_bins:
           "==0": [0.0000, 0.2000, 0.5107, 0.6214, 0.7396, 0.8350, 0.9123, 0.9937, 1.0732, 1.1543, 1.2500, 1.3633, 2.0000]
           "==1": [0.0000, 0.2000, 0.5137, 0.6163, 0.7199, 0.8195, 0.9045, 0.9934, 1.0742, 1.1523, 1.2441, 1.3641, 2.0000]
           ">=2": [0.0000, 0.2000, 0.5005, 0.6073, 0.7148, 0.8150, 0.8945, 0.9744, 1.0537, 1.1233, 1.2226, 1.3402, 2.0000]
       deltaR_ditaupair:
         var_dependence: deltaR_ditaupair
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            deltaR_ditaupair:
+              min: 0.0
+              max: 5.0
+              rounding: 4
+          var_dependence_n_bins:
+            "==0": 15
+            "==1": 9
+            ">=2": 7
         correction_option: "smoothed"
         bandwidth:
           "==0": 0.45
           "==1": 0.9
           ">=2": 1.1
-        var_bins: 
+        var_bins:
           "==0": [0.0000, 2.5872, 2.7842, 2.8926, 2.9728, 3.0294, 3.0757, 3.1181, 3.1600, 3.2202, 3.2979, 3.3994, 3.5295, 3.7297, 4.0369, 5.0000]
           "==1": [0.0000, 1.5267, 2.0637, 2.3834, 2.5947, 2.7513, 2.8936, 3.0305, 3.1515, 3.3850, 3.7487, 5.0000]
           ">=2": [0.0000, 1.0810, 1.5235, 1.8794, 2.1892, 2.4695, 2.6882, 2.9270, 3.0915, 3.2845, 3.6045, 5.0000]
       iso_1:
         var_dependence: iso_1
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            iso_1:
+              min: 0.05
+              max: 0.15
+              rounding: 4
+          var_dependence_n_bins:
+            "==0": 11
+            "==1": 9
+            ">=2": 7
         correction_option: "smoothed"
         bandwidth:
           "==0": 0.03
           "==1": 0.05
           ">=2": 0.05
-        var_bins: 
+        var_bins:
           "==0": [0.0500, 0.0569, 0.0636, 0.0705, 0.0783, 0.0868, 0.0958, 0.1060, 0.1159, 0.1265, 0.1375, 0.1500]
           "==1": [0.0500, 0.0555, 0.0626, 0.0692, 0.0767, 0.0845, 0.0954, 0.1053, 0.1161, 0.1267, 0.1377, 0.1500]
           ">=2": [0.0500, 0.0562, 0.0618, 0.0679, 0.0761, 0.0842, 0.0931, 0.1027, 0.1127, 0.1240, 0.1376, 0.1500]
       tau_decaymode_2:
         var_dependence: tau_decaymode_2
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
         correction_option: "binwise"
@@ -89,12 +115,19 @@ target_processes:
     DR_SR:
       var_dependence: m_vis
       split_categories:
-        njets:
-          - "==0"
-          - "==1"
-          - ">=2"
+        njets: ["==0", "==1", ">=2"]
       split_categories_binedges:
         njets: [-0.5, 0.5, 1.5, 12.5]
+      equipopulated_binning_options:
+        variable_config:
+          m_vis:
+            min: 10.0
+            max: 250.0
+            rounding: 2
+        var_dependence_n_bins:
+          "==0": 11
+          "==1": 9
+          ">=2": 7
       correction_option: "smoothed"
       bandwidth:
         "==0": 20
@@ -104,7 +137,6 @@ target_processes:
         "==0": [10.00, 62.56, 66.99, 71.31, 75.89, 80.84, 86.98, 94.54, 105.43, 121.41, 147.86, 250.00]
         "==1": [10.00, 49.89, 61.12, 67.93, 73.89, 79.56, 86.97, 95.92, 107.72, 127.86, 157.28, 250.00]
         ">=2": [10.00, 41.95, 56.26, 65.09, 72.67, 81.35, 92.14, 102.26, 115.21, 135.31, 162.62, 250.00]
-
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         lep_mt: (mt_1 < 50)
@@ -120,51 +152,63 @@ target_processes:
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"  
+        lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
       non_closure:
         mass_2:
           var_dependence: mass_2
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
+          equipopulated_binning_options:
+            variable_config:
+              mass_2:
+                min: 0.2
+                max: 2.0
+                rounding: 4
+            var_dependence_n_bins:
+              "==0": 11
+              "==1": 9
+              ">=2": 7
+            add_left: [0.0]
           correction_option: "binwise#[0]+smoothed"
           bandwidth:
             "==0": 0.22
             "==1": 0.25
             ">=2": 0.3
-          var_bins: 
+          var_bins:
             "==0": [0.0000, 0.2000, 0.5107, 0.6214, 0.7396, 0.8350, 0.9123, 0.9937, 1.0732, 1.1543, 1.2500, 1.3633, 2.0000]
             "==1": [0.0000, 0.2000, 0.5137, 0.6163, 0.7199, 0.8195, 0.9045, 0.9934, 1.0742, 1.1523, 1.2441, 1.3641, 2.0000]
             ">=2": [0.0000, 0.2000, 0.5005, 0.6073, 0.7148, 0.8150, 0.8945, 0.9744, 1.0537, 1.1233, 1.2226, 1.3402, 2.0000]
         deltaR_ditaupair:
           var_dependence: deltaR_ditaupair
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
+          equipopulated_binning_options:
+            variable_config:
+              deltaR_ditaupair:
+                min: 0.0
+                max: 5.0
+                rounding: 4
+            var_dependence_n_bins:
+              "==0": 15
+              "==1": 9
+              ">=2": 7
           correction_option: "smoothed"
           bandwidth:
-            "==0": 0.4
+            "==0": 0.3
             "==1": 0.9
             ">=2": 1.1
-          var_bins: 
+          var_bins:
             "==0": [0.0000, 2.5872, 2.7842, 2.8926, 2.9728, 3.0294, 3.0757, 3.1181, 3.1600, 3.2202, 3.2979, 3.3994, 3.5295, 3.7297, 4.0369, 5.0000]
             "==1": [0.0000, 1.5267, 2.0637, 2.3834, 2.5947, 2.7513, 2.8936, 3.0305, 3.1515, 3.3850, 3.7487, 5.0000]
             ">=2": [0.0000, 1.0810, 1.5235, 1.8794, 2.1892, 2.4695, 2.6882, 2.9270, 3.0915, 3.2845, 3.6045, 5.0000]
         tau_decaymode_2:
           var_dependence: tau_decaymode_2
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
           correction_option: "binwise"
@@ -175,12 +219,19 @@ target_processes:
       m_vis:
         var_dependence: m_vis
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            m_vis:
+              min: 10.0
+              max: 250.0
+              rounding: 2
+          var_dependence_n_bins:
+            "==0": 15
+            "==1": 11
+            ">=2": 9
         correction_option: "smoothed"
         bandwidth:
           "==0": 19
@@ -193,54 +244,77 @@ target_processes:
       mass_2:
         var_dependence: mass_2
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            mass_2:
+              min: 0.2
+              max: 2.0
+              rounding: 4
+          var_dependence_n_bins:
+            "==0": 15
+            "==1": 11
+            ">=2": 9
+          add_left: [0.0]
         correction_option: "binwise#[0]+smoothed"
         bandwidth:
           "==0": 0.17
           "==1": 0.21
           ">=2": 0.25
-        var_bins: 
+        var_bins:
           "==0": [0.00000, 0.20000, 0.51270, 0.61963, 0.71143, 0.79590, 0.87451, 0.95654, 1.04297, 1.13086, 1.23145, 1.36230, 2.00000]
           "==1": [0.00000, 0.20000, 0.50928, 0.61865, 0.71191, 0.79443, 0.86816, 0.95410, 1.03809, 1.12500, 1.22754, 1.35352, 2.00000]
           ">=2": [0.00000, 0.20000, 0.50586, 0.61279, 0.70654, 0.78857, 0.85742, 0.94629, 1.03240, 1.12109, 1.21680, 1.34180, 2.00000]
       deltaR_ditaupair:
         var_dependence: deltaR_ditaupair
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            deltaR_ditaupair:
+              min: 0.0
+              max: 5.0
+              rounding: 4
+          var_dependence_n_bins:
+            "==0": 15
+            "==1": 11
+            ">=2": 9
         correction_option: "smoothed"
         bandwidth:
-          "==0": 0.4
-          "==1": 0.5
+          "==0": 0.25
+          "==1": 0.4
           ">=2": 0.8
-        var_bins: 
+        var_bins:
           "==0": [0.0000, 1.2818, 1.6590, 1.9412, 2.1645, 2.3482, 2.5159, 2.6590, 2.7834, 2.8912, 2.9835, 3.0649, 3.1331, 3.2310, 3.4508, 5.0000]
           "==1": [0.0000, 1.1901, 1.5941, 1.9140, 2.1734, 2.4031, 2.6121, 2.7999, 2.9632, 3.1052, 3.3221, 5.0000]
           ">=2": [0.0000, 1.0649, 1.4358, 1.7458, 2.0092, 2.2510, 2.4699, 2.6779, 2.8644, 3.0490, 3.2758, 5.0000]
       iso_1:
         var_dependence: iso_1
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            iso_1:
+              min: 0.00005
+              max: 0.15
+              rounding: 6
+          var_dependence_n_bins:
+            "==0": 15
+            "==1": 11
+            ">=2": 9
+          add_left: [0.0]
         correction_option: "binwise#[0]+smoothed"
         bandwidth:
           "==0": 0.05
           "==1": 0.05
           ">=2": 0.07
-        var_bins: 
+        var_bins:
           "==0": [0.00000, 0.00005, 0.00592, 0.00933, 0.01302, 0.01744, 0.02270, 0.02913, 0.03764, 0.04878, 0.06425, 0.08996, 0.15000]
           "==1": [0.00000, 0.00005, 0.00563, 0.00909, 0.01289, 0.01729, 0.02269, 0.02938, 0.03755, 0.04901, 0.06453, 0.09014, 0.15000]
           ">=2": [0.00000, 0.00005, 0.00491, 0.00822, 0.01190, 0.01621, 0.02145, 0.02759, 0.03627, 0.04690, 0.06393, 0.08834, 0.15000]
@@ -248,10 +322,7 @@ target_processes:
         var_dependence: tau_decaymode_2
         correction_option: "binwise"
         split_categories:
-          njets:
-            - "==0"
-            - "==1"
-            - ">=2"
+          njets: ["==0", "==1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 0.5, 1.5, 12.5]
         var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
@@ -259,12 +330,19 @@ target_processes:
     DR_SR:
       var_dependence: m_vis
       split_categories:
-        njets:
-          - "==0"
-          - "==1"
-          - ">=2"
+        njets: ["==0", "==1", ">=2"]
       split_categories_binedges:
         njets: [-0.5, 0.5, 1.5, 12.5]
+      equipopulated_binning_options:
+        variable_config:
+          m_vis:
+            min: 10.0
+            max: 250.0
+            rounding: 2
+        var_dependence_n_bins:
+          "==0": 15
+          "==1": 11
+          ">=2": 9
       correction_option: "smoothed"
       bandwidth:
         "==0": 21
@@ -295,54 +373,77 @@ target_processes:
         mass_2:
           var_dependence: mass_2
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
+          equipopulated_binning_options:
+            variable_config:
+              mass_2:
+                min: 0.2
+                max: 2.0
+                rounding: 4
+            var_dependence_n_bins:
+              "==0": 15
+              "==1": 11
+              ">=2": 9
+            add_left: [0.0] 
           correction_option: "binwise#[0]+smoothed"
           bandwidth:
             "==0": 0.17
             "==1": 0.21
             ">=2": 0.25
-          var_bins: 
+          var_bins:
             "==0": [0.00000, 0.20000, 0.51270, 0.61963, 0.71143, 0.79590, 0.87451, 0.95654, 1.04297, 1.13086, 1.23145, 1.36230, 2.00000]
             "==1": [0.00000, 0.20000, 0.50928, 0.61865, 0.71191, 0.79443, 0.86816, 0.95410, 1.03809, 1.12500, 1.22754, 1.35352, 2.00000]
             ">=2": [0.00000, 0.20000, 0.50586, 0.61279, 0.70654, 0.78857, 0.85742, 0.94629, 1.03240, 1.12109, 1.21680, 1.34180, 2.00000]
         deltaR_ditaupair:
           var_dependence: deltaR_ditaupair
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
+          equipopulated_binning_options:
+            variable_config:
+              deltaR_ditaupair:
+                min: 0.0
+                max: 5.0
+                rounding: 4
+            var_dependence_n_bins:
+              "==0": 15
+              "==1": 11
+              ">=2": 9
           correction_option: "smoothed"
           bandwidth:
             "==0": 0.35
             "==1": 0.5
             ">=2": 0.85
-          var_bins: 
+          var_bins:
             "==0": [0.0000, 1.2818, 1.6590, 1.9412, 2.1645, 2.3482, 2.5159, 2.6590, 2.7834, 2.8912, 2.9835, 3.0649, 3.1331, 3.2310, 3.4508, 5.0000]
             "==1": [0.0000, 1.1901, 1.5941, 1.9140, 2.1734, 2.4031, 2.6121, 2.7999, 2.9632, 3.1052, 3.3221, 5.0000]
             ">=2": [0.0000, 1.0649, 1.4358, 1.7458, 2.0092, 2.2510, 2.4699, 2.6779, 2.8644, 3.0490, 3.2758, 5.0000]
         iso_1:
           var_dependence: iso_1
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
+          equipopulated_binning_options:
+            variable_config:
+              iso_1:
+                min: 0.00005
+                max: 0.15
+                rounding: 6
+            var_dependence_n_bins:
+              "==0": 15
+              "==1": 11
+              ">=2": 9
+            add_left: [0.0]
           correction_option: "binwise#[0]+smoothed"
           bandwidth:
             "==0": 0.03
             "==1": 0.045
             ">=2": 0.06
-          var_bins: 
+          var_bins:
             "==0": [0.00000, 0.00005, 0.00592, 0.00933, 0.01302, 0.01744, 0.02270, 0.02913, 0.03764, 0.04878, 0.06425, 0.08996, 0.15000]
             "==1": [0.00000, 0.00005, 0.00563, 0.00909, 0.01289, 0.01729, 0.02269, 0.02938, 0.03755, 0.04901, 0.06453, 0.09014, 0.15000]
             ">=2": [0.00000, 0.00005, 0.00491, 0.00822, 0.01190, 0.01621, 0.02145, 0.02759, 0.03627, 0.04690, 0.06393, 0.08834, 0.15000]
@@ -350,10 +451,7 @@ target_processes:
           var_dependence: tau_decaymode_2
           correction_option: "binwise"
           split_categories:
-            njets:
-              - "==0"
-              - "==1"
-              - ">=2"
+            njets: ["==0", "==1", ">=2"]
           split_categories_binedges:
             njets: [-0.5, 0.5, 1.5, 12.5]
           var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
@@ -363,14 +461,21 @@ target_processes:
       m_vis:
         var_dependence: m_vis
         split_categories:
-          njets:
-            - "<=1"
-            - ">=2"
+          njets: ["<=1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            m_vis:
+              min: 15.0
+              max: 250.0
+              rounding: 2
+          var_dependence_n_bins:
+            "<=1": 11
+            ">=2": 15
         correction_option: "smoothed"
         bandwidth:
-          "<=1": 30
+          "<=1": 28
           ">=2": 36
         var_bins:
           "<=1": [13.00, 56.07, 65.86, 72.75, 80.08, 87.55, 93.63, 102.99, 114.97, 133.03, 165.43, 250.00]
@@ -378,11 +483,19 @@ target_processes:
       mass_2:
         var_dependence: mass_2
         split_categories:
-          njets:
-            - "<=1"
-            - ">=2"
+          njets: ["<=1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            mass_2:
+              min: 0.2
+              max: 2.0
+              rounding: 4
+          var_dependence_n_bins:
+            "<=1": 11
+            ">=2": 15
+          add_left: [0.0]
         correction_option: "binwise#[0]+smoothed"
         bandwidth:
           "<=1": 0.2
@@ -393,26 +506,41 @@ target_processes:
       deltaR_ditaupair:
         var_dependence: deltaR_ditaupair
         split_categories:
-          njets:
-            - "<=1"
-            - ">=2"
+          njets: ["<=1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            deltaR_ditaupair:
+              min: 0.5
+              max: 5.0
+              rounding: 4
+          var_dependence_n_bins:
+            "<=1": 11
+            ">=2": 15
         correction_option: "smoothed"
         bandwidth:
-          "<=1": 0.4
+          "<=1": 0.35
           ">=2": 0.9
-        var_bins: 
+        var_bins:
           "<=1": [0.5000, 1.6358, 2.1337, 2.4570, 2.6627, 2.8176, 2.9472, 3.0453, 3.1215, 3.2227, 3.4696, 5.0000]
           ">=2": [0.5000, 0.9863, 1.3597, 1.7024, 1.9847, 2.2288, 2.4570, 2.6923, 2.9178, 3.1080, 3.3598, 5.0000]
       iso_1:
         var_dependence: iso_1
         split_categories:
-          njets:
-            - "<=1"
-            - ">=2"
+          njets: ["<=1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 1.5, 12.5]
+        equipopulated_binning_options:
+          variable_config:
+            iso_1:
+              min: 0.0001
+              max: 0.15
+              rounding: 6
+          var_dependence_n_bins:
+            "<=1": 11
+            ">=2": 15
+          add_left: [0.0]
         correction_option: "binwise#[0]+smoothed"
         bandwidth:
           "<=1": 0.05
@@ -423,11 +551,8 @@ target_processes:
       tau_decaymode_2:
         var_dependence: tau_decaymode_2
         split_categories:
-          njets:
-            - "<=1"
-            - ">=2"
+          njets: ["<=1", ">=2"]
         split_categories_binedges:
           njets: [-0.5, 1.5, 12.5]
         correction_option: "binwise"
         var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
-      

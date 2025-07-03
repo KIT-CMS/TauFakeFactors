@@ -7,8 +7,6 @@ import logging
 import os
 from typing import Dict, List, Tuple, Union
 
-import yaml
-
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_ttbar as FF_ttbar
 import FF_calculation.FF_Wjets as FF_Wjets
@@ -161,6 +159,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
+    # func.RuntimeVariables.USE_MULTIPROCESSING = False
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)
@@ -244,7 +243,7 @@ if __name__ == "__main__":
 
     # dumping config to output directory for documentation
     with open(save_path_plots + "/config.yaml", "w") as config_file:
-        yaml.dump(config, config_file, default_flow_style=False, sort_keys=False)
+        func.configured_yaml.dump(config, config_file)
 
     with open(os.path.join(save_path_plots, "done"), "w") as done_file:
         done_file.write("")
