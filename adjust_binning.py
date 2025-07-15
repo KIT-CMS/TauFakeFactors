@@ -117,8 +117,8 @@ def get_binning(
     binning_config: dict,
     process_cuts: str,
     category_splits: dict,
-    original_category_splits: dict,
     var_dependence: str,
+    original_category_splits: Union[dict, None] = None,
     prepend_space: int = 0,
     parent_cat_keys: Union[list, None] = None,
     generated_categories_for_splits: Union[dict, None] = None,
@@ -140,6 +140,8 @@ def get_binning(
     Returns:
         tuple: A tuple containing:
     """
+    if original_category_splits is None:
+        original_category_splits = category_splits
     parent_cat_keys = parent_cat_keys or []
     generated_categories_for_splits = generated_categories_for_splits or {}
     current_split_var = next(iter(category_splits))
@@ -430,7 +432,6 @@ if __name__ == "__main__":
                 binning_config=binning_config,
                 process_cuts=temp_cuts,
                 category_splits=process_config["split_categories"],
-                original_category_splits=process_config["split_categories"],
                 var_dependence=process_config["var_dependence"],
             )
 
@@ -492,7 +493,6 @@ if __name__ == "__main__":
                     binning_config=var_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                     process_cuts=temp_cuts,
                     category_splits=var_config["split_categories"],
-                    original_category_splits=var_config["split_categories"],
                     var_dependence=var_config["var_dependence"],
                 )
 
@@ -519,7 +519,6 @@ if __name__ == "__main__":
                 binning_config=process_config["DR_SR"][EQUIPOPULATED_BINNING_OPTIONS_KEY],
                 process_cuts=temp_cuts,
                 category_splits=process_config["DR_SR"]["split_categories"],
-                original_category_splits=process_config["DR_SR"]["split_categories"],
                 var_dependence=process_config["DR_SR"]["var_dependence"],
             )
 
@@ -547,7 +546,6 @@ if __name__ == "__main__":
                         binning_config=var_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                         process_cuts=temp_cuts,
                         category_splits=var_config["split_categories"],
-                        original_category_splits=var_config["split_categories"],
                         var_dependence=var_config["var_dependence"],
                     )
 
