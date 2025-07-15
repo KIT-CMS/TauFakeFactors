@@ -672,16 +672,17 @@ def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
         for key in categories_config:
             _recursive_check(categories_config[key], binedges_config[key], process_name, f"{var_name}/{key}")
 
-    for process, process_conf in config["target_processes"].items():
-        if "split_categories" in process_conf and "split_categories_binedges" in process_conf:
-            split_cats = process_conf["split_categories"]
-            split_bins = process_conf["split_categories_binedges"]
+    if "target_processes" in config:
+        for process, process_conf in config["target_processes"].items():
+            if "split_categories" in process_conf and "split_categories_binedges" in process_conf:
+                split_cats = process_conf["split_categories"]
+                split_bins = process_conf["split_categories_binedges"]
 
-            if split_cats.keys() != split_bins.keys():
-                raise Exception(f"Split variables in split_categories and split_categories_binedges do not match for {process}.")
+                if split_cats.keys() != split_bins.keys():
+                    raise Exception(f"Split variables in split_categories and split_categories_binedges do not match for {process}.")
 
-            for var in split_cats:
-                _recursive_check(split_cats[var], split_bins[var], process, var)
+                for var in split_cats:
+                    _recursive_check(split_cats[var], split_bins[var], process, var)
 
     if "process_fractions" in config:
         fraction_categories = config["process_fractions"]["split_categories"]

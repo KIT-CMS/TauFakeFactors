@@ -393,7 +393,7 @@ if __name__ == "__main__":
 
     if len((bool_cols := dataframe.select_dtypes(include=['bool']).columns)) > 0:
         dataframe[bool_cols] = dataframe[bool_cols].astype(int)
-        console.print(f"Converted {len(bool_cols)} boolean columns to integers.")
+        console.print(f"Converted {bool_cols} boolean columns to integers.")
 
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
