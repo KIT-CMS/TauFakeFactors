@@ -199,36 +199,10 @@ def get_binning(
         generated_categories[current_split_var] = categories
         generated_categories_for_splits[current_split_var] = categories
     else:
-        # Categories are explicitly provided in the config: i.e. njets or tau_decaymode_2
-        # where the discrete categories are defined.
-        if isinstance(category_splits[current_split_var], (list, CommentedSeq)):
-            categories = category_splits[current_split_var]
-            generated_categories[current_split_var] = categories
-        else:  # Categories need to be generated based on n_bins.
-            temp_config = binning_config.get("n_bins", {})  # Config for current split variable setting
-            for key in parent_cat_keys:  # parent_cat_keys: path to the current category, e.g., ['==0']
-                if isinstance(temp_config, dict) and key in temp_config:
-                    temp_config = temp_config[key]
-                else:
-                    break  # Path does not exist (global setting for variable)
-
-            if isinstance(temp_config, dict) and current_split_var in temp_config:
-                n_bins = temp_config[current_split_var]
-                var_conf = binning_config.get("variable_config", {}).get(current_split_var, {})
-            else:
-                raise ValueError(
-                    f"Unable to determine categories for '{current_split_var}'"
-                    "neither trough equipopulated binning option nor explicit categories."
-                )
-
-            min_val, max_val = var_conf.get("min"), var_conf.get("max")
-            range_val = max_val - min_val if min_val is not None and max_val is not None else 1
-            categories = [
-                f">{min_val + i * range_val / n_bins}#&&#<={min_val + (i + 1) * range_val / n_bins}"
-                for i in range(n_bins)
-            ]  # Default categories if none are provided
-            generated_categories[current_split_var] = categories
-            generated_categories_for_splits[current_split_var] = categories
+        raise ValueError(
+            f"Unable to determine categories for '{current_split_var}'"
+            "neither trough equipopulated binning option nor explicit categories."
+        )
 
     output_bins = OrderedDict()
     table = Table(show_header=True, header_style="bold magenta")
@@ -279,13 +253,9 @@ def get_binning(
             )
             output_bins[cat_key] = nested_bins
             for var, edges in nested_edges.items():
-                if var not in generated_edges:
-                    generated_edges[var] = {}
-                generated_edges[var][cat_key] = edges
+                generated_edges.setdefault(var, {})[cat_key] = edges
             for var, cats in nested_cats.items():
-                if var not in generated_categories:
-                    generated_categories[var] = {}
-                generated_categories[var][cat_key] = cats
+                generated_categories.setdefault(var, {})[cat_key] = cats
         else:  # final level of splitting
             target_variable = var_dependence
 
