@@ -407,9 +407,7 @@ if __name__ == "__main__":
 
             process_config["var_bins"] = func.to_commented_map(new_bins)
             process_config["split_categories"].update(func.to_commented_map(new_cats))
-            if "split_categories_binedges" not in process_config or not process_config["split_categories_binedges"]:
-                process_config["split_categories_binedges"] = CommentedMap()
-            process_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
+            process_config.setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
         else:
             console.print(f"[red]Process '{process}' does not have equipopulated_binning_options. Skipping.[/red]")
 
@@ -468,10 +466,7 @@ if __name__ == "__main__":
 
                 var_config["var_bins"] = func.to_commented_map(new_bins)
                 var_config["split_categories"].update(func.to_commented_map(new_cats))
-                if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
-                    var_config["split_categories_binedges"] = CommentedMap()
-                var_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
-
+                var_config.setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
         if "DR_SR" in process_config:
             if EQUIPOPULATED_BINNING_OPTIONS_KEY not in process_config["DR_SR"]:
                 console.print("[red]DR_SR does not have equipopulated_binning_options. Skipping.[/red]")
@@ -494,9 +489,7 @@ if __name__ == "__main__":
 
             process_config["DR_SR"]["var_bins"] = func.to_commented_map(new_bins)
             process_config["DR_SR"]["split_categories"].update(func.to_commented_map(new_cats))
-            if "split_categories_binedges" not in process_config["DR_SR"] or not process_config["DR_SR"]["split_categories_binedges"]:
-                process_config["DR_SR"]["split_categories_binedges"] = CommentedMap()
-            process_config["DR_SR"]["split_categories_binedges"].update(func.to_commented_map(new_edges))
+            process_config["DR_SR"].setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
 
             if "non_closure" in process_config["DR_SR"]:
                 for var, var_config in process_config["DR_SR"]["non_closure"].items():
@@ -521,9 +514,7 @@ if __name__ == "__main__":
 
                     var_config["var_bins"] = func.to_commented_map(new_bins)
                     var_config["split_categories"].update(func.to_commented_map(new_cats))
-                    if "split_categories_binedges" not in var_config or not var_config["split_categories_binedges"]:
-                        var_config["split_categories_binedges"] = CommentedMap()
-                    var_config["split_categories_binedges"].update(func.to_commented_map(new_edges))
+                    var_config.setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
 
     if not args.dry_run:
         console.print(f"\n[bold]Writing updated configuration to [cyan]{args.config}[/cyan][/bold]")
