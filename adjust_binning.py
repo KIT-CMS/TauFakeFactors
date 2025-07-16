@@ -89,11 +89,10 @@ def get_n_bins(
             return value
 
         if isinstance(value, (dict, CommentedMap)):
-            if cat_key in value:
-                value = value[cat_key]
-                continue
-            else:
+            value = value.get(cat_key)
+            if value is None:
                 return None
+            continue
 
         cats = category_splits[split]
         if isinstance(cats, dict):
@@ -101,13 +100,11 @@ def get_n_bins(
 
         try:
             idx = cats.index(cat_key)
+            if not isinstance(value, (list, CommentedSeq)) or idx >= len(value):
+                return None
+            value, prev_key = value[idx], cat_key
         except ValueError:
             return None
-
-        if not isinstance(value, (list, CommentedSeq)) or idx >= len(value):
-            return None
-
-        value, prev_key = value[idx], cat_key
 
     return value if isinstance(value, int) else None
 
@@ -131,8 +128,8 @@ def get_binning(
         binning_config (dict): Configuration for binning, including n_bins and variable_config.
         process_cuts (str): Cuts to apply to the DataFrame.
         category_splits (dict): Dictionary defining how to split categories.
-        original_category_splits (dict): Original category splits for reference.
         var_dependence (str): The variable to be binned.
+        original_category_splits (dict): Original category splits for reference.
         prepend_space (int): Number of spaces to prepend for formatting.
         parent_cat_keys (list, optional): List of parent category keys for recursive calls.
         generated_categories_for_splits (dict, optional): Dynamically generated categories.
@@ -140,44 +137,27 @@ def get_binning(
     Returns:
         tuple: A tuple containing:
     """
-    if original_category_splits is None:
-        original_category_splits = category_splits
+    original_category_splits = original_category_splits or category_splits
     parent_cat_keys = parent_cat_keys or []
     generated_categories_for_splits = generated_categories_for_splits or {}
+
     current_split_var = next(iter(category_splits))
-
-    table = Table(
-        show_header=True,
-        header_style="bold magenta",
-        box=None,
-        show_lines=False,
-        title=f"Binning for {current_split_var}",
-    )
-    table.add_column("Category", style="dim", width=30)
-    table.add_column("Total Events", justify="right")
-    table.add_column("Bins")
-    table.add_column("Events/Bin", justify="left")
-
     generated_edges = {}
     generated_categories = {}
     remaining_splits = {k: v for k, v in category_splits.items() if k != current_split_var}
 
-    if isinstance(category_splits[current_split_var], (list, CommentedSeq)) and category_splits[current_split_var]:
-        categories = category_splits[current_split_var]
+    current_split_value = category_splits[current_split_var]
+    if isinstance(current_split_value, (list, CommentedSeq)) and current_split_value:
+        categories = current_split_value
         generated_categories[current_split_var] = categories
         generated_categories_for_splits[current_split_var] = categories
-    elif all(
-        [
-            current_split_var in binning_config.get("n_bins", {}),
-            isinstance(binning_config["n_bins"][current_split_var], int),
-        ]
-    ):  # Get categories for current split level
+    elif (current_split_var in binning_config.get("n_bins", {}) and isinstance(binning_config["n_bins"][current_split_var], int)):
         n_split_bins = binning_config["n_bins"][current_split_var]
         var_conf = binning_config["variable_config"][current_split_var]
         current_df = df.query(process_cuts)
         split_edges = _equipopulated_binned_variable(current_df[current_split_var], n_split_bins)
 
-        if len(split_edges) > 0:
+        if split_edges.size > 0:
             split_edges[0] = var_conf.get("min", split_edges[0])
             split_edges[-1] = var_conf.get("max", split_edges[-1])
 
@@ -185,9 +165,8 @@ def get_binning(
         generated_edges[current_split_var] = np.round(split_edges, rounding).tolist()
 
         categories = []
-        for i in range(len(split_edges) - 1):
-            lower = round(split_edges[i], rounding)
-            upper = round(split_edges[i + 1], rounding)
+        for i, (lower, upper) in enumerate(pairwise(split_edges)):
+            lower, upper = round(lower, rounding), round(upper, rounding)
 
             if i == 0:  # syntax setting
                 categories.append(f"<={upper}")
@@ -200,13 +179,11 @@ def get_binning(
         generated_categories_for_splits[current_split_var] = categories
     else:
         raise ValueError(
-            f"Unable to determine categories for '{current_split_var}'"
-            "neither trough equipopulated binning option nor explicit categories."
+            f"Unable to determine categories for '{current_split_var}' "
+            "neither through equipopulated binning option nor explicit categories."
         )
 
-    output_bins = OrderedDict()
     table = Table(show_header=True, header_style="bold magenta")
-
     category_header = f"Category: {current_split_var}"
     if parent_cat_keys:
         original_split_vars = list(original_category_splits.keys())
@@ -214,23 +191,19 @@ def get_binning(
         parent_key = parent_cat_keys[-1]
         category_header += f" (in {parent_var_name} {parent_key})"
 
-    table.add_column(category_header)
-    table.add_column("Num Events")
-    table.add_column(f"Bin Edges ({var_dependence})")
-    table.add_column("Num Events/Bin")
+    for col_name in [category_header, "Num Events", f"Bin Edges ({var_dependence})", "Num Events/Bin"]:
+        table.add_column(col_name)
+
+    output_bins = OrderedDict()
 
     for cat_key in categories:
-        query_cat_cut = (
-            f"{current_split_var} {cat_key}"
-            if not any(op in cat_key for op in ["<", ">", "=="])
-            else cat_key
-        )
-        if "#&&#" in query_cat_cut:
-            sub_cuts = query_cat_cut.split("#&&#")
-            query_cat_cut = f"({current_split_var} {sub_cuts[0]} & {current_split_var} {sub_cuts[1]})"
-        elif "#||#" in query_cat_cut:
-            sub_cuts = query_cat_cut.split("#||#")
-            query_cat_cut = f"({current_split_var} {sub_cuts[0]} | {current_split_var} {sub_cuts[1]})"
+        query_cat_cut = (cat_key if any(op in cat_key for op in ["<", ">", "=="]) else f"{current_split_var} {cat_key}")
+
+        for _sep, _join in [("#&&#", " & "), ("#||#", " | ")]:
+            if _sep in query_cat_cut:
+                sub_cuts = query_cat_cut.split(_sep)
+                query_cat_cut = f"({current_split_var} {sub_cuts[0]} {_join} {current_split_var} {sub_cuts[1]})"
+                break
         else:
             query_cat_cut = f"({current_split_var} {cat_key})"
 
@@ -258,11 +231,10 @@ def get_binning(
                 generated_categories.setdefault(var, {})[cat_key] = cats
         else:  # final level of splitting
             target_variable = var_dependence
-
             n_bins = get_n_bins(
                 n_bins_config=binning_config.get("var_dependence_n_bins"),
                 category_splits=generated_categories_for_splits,
-                full_cat_path=(parent_cat_keys or []) + [cat_key],
+                full_cat_path=current_cat_keys,
             )
 
             if n_bins and n_bins > 0:
@@ -275,7 +247,7 @@ def get_binning(
                     filtered_df = filtered_df.query(f"{target_variable} <= {max_val}")
 
                 bins = _equipopulated_binned_variable(filtered_df[target_variable], n_bins)
-                if len(bins) > 0:
+                if bins.size > 0:
                     bins[0] = var_conf.get("min", bins[0])
                     bins[-1] = var_conf.get("max", bins[-1])
 
@@ -289,25 +261,15 @@ def get_binning(
                     temp_config = binning_config[option]
                     split_vars = list(original_category_splits.keys())[:len(parent_cat_keys)]
 
-                    path_found = True
-                    for split_var, key in zip(split_vars, parent_cat_keys):
-                        if not (isinstance(temp_config, dict) and split_var in temp_config):
-                            path_found = False
-                            break
-                        temp_config = temp_config[split_var]
-                        if not (isinstance(temp_config, dict) and key in temp_config):
-                            break
-                        temp_config = temp_config[key]
+                    try:
+                        for split_var, key in zip(split_vars, parent_cat_keys):
+                            temp_config = temp_config[split_var][key]
 
-                    if not (path_found and isinstance(temp_config, (int, float, list, tuple))):
-                        continue  # no valid value
-
-                    value_to_add = temp_config
-
-                    if not isinstance(value_to_add, (list, tuple)):
-                        value_to_add = [value_to_add]
-
-                    bins = value_to_add + bins if option == "add_left" else bins + value_to_add
+                        if isinstance(temp_config, (int, float, list, tuple)):
+                            value_to_add = temp_config if isinstance(temp_config, (list, tuple)) else [temp_config]
+                            bins = value_to_add + bins if option == "add_left" else bins + value_to_add
+                    except (KeyError, TypeError):
+                        continue
 
                 events_per_bin = []
                 if len(bins) > 1:
@@ -363,14 +325,33 @@ if __name__ == "__main__":
     console.print(f"Loading data from [cyan]{root_file_path}[/cyan]")
     dataframe = uproot.open(root_file_path)[tree].arrays(library="pd")
 
-    if len((bool_cols := dataframe.select_dtypes(include=['bool']).columns)) > 0:
+    if (bool_cols := dataframe.select_dtypes(include=['bool']).columns).any():
         dataframe[bool_cols] = dataframe[bool_cols].astype(int)
-        console.print(f"Converted {bool_cols} boolean columns to integers.")
+        console.print(f"Converted {list(bool_cols)} boolean columns to integers.")
+
+    def get_merged_cuts(
+        var_config: Union[dict, CommentedMap],
+        parent_config: Union[dict, CommentedMap, None] = None,
+    ) -> str:
+        """Merge cuts for corrections, taking into account parent configurations."""
+        merged_cuts = {}
+
+        # Start from external file if provided
+        if cuts_config:
+            cuts_source = cuts_config["target_processes"][process]
+            merged_cuts = cuts_source.get(f"{args.cut_region}_cuts", {}).copy()
+
+        # Overwrite with parent cuts if available
+        if parent_config:
+            merged_cuts.update(parent_config.get(f"{args.cut_region}_cuts", {}))
+
+        # Apply local cuts
+        merged_cuts.update(var_config.get(f"{args.cut_region}_cuts", {}))
+
+        return " & ".join(f"({c})" for c in merged_cuts.values())
 
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
-
-        process_config, cuts = None, None
 
         if process == "process_fractions":
             if "process_fractions" not in config:
@@ -379,13 +360,10 @@ if __name__ == "__main__":
             process_config = config["process_fractions"]
             cuts = " & ".join(f"({c})" for c in process_config["AR_cuts"].values())
             console.print("Using AR cuts for process_fractions.")
-
         elif process in config.get("target_processes", {}):
             process_config = config["target_processes"][process]
-
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
             cuts = " & ".join(f"({c})" for c in cuts_source[f"{args.cut_region}_cuts"].values())
-
         else:
             console.print(f"[red]Process '{process}' not found in target_processes or as process_fractions. Skipping.[/red]")
             continue
@@ -411,39 +389,7 @@ if __name__ == "__main__":
         else:
             console.print(f"[red]Process '{process}' does not have equipopulated_binning_options. Skipping.[/red]")
 
-        def get_merged_cuts(
-            var_config: Union[dict, CommentedMap],
-            parent_config: Union[dict, CommentedMap, None] = None,
-        ) -> str:
-            """
-            Function to merge cuts for corrections, taking into account parent configurations.
-            var_config represents the current correction block configuration,
-            parent_config is the parent correction block configuration (if any), i.e. DR_SR
-            if provided.
-
-            Args:
-                var_config (dict): Configuration for the current correction block.
-                parent_config (dict, optional): Parent configuration to override cuts if available.
-
-            Returns:
-                str: Merged cuts as a string.
-            """
-
-            merged_cuts = {}
-            if cuts_config:  # start from external file if provided
-                cuts_source = cuts_config["target_processes"][process]
-                merged_cuts = cuts_source.get(f"{args.cut_region}_cuts", {}).copy()
-
-            if parent_config:  # overwrite with parent cuts if available i.e. DR_SR
-                parent_cuts = parent_config.get(f"{args.cut_region}_cuts", {})
-                merged_cuts.update(parent_cuts)
-
-            local_cuts = var_config.get(f"{args.cut_region}_cuts", {})
-            merged_cuts.update(local_cuts)
-
-            return " & ".join(f"({c})" for c in merged_cuts.values())
-
-        if "non_closure" in process_config:  # top level non_closure corrections
+        if "non_closure" in process_config:
             for var, var_config in process_config["non_closure"].items():
                 if EQUIPOPULATED_BINNING_OPTIONS_KEY not in var_config:
                     console.print(f"[red]Correction '{var}' does not have equipopulated_binning_options. Skipping.[/red]")
@@ -467,37 +413,39 @@ if __name__ == "__main__":
                 var_config["var_bins"] = func.to_commented_map(new_bins)
                 var_config["split_categories"].update(func.to_commented_map(new_cats))
                 var_config.setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
+
         if "DR_SR" in process_config:
-            if EQUIPOPULATED_BINNING_OPTIONS_KEY not in process_config["DR_SR"]:
+            dr_sr_config = process_config["DR_SR"]
+            if EQUIPOPULATED_BINNING_OPTIONS_KEY not in dr_sr_config:
                 console.print("[red]DR_SR does not have equipopulated_binning_options. Skipping.[/red]")
                 continue
 
-            final_cuts = get_merged_cuts(process_config["DR_SR"])
+            final_cuts = get_merged_cuts(dr_sr_config)
             temp_cuts = final_cuts.replace('&&', '&').replace('!', '~').replace('||', '|')
 
             console.print("  Processing correction: [bold magenta]DR_SR[/bold magenta]")
-            console.print(f"    Variable to bin: [bold magenta]{process_config['DR_SR']['var_dependence']}[/bold magenta]")
+            console.print(f"    Variable to bin: [bold magenta]{dr_sr_config['var_dependence']}[/bold magenta]")
             console.print(f"    Base cuts: [dim]{temp_cuts}[/dim]")
 
             new_bins, _, new_edges, new_cats = get_binning(
                 df=dataframe,
-                binning_config=process_config["DR_SR"][EQUIPOPULATED_BINNING_OPTIONS_KEY],
+                binning_config=dr_sr_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                 process_cuts=temp_cuts,
-                category_splits=process_config["DR_SR"]["split_categories"],
-                var_dependence=process_config["DR_SR"]["var_dependence"],
+                category_splits=dr_sr_config["split_categories"],
+                var_dependence=dr_sr_config["var_dependence"],
             )
 
-            process_config["DR_SR"]["var_bins"] = func.to_commented_map(new_bins)
-            process_config["DR_SR"]["split_categories"].update(func.to_commented_map(new_cats))
-            process_config["DR_SR"].setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
+            dr_sr_config["var_bins"] = func.to_commented_map(new_bins)
+            dr_sr_config["split_categories"].update(func.to_commented_map(new_cats))
+            dr_sr_config.setdefault("split_categories_binedges", CommentedMap()).update(func.to_commented_map(new_edges))
 
-            if "non_closure" in process_config["DR_SR"]:
-                for var, var_config in process_config["DR_SR"]["non_closure"].items():
+            if "non_closure" in dr_sr_config:
+                for var, var_config in dr_sr_config["non_closure"].items():
                     if EQUIPOPULATED_BINNING_OPTIONS_KEY not in var_config:
                         console.print(f"[red]Correction '{var}' does not have equipopulated_binning_options. Skipping.[/red]")
                         continue
 
-                    final_cuts = get_merged_cuts(var_config, parent_config=process_config["DR_SR"])
+                    final_cuts = get_merged_cuts(var_config, parent_config=dr_sr_config)
                     temp_cuts = final_cuts.replace('&&', '&').replace('!', '~').replace('||', '|')
 
                     console.print(f"  Processing correction: [bold magenta]DR_SR/non_closure/{var}[/bold magenta]")
