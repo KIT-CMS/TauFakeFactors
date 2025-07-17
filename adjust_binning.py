@@ -136,6 +136,10 @@ def get_binning(
 
     Returns:
         tuple: A tuple containing:
+            - output_bins (OrderedDict): The generated bins for each category.
+            - parent_cat_keys (list): The list of parent category keys.
+            - generated_edges (dict): The edges generated for each variable.
+            - generated_categories (dict): The categories generated for each variable.
     """
     original_category_splits = original_category_splits or category_splits
     parent_cat_keys = parent_cat_keys or []
@@ -157,7 +161,7 @@ def get_binning(
         current_df = df.query(process_cuts)
         split_edges = _equipopulated_binned_variable(current_df[current_split_var], n_split_bins)
 
-        if split_edges.size > 0:
+        if split_edges.size > 1:
             split_edges[0] = var_conf.get("min", split_edges[0])
             split_edges[-1] = var_conf.get("max", split_edges[-1])
 
