@@ -2,7 +2,7 @@ import argparse
 from collections import OrderedDict
 from itertools import pairwise
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -119,7 +119,7 @@ def get_binning(
     prepend_space: int = 0,
     parent_cat_keys: Union[list, None] = None,
     generated_categories_for_splits: Union[dict, None] = None,
-) -> tuple:
+) -> Tuple[OrderedDict, dict, dict]:
     """
     Recursively calculates equipopulated binning for a variable based on category splits.
 
@@ -137,7 +137,6 @@ def get_binning(
     Returns:
         tuple: A tuple containing:
             - output_bins (OrderedDict): The generated bins for each category.
-            - parent_cat_keys (list): The list of parent category keys.
             - generated_edges (dict): The edges generated for each variable.
             - generated_categories (dict): The categories generated for each variable.
     """
