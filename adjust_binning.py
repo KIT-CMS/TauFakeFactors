@@ -217,7 +217,7 @@ def get_binning(
 
         if remaining_splits:
             table.add_row(f"{' ' * prepend_space}{cat_key}", str(len(sub_df)), "", "")
-            nested_bins, _, nested_edges, nested_cats = get_binning(
+            nested_bins, nested_edges, nested_cats = get_binning(
                 df=df,
                 binning_config=binning_config,
                 process_cuts=combined_cut,
@@ -293,7 +293,7 @@ def get_binning(
 
     console.print(table)
 
-    return output_bins, parent_cat_keys, generated_edges, generated_categories
+    return output_bins, generated_edges, generated_categories
 
 
 if __name__ == "__main__":
@@ -379,7 +379,7 @@ if __name__ == "__main__":
             console.print(f"Variable to bin: [bold magenta]{process_config['var_dependence']}[/bold magenta]")
             console.print(f"Base cuts: [dim]{temp_cuts}[/dim]")
 
-            new_bins, _, new_edges, new_cats = get_binning(
+            new_bins, new_edges, new_cats = get_binning(
                 df=dataframe,
                 binning_config=binning_config,
                 process_cuts=temp_cuts,
@@ -406,7 +406,7 @@ if __name__ == "__main__":
                 console.print(f"    Variable to bin: [bold magenta]{var_config['var_dependence']}[/bold magenta]")
                 console.print(f"    Base cuts: [dim]{temp_cuts}[/dim]")
 
-                new_bins, _, new_edges, new_cats = get_binning(
+                new_bins, new_edges, new_cats = get_binning(
                     df=dataframe,
                     binning_config=var_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                     process_cuts=temp_cuts,
@@ -431,7 +431,7 @@ if __name__ == "__main__":
             console.print(f"    Variable to bin: [bold magenta]{dr_sr_config['var_dependence']}[/bold magenta]")
             console.print(f"    Base cuts: [dim]{temp_cuts}[/dim]")
 
-            new_bins, _, new_edges, new_cats = get_binning(
+            new_bins, new_edges, new_cats = get_binning(
                 df=dataframe,
                 binning_config=dr_sr_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                 process_cuts=temp_cuts,
@@ -456,7 +456,7 @@ if __name__ == "__main__":
                     console.print(f"    Variable to bin: [bold magenta]{var_config['var_dependence']}[/bold magenta]")
                     console.print(f"    Base cuts: [dim]{temp_cuts}[/dim]")
 
-                    new_bins, _, new_edges, new_cats = get_binning(
+                    new_bins, new_edges, new_cats = get_binning(
                         df=dataframe,
                         binning_config=var_config[EQUIPOPULATED_BINNING_OPTIONS_KEY],
                         process_cuts=temp_cuts,
