@@ -7,12 +7,68 @@ import glob
 import logging
 import os
 import sys
+from decimal import Decimal
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import ROOT
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
+
+
+def to_commented_map(items: dict) -> CommentedMap:
+    """
+    Recursively converts a Python dictionary to a ruamel.yaml CommentedMap,
+    ensuring that list leaves are in flow style and keys with operators are quoted.
+    This function is now centralized here.
+    """
+    if not isinstance(items, dict):
+        return items
+    commented_map = CommentedMap()
+    for key, value in items.items():
+        if any(op in str(key) for op in ["<=", ">=", "<", ">", "==", "#"]):
+            key = DoubleQuotedScalarString(key)
+
+        if isinstance(value, dict):
+            commented_map[key] = to_commented_map(value)
+        elif isinstance(value, list) and not any(isinstance(i, (dict, list)) for i in value):
+            cs = CommentedSeq(value)
+            cs.fa.set_flow_style()
+            commented_map[key] = cs
+        elif isinstance(value, list):
+            commented_map[key] = [to_commented_map(item) for item in value]
+        else:
+            commented_map[key] = value
+    return commented_map
+
+
+class ConfiguredYAML(YAML):
+    """
+    Pre-configured YAML for handling specific formatting setting:
+    - Better float representer to avoid scientific notation (those are stored as strings).
+    - Improved dump() method for automatic apply of to_commented_map for better readable list structures.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.preserve_quotes = True
+        self.indent(mapping=2, sequence=4, offset=2)
+        self.width = 4096  # No line break in the output, never!
+
+        def smart_float_representer(representer, data):
+            cleaned_decimal = Decimal(str(data)).quantize(Decimal('1e-12'))
+            formatted_str = f"{cleaned_decimal:.15f}".rstrip('0')
+            if formatted_str.endswith('.'):
+                formatted_str += '0'
+            return representer.represent_scalar('tag:yaml.org,2002:float', formatted_str)
+
+        self.representer.add_representer(float, smart_float_representer)
+        self.representer.add_representer(np.floating, smart_float_representer)
+
+
+configured_yaml = ConfiguredYAML()
 
 
 class RuntimeVariables(object):
@@ -64,11 +120,11 @@ def get_cached_file_path(
     cache_path = os.path.join(output_path, ".cache")
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
-     
+
     corr_type_str = "DR_SR" if variables is None else "non_closure"
     for_DRtoSR_str = "for_DRtoSR" if for_DRtoSR else ""
     process_str = "" if process is None else process
-    if variables == None:
+    if variables is None:
         variables_str = ""
     elif isinstance(variables[0], str):
         variables_str = "_".join(variables)
@@ -81,7 +137,7 @@ def get_cached_file_path(
                 You sure you are doing the right thing?
             """
         )
-    
+
     file_name = "_".join([corr_type_str, for_DRtoSR_str, process_str, variables_str]) + ".pickle"
 
     return os.path.join(cache_path, file_name)
@@ -240,7 +296,7 @@ def load_config(config_file: str) -> Dict:
 
     Args:
         config_file: Path to the specific config file
-    
+
     Return:
         Configuration as a dictionary
     """
@@ -256,16 +312,16 @@ def load_config(config_file: str) -> Dict:
         )
         print("-" * 50)
     else:
-        print(f"No common config file found!")
+        print("No common config file found!")
 
     config = {}
     with open(common_config_file, "r") as file:
-        config.update(yaml.load(file, yaml.FullLoader))
+        config.update(configured_yaml.load(file))
 
     # loading of the chosen config file
     try:
         with open(config_file, "r") as file:
-            _config = yaml.load(file, yaml.FullLoader)
+            _config = configured_yaml.load(file)
             repeating_keys = set(config.keys()).intersection(set(_config.keys()))
             if repeating_keys:
                 _overwriting = "\n\t".join(f"{k}: {_config[k]}" for k in repeating_keys)
@@ -314,7 +370,7 @@ def setup_logger(
 
     Return:
         None
-    """        
+    """
     # create file handler
     fh = logging.FileHandler(log_file)
     fh.setLevel(log_level)
@@ -593,17 +649,40 @@ def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
     Return:
         None
     """
+    def _recursive_check(categories_config, binedges_config, process_name, var_name):
+        if isinstance(binedges_config, list):  # binedge_config is a list -> leaf -> break
+            if not isinstance(categories_config, list):
+                raise TypeError(f"Category definition for {process_name}/{var_name} is not a list, but binedges are.")
+            if len(categories_config) != len(binedges_config) - 1:
+                raise Exception(
+                    f"Categories and binning for the categories does not match up for {process_name}, {var_name}.\n"
+                    f"Found {len(categories_config)} categories and {len(binedges_config)} bin edges."
+                )
+            return None
+
+        if not isinstance(categories_config, dict) or not isinstance(binedges_config, dict):
+            return None    # old style config compatible (not nested 1evel dicts)
+
+        if categories_config.keys() != binedges_config.keys():
+            raise Exception(
+                f"Keys for nested categories and binnings do not match for {process_name}, {var_name}.\n"
+                f"Category keys: {categories_config.keys()}\nBinedge keys: {binedges_config.keys()}"
+            )
+
+        for key in categories_config:
+            _recursive_check(categories_config[key], binedges_config[key], process_name, f"{var_name}/{key}")
+
     if "target_processes" in config:
-        for process in config["target_processes"]:
-            categories = config["target_processes"][process]["split_categories"]
-            category_edges = config["target_processes"][process][
-                "split_categories_binedges"
-            ]
-            for cat in categories:
-                if len(categories[cat]) != (len(category_edges[cat]) - 1):
-                    raise Exception(
-                        f"Categories and binning for the categories does not match up for {process}, {cat}."
-                    )
+        for process, process_conf in config["target_processes"].items():
+            if "split_categories" in process_conf and "split_categories_binedges" in process_conf:
+                split_cats = process_conf["split_categories"]
+                split_bins = process_conf["split_categories_binedges"]
+
+                if split_cats.keys() != split_bins.keys():
+                    raise Exception(f"Split variables in split_categories and split_categories_binedges do not match for {process}.")
+
+                for var in split_cats:
+                    _recursive_check(split_cats[var], split_bins[var], process, var)
 
     if "process_fractions" in config:
         fraction_categories = config["process_fractions"]["split_categories"]
@@ -614,9 +693,7 @@ def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
             if len(fraction_categories[cat]) != (
                 len(fraction_categories_edges[cat]) - 1
             ):
-                raise Exception(
-                    "Categories and binning for the categories does not match up for {cat} for fractions."
-                )
+                raise Exception("Categories and binning for the categories does not match up for {cat} for fractions.")
 
 
 def modify_config(

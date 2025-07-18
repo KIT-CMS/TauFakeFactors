@@ -12,7 +12,6 @@ from copy import deepcopy
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
-import yaml
 
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_ttbar as FF_ttbar
@@ -43,7 +42,7 @@ parser.add_argument(
     action="store_true",
     help="""
         Flag to use cached non closure corrections and FF for DRtoSR corrections if
-        available. Will check for existance assuming the same order of all previous 
+        available. Will check for existance assuming the same order of all previous
         correction calculations.
     """,
 )
@@ -163,7 +162,7 @@ def run_non_closure_correction(
         process_config = deepcopy(corr_config["target_processes"][process]["DR_SR"])
     else:
         process_config = deepcopy(corr_config["target_processes"][process])
-        
+
     all_non_closure_corr_vars, correction_set, is_valid_cache = [], None, True
     for idx, (closure_var, closure_var_config) in enumerate(
         process_config["non_closure"].items(),
@@ -197,7 +196,7 @@ def run_non_closure_correction(
         cached_non_closure = func.get_cached_file_path(
             output_path=output_path,
             process=process,
-            variables=all_non_closure_corr_vars, 
+            variables=all_non_closure_corr_vars,
             for_DRtoSR=for_DRtoSR,
         )
 
@@ -535,13 +534,13 @@ if __name__ == "__main__":
     func.check_path(path=os.path.join(os.getcwd(), workdir_path))
 
     with open(os.path.join(workdir_path, "fake_factors", corr_config["channel"], "config.yaml"), "r") as file:
-        config = yaml.load(file, yaml.FullLoader)
+        config = func.configured_yaml.load(file)
 
     save_path = os.path.join(workdir_path, "corrections", config["channel"])
     func.check_path(path=os.path.join(os.getcwd(), save_path))
 
     with open(save_path + "/config.yaml", "w") as config_file:
-        yaml.dump(corr_config, config_file, default_flow_style=False, sort_keys=False)
+        func.configured_yaml.dump(corr_config, config_file)
 
     # start output logging
     func.setup_logger(
@@ -569,12 +568,12 @@ if __name__ == "__main__":
         config["channel"],
         f"fake_factors_{config['channel']}_for_corrections.json",
     )
-    
+
     is_valid_cache = True
     cached_DR_SR_ffs = func.get_cached_file_path(
         output_path=save_path,
     )
-    
+
     if os.path.exists(cached_DR_SR_ffs):
         with open(cached_DR_SR_ffs, "rb") as f:
             __ffs, __corr_config = pickle.load(f)
@@ -582,9 +581,9 @@ if __name__ == "__main__":
                 if "DR_SR" in corr_config["target_processes"][proc]:
                     __test_config = __corr_config["target_processes"][proc]["DR_SR"]
                     test_config = corr_config["target_processes"][proc]["DR_SR"]
-                    
+
                     is_valid_cache = all(
-                        func.nested_object_comparison(__test_config[k], test_config[k]) 
+                        func.nested_object_comparison(__test_config[k], test_config[k])
                         for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts")
                     )
     else:
@@ -594,7 +593,7 @@ if __name__ == "__main__":
     if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS and is_valid_cache:
         log.info("Using cached DR to SR fake factors.")
         fake_factors = __ffs
-    else:           
+    else:
         fake_factors = dict()
 
         if "target_processes" in corr_config:
@@ -621,7 +620,7 @@ if __name__ == "__main__":
                 output_path=save_path,
                 for_corrections=True,
             )
-        
+
         with open(cached_DR_SR_ffs, "wb") as f:
             pickle.dump(
                 (fake_factors, corr_config),

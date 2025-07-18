@@ -330,7 +330,17 @@ def make_2D_ff(
     """
     # get categories from config
     cat_inputs = list(process_conf["split_categories"].keys())
-    cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
+    cat_values_conf = process_conf["split_categories"]
+    binedges_conf = process_conf["split_categories_binedges"]
+    cat2_values_for_desc = []
+    cat2_conf = cat_values_conf[cat_inputs[1]]
+    if isinstance(cat2_conf, dict):  # New format
+        for cat_list in cat2_conf.values():
+            cat2_values_for_desc.extend(cat_list)
+        cat2_values_for_desc = list(dict.fromkeys(cat2_values_for_desc))
+    else:  # Old format
+        cat2_values_for_desc = cat2_conf
+
     ff = cs.Correction(
         name=f"{process}_fake_factors",
         description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
@@ -343,17 +353,17 @@ def make_2D_ff(
                 description=replace_varmin_varmax(
                     gd.variable_description[variable_info[0]],
                     variable_info[1],
-                )
+                ),
             ),
             cs.Variable(
                 name=cat_inputs[0],
                 type=gd.variable_type[cat_inputs[0]],
-                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values[0])}",
+                description=f"{gd.variable_description[cat_inputs[0]]} {', '.join(cat_values_conf[cat_inputs[0]])}",
             ),
             cs.Variable(
                 name=cat_inputs[1],
                 type=gd.variable_type[cat_inputs[1]],
-                description=f"{gd.variable_description[cat_inputs[1]]} {', '.join(cat_values[1])}",
+                description=f"{gd.variable_description[cat_inputs[1]]} {', '.join(cat2_values_for_desc)}",
             ),
             cs.Variable(
                 name="syst",
@@ -375,12 +385,16 @@ def make_2D_ff(
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
-                        edges=process_conf["split_categories_binedges"][cat_inputs[0]],
+                        edges=binedges_conf[cat_inputs[0]],
                         content=[
                             cs.Binning(
                                 nodetype="binning",
                                 input=cat_inputs[1],
-                                edges=process_conf["split_categories_binedges"][cat_inputs[1]],
+                                edges=(
+                                    binedges_conf[cat_inputs[1]][cat1.split("#")[-1]]
+                                    if isinstance(binedges_conf[cat_inputs[1]], dict)
+                                    else binedges_conf[cat_inputs[1]]
+                                ),
                                 content=[
                                     cs.Binning(
                                         nodetype="binning",
@@ -406,12 +420,16 @@ def make_2D_ff(
             default=cs.Binning(
                 nodetype="binning",
                 input=cat_inputs[0],
-                edges=process_conf["split_categories_binedges"][cat_inputs[0]],
+                edges=binedges_conf[cat_inputs[0]],
                 content=[
                     cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[1],
-                        edges=process_conf["split_categories_binedges"][cat_inputs[1]],
+                        edges=(
+                            binedges_conf[cat_inputs[1]][cat1.split("#")[-1]]
+                            if isinstance(binedges_conf[cat_inputs[1]], dict)
+                            else binedges_conf[cat_inputs[1]]
+                        ),
                         content=[
                             cs.Binning(
                                 nodetype="binning",
@@ -541,9 +559,7 @@ def make_1D_fractions(
                         value=cs.Binning(
                             nodetype="binning",
                             input=cat_inputs[0],
-                            edges=fraction_conf["split_categories_binedges"][
-                                cat_inputs[0]
-                            ],
+                            edges=fraction_conf["split_categories_binedges"][cat_inputs[0]],
                             content=[
                                 cs.Binning(
                                     nodetype="binning",

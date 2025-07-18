@@ -299,4 +299,7 @@ dependencies:
       - pillow==11.1.0
       - pyparsing==3.2.3
       - uhi==0.5.0
+      - ruamel.yaml==0.18.14
+      - uproot==5.5.0
+      - pandas==2.2.3
 prefix: /work/nshadskiy/miniconda3/envs/fake_factors

@@ -215,19 +215,20 @@ class SplitQuantities:
         """
 
         collection = []
-        for values in (c.values() for c in self.split):
-            values = list(values)
-            assert values[0] in self.config[key], f"Key {values[0]} not found in {key}"
-            _obj = self.config[key].get(values[0])
-            if len(values) == 1:
-                collection.append(_obj)
-            elif len(values) == 2 and isinstance(_obj, dict):
-                assert values[1] in _obj, f"Key {values[1]} not found in {key}-{values[0]}"
-                collection.append(_obj.get(values[1]))
-            elif len(values) == 2 and isinstance(_obj, list):
-                collection.append(_obj)
-            else:
-                raise Exception(f"Invalid type for {key}")
+        for split_combination in self.split:
+            if split_combination is None:
+                collection.append(self.config[key])
+                continue
+
+            temp_config = self.config[key]
+            for variable_name in self.split_variables:  # transverse the split variables
+                category_value = split_combination[variable_name]
+                if isinstance(temp_config, dict) and category_value in temp_config:
+                    temp_config = temp_config[category_value]
+                else:  # old style or missing category, might apply to all sub-categories
+                    break
+
+            collection.append(temp_config)
 
         assert len(self) == len(collection), f"Length of split combinations and {key} do not match"
 
@@ -264,20 +265,46 @@ class SplitQuantities:
         Generate all combinations of split options based on the split_variables and categories.
         if split_variables are defined else returns [None].
 
+        This method handles both flat lists for categories and nested dictionaries.
+
         Returns:
             list: List of dictionaries; each dictionary maps split variable names to category values.
         """
-
         if hasattr(self, "_split") and self._split is not None:
             return self._split
 
-        if self.split_variables:
-            return [
-                dict(zip(self.split_variables, v))
-                for v in itt.product(*(self.categories[_v] for _v in self.split_variables))
-            ]
-        else:
-            return [None]
+        if not self.split_variables:
+            self._split = [None]
+            return self._split
+
+        variable1_name = self.split_variables[0]
+        variable1_categories = self.categories[variable1_name]
+
+        combinations = [{variable1_name: cat} for cat in variable1_categories]
+
+        for i in range(1, len(self.split_variables)):  # iteratively build combinations
+            next_variable_name = self.split_variables[i]
+            next_variable_categories_config = self.categories[next_variable_name]
+
+            new_combinations = []
+            for combo in combinations:
+                if isinstance(next_variable_categories_config, dict):
+                    parent_key = combo[self.split_variables[i-1]]
+                    if parent_key not in next_variable_categories_config:
+                        raise KeyError(f"Category '{parent_key}' not found in '{next_variable_name}' split definition.")
+                    sub_categories = next_variable_categories_config[parent_key]
+                else:  # old style: same list of sub-categories -> all parents
+                    sub_categories = next_variable_categories_config
+
+                for sub_category in sub_categories:  # new combination
+                    new_combination = combo.copy()
+                    new_combination[next_variable_name] = sub_category
+                    new_combinations.append(new_combination)
+
+            combinations = new_combinations
+
+        self._split = combinations
+        return self._split
 
     @property
     def var_bins(self) -> List[float]:
@@ -603,7 +630,7 @@ def apply_region_filters(
                 tmp[cut] = f"{cut} {category_cuts[cut]}"
             else:
                 a, op, b = category_cuts[cut].split("#")
-                tmp[cut] = f"({cut} {a}) {op} ({cut} {b})"
+                tmp[cut] = f"(({cut} {a}) {op} ({cut} {b}))"
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:
