@@ -198,7 +198,7 @@ The framework includes a utility script, `adjust_binning.py`, for an automatic c
 The script is intended to be run berofe the fake factor and correction calculation by using
 
 ```bash
-python adjust_binning.py --config config.yaml --cut-config onfig_with_region_cuts.yaml --processes QCD Wjets --cut-region ARlike
+python adjust_binning.py --config config.yaml --cut-config config_with_region_cuts.yaml --processes QCD Wjets --cut-region ARlike
 ```
 
 | Argument | Type | Description |
@@ -375,7 +375,7 @@ equipopulated_binning_options:
 <summary><strong>Discrete then continuous variable</strong> (e.g., <code>njets</code> then <code>pt_1</code>).</summary>
 
 
-pt_1 is binned equipopulated within each njets category.
+`pt_1` is binned equipopulated within each `njets` category.
 
 ```yaml
 split_categories:
