@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.15">
     
     
       
@@ -323,6 +323,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#automated-equipopulated-binning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automated Equipopulated Binning
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Automated Equipopulated Binning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-splitting-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Splitting Strategies
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -411,6 +444,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#automated-equipopulated-binning" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automated Equipopulated Binning
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Automated Equipopulated Binning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-splitting-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Splitting Strategies
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -427,7 +493,7 @@
 
 
   
-    <a href="https://github.com/KIT-CMS/TauFakeFactors/edit/master/docs/index.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/KIT-CMS/TauFakeFactors/edit/master/docs/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -917,6 +983,304 @@ The last step is to calculate all the specified corrections for the main fake fa
 <li>check out <code>configs/general_definitions.py</code>, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information</li>
 <li>check <code>ntuple_path</code> and <code>output_path</code> (preselection) and <code>file_path</code> and <code>workdir_name</code> (fake factors, corrections) in the used config files to avoid wrong inputs or outputs</li>
 </ul>
+<h2 id="automated-equipopulated-binning">Automated Equipopulated Binning<a class="headerlink" href="#automated-equipopulated-binning" title="Permanent link">&para;</a></h2>
+<p>The framework includes a utility script, <code>adjust_binning.py</code>, for an automatic calculation and update binning definitions within the configuration in case of equipopulated binning approach of specified variable (<code>var_dependence</code>) across various categories for a more robust statistical treatment in each analysis region. The general intention is to have an equipopulated data distribution in the SRlike region given possible additional splittings (i.e. in <code>njets</code>).</p>
+<p>The script is intended to be run berofe the fake factor and correction calculation by using</p>
+<pre><code class="language-bash">python adjust_binning.py --config config.yaml --cut-config config_with_region_cuts.yaml --processes QCD Wjets --cut-region ARlike
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--config</code></td>
+<td><code>string</code></td>
+<td>Path to the YAML configuration file that will be modified.</td>
+</tr>
+<tr>
+<td><code>--cuts-config</code></td>
+<td><code>string</code></td>
+<td>(Optional) Path to a separate YAML file containing cut definitions. This is useful for correction YAML files where cuts are not specified directly for each correction but then are sourced from the cuts-config file, which can just be the fake factor YAML configuration.</td>
+</tr>
+<tr>
+<td><code>--processes</code></td>
+<td><code>list[string]</code></td>
+<td>A list of processes to adjust (e.g., <code>QCD</code>, <code>Wjets</code>, <code>ttbar</code>, <code>process_fractions</code>). The default is set to include all processes.</td>
+</tr>
+<tr>
+<td><code>--cut-region</code></td>
+<td><code>string</code></td>
+<td>The region cut to be applied when determining event counts (e.g., <code>SRlike</code>, <code>ARlike</code>). <code>process_fractions</code> always use the <code>AR_cut</code>.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td><code>bool</code></td>
+<td>Preview the binning calculations and changes without modifying the config file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>To enable this feature, you must add a <code>equipopulated_binning_options</code> block to the relevant process or correction section in your configuration file. The script uses this block to generate the new binning and will populate the <code>var_bins</code> key and update <code>split_categories</code> and <code>split_categories_binedges</code> if they are left blank i.e. for continuous variables such as <code>pt_1</code>.</p>
+<p>For example, a manually binned configuration for the <code>QCD</code> process:</p>
+<pre><code class="language-yaml"># Before: Manual binning for QCD process
+target_processes:
+  QCD:
+    split_categories:
+      njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 1.5, 12.5]
+    var_dependence: pt_2
+    var_bins: 
+      &quot;==0&quot;: [30.0, 31.6, 33.5, 35.9, 38.9, 43.6, 51.6, 150.0]
+      &quot;==1&quot;: [30.0, 32.2, 35.3, 40.3, 50.9, 150.0]
+      &quot;&gt;=2&quot;: [30.0, 32.7, 36.5, 42.5, 57.0, 150.0]
+</code></pre>
+<p>Can be replaced with a configuration for automated binning:</p>
+<pre><code class="language-yaml"># After: Configuration for automated binning
+target_processes:
+  QCD:
+    split_categories:
+      njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 1.5, 12.5]
+    var_dependence: pt_2
+    var_bins: {} # This will be filled by the script
+    equipopulated_binning_options:
+      variable_config:
+        pt_2:
+          min: 30.0
+          max: 150.0
+          rounding: 2
+      n_bins:  # this part is necessarily only needed for continuous variables
+        njets: 3  # number of bins for njets ==0, ==1, &gt;=2
+      var_dependence_n_bins: [7, 5, 5]
+</code></pre>
+<p>The <code>equipopulated_binning_options</code> block has the following structure:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>variable_config</code></td>
+<td><code>dict</code></td>
+<td>Defines parameters for variables used in binning. See sub-parameters below.</td>
+</tr>
+<tr>
+<td><code>n_bins</code></td>
+<td><code>dict</code></td>
+<td>Specifies the desired number of bins per variable in <code>split_categories</code> if those are not set there in case of continuous variables, i.e. four equidistant bins in <code>pt_1</code>: <code>pt_1: 4</code></td>
+</tr>
+<tr>
+<td><code>var_dependence_n_bins</code></td>
+<td><code>int</code> or <code>list[int]</code> or <code>list[list[int]]</code></td>
+<td>Number of bins used for the variable defined in <code>var_dependence</code>, either as int (used by all categories) or a (nested) list of integers defining number of bins per (nested) category created.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>variable_config</code> for each variable contains:</p>
+<table>
+<thead>
+<tr>
+<th>Sub-parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>min</code></td>
+<td><code>float</code></td>
+<td>The lower bound for the variable's range. The first bin edge will be set to this value. This is applied as a cut before the calculation of equipopulated binning starts.</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td><code>float</code></td>
+<td>The upper bound for the variable's range. The last bin edge will be set to this value. This is applied as a cut before the calculation of equipopulated binning starts.</td>
+</tr>
+<tr>
+<td><code>rounding</code></td>
+<td><code>int</code></td>
+<td>The number of decimal places to which the calculated bin edges will be rounded to and written into the configuration file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="advanced-splitting-strategies">Advanced Splitting Strategies<a class="headerlink" href="#advanced-splitting-strategies" title="Permanent link">&para;</a></h3>
+<p>The script supports various one- and two-dimensional splitting strategies, determined by the structure of <code>split_categories</code>. The order of variables defines the nesting hierarchy.</p>
+<ol>
+<li>One-Dimensional Splitting</li>
+</ol>
+<ul>
+<li>
+<details>
+<summary><strong>By a discrete variable</strong> (e.g., <code>njets</code>): Categories are explicitly listed.</summary>
+
+Number of bins of `var_dependence` in each category are set explicitly
+
+<pre><code class="language-yaml">split_categories:
+  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+split_categories_binedges:
+  njets: [-0.5, 0.5, 1.5, 12.5]
+equipopulated_binning_options:
+  variable_config:
+    pt_2:
+      min: 30.0
+      max: 150.0
+      rounding: 4
+  var_dependence_n_bins: [7, 5, 5]
+</code></pre>
+
+Same number of bins of `var_dependence` in each category
+
+<pre><code class="language-yaml">split_categories:
+  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+split_categories_binedges:
+  njets: [-0.5, 0.5, 1.5, 12.5]
+equipopulated_binning_options:
+  variable_config:
+    pt_2:
+      min: 30.0
+      max: 150.0
+      rounding: 4
+  var_dependence_n_bins: 7
+</code></pre>
+
+</details>
+</li>
+<li>
+<details>
+<summary><strong>By a continuous variable</strong> (e.g., <code>pt_1</code>): An empty list <code>[]</code> is used as a placeholder.</summary>
+
+
+The script will first create equipopulated bins for `pt_1` and then bin `var_dependence` within each of those new `pt_1` categories.
+
+
+<pre><code class="language-yaml">split_categories:
+  pt_1: []
+split_categories_binedges:
+  pt_1: []
+equipopulated_binning_options:
+  variable_config:
+    pt_2: 
+      min: 30.0
+      max: 150.0
+      rounding: 4
+    pt_1: 
+      min: 0.0
+      max: 1000.0
+      rounding: 2
+  n_bins:
+    pt_1: 4 # Creates 4 categories for pt_1, which are then used for pt_2 binning
+  var_dependence_n_bins: [7, 7, 6, 5] # number of bins per pt_1 split 
+</code></pre>
+
+</details>
+</li>
+</ul>
+<ol>
+<li>Two-Dimensional (Nested) Splitting</li>
+</ol>
+<ul>
+<li>
+<details>
+<summary><strong>Two discrete variables</strong> (e.g., <code>tau_decaymode_2</code> then <code>njets</code>).</summary>
+
+
+You can also merge categories using the <code>#||#</code> syntax.
+
+
+<pre><code class="language-yaml">split_categories:
+  tau_decaymode_2: [&quot;==0&quot;, &quot;==1&quot;, &quot;==10&quot;, &quot;==11&quot;]
+  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+split_categories_binedges:
+  tau_decaymode_2: [-0.5, 0.5, 9.5, 11.5]
+  njets: [-0.5, 0.5, 1.5, 12.5]
+equipopulated_binning_options:
+  variable_config:
+    pt_2: 
+      min: 30.0
+      max: 150.0
+      rounding: 4
+  var_dependence_n_bins: [[9, 8, 7], [7, 7, 7], 6, 6]  # here 6 == [6, 6, 6] 
+
+</code></pre>
+
+</details>
+</li>
+<li>
+<details>
+<summary><strong>Discrete then continuous variable</strong> (e.g., <code>njets</code> then <code>pt_1</code>).</summary>
+
+
+`pt_1` is binned equipopulated within each `njets` category.
+
+
+<pre><code class="language-yaml">split_categories:
+  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
+  pt_1: [] # Placeholder for equipopulated split
+split_categories_binedges:
+  njets: [-0.5, 0.5, 1.5, 12.5]
+  pt_1: [] # Placeholder for equipopulated split
+equipopulated_binning_options:
+  variable_config:
+    pt_2: 
+      min: 30.0
+      max: 150.0
+      rounding: 4
+    pt_1: 
+      min: 0.0
+      max: 3000.0
+      rounding: 2
+  n_bins:
+    pt_1: 4   # Create 4 pt_1 bins inside each njets bin
+  var_dependence_n_bins: [[9, 8, 7, 7], 10, 6]  # logic analogously to Two discrete variables example
+</code></pre>
+
+</details>
+</li>
+<li>
+<details>
+<summary><strong>Two continuous variables</strong> (e.g., <code>deltaR_ditaupair</code> then <code>pt_1</code>).</summary>
+
+
+<pre><code class="language-yaml">split_categories:
+  deltaR_ditaupair: []
+  pt_1: []
+split_categories_binedges:
+  deltaR_ditaupair: []
+  pt_1: []
+equipopulated_binning_options:
+  variable_config:
+    pt_2: 
+        min: 30.0
+        max: 150.0
+        rounding: 4
+    deltaR_ditaupair:
+      min: 0.0
+      max: 5.0
+      rounding: 3
+    pt_1:
+      min: 0.0
+      max: 3000.0
+      rounding: 2
+  n_bins:
+    deltaR_ditaupair: 2 # Create 2 bins for the first split
+    pt_1: 4             # Create 4 bins for the second split
+  var_dependence_n_bins: [[10, 10, 5, 5], [8, 8, 4, 4]]
+</code></pre>
+
+</details>
+</li>
+</ul>
 
 
 
@@ -972,7 +1336,7 @@ The last step is to calculate all the specified corrections for the main fake fa
       <script id="__config" type="application/json">{"base": ".", "features": ["content.action.edit", "content.action.view", "content.tooltips", "navigation.sections"], "search": "assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.13a4f30d.min.js"></script>
+      <script src="assets/javascripts/bundle.56ea9cef.min.js"></script>
       
     
   </body>
