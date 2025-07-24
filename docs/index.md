@@ -12,7 +12,7 @@ conda env create --file environment.yaml
 ```
 
 ## General configuration
-General definitions like paths for all steps of the fake factor measurements should be defined in a `configs/ANALYSIS/ERA/common_settings.yaml` file (file name should be always stay the same).
+General definitions like paths for all steps of the fake factor measurements should be defined in a `configs/ANALYSIS/ERA/common_settings.yaml` file (this file name should always stay the same).
 
 The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root
 
@@ -32,6 +32,8 @@ The output folder structure is OUTPUT_PATH/preselection/ERA/CHANNEL/*.root
   `output_path` | `string` | absolute path where the files with the preselected events will be stored, a local path is expected like "/ceph/USER/..."
   `file_path` | `string` | absolute path to the folder with the preselected files (should be the same as `output_path`) to be used for the fake factor calculation
   `workdir_name` | `string` | relative path where the fake factor measurement output files will be stored; folder is produced in `workdir/`
+
+The parameters in `common_settings.yaml` will be overwritten if they are also specified in the config for the individual steps of the fake factor determination, like event preselection, fake factor calculation and correction calculation.  
 
 ## Hints
 * check out `configs/general_definitions.py`, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information
