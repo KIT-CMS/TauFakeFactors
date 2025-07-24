@@ -1,5 +1,5 @@
 # Event preselection
-This framework is designed for n-tuples produced with CROWN as input. 
+This framework is designed for n-tuples (and friend trees) produced with CROWN as input. 
 All information for the preselection step is defined in configuration files in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` file and a more specific config file. 
 
 The preselection config has the following parameters:
@@ -11,7 +11,7 @@ The preselection config has the following parameters:
   `event_selection` | `dict` | with this parameter all selections that should be applied are defined. <br>This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
   `mc_weights` | `dict` | weight parameter are defined below
   `emb_weights` | `dict` | all weights that should be applied for embedded samples are defined. <br>Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
-  `output_features` | `list` | the to be saved/needed features for the later calculations are listed 
+  `output_features` | `list` | the to be saved/needed features for the later calculations are listed, this also includes features from friend trees if `friends` were specified in `common_settings.yaml`
 
 In `processes` all the processes are defined that should be preprocessed. <br>
 The names are also used for the output file naming after the processing. <br>
