@@ -5,7 +5,7 @@ The framework includes a utility script, `adjust_binning.py`, for an automatic c
 The script is intended to be run berofe the fake factor and correction calculation by using
 
 ```bash
-python adjust_binning.py --config config.yaml --cut-config config_with_region_cuts.yaml --processes QCD Wjets --cut-region ARlike
+python adjust_binning.py --config PATH/CONFIG.yaml --cut-config PATH/CONFIG_WITH_REGION_CUTS.yaml --processes QCD Wjets --cut-region ARlike
 ```
 
 | Argument | Type | Description |
