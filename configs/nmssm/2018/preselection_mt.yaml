@@ -134,3 +134,4 @@ output_features:
     - "met"
     - "mass_2"
     - "tau_decaymode_2"
+    - "m_fastmtt"

@@ -56,10 +56,26 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     ROOT.EnableImplicitMT(ncores)
 
     # loading ntuple files
-    rdf = ROOT.RDataFrame(
-        config["tree"],
-        func.get_ntuples(config=config, process=process, sample=sample),
-    )
+    ntuple_list = func.get_ntuples(config=config, process=process, sample=sample)
+    chain = ROOT.TChain(config["tree"])
+
+    for ntuple in ntuple_list:
+        chain.Add(ntuple)
+
+    if "friends" in config:
+        for friend in config["friends"]:
+            friend_list = []
+            for ntuple in ntuple_list:
+                friend_list.append(
+                    ntuple.replace("CROWNRun", "CROWNFriends/" + friend)
+                )
+            fchain = ROOT.TChain(config["tree"])
+            for friend in friend_list:
+                fchain.Add(friend)
+            chain.AddFriend(fchain)
+
+    rdf = ROOT.RDataFrame(chain)
+        
     if func.rdf_is_empty(rdf=rdf):
         log.info(f"WARNING: Sample {sample} is empty. Skipping...")
         return ()
@@ -155,7 +171,8 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if tmp_rdf.Count().GetValue() != 0:
         log.info(f"The current data frame will be saved to {tmp_file_name}")
         cols = tmp_rdf.GetColumnNames()
-        missing_cols = [x for x in output_features if x not in cols]
+        cols_with_friends = [str(x).replace("ntuple.", "") for x in cols]
+        missing_cols = [x for x in output_features if x not in cols_with_friends]
         if len(missing_cols) != 0:
             raise ValueError(f"Missing columns: {missing_cols}")
 
