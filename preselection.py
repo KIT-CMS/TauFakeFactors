@@ -76,10 +76,6 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
 
     rdf = ROOT.RDataFrame(chain)
         
-    # rdf = ROOT.RDataFrame(
-    #     config["tree"],
-    #     func.get_ntuples(config=config, process=process, sample=sample),
-    # )
     if func.rdf_is_empty(rdf=rdf):
         log.info(f"WARNING: Sample {sample} is empty. Skipping...")
         return ()
