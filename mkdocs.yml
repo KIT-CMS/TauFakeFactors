@@ -32,6 +32,13 @@ validation:
     absolute_links: warn
     unrecognized_links: warn
 
+nav:
+  - Home: index.md
+  - Event Preselection: preselection.md
+  - Fake Factor Calculation: fakefactors.md
+  - Fake Factor Corrections: corrections.md
+  - Automated Binning: binning.md
+
 # Extensions
 markdown_extensions:
   - admonition
