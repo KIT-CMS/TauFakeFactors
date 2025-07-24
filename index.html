@@ -16,6 +16,8 @@
       
       
       
+        <link rel="next" href="preselection/">
+      
       
       <link rel="icon" href="assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.15">
@@ -100,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              TauFakeFactors
+              General
             
           </span>
         </div>
@@ -234,7 +236,7 @@
   
   
   <span class="md-ellipsis">
-    TauFakeFactors
+    General
     
   </span>
   
@@ -247,7 +249,7 @@
   
   
   <span class="md-ellipsis">
-    TauFakeFactors
+    General
     
   </span>
   
@@ -288,33 +290,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#event-preselection" class="md-nav__link">
-    <span class="md-ellipsis">
-      Event preselection
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fake-factor-calculation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fake Factor calculation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fake-factor-corrections" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fake Factor corrections
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#hints" class="md-nav__link">
     <span class="md-ellipsis">
       Hints
@@ -323,43 +298,98 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#automated-equipopulated-binning" class="md-nav__link">
-    <span class="md-ellipsis">
-      Automated Equipopulated Binning
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Automated Equipopulated Binning">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#advanced-splitting-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Advanced Splitting Strategies
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="preselection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Event Preselection
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="binning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Automated Binning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="fakefactors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake Factor Calculation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="corrections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Fake Factor Corrections
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -409,71 +439,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#event-preselection" class="md-nav__link">
-    <span class="md-ellipsis">
-      Event preselection
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fake-factor-calculation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fake Factor calculation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fake-factor-corrections" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fake Factor corrections
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#hints" class="md-nav__link">
     <span class="md-ellipsis">
       Hints
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#automated-equipopulated-binning" class="md-nav__link">
-    <span class="md-ellipsis">
-      Automated Equipopulated Binning
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Automated Equipopulated Binning">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#advanced-splitting-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Advanced Splitting Strategies
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -519,7 +489,7 @@
 <pre><code class="language-bash">conda env create --file environment.yaml
 </code></pre>
 <h2 id="general-configuration">General configuration<a class="headerlink" href="#general-configuration" title="Permanent link">&para;</a></h2>
-<p>General definitions like paths for all steps of the fake factor measurements should be defined in a <code>configs/ANALYSIS/ERA/common_settings.yaml</code> file (file name should be always stay the same).</p>
+<p>General definitions like paths for all steps of the fake factor measurements should be defined in a <code>configs/ANALYSIS/ERA/common_settings.yaml</code> file (this file name should always stay the same).</p>
 <p>The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.root</p>
 <table>
 <thead>
@@ -534,6 +504,11 @@
 <td><code>ntuple_path</code></td>
 <td><code>string</code></td>
 <td>absolute path to the folder with the n-tuples on the dcache, a remote path is expected like "root://cmsdcache-kit-disk.gridka.de//store/user/USER/..."</td>
+</tr>
+<tr>
+<td><code>friends</code></td>
+<td><code>list</code></td>
+<td>(optional) list of friend names that exist for the n-tuples in <code>ntuple_path</code></td>
 </tr>
 <tr>
 <td><code>tree</code></td>
@@ -584,702 +559,11 @@
 </tr>
 </tbody>
 </table>
-<h2 id="event-preselection">Event preselection<a class="headerlink" href="#event-preselection" title="Permanent link">&para;</a></h2>
-<p>This framework is designed for n-tuples produced with CROWN as input. 
-All information for the preselection step is defined in configuration files in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> file and a more specific config file. </p>
-<p>The preselection config has the following parameters:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>channel</code></td>
-<td><code>string</code></td>
-<td>tau pair decay channels ("et", "mt", "tt")</td>
-</tr>
-<tr>
-<td><code>processes</code></td>
-<td><code>dict</code></td>
-<td>process parameters are explained below</td>
-</tr>
-<tr>
-<td><code>event_selection</code></td>
-<td><code>dict</code></td>
-<td>with this parameter all selections that should be applied are defined. <br>This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. <code>had_tau_pt: "pt_2 &gt; 30"</code>. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.</td>
-</tr>
-<tr>
-<td><code>mc_weights</code></td>
-<td><code>dict</code></td>
-<td>weight parameter are defined below</td>
-</tr>
-<tr>
-<td><code>emb_weights</code></td>
-<td><code>dict</code></td>
-<td>all weights that should be applied for embedded samples are defined. <br>Like for <code>event_selection</code> a weight can directly be specified and is then applied to all samples the same way e.g. <code>single_trigger: "trg_wgt_single_mu24ormu27"</code></td>
-</tr>
-<tr>
-<td><code>output_features</code></td>
-<td><code>list</code></td>
-<td>the to be saved/needed features for the later calculations are listed</td>
-</tr>
-</tbody>
-</table>
-<p>In <code>processes</code> all the processes are defined that should be preprocessed. <br>
-The names are also used for the output file naming after the processing. <br>
-Each process needs two specifications:</p>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>tau_gen_modes</code></td>
-<td><code>list</code></td>
-<td>split of the events corresponding to the origin of the hadronic tau</td>
-</tr>
-<tr>
-<td><code>samples</code></td>
-<td><code>list</code></td>
-<td>list of all sample tags corresponding to the specific process</td>
-</tr>
-</tbody>
-</table>
-<p>The <code>tau_gen_modes</code> have following modes:</p>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>T</code></td>
-<td><code>string</code></td>
-<td>genuine tau</td>
-</tr>
-<tr>
-<td><code>J</code></td>
-<td><code>string</code></td>
-<td>jet misidentified as a tau</td>
-</tr>
-<tr>
-<td><code>L</code></td>
-<td><code>string</code></td>
-<td>lepton misidentified as a tau</td>
-</tr>
-<tr>
-<td><code>all</code></td>
-<td><code>string</code></td>
-<td>if no split should be performed</td>
-</tr>
-</tbody>
-</table>
-<p>In <code>mc_weights</code> all weights that should be applied for simulated samples are defined. <br>
-There are two types of weights.</p>
-<ol>
-<li>Similar to <code>event_selection</code>, a weight can directly be specified and is then applied to all samples in the same way e.g. <code>lep_id: "id_wgt_mu_1"</code></li>
-<li>
-<p>But some weights are either sample specific or need additional information. Currently implemented options are:</p>
-<table>
-<thead>
-<tr>
-<th>subparameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>generator</code></td>
-<td><code>string</code></td>
-<td>The normal generator weight is applied to all samples, if they aren't specified in the <code>"stitching"</code> sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them.</td>
-</tr>
-<tr>
-<td><code>lumi</code></td>
-<td><code>string</code></td>
-<td>luminosity scaling, this depends on the era and uses the <code>era</code> parameter of the config to get the correct weight, so basically it's not relevant what is in the string</td>
-</tr>
-<tr>
-<td><code>Z_pt_reweight</code></td>
-<td><code>string</code></td>
-<td>reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets</td>
-</tr>
-<tr>
-<td><code>Top_pt_reweight</code></td>
-<td><code>string</code></td>
-<td>reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar</td>
-</tr>
-</tbody>
-</table>
-</li>
-</ol>
-<p>Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. </p>
-<p>To run the preselection step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python preselection.py --config-file configs/PATH/CONFIG.yaml
-</code></pre>
-<p>Further there are additional optional parameters: </p>
-<ol>
-<li><code>--nthreads=SOME_INTEGER</code> to define the number of threads for the multiprocessing pool to run the sample processing in parallel. Default value is 8 (this should normally cover running all of the samples in parallel).</li>
-<li><code>--ncores=SOME_INTEGER</code> to define the number of cores that should be used for each pool thread to speed up the ROOT dataframe calculation. Default value is 2.</li>
-</ol>
-<h2 id="fake-factor-calculation">Fake Factor calculation<a class="headerlink" href="#fake-factor-calculation" title="Permanent link">&para;</a></h2>
-<p>In this step the fake factors are calculated. This should be run after the preselection step.</p>
-<p>All information for the FF calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. <br>
-The FF calculation config has the following parameters:</p>
-<p>General options for the calculation:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>channel</code></td>
-<td><code>string</code></td>
-<td>tau pair decay channels ("et", "mt", "tt")</td>
-</tr>
-<tr>
-<td><code>use_embedding</code></td>
-<td><code>bool</code></td>
-<td>True if embedded sample should be used, False if only MC sample should be used</td>
-</tr>
-<tr>
-<td><code>use_center_of_mass_bins</code></td>
-<td><code>bool</code></td>
-<td>Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to <code>"binwise"</code> (the x-data values although displayed in plots are not used)</td>
-</tr>
-</tbody>
-</table>
-<p>In <code>target_processes</code> the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. <br>
-Each target process needs some specifications:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>split_categories</code></td>
-<td><code>dict</code></td>
-<td>names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a <code>list</code> of orthogonal cuts (e.g. "njets" with "==1", "&gt;=2")</li><li> "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair" are already possible, other variables should be added during preprocessing step accordingly </li><li>at least one inclusive category needs to be specified (assuming variable is written out in preselection step)</li></ul> If a continous variable is used a window can be defined as <code>"&gt;=lower#&amp;&amp;#&lt;upper"</code> accordingly.</td>
-</tr>
-<tr>
-<td><code>split_categories_binedges</code></td>
-<td><code>dict</code></td>
-<td>bin edge values for each <code>split_categories</code> variable. <br> The number of bin edges should always be N(variable cuts)+1</td>
-</tr>
-<tr>
-<td><code>SRlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the signal-like region of the target process</td>
-</tr>
-<tr>
-<td><code>ARlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the application-like region of the target process</td>
-</tr>
-<tr>
-<td><code>SR_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the signal region (normally only needed for ttbar)</td>
-</tr>
-<tr>
-<td><code>AR_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the application region (normally only needed for ttbar)</td>
-</tr>
-<tr>
-<td><code>var_dependence</code></td>
-<td><code>string</code></td>
-<td>variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)</td>
-</tr>
-<tr>
-<td><code>var_bins</code></td>
-<td><code>list</code> or <code>dict[list]</code></td>
-<td>bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.</td>
-</tr>
-<tr>
-<td><code>fit_options</code></td>
-<td><code>list</code></td>
-<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit</td>
-</tr>
-<tr>
-<td><code>limit_kwargs</code></td>
-<td><code>dict</code></td>
-<td>this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</td>
-</tr>
-</tbody>
-</table>
-<p>Event selections can be defined the same way as in the preselection step <code>event_selection</code>. Only the tau vs jet ID cut is special because the name should always be <code>had_tau_id_vs_jet</code> (or <code>had_tau_id_vs_jet_*</code> in tt channel), this is needed to read out the working points from the cut string and apply the correct tau vs jet ID weights.</p>
-<p>In <code>process_fractions</code> specifications for the calculation of the process fractions are defined.</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>processes</code></td>
-<td><code>list</code></td>
-<td>sample names (from the preprocessing step) of the processes for which the fractions should be stored in the correctionlib json, the sum of fractions of the specified samples is 1.</td>
-</tr>
-<tr>
-<td><code>split_categories</code></td>
-<td><code>dict</code></td>
-<td>see <code>target_processes</code> (only in 1D)</td>
-</tr>
-<tr>
-<td><code>AR_cuts</code></td>
-<td><code>list</code></td>
-<td>see <code>target_processes</code></td>
-</tr>
-<tr>
-<td><code>SR_cuts</code></td>
-<td><code>list</code></td>
-<td>see <code>target_processes</code>, (optional) not needed for the fraction calculation</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Note:</strong> When using split binning for process fraction calculations, the <code>var_bins</code> parameter can also be defined in the same manner as for <code>target_processes</code>.</p>
-<p>To run the FF calculation step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_calculation.py --config-file PATH/CONFIG.yaml
-</code></pre>
-<h2 id="fake-factor-corrections">Fake Factor corrections<a class="headerlink" href="#fake-factor-corrections" title="Permanent link">&para;</a></h2>
-<p>In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.</p>
-<p>Currently two different correction types are implemented: </p>
-<ol>
-<li>non closure correction depending on a specific variable</li>
-<li>DR to SR interpolation correction depending on a specific variable</li>
-</ol>
-<p>All information for the FF correction calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). <br>
-The FF correction config has the following parameters:</p>
-<p>The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>channel</code></td>
-<td><code>string</code></td>
-<td>tau pair decay channels ("et", "mt", "tt")</td>
-</tr>
-</tbody>
-</table>
-<p>In <code>target_processes</code> the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined.</p>
-<p><code>split_categories</code> can be set for <code>non_closure</code> and <code>DR_SR</code> corrections (1D only) accordingly. <code>var_bins</code> declaration follow the specifications named in <code>FakeFactor calculation</code> section <br>
-Each target process needs some specifications:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>non_closure</code></td>
-<td><code>dict</code></td>
-<td>one or two non closure corrections can be specified indicated by the variable the correction should be calculated for (e.g. <code>pt_1</code>), also more than one closure correction are allowed and are calculated while already applying the correction that were already measured</td>
-</tr>
-<tr>
-<td><code>DR_SR</code></td>
-<td><code>dict</code></td>
-<td>this correction should be specified only once per process in <code>target_processes</code></td>
-</tr>
-</tbody>
-</table>
-<p>Each correction has following specifications:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>var_dependence</code></td>
-<td><code>string</code></td>
-<td>variable the FF correction measurement should depend on (e.g. <code>"pt_1"</code>)</td>
-</tr>
-<tr>
-<td><code>split_categories</code></td>
-<td><code>dict</code></td>
-<td>Optional, analogous to <code>FakeFactor calculation</code> (only 1D).</td>
-</tr>
-<tr>
-<td><code>var_bins</code></td>
-<td><code>list</code> or <code>dict[list]</code></td>
-<td>Analogous to <code>var_bins</code> in <code>FakeFactor calculation</code></td>
-</tr>
-<tr>
-<td><code>correction_option</code></td>
-<td><code>str</code></td>
-<td>Definition of how a correction should be measured. Options are <code>"smoothed"</code> (applies a gaussian density kernel), <code>"binwise"</code> or both can also be combined into e.g. <code>"binwise#[0,]+smoothed"</code>, <code>"binwise#[-1,-2,]+smoothed"</code> or <code>"binwise#[0,]#[-1,]+smoothed"</code> where the nth-bin(s) is computed using binwise method and the rest in smoothed manner. For left bins, positive bin index is used. For last bins, the count is done using negative integers, starting at -1 (like in the example). If both options are provided, then the binwise calculation is applied for the stated left and right bins.</td>
-</tr>
-<tr>
-<td><code>bandwidth</code></td>
-<td><code>float</code></td>
-<td>if <code>correction_option</code> includes <code>"smoothed"</code> this value can be set to adjust for the bandwidth used during smoothing procedure (has no effect on the result in case of <code>"binwise"</code>). If not set the default value of histogram range divided by 5 is chosen. <br> Can either be a float value representing the bandwidth for all corrections or a dictionary of float values, where keys correspond to the string representations of split categories defined in <code>split_categories</code>.</td>
-</tr>
-<tr>
-<td><code>SRlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step</td>
-</tr>
-<tr>
-<td><code>ARlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step</td>
-</tr>
-<tr>
-<td><code>AR_SR_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for a switch from the determination region to the signal/application region, this is only relevant for <code>DR_SR</code> corrections</td>
-</tr>
-<tr>
-<td><code>non_closure</code></td>
-<td><code>dict</code></td>
-<td>this is only relevant for <code>DR_SR</code> corrections, since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</td>
-</tr>
-</tbody>
-</table>
-<p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
-</code></pre>
-<p>There are two optional parameters <code>--skip-DRtoSR-ffs</code> and <code>--only-main-corrections</code>. The correction caclulation is done in 3 steps. <br>
-The first step is to calculate additional fake factors which are needed for the final DR to SR correction. If this is already done, this step can be skipped using <code>--skip-DRtoSR-ffs</code>. <br>
-The second step is to calculate non closure corrections for these additional DR to SR fake factors. If both steps are already done they can be skipped by using <code>--only-main-corrections</code>. <br>
-The last step is to calculate all the specified corrections for the main fake factors.</p>
+<p>The parameters in <code>common_settings.yaml</code> will be overwritten if they are also specified in the config for the individual steps of the fake factor determination, like event preselection, fake factor calculation and correction calculation.  </p>
 <h2 id="hints">Hints<a class="headerlink" href="#hints" title="Permanent link">&para;</a></h2>
 <ul>
 <li>check out <code>configs/general_definitions.py</code>, this file has many relevant definition for plotting (dictionaries for names) and correctionlib output information</li>
 <li>check <code>ntuple_path</code> and <code>output_path</code> (preselection) and <code>file_path</code> and <code>workdir_name</code> (fake factors, corrections) in the used config files to avoid wrong inputs or outputs</li>
-</ul>
-<h2 id="automated-equipopulated-binning">Automated Equipopulated Binning<a class="headerlink" href="#automated-equipopulated-binning" title="Permanent link">&para;</a></h2>
-<p>The framework includes a utility script, <code>adjust_binning.py</code>, for an automatic calculation and update binning definitions within the configuration in case of equipopulated binning approach of specified variable (<code>var_dependence</code>) across various categories for a more robust statistical treatment in each analysis region. The general intention is to have an equipopulated data distribution in the SRlike region given possible additional splittings (i.e. in <code>njets</code>).</p>
-<p>The script is intended to be run berofe the fake factor and correction calculation by using</p>
-<pre><code class="language-bash">python adjust_binning.py --config config.yaml --cut-config config_with_region_cuts.yaml --processes QCD Wjets --cut-region ARlike
-</code></pre>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--config</code></td>
-<td><code>string</code></td>
-<td>Path to the YAML configuration file that will be modified.</td>
-</tr>
-<tr>
-<td><code>--cuts-config</code></td>
-<td><code>string</code></td>
-<td>(Optional) Path to a separate YAML file containing cut definitions. This is useful for correction YAML files where cuts are not specified directly for each correction but then are sourced from the cuts-config file, which can just be the fake factor YAML configuration.</td>
-</tr>
-<tr>
-<td><code>--processes</code></td>
-<td><code>list[string]</code></td>
-<td>A list of processes to adjust (e.g., <code>QCD</code>, <code>Wjets</code>, <code>ttbar</code>, <code>process_fractions</code>). The default is set to include all processes.</td>
-</tr>
-<tr>
-<td><code>--cut-region</code></td>
-<td><code>string</code></td>
-<td>The region cut to be applied when determining event counts (e.g., <code>SRlike</code>, <code>ARlike</code>). <code>process_fractions</code> always use the <code>AR_cut</code>.</td>
-</tr>
-<tr>
-<td><code>--dry-run</code></td>
-<td><code>bool</code></td>
-<td>Preview the binning calculations and changes without modifying the config file.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
-<p>To enable this feature, you must add a <code>equipopulated_binning_options</code> block to the relevant process or correction section in your configuration file. The script uses this block to generate the new binning and will populate the <code>var_bins</code> key and update <code>split_categories</code> and <code>split_categories_binedges</code> if they are left blank i.e. for continuous variables such as <code>pt_1</code>.</p>
-<p>For example, a manually binned configuration for the <code>QCD</code> process:</p>
-<pre><code class="language-yaml"># Before: Manual binning for QCD process
-target_processes:
-  QCD:
-    split_categories:
-      njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-    split_categories_binedges:
-      njets: [-0.5, 0.5, 1.5, 12.5]
-    var_dependence: pt_2
-    var_bins: 
-      &quot;==0&quot;: [30.0, 31.6, 33.5, 35.9, 38.9, 43.6, 51.6, 150.0]
-      &quot;==1&quot;: [30.0, 32.2, 35.3, 40.3, 50.9, 150.0]
-      &quot;&gt;=2&quot;: [30.0, 32.7, 36.5, 42.5, 57.0, 150.0]
-</code></pre>
-<p>Can be replaced with a configuration for automated binning:</p>
-<pre><code class="language-yaml"># After: Configuration for automated binning
-target_processes:
-  QCD:
-    split_categories:
-      njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-    split_categories_binedges:
-      njets: [-0.5, 0.5, 1.5, 12.5]
-    var_dependence: pt_2
-    var_bins: {} # This will be filled by the script
-    equipopulated_binning_options:
-      variable_config:
-        pt_2:
-          min: 30.0
-          max: 150.0
-          rounding: 2
-      n_bins:  # this part is necessarily only needed for continuous variables
-        njets: 3  # number of bins for njets ==0, ==1, &gt;=2
-      var_dependence_n_bins: [7, 5, 5]
-</code></pre>
-<p>The <code>equipopulated_binning_options</code> block has the following structure:</p>
-<table>
-<thead>
-<tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>variable_config</code></td>
-<td><code>dict</code></td>
-<td>Defines parameters for variables used in binning. See sub-parameters below.</td>
-</tr>
-<tr>
-<td><code>n_bins</code></td>
-<td><code>dict</code></td>
-<td>Specifies the desired number of bins per variable in <code>split_categories</code> if those are not set there in case of continuous variables, i.e. four equidistant bins in <code>pt_1</code>: <code>pt_1: 4</code></td>
-</tr>
-<tr>
-<td><code>var_dependence_n_bins</code></td>
-<td><code>int</code> or <code>list[int]</code> or <code>list[list[int]]</code></td>
-<td>Number of bins used for the variable defined in <code>var_dependence</code>, either as int (used by all categories) or a (nested) list of integers defining number of bins per (nested) category created.</td>
-</tr>
-</tbody>
-</table>
-<p>The <code>variable_config</code> for each variable contains:</p>
-<table>
-<thead>
-<tr>
-<th>Sub-parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>min</code></td>
-<td><code>float</code></td>
-<td>The lower bound for the variable's range. The first bin edge will be set to this value. This is applied as a cut before the calculation of equipopulated binning starts.</td>
-</tr>
-<tr>
-<td><code>max</code></td>
-<td><code>float</code></td>
-<td>The upper bound for the variable's range. The last bin edge will be set to this value. This is applied as a cut before the calculation of equipopulated binning starts.</td>
-</tr>
-<tr>
-<td><code>rounding</code></td>
-<td><code>int</code></td>
-<td>The number of decimal places to which the calculated bin edges will be rounded to and written into the configuration file.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="advanced-splitting-strategies">Advanced Splitting Strategies<a class="headerlink" href="#advanced-splitting-strategies" title="Permanent link">&para;</a></h3>
-<p>The script supports various one- and two-dimensional splitting strategies, determined by the structure of <code>split_categories</code>. The order of variables defines the nesting hierarchy.</p>
-<ol>
-<li>One-Dimensional Splitting</li>
-</ol>
-<ul>
-<li>
-<details>
-<summary><strong>By a discrete variable</strong> (e.g., <code>njets</code>): Categories are explicitly listed.</summary>
-
-Number of bins of `var_dependence` in each category are set explicitly
-
-<pre><code class="language-yaml">split_categories:
-  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-split_categories_binedges:
-  njets: [-0.5, 0.5, 1.5, 12.5]
-equipopulated_binning_options:
-  variable_config:
-    pt_2:
-      min: 30.0
-      max: 150.0
-      rounding: 4
-  var_dependence_n_bins: [7, 5, 5]
-</code></pre>
-
-Same number of bins of `var_dependence` in each category
-
-<pre><code class="language-yaml">split_categories:
-  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-split_categories_binedges:
-  njets: [-0.5, 0.5, 1.5, 12.5]
-equipopulated_binning_options:
-  variable_config:
-    pt_2:
-      min: 30.0
-      max: 150.0
-      rounding: 4
-  var_dependence_n_bins: 7
-</code></pre>
-
-</details>
-</li>
-<li>
-<details>
-<summary><strong>By a continuous variable</strong> (e.g., <code>pt_1</code>): An empty list <code>[]</code> is used as a placeholder.</summary>
-
-
-The script will first create equipopulated bins for `pt_1` and then bin `var_dependence` within each of those new `pt_1` categories.
-
-
-<pre><code class="language-yaml">split_categories:
-  pt_1: []
-split_categories_binedges:
-  pt_1: []
-equipopulated_binning_options:
-  variable_config:
-    pt_2: 
-      min: 30.0
-      max: 150.0
-      rounding: 4
-    pt_1: 
-      min: 0.0
-      max: 1000.0
-      rounding: 2
-  n_bins:
-    pt_1: 4 # Creates 4 categories for pt_1, which are then used for pt_2 binning
-  var_dependence_n_bins: [7, 7, 6, 5] # number of bins per pt_1 split 
-</code></pre>
-
-</details>
-</li>
-</ul>
-<ol>
-<li>Two-Dimensional (Nested) Splitting</li>
-</ol>
-<ul>
-<li>
-<details>
-<summary><strong>Two discrete variables</strong> (e.g., <code>tau_decaymode_2</code> then <code>njets</code>).</summary>
-
-
-You can also merge categories using the <code>#||#</code> syntax.
-
-
-<pre><code class="language-yaml">split_categories:
-  tau_decaymode_2: [&quot;==0&quot;, &quot;==1&quot;, &quot;==10&quot;, &quot;==11&quot;]
-  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-split_categories_binedges:
-  tau_decaymode_2: [-0.5, 0.5, 9.5, 11.5]
-  njets: [-0.5, 0.5, 1.5, 12.5]
-equipopulated_binning_options:
-  variable_config:
-    pt_2: 
-      min: 30.0
-      max: 150.0
-      rounding: 4
-  var_dependence_n_bins: [[9, 8, 7], [7, 7, 7], 6, 6]  # here 6 == [6, 6, 6] 
-
-</code></pre>
-
-</details>
-</li>
-<li>
-<details>
-<summary><strong>Discrete then continuous variable</strong> (e.g., <code>njets</code> then <code>pt_1</code>).</summary>
-
-
-`pt_1` is binned equipopulated within each `njets` category.
-
-
-<pre><code class="language-yaml">split_categories:
-  njets: [&quot;==0&quot;, &quot;==1&quot;, &quot;&gt;=2&quot;]
-  pt_1: [] # Placeholder for equipopulated split
-split_categories_binedges:
-  njets: [-0.5, 0.5, 1.5, 12.5]
-  pt_1: [] # Placeholder for equipopulated split
-equipopulated_binning_options:
-  variable_config:
-    pt_2: 
-      min: 30.0
-      max: 150.0
-      rounding: 4
-    pt_1: 
-      min: 0.0
-      max: 3000.0
-      rounding: 2
-  n_bins:
-    pt_1: 4   # Create 4 pt_1 bins inside each njets bin
-  var_dependence_n_bins: [[9, 8, 7, 7], 10, 6]  # logic analogously to Two discrete variables example
-</code></pre>
-
-</details>
-</li>
-<li>
-<details>
-<summary><strong>Two continuous variables</strong> (e.g., <code>deltaR_ditaupair</code> then <code>pt_1</code>).</summary>
-
-
-<pre><code class="language-yaml">split_categories:
-  deltaR_ditaupair: []
-  pt_1: []
-split_categories_binedges:
-  deltaR_ditaupair: []
-  pt_1: []
-equipopulated_binning_options:
-  variable_config:
-    pt_2: 
-        min: 30.0
-        max: 150.0
-        rounding: 4
-    deltaR_ditaupair:
-      min: 0.0
-      max: 5.0
-      rounding: 3
-    pt_1:
-      min: 0.0
-      max: 3000.0
-      rounding: 2
-  n_bins:
-    deltaR_ditaupair: 2 # Create 2 bins for the first split
-    pt_1: 4             # Create 4 bins for the second split
-  var_dependence_n_bins: [[10, 10, 5, 5], [8, 8, 4, 4]]
-</code></pre>
-
-</details>
-</li>
 </ul>
 
 
