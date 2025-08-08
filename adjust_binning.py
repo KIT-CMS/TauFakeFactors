@@ -55,13 +55,18 @@ parser.add_argument(
 )
 
 
-def _equipopulated_binned_variable(item: Union[np.ndarray, pd.Series], n_bins: int, weights: Union[int, None] = None) -> Union[np.ndarray, list]:
+def _equipopulated_binned_variable(
+    item: Union[np.ndarray, pd.Series],
+    n_bins: int,
+    weights: Union[np.ndarray, list, None] = None
+) -> Union[np.ndarray, list]:
     """
     Helper function to calculate equipopulated bin edges.
 
     Args:
         item (pd.Series or np.ndarray): The data to bin.
         n_bins (int): The number of bins to create.
+        weights (np.ndarray or list, optional): Weights for the data points. If None, uniform weights are assumed.
 
     Returns:
         list: A list of bin edges.
