@@ -15,6 +15,7 @@ python adjust_binning.py --config PATH/CONFIG.yaml --cut-config PATH/CONFIG_WITH
 | `--processes` | `list[string]` | A list of processes to adjust (e.g., `QCD`, `Wjets`, `ttbar`, `process_fractions`). The default is set to include all processes. |
 | `--cut-region` | `string` | The region cut to be applied when determining event counts (e.g., `SRlike`, `ARlike`). `process_fractions` always use the `AR_cut`. |
 | `--dry-run` | `bool` | Preview the binning calculations and changes without modifying the config file. |
+| `--dataset` | `string` | Name of the dataset used for equipopulated binning adjustments. Default is set to 'data', deviations can be made for i.e. MC studies. |
 
 ## Configuration
 

@@ -271,6 +271,26 @@ def latex_adjust_selection_string(string):
     return string
 
 
+def adjust_error_sign(values: Union[list, np.ndarray], logger: Union[logging.Logger, None] = None) -> list:
+    """
+    Adjusts the sign of the errors in a list or numpy array to ensure they are positive.
+
+    Args:
+        values: List or numpy array containing error values.
+        logger: Logger object for logging messages.
+
+    Returns:
+        List with adjusted error signs.
+    """
+    adjusted_values = []
+    for value in values:
+        if value < 0 and logger:
+            logger.warning(f"Negative error value found: {value}. Adjusting to positive.")
+        adjusted_values.append(abs(value))
+
+    return adjusted_values
+
+
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
@@ -360,8 +380,8 @@ def plot_FFs(
     data_handler = ax.errorbar(
         x,
         y,
-        xerr=x_err,
-        yerr=y_err,
+        xerr=adjust_error_sign(x_err, logger=log),
+        yerr=adjust_error_sign(y_err, logger=log),
         fmt="o",
         color="black",
         capsize=3,
@@ -533,8 +553,8 @@ def plot_data_mc_ratio(
     ax_top.errorbar(
         data_x_values,
         data_y_values,
-        xerr=data_x_errors,
-        yerr=data_y_errors,
+        xerr=adjust_error_sign(data_x_errors, logger=log),
+        yerr=adjust_error_sign(data_y_errors, logger=log),
         fmt="o",
         color="black",
         label=gd.label_dict[data],
@@ -588,8 +608,8 @@ def plot_data_mc_ratio(
     ax_ratio.errorbar(
         data_x_values,
         ratio,
-        xerr=data_x_errors,
-        yerr=(ratio_err_down, ratio_err_up),
+        xerr=adjust_error_sign(data_x_errors, logger=log),
+        yerr=(adjust_error_sign(ratio_err_down, logger=log), adjust_error_sign(ratio_err_up, logger=log)),
         fmt="o",
         color="black",
         capsize=3,
@@ -864,8 +884,8 @@ def plot_correction(
     data_handler = ax.errorbar(
         x,
         y,
-        xerr=x_err,
-        yerr=y_err,
+        xerr=adjust_error_sign(x_err, logger=log),
+        yerr=adjust_error_sign(y_err, logger=log),
         fmt="o",
         color="black",
         capsize=3,

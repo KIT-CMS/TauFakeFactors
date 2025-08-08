@@ -43,26 +43,42 @@ parser.add_argument(
     help="Cut region to apply (e.g., SRlike, ARlike), process_fractions will always use AR_cut."
 )
 parser.add_argument(
+    "--dataset",
+    type=str,
+    default="data",
+    help="Name of the dataset used for equipopulated binning adjustments. Default is set to 'data', deviations can be made for i.e. MC studies.",
+)
+parser.add_argument(
     "--dry-run",
     action="store_true",
     help="If set, do not modify the config file.",
 )
 
 
-def _equipopulated_binned_variable(item: Union[np.ndarray, pd.Series], n_bins: int) -> np.ndarray:
+def _equipopulated_binned_variable(
+    item: Union[np.ndarray, pd.Series],
+    n_bins: int,
+    weights: Union[np.ndarray, list, None] = None
+) -> Union[np.ndarray, list]:
     """
     Helper function to calculate equipopulated bin edges.
 
     Args:
         item (pd.Series or np.ndarray): The data to bin.
         n_bins (int): The number of bins to create.
+        weights (np.ndarray or list, optional): Weights for the data points. If None, uniform weights are assumed.
 
     Returns:
         list: A list of bin edges.
     """
     if len(item) == 0 or n_bins == 0:
         return []
-    return np.quantile(item, np.linspace(0, 1, n_bins + 1))
+    return np.quantile(
+        a=item,
+        q=np.linspace(0, 1, n_bins + 1),
+        weights=weights,
+        method="linear" if weights is None else "inverted_cdf",
+    )
 
 
 def get_n_bins(
@@ -158,7 +174,7 @@ def get_binning(
         n_split_bins = binning_config["n_bins"][current_split_var]
         var_conf = binning_config["variable_config"][current_split_var]
         current_df = df.query(process_cuts)
-        split_edges = _equipopulated_binned_variable(current_df[current_split_var], n_split_bins)
+        split_edges = _equipopulated_binned_variable(current_df[current_split_var], n_split_bins, current_df.weight)
 
         if split_edges.size > 1:
             split_edges[0] = var_conf.get("min", split_edges[0])
@@ -249,7 +265,7 @@ def get_binning(
                 if (max_val := var_conf.get("max")) is not None:
                     filtered_df = filtered_df.query(f"{target_variable} <= {max_val}")
 
-                bins = _equipopulated_binned_variable(filtered_df[target_variable], n_bins)
+                bins = _equipopulated_binned_variable(filtered_df[target_variable], n_bins, filtered_df.weight)
                 if bins.size > 0:
                     bins[0] = var_conf.get("min", bins[0])
                     bins[-1] = var_conf.get("max", bins[-1])
@@ -322,7 +338,7 @@ if __name__ == "__main__":
         common_settings["era"],
         config["channel"],
         common_settings["tree"],
-        "data.root",
+        f"{args.dataset}.root"
     )
     root_file_path = base_directory / directory / era / channel / file
     console.print(f"Loading data from [cyan]{root_file_path}[/cyan]")
