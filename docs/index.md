@@ -8,7 +8,7 @@ git clone --recurse-submodules https://github.com/KIT-CMS/TauFakeFactors.git
 ```
 The environment can be set up with conda via
 ```bash
-conda env create --file environment.yaml
+conda env create --file environment.yml
 ```
 
 ## General configuration
