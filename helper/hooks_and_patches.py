@@ -112,6 +112,7 @@ class Histo1DPatchedRDataFrame(PassThroughWrapper):
                     bins = np.linspace(low, high, int(nbins) + 1)
                 elif len(histo_params) == 4:
                     _, _, nbins, bins = histo_params  # dont care about name and title
+                    bins = np.array(bins)
                 else:
                     raise ValueError("Wrapper only supports 4 or 5 parameters")
 
@@ -120,7 +121,11 @@ class Histo1DPatchedRDataFrame(PassThroughWrapper):
 
                 counts, _ = np.histogram(xvals, bins=bins, weights=weights)
                 sums, _ = np.histogram(xvals, bins=bins, weights=xvals * weights)
-                weighted_means = [s / c if c != 0 else 0 for s, c in zip(sums, counts)]
+                bin_centers = 0.5 * (bins[:-1] + bins[1:])
+                weighted_means = [
+                    s / c if c != 0 else center
+                    for s, c, center in zip(sums, counts, bin_centers)
+                ]
                 flag = True
             else:
                 counts, sums, flag = None, None, False
