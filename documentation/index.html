@@ -12,13 +12,11 @@
         <meta name="author" content="Nikita Shadskiy">
       
       
-        <link rel="canonical" href="https://KIT-CMS.github.io/TauFakeFactors/fakefactors/">
+        <link rel="canonical" href="https://KIT-CMS.github.io/TauFakeFactors/documentation/">
       
       
-        <link rel="prev" href="../binning/">
+        <link rel="prev" href="../corrections/">
       
-      
-        <link rel="next" href="../corrections/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -26,7 +24,7 @@
     
     
       
-        <title>Fake Factor Calculation - TauFakeFactors</title>
+        <title>Documentation - TauFakeFactors</title>
       
     
     
@@ -68,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fake-factor-calculation" class="md-skip">
+        <a href="#create-documentation" class="md-skip">
           Skip to content
         </a>
       
@@ -104,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Fake Factor Calculation
+              Documentation
             
           </span>
         </div>
@@ -287,19 +285,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../fakefactors/" class="md-nav__link">
         
   
   
@@ -310,7 +299,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -341,10 +329,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../documentation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -355,6 +352,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -393,7 +391,7 @@
 
 
   
-    <a href="https://github.com/KIT-CMS/TauFakeFactors/edit/master/docs/fakefactors.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/KIT-CMS/TauFakeFactors/edit/master/docs/documentation.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -402,144 +400,23 @@
     
       
     
-    <a href="https://github.com/KIT-CMS/TauFakeFactors/raw/master/docs/fakefactors.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/KIT-CMS/TauFakeFactors/raw/master/docs/documentation.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<h1 id="fake-factor-calculation">Fake Factor calculation<a class="headerlink" href="#fake-factor-calculation" title="Permanent link">&para;</a></h1>
-<p>In this step the fake factors are calculated. This should be run after the preselection step.</p>
-<p>All information for the FF calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. <br>
-The FF calculation config has the following parameters:</p>
-<p>General options for the calculation:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>channel</code></td>
-<td><code>string</code></td>
-<td>tau pair decay channels ("et", "mt", "tt")</td>
-</tr>
-<tr>
-<td><code>use_embedding</code></td>
-<td><code>bool</code></td>
-<td>True if embedded sample should be used, False if only MC sample should be used</td>
-</tr>
-<tr>
-<td><code>use_center_of_mass_bins</code></td>
-<td><code>bool</code></td>
-<td>Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to <code>"binwise"</code> (the x-data values although displayed in plots are not used)</td>
-</tr>
-</tbody>
-</table>
-<p>In <code>target_processes</code> the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. <br>
-Each target process needs some specifications:</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>split_categories</code></td>
-<td><code>dict</code></td>
-<td>names of variables for the fake factor measurement in different phase space regions <ul><li>the FF measurement can be split based on variables in 1D or 2D (1 or 2 variables)</li><li>each category/variable has a <code>list</code> of orthogonal cuts (e.g. "njets" with "==1", "&gt;=2")</li><li> "njets", "nbtag", "tau_decaymode_2" or "deltaR_ditaupair" are already possible, other variables should be added during preprocessing step accordingly </li><li>at least one inclusive category needs to be specified (assuming variable is written out in preselection step)</li></ul> If a continous variable is used a window can be defined as <code>"&gt;=lower#&amp;&amp;#&lt;upper"</code> accordingly.</td>
-</tr>
-<tr>
-<td><code>split_categories_binedges</code></td>
-<td><code>dict</code></td>
-<td>bin edge values for each <code>split_categories</code> variable. <br> The number of bin edges should always be N(variable cuts)+1</td>
-</tr>
-<tr>
-<td><code>SRlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the signal-like region of the target process</td>
-</tr>
-<tr>
-<td><code>ARlike_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the application-like region of the target process</td>
-</tr>
-<tr>
-<td><code>SR_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the signal region (normally only needed for ttbar)</td>
-</tr>
-<tr>
-<td><code>AR_cuts</code></td>
-<td><code>dict</code></td>
-<td>event selections for the application region (normally only needed for ttbar)</td>
-</tr>
-<tr>
-<td><code>var_dependence</code></td>
-<td><code>string</code></td>
-<td>variable the FF measurement should depend on (normally pt of the hadronic tau e.g. <code>"pt_2"</code>)</td>
-</tr>
-<tr>
-<td><code>var_bins</code></td>
-<td><code>list</code> or <code>dict[list]</code></td>
-<td>bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.</td>
-</tr>
-<tr>
-<td><code>fit_options</code></td>
-<td><code>list</code></td>
-<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit</td>
-</tr>
-<tr>
-<td><code>limit_kwargs</code></td>
-<td><code>dict</code></td>
-<td>this dictionary allows to define how the fitted function and its uncertainty are handled (also outside the measurement range); the default is that outside the range the fake factor functions stays constant but the up and down variations still increase/decrease; additionally negative fake factor values are not allowed and if present are set to 0</td>
-</tr>
-</tbody>
-</table>
-<p>Event selections can be defined the same way as in the preselection step <code>event_selection</code>. Only the tau vs jet ID cut is special because the name should always be <code>had_tau_id_vs_jet</code> (or <code>had_tau_id_vs_jet_*</code> in tt channel), this is needed to read out the working points from the cut string and apply the correct tau vs jet ID weights.</p>
-<p>In <code>process_fractions</code> specifications for the calculation of the process fractions are defined.</p>
-<table>
-<thead>
-<tr>
-<th>parameter</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>processes</code></td>
-<td><code>list</code></td>
-<td>sample names (from the preprocessing step) of the processes for which the fractions should be stored in the correctionlib json, the sum of fractions of the specified samples is 1.</td>
-</tr>
-<tr>
-<td><code>split_categories</code></td>
-<td><code>dict</code></td>
-<td>see <code>target_processes</code> (only in 1D)</td>
-</tr>
-<tr>
-<td><code>AR_cuts</code></td>
-<td><code>list</code></td>
-<td>see <code>target_processes</code></td>
-</tr>
-<tr>
-<td><code>SR_cuts</code></td>
-<td><code>list</code></td>
-<td>see <code>target_processes</code>, (optional) not needed for the fraction calculation</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Note:</strong> When using split binning for process fraction calculations, the <code>var_bins</code> parameter can also be defined in the same manner as for <code>target_processes</code>.</p>
-<p>To run the FF calculation step, execute the python script and specify the config file (relative path possible):</p>
-<pre><code class="language-bash">python ff_calculation.py --config-file PATH/CONFIG.yaml
+<h1 id="create-documentation">Create Documentation<a class="headerlink" href="#create-documentation" title="Permanent link">&para;</a></h1>
+<p>The fake factor environment has <code>mkdocs</code> already installed. The 
+documentation is build from the <code>*.md</code> files in the <code>docs/</code> 
+folder based on the config file <code>mkdocs.yml</code>.</p>
+<p>The documentation page can be produced locally with:</p>
+<pre><code class="language-bash">mkdocs build
 </code></pre>
+<p>This results in a new folder <code>site/</code> where you can have a look at 
+how the documentation is rendered. To see the result, open 
+<code>site/index.html</code> in the browser of your choice.</p>
 
 
 
