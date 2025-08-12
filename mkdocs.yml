@@ -38,6 +38,7 @@ nav:
   - Automated Binning: binning.md
   - Fake Factor Calculation: fakefactors.md
   - Fake Factor Corrections: corrections.md
+  - Documentation: documentation.md
 
 # Extensions
 markdown_extensions:
