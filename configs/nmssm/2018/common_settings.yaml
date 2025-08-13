@@ -2,6 +2,7 @@ ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/nt
 friends: ["fastmtt_v2"]
 tree: "ntuple"
 era: "2018"
+nanoAOD_version: "nanoAOD_v9"
 
 tau_vs_jet_wps: 
     - "VVVLoose"
@@ -16,4 +17,4 @@ output_path: "/ceph/nshadskiy/FFmethod/07_2025_v1"
 # and the second one for the FF calculation step
 file_path: "/ceph/nshadskiy/FFmethod/07_2025_v1"
 # output of FF measurement
-workdir_name: "07_2025_v2"
+workdir_name: "08_2025_v3"

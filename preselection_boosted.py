@@ -266,7 +266,7 @@ if __name__ == "__main__":
     config = func.load_config(args.config_file)
 
     # loading general dataset info file for xsec and event number
-    with open("datasets/datasets.json", "r") as file:
+    with open(f"datasets/{config['nanoAOD_version']}/datasets.json", "r") as file:
         datasets = json.load(file)
 
     # define output path for the preselected samples

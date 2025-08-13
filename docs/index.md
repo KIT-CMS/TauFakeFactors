@@ -22,6 +22,7 @@ The expected ntuple folder structure is NTUPLE_PATH/ERA/SAMPLE_TAG/CHANNEL/*.roo
   `friends` | `list` | (optional) list of friend names that exist for the n-tuples in `ntuple_path`
   `tree` | `string` | name of the tree in the n-tuple files ("ntuple" in CROWN)
   `era` | `string` | data taking era (e.g. "2018, "2017", "2016preVFP", "2016postVFP")
+  `nanoAOD_version` | `string` | definition of the nanoAOD version is relevant to calculate the correct generator weights for the later specified simulated sample as well as getting the correct cross sections
   `tau_vs_jet_wps` | `list` | list of tau ID vsJet working points to be written out in the preselection step (e.g. ["Medium", "VVVLoose"])
   `tau_vs_jet_wgt_wps` | `list` | list of tau ID vsJet working point scale factors to be written out in the preselection step (e.g. ["Medium"])
 
