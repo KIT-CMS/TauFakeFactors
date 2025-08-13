@@ -3,8 +3,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - _openmp_mutex=4.5=3_kmp_llvm
-  - _x86_64-microarch-level=1=2_x86_64
   - adwaita-icon-theme=48.1=unix_0
   - alsa-lib=1.2.14=hb9d3cd8_0
   - annotated-types=0.7.0=pyhd8ed1ab_1
