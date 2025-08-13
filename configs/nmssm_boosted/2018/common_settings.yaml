@@ -1,6 +1,7 @@
 ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/nmssm_all_systs_05_2024_v2/CROWNRun"
 tree: "ntuple"
 era: "2018"
+nanoAOD_version: "nanoAOD_v9"
 
 tau_iso_wps: 
     - "Loose"
