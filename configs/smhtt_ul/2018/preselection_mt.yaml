@@ -33,10 +33,10 @@ processes:
       - all
   data:
     samples:
-      - SingleMuon_Run2018A-UL2018
-      - SingleMuon_Run2018B-UL2018
-      - SingleMuon_Run2018C-UL2018
-      - SingleMuon_Run2018D-UL2018
+      - SingleMuon_Run2018A-UL2018_GT36
+      - SingleMuon_Run2018B-UL2018_GT36
+      - SingleMuon_Run2018C-UL2018_GT36
+      - SingleMuon_Run2018D-UL2018_GT36
     tau_gen_modes:
       - all
   diboson:
@@ -92,18 +92,15 @@ emb_weights:
   single_trigger: trg_wgt_single_mu24ormu27
 
 output_features:
+  - mt_1
+  - dilepton_veto
   - weight
   - btag_weight
-  - njets
-  - nbtag
   - q_1
   - pt_2
   - q_2
   - gen_match_2
-  - m_vis
-  - mt_1
   - pt_1
-  - metphi
   - extramuon_veto
   - extraelec_veto
   - dimuon_veto
@@ -113,4 +110,66 @@ output_features:
   - mass_2
   - iso_1
   - iso_2
+  - beta_1
+  - beta_2
+  - bphi_1
+  - bphi_2
+  - bpt_1
+  - bpt_2
+  - btag_value_1
+  - btag_value_2
+  - deltaEta_12j1
+  - deltaEta_12j2
+  - deltaEta_12jj
+  - deltaEta_1j1
+  - deltaEta_1j2
+  - deltaEta_2j1
+  - deltaEta_2j2
+  - deltaEta_ditaupair
+  - deltaEta_jj
+  - deltaPhi_12j1
+  - deltaPhi_12j2
+  - deltaPhi_12jj
+  - deltaPhi_1j1
+  - deltaPhi_1j2
+  - deltaPhi_2j1
+  - deltaPhi_2j2
+  - deltaPhi_ditaupair
+  - deltaPhi_jj
+  - deltaR_12j1
+  - deltaR_12j2
+  - deltaR_12jj
+  - deltaR_1j1
+  - deltaR_1j2
+  - deltaR_2j1
+  - deltaR_2j2
   - deltaR_ditaupair
+  - deltaR_jj
+  - eta_1
+  - eta_2
+  - jeta_1
+  - jeta_2
+  - jphi_1
+  - jphi_2
+  - jpt_1
+  - jpt_2
+  - m_vis
+  - met
+  - metphi
+  - mjj
+  - mt_2
+  - mt_tot
+  - nbtag
+  - njets
+  - pfmet
+  - pfmetphi
+  - phi_1
+  - phi_2
+  - pt_dijet
+  - pt_tt
+  - pt_ttjj
+  - pt_vis
+  - eta_fastmtt
+  - m_fastmtt
+  - phi_fastmtt
+  - pt_fastmtt

@@ -138,7 +138,7 @@ class SplitQuantities:
     Handles splitting of quantities based on a sprovided split from configuration dictionary.
 
     This class processes a configuration (from YAML) that defines how the data are to be split
-    into categories based on split category cuts. 
+    into categories based on split category cuts.
     Supports iteration over all split combinations (via __iter__), returning a
     SplitQuantitiesContainer for each split.
 
@@ -565,7 +565,7 @@ def fill_corrlib_expression(
     """
     This function fills the correctionlib expressions with the results from the fake factor
     calculation, process fraction or non-closure correction calculation (if a split is
-    provided). If a Dictionary is provided, the function will fill the correctionlib 
+    provided). If a Dictionary is provided, the function will fill the correctionlib
     expressions for each category cut combination. If a List is provided, the function will
     fill a Dictionary with the individual results.
 
@@ -577,7 +577,7 @@ def fill_corrlib_expression(
                                              Defaults to None.
 
     Returns:
-        Dict: Dictionary with the filled correctionlib expressions    
+        Dict: Dictionary with the filled correctionlib expressions
     """
     results = {}
     if split is not None and not isinstance(item, list) and isinstance(item, dict):  # Single result from multiprocessing
@@ -1184,6 +1184,18 @@ def smooth_function(
     nominal_graph, x, y, _, _, error_y_down, error_y_up = build_TGraph(
         hist, return_components=True, add_xerrors_in_graph=True,
     )
+
+    if "skip" in correction_option:
+        return (
+            nominal_graph,
+            nominal_graph,
+            {
+                "edges": np.array(bin_edges),
+                "nominal": np.array(y),
+                "up": np.array(error_y_up),
+                "down": np.array(error_y_down),
+            },
+        )
 
     # values for slicing and range determination in case of hybrid correction
     (

@@ -72,7 +72,7 @@ def _equipopulated_binned_variable(
         list: A list of bin edges.
     """
     if len(item) == 0 or n_bins == 0:
-        return []
+        return np.array([])
     return np.quantile(
         a=item,
         q=np.linspace(0, 1, n_bins + 1),
@@ -185,7 +185,7 @@ def get_binning(
 
         categories = []
         for i, (lower, upper) in enumerate(pairwise(split_edges)):
-            lower, upper = round(lower, rounding), round(upper, rounding)
+            lower, upper = round(lower.item(), rounding), round(upper.item(), rounding)
 
             if i == 0:  # syntax setting
                 categories.append(f"<={upper}")
@@ -269,9 +269,17 @@ def get_binning(
                 if bins.size > 0:
                     bins[0] = var_conf.get("min", bins[0])
                     bins[-1] = var_conf.get("max", bins[-1])
+                else:
+                    bins = np.array([var_conf.get("min", -9.9), var_conf.get("max", 9999.9)])
 
                 if (rounding := var_conf.get("rounding", 2)):
-                    bins = np.round(bins, rounding).tolist()
+                    bins = [
+                        round(
+                            it if isinstance(it, (int, float)) else it.item(),
+                            rounding,
+                        )
+                        for it in np.round(bins, rounding).tolist()
+                    ]
 
                 for option in ["add_left", "add_right"]:
                     if option not in binning_config:

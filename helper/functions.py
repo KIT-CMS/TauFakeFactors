@@ -51,7 +51,7 @@ class ConfiguredYAML(YAML):
     - Improved dump() method for automatic apply of to_commented_map for better readable list structures.
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(typ="rt", *args, **kwargs)
 
         self.preserve_quotes = True
         self.indent(mapping=2, sequence=4, offset=2)
@@ -66,6 +66,10 @@ class ConfiguredYAML(YAML):
 
         self.representer.add_representer(float, smart_float_representer)
         self.representer.add_representer(np.floating, smart_float_representer)
+
+        merge_tag = 'tag:yaml.org,2002:merge'
+        if merge_tag in self.constructor.yaml_constructors:
+            self.constructor.yaml_constructors[merge_tag].deep = True
 
 
 configured_yaml = ConfiguredYAML()
