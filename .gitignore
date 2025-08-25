@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.RDF_CACHE/*.root
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -3,21 +3,109 @@ Collection of helpful functions for the fake factor calculation scripts
 """
 
 import array
+import functools
+import hashlib
 import itertools as itt
+import json
 import logging
+import os
 import random
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, Iterator, List, Tuple, Union
+from io import StringIO
+from typing import Any, Callable, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
+from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
-from helper.hooks_and_patches import _EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
+                                      _EXTRA_PARAM_MEANS)
+
+
+def _generate_key(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> str:
+    """
+    Generate a stable hash key for a function's arguments and keyword arguments.
+
+    This key can be used to identify cached results uniquely.
+
+    Args:
+        args: Positional arguments passed to the function.
+        kwargs: Keyword arguments passed to the function.
+
+    Returns:
+        A hash key as a string.
+    """
+    stable_representation = {"args": args, "kwargs": kwargs}
+    key_string = json.dumps(stable_representation, sort_keys=True, separators=(',', ':'))
+    return hashlib.md5(key_string.encode()).hexdigest()
+
+
+def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
+    """
+    A decorator to cache the result of a ROOT RDataFrame operation to a file. If the cached file
+    already exists, it loads the RDataFrame from the file instead of recomputing it.
+
+    The wrapped function must accept an RDataFrame as its first positional argument or as a keyword
+    argument named 'rdf'. The decorator computes a hash based on the function's arguments (excluding
+    the RDataFrame) to uniquely identify the cache file. The tree name used in the ROOT file is
+    hardcoded as "ntuple". The function assumes that the wrapped function returns a ROOT RDataFrame.
+    The cache file is a ROOT file with a name derived from a hash of the function's arguments.
+
+    The decorator performs the following steps:
+        1. Checks if the cache file for the given arguments exists in the cache directory.
+        2. If the cache file exists, loads the RDataFrame from the file.
+        3. If the cache file does not exist, calls the wrapped function to process the RDataFrame,
+           saves the result to the cache file, and then reloads the RDataFrame from the file.
+
+    Args:
+        cache_dir (str): The directory where cached ROOT files will be stored. Defaults to "./.RDF_CACHE".
+
+    Returns:
+        Callable: A decorator that wraps a function which processes an RDataFrame.
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
+            log = logging.getLogger(kwargs.get("logger") or func.__module__ + '.' + func.__name__)
+            tree_name = "ntuple"
+
+            if 'rdf' in kwargs:
+                key_args = {k: v for k, v in kwargs.items() if k != 'rdf'}
+            elif args:
+                key_args = {'__args__': args[1:], **kwargs}
+            else:
+                raise ValueError("Could not find RDataFrame argument ('rdf').")
+
+            os.makedirs(cache_dir, exist_ok=True)
+
+            cache_hash = _generate_key((), key_args)
+            cache_filepath = os.path.join(cache_dir, f"{cache_hash}.root")
+
+            if os.path.exists(cache_filepath):
+                log.info(f"Using existent filtered Rdf: {cache_filepath}")
+                return ROOT.RDataFrame(tree_name, cache_filepath)
+
+            log.info(f"Creating filtered Rdf under: {cache_filepath}")
+
+            filtered_rdf = func(*args, **kwargs)
+
+            cols = [str(c) for c in filtered_rdf.GetColumnNames()]
+            snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
+            snapshot_result.GetValue()  # force execution
+
+            if not os.path.exists(cache_filepath):
+                log.error(f"Snapshot failed, file {cache_filepath} not created")
+                raise RuntimeError(f"Snapshot failed, file {cache_filepath} not created")
+
+            return ROOT.RDataFrame(tree_name, cache_filepath)
+
+        return wrapper
+    return decorator
 
 
 @dataclass
@@ -602,12 +690,14 @@ def fill_corrlib_expression(
     return results
 
 
+@cache_rdf_snapshot(cache_dir="./.RDF_CACHE")
 def apply_region_filters(
     rdf: Any,
     channel: str,
     sample: str,
     category_cuts: Union[Dict[str, str], None],
     region_cuts: Dict[str, str],
+    logger: str,
 ) -> Any:
     """
     Function which applies filters to a root DataFrame for the fake factor calculation. This includes the region cuts and the category splitting.
@@ -678,6 +768,14 @@ def apply_region_filters(
         if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
+
+    log = logging.getLogger(logger)
+    # redirecting C++ stdout for Report() to python stdout
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):
+        rdf.Report().Print()
+    log.info(out.getvalue())
+    log.info("-" * 50)
 
     return rdf
 
