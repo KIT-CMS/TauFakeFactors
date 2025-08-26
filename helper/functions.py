@@ -4,6 +4,7 @@ Collection of helpful functions for other scripts
 
 import concurrent.futures
 import glob
+import hashlib
 import logging
 import os
 import sys
@@ -141,9 +142,15 @@ def get_cached_file_path(
                 You sure you are doing the right thing?
             """
         )
-
-    file_name = "_".join([corr_type_str, for_DRtoSR_str, process_str, variables_str]) + ".pickle"
-
+    file_name = hashlib.md5(
+        "_".join(
+            [
+                corr_type_str,
+                for_DRtoSR_str,
+                process_str,
+                variables_str
+            ]
+        ).encode()).hexdigest() + ".pickle"
     return os.path.join(cache_path, file_name)
 
 

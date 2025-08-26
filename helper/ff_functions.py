@@ -21,6 +21,7 @@ from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
+import helper.functions as func
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
@@ -68,10 +69,10 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
     Returns:
         Callable: A decorator that wraps a function which processes an RDataFrame.
     """
-    def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
+    def decorator(function: Callable) -> Callable:
+        @functools.wraps(function)
         def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
-            log = logging.getLogger(kwargs.get("logger") or func.__module__ + '.' + func.__name__)
+            log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
             tree_name = "ntuple"
 
             if 'rdf' in kwargs:
@@ -86,13 +87,13 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             cache_hash = _generate_key((), key_args)
             cache_filepath = os.path.join(cache_dir, f"{cache_hash}.root")
 
-            if os.path.exists(cache_filepath):
+            if os.path.exists(cache_filepath) and func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
                 log.info(f"Using existent filtered Rdf: {cache_filepath}")
                 return ROOT.RDataFrame(tree_name, cache_filepath)
 
             log.info(f"Creating filtered Rdf under: {cache_filepath}")
 
-            filtered_rdf = func(*args, **kwargs)
+            filtered_rdf = function(*args, **kwargs)
 
             cols = [str(c) for c in filtered_rdf.GetColumnNames()]
             snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
@@ -344,6 +345,10 @@ class SplitQuantities:
             return itt.cycle([self.config[key]])
         elif isinstance(self.config[key], dict):
             return self._fill_dict_based(key)
+        elif isinstance(self.config[key], list):
+            if len(self.config[key]) != len(self):
+                raise ValueError(f"Length of {key} list does not match number of split combinations")
+            return self.config[key]
         else:
             raise Exception(f"Invalid type for {key}")
 
@@ -1289,9 +1294,9 @@ def smooth_function(
             nominal_graph,
             {
                 "edges": np.array(bin_edges),
-                "nominal": np.array(y),
-                "up": np.array(error_y_up),
-                "down": np.array(error_y_down),
+                "nominal": np.array([1.0]),
+                "up": np.array([1.0]) + 1e-6,
+                "down": np.array([1.0]) - 1e-6,
             },
         )
 
