@@ -4,9 +4,8 @@ Collection of helpful functions for the fake factor calculation scripts
 
 import array
 import functools
-import hashlib
+import inspect
 import itertools as itt
-import json
 import logging
 import os
 import random
@@ -26,24 +25,6 @@ import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
                                       _EXTRA_PARAM_MEANS)
-
-
-def _generate_key(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> str:
-    """
-    Generate a stable hash key for a function's arguments and keyword arguments.
-
-    This key can be used to identify cached results uniquely.
-
-    Args:
-        args: Positional arguments passed to the function.
-        kwargs: Keyword arguments passed to the function.
-
-    Returns:
-        A hash key as a string.
-    """
-    stable_representation = {"args": args, "kwargs": kwargs}
-    key_string = json.dumps(stable_representation, sort_keys=True, separators=(',', ':'))
-    return hashlib.md5(key_string.encode()).hexdigest()
 
 
 def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
@@ -76,15 +57,22 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             tree_name = "ntuple"
 
             if 'rdf' in kwargs:
+                base_rdf = kwargs['rdf']
                 key_args = {k: v for k, v in kwargs.items() if k != 'rdf'}
             elif args:
+                base_rdf = args[0]
                 key_args = {'__args__': args[1:], **kwargs}
             else:
                 raise ValueError("Could not find RDataFrame argument ('rdf').")
 
+            key_args['_var_'] = func.CachingKeyHelper.get_assignment_variable()
+            caller_frame = inspect.stack()[1]
+            caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
+            key_args["_caller_"] = caller_info
+
             os.makedirs(cache_dir, exist_ok=True)
 
-            cache_hash = _generate_key((), key_args)
+            cache_hash = func.CachingKeyHelper.generate_key((), func.CachingKeyHelper.make_hashable(key_args))
             cache_filepath = os.path.join(cache_dir, f"{cache_hash}.root")
 
             if os.path.exists(cache_filepath) and func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
@@ -93,11 +81,21 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
 
             log.info(f"Creating filtered Rdf under: {cache_filepath}")
 
+            cols = [str(c) for c in base_rdf.GetColumnNames()]
             filtered_rdf = function(*args, **kwargs)
 
-            cols = [str(c) for c in filtered_rdf.GetColumnNames()]
-            snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
-            snapshot_result.GetValue()  # force execution
+            if filtered_rdf.Count().GetValue() == 0:
+                log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
+                f = ROOT.TFile(cache_filepath, "RECREATE")
+                tree = ROOT.TTree(tree_name, tree_name)
+                for c in cols:
+                    arr = ROOT.std.vector('float')()
+                    tree.Branch(c, arr)
+                tree.Write()
+                f.Close()
+            else:
+                snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
+                snapshot_result.GetValue()  # force execution
 
             if not os.path.exists(cache_filepath):
                 log.error(f"Snapshot failed, file {cache_filepath} not created")
@@ -382,7 +380,7 @@ class SplitQuantities:
             new_combinations = []
             for combo in combinations:
                 if isinstance(next_variable_categories_config, dict):
-                    parent_key = combo[self.split_variables[i-1]]
+                    parent_key = combo[self.split_variables[i - 1]]
                     if parent_key not in next_variable_categories_config:
                         raise KeyError(f"Category '{parent_key}' not found in '{next_variable_name}' split definition.")
                     sub_categories = next_variable_categories_config[parent_key]
@@ -714,6 +712,7 @@ def apply_region_filters(
         sample: Name of the sample/process of the "rdf", needed to prevent weight application to data
         category_cuts: Dictionary of cuts for the category splitting, for inclusive category this is None
         region_cuts: Dictionary of cuts for a fake factor calculation region
+        logger: Logger name for logging purposes
 
     Return:
         Filtered root DataFrame with adjusted weights

@@ -30,6 +30,16 @@ parser.add_argument(
     help="Flag to disable multiprocessing for debugging purposes.",
 )
 
+parser.add_argument(
+    "--ignore-cached-intermediary-steps",
+    action="store_true",
+    help="""
+        Flag to use cached non closure corrections and FF for DRtoSR corrections if
+        available. Will check for existance assuming the same order of all previous
+        correction calculations.
+    """,
+)
+
 FF_CALCULATION_FUNCTIONS = {
     "QCD": FF_QCD.calculation_QCD_FFs,
     "QCD_subleading": FF_QCD.calculation_QCD_FFs,
@@ -159,7 +169,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
-    # func.RuntimeVariables.USE_MULTIPROCESSING = False
+    func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = not args.ignore_cached_intermediary_steps
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)
