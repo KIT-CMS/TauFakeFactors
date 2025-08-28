@@ -70,6 +70,9 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
             key_args["_caller_"] = caller_info
 
+            if "logger" in key_args:
+                del key_args["logger"]
+
             os.makedirs(cache_dir, exist_ok=True)
 
             cache_hash = func.CachingKeyHelper.generate_key((), func.CachingKeyHelper.make_hashable(key_args))

@@ -112,7 +112,7 @@ def non_closure_correction(
                 closure_variable,
                 sample_paths,
                 output_path,
-                logger,
+                f"{logger}.{correction_conf['var_dependence']}{'.DR_SR' if for_DRtoSR else ''}",
                 evaluator,
                 corr_evaluators,
                 for_DRtoSR,
