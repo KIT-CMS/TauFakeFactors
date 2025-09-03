@@ -3,7 +3,7 @@ output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__202
 friends: ["fastmtt_v1"]
 file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2
 
-workdir_name: more_low_level_correction_tests_v1
+workdir_name: test_setup
 
 era: '2018'
 tree: ntuple
