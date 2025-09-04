@@ -64,14 +64,14 @@ class CachingKeyHelper:
     @staticmethod
     def get_assignment_variable(stack_depth: int = 2) -> str:
         """
-        Try to extract the variable name on the LHS of the assignment where this function was
+        Try to extract the variable name on the left hand sign of the assignment where this function was
         called. Works for single- and multi-line assignments, useful to determine caching placement.
 
         Args:
             stack_depth (int): The depth of the stack to inspect. Defaults to 2.
 
         Returns:
-            str: The name of the variable on the LHS of the assignment, or "unknown" if it cannot be determined.
+            str: The name of the variable on the left hand side of the assignment, or "unknown" if it cannot be determined.
         """
         try:
             frame = inspect.stack()[stack_depth]

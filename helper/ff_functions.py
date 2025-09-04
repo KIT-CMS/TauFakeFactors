@@ -56,16 +56,16 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
             tree_name = "ntuple"
 
-            if 'rdf' in kwargs:
-                base_rdf = kwargs['rdf']
-                key_args = {k: v for k, v in kwargs.items() if k != 'rdf'}
+            if "rdf" in kwargs:
+                base_rdf = kwargs["rdf"]
+                key_args = {k: v for k, v in kwargs.items() if k != "rdf"}
             elif args:
                 base_rdf = args[0]
-                key_args = {'__args__': args[1:], **kwargs}
+                key_args = {"__args__": args[1:], **kwargs}
             else:
                 raise ValueError("Could not find RDataFrame argument ('rdf').")
 
-            key_args['_var_'] = func.CachingKeyHelper.get_assignment_variable()
+            key_args["_var_"] = func.CachingKeyHelper.get_assignment_variable()
             caller_frame = inspect.stack()[1]
             caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
             key_args["_caller_"] = caller_info
@@ -92,7 +92,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
                 f = ROOT.TFile(cache_filepath, "RECREATE")
                 tree = ROOT.TTree(tree_name, tree_name)
                 for c in cols:
-                    arr = ROOT.std.vector('float')()
+                    arr = ROOT.std.vector("float")()
                     tree.Branch(c, arr)
                 tree.Write()
                 f.Close()
