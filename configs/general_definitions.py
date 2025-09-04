@@ -1,7 +1,10 @@
-import ROOT
-from typing import Union, List
-from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+from collections import defaultdict
 from copy import deepcopy
+from typing import Any, List, Union
+
+import ROOT
+
+from helper.hooks_and_patches import _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
 
 #### For fake factor fits ####
 
@@ -10,6 +13,13 @@ default_fit_option = "poly_1"
 default_correction_option = "smoothed"
 
 default_CMS_text = "Own work (Data/Simulation)"
+
+
+class AutoGetDict(dict):
+    def __getitem__(self, key: Any) -> Any:
+        if key not in self:
+            print(f"WARNING: Key '{key}' not found in dictionary, returning the key itself.")
+        return self.get(key, key)
 
 
 def get_default_fit_function_limit_kwargs(
@@ -69,24 +79,28 @@ OFFICIAL_CMS_COLOR_PALLET = {
 
 
 # label definitions for y-axis
-FF_YAxis = {
-    "ttbar": r"$F_{F}^{t\bar{t}}$",
-    "ttbar_subleading": r"$F_{F}^{t\bar{t}}$",
-    "Wjets": r"$F_{F}^{Wjets}$",
-    "QCD": r"$F_{F}^{QCD}$",
-    "QCD_subleading": r"$F_{F}^{QCD}$",
-}
+FF_YAxis = AutoGetDict(
+    {
+        "ttbar": r"$F_{F}^{t\bar{t}}$",
+        "ttbar_subleading": r"$F_{F}^{t\bar{t}}$",
+        "Wjets": r"$F_{F}^{Wjets}$",
+        "QCD": r"$F_{F}^{QCD}$",
+        "QCD_subleading": r"$F_{F}^{QCD}$",
+    }
+)
 
 # definitions for channels
-channel_dict = {"et": r"$e\tau_{h}$", "mt": r"$\mu\tau_{h}$", "tt": r"$\tau_{h}\tau_{h}$"}
+channel_dict = AutoGetDict({"et": r"$e\tau_{h}$", "mt": r"$\mu\tau_{h}$", "tt": r"$\tau_{h}\tau_{h}$"})
 
 # definitions for era and luminosity
-era_dict = {
-    "2016preVFP": r"$19.5\,fb^{-1}$ (2016preVFP, 13 TeV)",
-    "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
-    "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
-    "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
-}
+era_dict = AutoGetDict(
+    {
+        "2016preVFP": r"$19.5\,fb^{-1}$ (2016preVFP, 13 TeV)",
+        "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
+        "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
+        "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
+    }
+)
 
 # definitions for process color is the histograms + colors for the fitted graphs
 color_dict = {
@@ -113,100 +127,112 @@ color_dict = {
 }
 
 # definitions for process labels on the plots
-label_dict = {
-    "QCD": "QCD multijet",
-    "diboson_J": r"diboson (jet$\rightarrow\tau_{h}$)",
-    "diboson_L": r"diboson ($\ell\rightarrow\tau_{h}$)",
-    "diboson_T": r"diboson ($\tau\rightarrow\tau_{h}$)",
-    "Wjets": r"W$\rightarrow\ell\nu$",
-    "ttbar_J": r"$t\bar{t}$ (jet$\rightarrow\tau_{h}$)",
-    "ttbar_L": r"$t\bar{t}$ ($\ell\rightarrow\tau_{h}$)",
-    "ttbar_T": r"$t\bar{t}$ ($\tau\rightarrow\tau_{h}$)",
-    "DYjets_J": r"$Z\rightarrow\ell\ell$ (jet$\rightarrow\tau_{h}$)",
-    "DYjets_L": r"$Z\rightarrow\ell\ell$ ($\ell\rightarrow\tau_{h}$)",
-    "DYjets_T": r"$Z\rightarrow\ell\ell$ ($\tau\rightarrow\tau_{h}$)",
-    "ST_J": r"t (jet$\rightarrow\tau_{h}$)",
-    "ST_L": r"t ($\ell\rightarrow\tau_{h}$)",
-    "ST_T": r"t ($\tau\rightarrow\tau_{h}$)",
-    "embedding": r"$\tau$ embedded",
-    "data": "data",
-    "data_subtracted": "reduced data",
-    "data_ff": r"data with $F_F$'s",
-    "tau_fakes": r"jet$\rightarrow\tau_{h}$",
-    "fit_graph_unc": {
-        **{f"poly_{i}": f"poly({i}) best fit unc." for i in range(7)},
-        "binwise": "plain histogram unc.",
-    },
-    "fit_graph_mc_sub": {
-        **{f"poly_{i}": f"poly({i}) best fit (MC subtr. unc.)" for i in range(7)},
-        "binwise": "plain histogram (MC subtr. unc.)",
-    },
-}
+label_dict = AutoGetDict(
+    {
+        "QCD": "QCD multijet",
+        "diboson_J": r"diboson (jet$\rightarrow\tau_{h}$)",
+        "diboson_L": r"diboson ($\ell\rightarrow\tau_{h}$)",
+        "diboson_T": r"diboson ($\tau\rightarrow\tau_{h}$)",
+        "Wjets": r"W$\rightarrow\ell\nu$",
+        "ttbar_J": r"$t\bar{t}$ (jet$\rightarrow\tau_{h}$)",
+        "ttbar_L": r"$t\bar{t}$ ($\ell\rightarrow\tau_{h}$)",
+        "ttbar_T": r"$t\bar{t}$ ($\tau\rightarrow\tau_{h}$)",
+        "DYjets_J": r"$Z\rightarrow\ell\ell$ (jet$\rightarrow\tau_{h}$)",
+        "DYjets_L": r"$Z\rightarrow\ell\ell$ ($\ell\rightarrow\tau_{h}$)",
+        "DYjets_T": r"$Z\rightarrow\ell\ell$ ($\tau\rightarrow\tau_{h}$)",
+        "ST_J": r"t (jet$\rightarrow\tau_{h}$)",
+        "ST_L": r"t ($\ell\rightarrow\tau_{h}$)",
+        "ST_T": r"t ($\tau\rightarrow\tau_{h}$)",
+        "embedding": r"$\tau$ embedded",
+        "data": "data",
+        "data_subtracted": "reduced data",
+        "data_ff": r"data with $F_F$'s",
+        "tau_fakes": r"jet$\rightarrow\tau_{h}$",
+        "fit_graph_unc": {
+            **{f"poly_{i}": f"poly({i}) best fit unc." for i in range(7)},
+            "binwise": "plain histogram unc.",
+        },
+        "fit_graph_mc_sub": {
+            **{f"poly_{i}": f"poly({i}) best fit (MC subtr. unc.)" for i in range(7)},
+            "binwise": "plain histogram (MC subtr. unc.)",
+        },
+    }
+)
 
 # definitions to translate variable to readable language, channel dependent
-channel_indipendent_variable_dict = {
-    "njets": r"$N_{jets}$",
-    "metphi": r"$\phi(p_T^{miss})$",
-    "met": r"$p_T^{miss}$ (GeV)",
-    "m_vis": r"$m_{vis}$ (GeV)",
-    "nbtag": r"$N_{b-jets}$",
-}
+channel_indipendent_variable_dict = AutoGetDict(
+    {
+        "njets": r"$N_{jets}$",
+        "metphi": r"$\phi(p_T^{miss})$",
+        "met": r"$p_T^{miss}$ (GeV)",
+        "m_vis": r"$m_{vis}$ (GeV)",
+        "nbtag": r"$N_{b-jets}$",
+    }
+)
 variable_dict = {
-    "mt": {
-        "pt_1": r"$p_{T}^{\mu}$ (GeV)",
-        "eta_1": r"$\eta^{\mu}$",
-        "phi_1": r"$\phi^{\mu}$",
-        "iso_1": r"$iso^{\mu}$",
-        "mt_1": r"$m_{T}(\mu,p_T^{miss})$ (GeV)",
-        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
-        "eta_2": r"$\eta^{\tau_{h}}$",
-        "phi_2": r"$\phi^{\tau_{h}}$",
-        "mass_2": r"$\tau_{h}$ mass",
-        "deltaR_ditaupair": r"$\Delta R(\mu,\tau_{h})$",
-        "tau_decaymode_2": r"$\tau_{h}^{DM}$",
-        **channel_indipendent_variable_dict,
-    },
-    "et": {
-        "pt_1": r"$p_{T}^{e}$ (GeV)",
-        "eta_1": r"$\eta^{e}$",
-        "phi_1": r"$\phi^{e}$",
-        "iso_1": r"$iso^{e}$",
-        "mt_1": r"$m_{T}(e,p_T^{miss})$ (GeV)",
-        "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
-        "eta_2": r"$\eta^{\tau_{h}}$",
-        "phi_2": r"$\phi^{\tau_{h}}$",
-        "mass_2": r"$\tau_{h}$ mass",
-        "deltaR_ditaupair": r"$\Delta R(e,\tau_{h})$",
-        "tau_decaymode_2": r"$\tau_{h}^{DM}$",
-        **channel_indipendent_variable_dict,
-    },
-    "tt": {
-        "pt_1": r"$p_{T}^{\tau_{h,1}}$ (GeV)",
-        "eta_1": r"$\eta^{\tau_{h,1}}$",
-        "phi_1": r"$\phi^{\tau_{h,1}}$",
-        "pt_2": r"$p_{T}^{\tau_{h,2}}$ (GeV)",
-        "eta_2": r"$\eta^{\tau_{h,2}}$",
-        "phi_2": r"$\phi^{\tau_{h,2}}$",
-        "mass_1": r"$\tau_{h,1}$ mass",
-        "mass_2": r"$\tau_{h,2}$ mass",
-        "deltaR_ditaupair": r"$\Delta R(\tau_{h, 1},\tau_{h, 2})$",
-        "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
-        "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
-        **channel_indipendent_variable_dict,
-    },
+    "mt": AutoGetDict(
+        {
+            "pt_1": r"$p_{T}^{\mu}$ (GeV)",
+            "eta_1": r"$\eta^{\mu}$",
+            "phi_1": r"$\phi^{\mu}$",
+            "iso_1": r"$iso^{\mu}$",
+            "mt_1": r"$m_{T}(\mu,p_T^{miss})$ (GeV)",
+            "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+            "eta_2": r"$\eta^{\tau_{h}}$",
+            "phi_2": r"$\phi^{\tau_{h}}$",
+            "mass_2": r"$\tau_{h}$ mass",
+            "deltaR_ditaupair": r"$\Delta R(\mu,\tau_{h})$",
+            "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+            **channel_indipendent_variable_dict,
+        }
+    ),
+    "et": AutoGetDict(
+        {
+            "pt_1": r"$p_{T}^{e}$ (GeV)",
+            "eta_1": r"$\eta^{e}$",
+            "phi_1": r"$\phi^{e}$",
+            "iso_1": r"$iso^{e}$",
+            "mt_1": r"$m_{T}(e,p_T^{miss})$ (GeV)",
+            "pt_2": r"$p_{T}^{\tau_{h}}$ (GeV)",
+            "eta_2": r"$\eta^{\tau_{h}}$",
+            "phi_2": r"$\phi^{\tau_{h}}$",
+            "mass_2": r"$\tau_{h}$ mass",
+            "deltaR_ditaupair": r"$\Delta R(e,\tau_{h})$",
+            "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+            **channel_indipendent_variable_dict,
+        },
+    ),
+    "tt": AutoGetDict(
+        {
+            "pt_1": r"$p_{T}^{\tau_{h,1}}$ (GeV)",
+            "eta_1": r"$\eta^{\tau_{h,1}}$",
+            "phi_1": r"$\phi^{\tau_{h,1}}$",
+            "pt_2": r"$p_{T}^{\tau_{h,2}}$ (GeV)",
+            "eta_2": r"$\eta^{\tau_{h,2}}$",
+            "phi_2": r"$\phi^{\tau_{h,2}}$",
+            "mass_1": r"$\tau_{h,1}$ mass",
+            "mass_2": r"$\tau_{h,2}$ mass",
+            "deltaR_ditaupair": r"$\Delta R(\tau_{h, 1},\tau_{h, 2})$",
+            "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
+            "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
+            **channel_indipendent_variable_dict,
+        }
+    ),
 }
 
 # definitions to translate category cuts to readable language
-category_dict = {
-    "incl": r"incl.",
-    "njets": r"$N_{jets}$",
-    "nbtag": r"$N_{b-jets}$",
-    "deltaR_ditaupair": r"$\Delta R(\ell,\tau_{h})$",
-    "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
-    "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
-    "pt_1": r"$p_{T}^{\mu}$",  # for mt channel
-    "pt_2": r"$p_{T}^{\tau_{h}}$",
-}
+category_dict = AutoGetDict(
+    {
+        "incl": r"incl.",
+        "njets": r"$N_{jets}$",
+        "nbtag": r"$N_{b-jets}$",
+        "deltaR_ditaupair": r"$\Delta R(\ell,\tau_{h})$",
+        "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
+        "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
+        "pt_1": r"$p_{T}^{\mu}$",  # for mt channel
+        "pt_2": r"$p_{T}^{\tau_{h}}$",
+    }
+)
 
 ### For correctionlib ###
 
@@ -217,37 +243,42 @@ variable_translator = {
     "ttbar_J": "ttbar",
 }
 # definitions for the variable type, needed for correctionlib
-variable_type = {
-    "pt_2": "real",
-    "pt_1": "real",
-    "mt_1": "real",
-    "mass_1": "real",
-    "mass_2": "real",
-    "iso_1": "real",
-    "m_vis": "real",
-    "bpt_1": "real",
-    "njets": "real",
-    "nbtag": "real",
-    "deltaR_ditaupair": "real",
-    "tau_decaymode_1": "real",
-    "tau_decaymode_2": "real",
-}
+variable_type = defaultdict(
+    lambda: "real",
+    {
+        "pt_2": "real",
+        "pt_1": "real",
+        "mt_1": "real",
+        "mass_1": "real",
+        "mass_2": "real",
+        "iso_1": "real",
+        "m_vis": "real",
+        "bpt_1": "real",
+        "njets": "real",
+        "nbtag": "real",
+        "deltaR_ditaupair": "real",
+        "tau_decaymode_1": "real",
+        "tau_decaymode_2": "real",
+    }
+)
 # definitions for variable descriptions, needed for correctionlib, #var_max and #var_min are replaced later by using the variable binning
-variable_description = {
-    "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
-    "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
-    "mass_1": "mass of the leading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
-    "mass_2": "mass of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
-    "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
-    "bpair_pt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-    "njets": "number of jets in an event; the defined categories are ",
-    "nbtag": "number of b-tagged jets in an event; the defined categories are ",
-    "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
-    "tau_decaymode_1": "decay mode of the leading tau in the tau pair; the defined categories are ",
-    "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",
-}
+variable_description = AutoGetDict(
+    {
+        "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+        "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+        "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
+        "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+        "mass_1": "mass of the leading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
+        "mass_2": "mass of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
+        "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
+        "bpair_pt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
+        "njets": "number of jets in an event; the defined categories are ",
+        "nbtag": "number of b-tagged jets in an event; the defined categories are ",
+        "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
+        "tau_decaymode_1": "decay mode of the leading tau in the tau pair; the defined categories are ",
+        "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",
+    }
+)
 # intern naming translation helper for fit uncertainties
 # naming has to match the one used in helper/ff_functions.py -> fit_function()
 ff_variation_dict = {

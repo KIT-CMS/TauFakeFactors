@@ -4,8 +4,12 @@ Collection of helpful functions for other scripts
 
 import concurrent.futures
 import glob
+import hashlib
+import inspect
+import json
 import logging
 import os
+import re
 import sys
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Tuple, Union
@@ -16,6 +20,78 @@ from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
+
+
+class CachingKeyHelper:
+    @staticmethod
+    def make_hashable(obj: Union[Dict, List, Tuple, Any]) -> Union[Dict, Tuple, bytes, Any]:
+        """
+        Recursively convert an object to a hashable representation.
+
+        Args:
+            obj: The object to convert.
+
+        Returns:
+            A hashable representation of the object.
+        """
+        if isinstance(obj, dict):
+            return {k: CachingKeyHelper.make_hashable(v) for k, v in sorted(obj.items())}
+        elif isinstance(obj, (list, tuple)):
+            return tuple(CachingKeyHelper.make_hashable(x) for x in obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tobytes()
+        else:
+            return obj
+
+    @staticmethod
+    def generate_key(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> str:
+        """
+        Generate a stable hash key for a function's arguments and keyword arguments.
+
+        This key can be used to identify cached results uniquely.
+
+        Args:
+            args: Positional arguments passed to the function.
+            kwargs: Keyword arguments passed to the function.
+
+        Returns:
+            A hash key as a string.
+        """
+        stable_representation = {"args": args, "kwargs": kwargs}
+        key_string = json.dumps(stable_representation, sort_keys=True, separators=(',', ':'))
+        return hashlib.md5(key_string.encode()).hexdigest()
+
+    @staticmethod
+    def get_assignment_variable(stack_depth: int = 2) -> str:
+        """
+        Try to extract the variable name on the left hand sign of the assignment where this function was
+        called. Works for single- and multi-line assignments, useful to determine caching placement.
+
+        Args:
+            stack_depth (int): The depth of the stack to inspect. Defaults to 2.
+
+        Returns:
+            str: The name of the variable on the left hand side of the assignment, or "unknown" if it cannot be determined.
+        """
+        try:
+            frame = inspect.stack()[stack_depth]
+            lines, start = inspect.getsourcelines(frame.frame)
+            call_lineno = frame.lineno - start  # Find line with function call
+            src_lines = []
+            for line in lines[call_lineno:]:
+                src_lines.append(line)
+                if ")" in line:   # look ahead until the closing parenthesis
+                    break
+
+            src = "".join(src_lines)
+            src = re.sub(r"\s+", " ", src.strip())
+
+            match = re.match(r"(\w+)\s*=\s*.*apply_region_filters", src)  # Regex for variable assignment
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+        return "unknown"
 
 
 def to_commented_map(items: dict) -> CommentedMap:
@@ -51,7 +127,7 @@ class ConfiguredYAML(YAML):
     - Improved dump() method for automatic apply of to_commented_map for better readable list structures.
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(typ="rt", *args, **kwargs)
 
         self.preserve_quotes = True
         self.indent(mapping=2, sequence=4, offset=2)
@@ -66,6 +142,10 @@ class ConfiguredYAML(YAML):
 
         self.representer.add_representer(float, smart_float_representer)
         self.representer.add_representer(np.floating, smart_float_representer)
+
+        merge_tag = 'tag:yaml.org,2002:merge'
+        if merge_tag in self.constructor.yaml_constructors:
+            self.constructor.yaml_constructors[merge_tag].deep = True
 
 
 configured_yaml = ConfiguredYAML()
@@ -118,8 +198,7 @@ def get_cached_file_path(
         String with the file name
     """
     cache_path = os.path.join(output_path, ".cache")
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
+    os.makedirs(cache_path, exist_ok=True)
 
     corr_type_str = "DR_SR" if variables is None else "non_closure"
     for_DRtoSR_str = "for_DRtoSR" if for_DRtoSR else ""
@@ -137,9 +216,16 @@ def get_cached_file_path(
                 You sure you are doing the right thing?
             """
         )
-
-    file_name = "_".join([corr_type_str, for_DRtoSR_str, process_str, variables_str]) + ".pickle"
-
+    file_name = hashlib.md5(
+        "_".join(
+            [
+                corr_type_str,
+                for_DRtoSR_str,
+                process_str,
+                variables_str
+            ]
+        ).encode()
+    ).hexdigest() + ".pickle"
     return os.path.join(cache_path, file_name)
 
 

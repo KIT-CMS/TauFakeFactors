@@ -41,7 +41,7 @@ parser.add_argument(
     "--ignore-cached-intermediary-steps",
     action="store_true",
     help="""
-        Flag to use cached non closure corrections and FF for DRtoSR corrections if
+        Flag to use cached ROOT RDataFrames and full non closure, FF and DRtoSR corrections if
         available. Will check for existance assuming the same order of all previous
         correction calculations.
     """,
@@ -112,7 +112,7 @@ def non_closure_correction(
                 closure_variable,
                 sample_paths,
                 output_path,
-                logger,
+                f"{logger}.{correction_conf['var_dependence']}{'.DR_SR' if for_DRtoSR else ''}",
                 evaluator,
                 corr_evaluators,
                 for_DRtoSR,

@@ -5,11 +5,9 @@ Function for calculating the process fractions for the fake factors
 import array
 import copy
 import logging
-from io import StringIO
 from typing import Any, Dict, List, Tuple
 
 import ROOT
-from wurlitzer import STDOUT, pipes
 
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
@@ -60,6 +58,7 @@ def fraction_calculation(
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for application region
+        log.info("Filtering events for the fraction calculation in the application region.")
         region_conf = copy.deepcopy(process_conf["AR_cuts"])
         rdf_AR = ff_func.apply_region_filters(
             rdf=rdf,
@@ -67,17 +66,11 @@ def fraction_calculation(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
 
-        log.info("Filtering events for the fraction calculation in the application region.")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_AR.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
         # event filter for signal region; this is not needed for the FF calculation, just for control plots
+        log.info("Filtering events for the fraction calculation in the signal region.")
         region_conf = copy.deepcopy(process_conf["SR_cuts"])
         rdf_SR = ff_func.apply_region_filters(
             rdf=rdf,
@@ -85,15 +78,8 @@ def fraction_calculation(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
-
-        log.info("Filtering events for the fraction calculation in the signal region.")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_SR.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
 
         # get binning of the dependent variable
         xbinning = array.array("d", splitting.var_bins)

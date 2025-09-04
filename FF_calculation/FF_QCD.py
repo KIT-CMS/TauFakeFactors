@@ -5,14 +5,11 @@ Function for calculating fake factors for the QCD process
 import array
 import copy
 import logging
-from io import StringIO
 from typing import Any, Dict, Tuple, Union
 
 import numpy as np
 import ROOT
-from wurlitzer import STDOUT, pipes
 
-import configs.general_definitions as gd
 import helper.ff_functions as ff_func
 import helper.plotting as plotting
 from helper.functions import RuntimeVariables
@@ -63,6 +60,7 @@ def calculation_QCD_FFs(
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -70,17 +68,11 @@ def calculation_QCD_FFs(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_SRlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
         # event filter for QCD application-like region
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -88,15 +80,8 @@ def calculation_QCD_FFs(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
-
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_ARlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
 
         # get binning of the dependent variable
         xbinning = array.array("d", splitting.var_bins)
@@ -256,6 +241,7 @@ def non_closure_correction(
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -263,17 +249,11 @@ def non_closure_correction(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_SRlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
         # event filter for QCD application-like region
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -281,9 +261,8 @@ def non_closure_correction(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
-
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
@@ -299,13 +278,6 @@ def non_closure_correction(
                 "weight_ff",
                 f"weight * {process}_fake_factor{corr_str}",
             )
-
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_ARlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
 
         # get binning of the dependent variable
         xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1
@@ -470,6 +442,7 @@ def DR_SR_correction(
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for QCD signal-like region
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -477,17 +450,11 @@ def DR_SR_correction(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_SRlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
-
         # event filter for QCD application-like region
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -495,9 +462,8 @@ def DR_SR_correction(
             sample=sample,
             category_cuts=splitting.split,
             region_cuts=region_conf,
+            logger=logger,
         )
-
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
@@ -513,13 +479,6 @@ def DR_SR_correction(
                 "weight_ff",
                 f"weight * {process}_fake_factor{corr_str}",
             )
-
-        # redirecting C++ stdout for Report() to python stdout
-        out = StringIO()
-        with pipes(stdout=out, stderr=STDOUT):
-            rdf_ARlike.Report().Print()
-        log.info(out.getvalue())
-        log.info("-" * 50)
 
         # get binning of the dependent variable
         xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1

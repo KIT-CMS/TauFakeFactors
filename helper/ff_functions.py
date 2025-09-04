@@ -3,21 +3,111 @@ Collection of helpful functions for the fake factor calculation scripts
 """
 
 import array
+import functools
+import inspect
 import itertools as itt
 import logging
+import os
 import random
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, Iterator, List, Tuple, Union
+from io import StringIO
+from typing import Any, Callable, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
+from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
+import helper.functions as func
 import helper.weights as weights
 from configs.general_definitions import random_seed
-from helper.hooks_and_patches import _EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG, _EXTRA_PARAM_MEANS
+from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
+                                      _EXTRA_PARAM_MEANS)
+
+
+def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
+    """
+    A decorator to cache the result of a ROOT RDataFrame operation to a file. If the cached file
+    already exists, it loads the RDataFrame from the file instead of recomputing it.
+
+    The wrapped function must accept an RDataFrame as its first positional argument or as a keyword
+    argument named 'rdf'. The decorator computes a hash based on the function's arguments (excluding
+    the RDataFrame) to uniquely identify the cache file. The tree name used in the ROOT file is
+    hardcoded as "ntuple". The function assumes that the wrapped function returns a ROOT RDataFrame.
+    The cache file is a ROOT file with a name derived from a hash of the function's arguments.
+
+    The decorator performs the following steps:
+        1. Checks if the cache file for the given arguments exists in the cache directory.
+        2. If the cache file exists, loads the RDataFrame from the file.
+        3. If the cache file does not exist, calls the wrapped function to process the RDataFrame,
+           saves the result to the cache file, and then reloads the RDataFrame from the file.
+
+    Args:
+        cache_dir (str): The directory where cached ROOT files will be stored. Defaults to "./.RDF_CACHE".
+
+    Returns:
+        Callable: A decorator that wraps a function which processes an RDataFrame.
+    """
+    def decorator(function: Callable) -> Callable:
+        @functools.wraps(function)
+        def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
+            log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
+            tree_name = "ntuple"
+
+            if "rdf" in kwargs:
+                base_rdf = kwargs["rdf"]
+                key_args = {k: v for k, v in kwargs.items() if k != "rdf"}
+            elif args:
+                base_rdf = args[0]
+                key_args = {"__args__": args[1:], **kwargs}
+            else:
+                raise ValueError("Could not find RDataFrame argument ('rdf').")
+
+            key_args["_var_"] = func.CachingKeyHelper.get_assignment_variable()
+            caller_frame = inspect.stack()[1]
+            caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
+            key_args["_caller_"] = caller_info
+
+            if "logger" in key_args:
+                del key_args["logger"]
+
+            os.makedirs(cache_dir, exist_ok=True)
+
+            cache_hash = func.CachingKeyHelper.generate_key((), func.CachingKeyHelper.make_hashable(key_args))
+            cache_filepath = os.path.join(cache_dir, f"{cache_hash}.root")
+
+            if os.path.exists(cache_filepath) and func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+                log.info(f"Using existent filtered Rdf: {cache_filepath}")
+                return ROOT.RDataFrame(tree_name, cache_filepath)
+
+            log.info(f"Creating filtered Rdf under: {cache_filepath}")
+
+            cols = [str(c) for c in base_rdf.GetColumnNames()]
+            filtered_rdf = function(*args, **kwargs)
+
+            if filtered_rdf.Count().GetValue() == 0:
+                log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
+                f = ROOT.TFile(cache_filepath, "RECREATE")
+                tree = ROOT.TTree(tree_name, tree_name)
+                for c in cols:
+                    arr = ROOT.std.vector("float")()
+                    tree.Branch(c, arr)
+                tree.Write()
+                f.Close()
+            else:
+                snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
+                snapshot_result.GetValue()  # force execution
+
+            if not os.path.exists(cache_filepath):
+                log.error(f"Snapshot failed, file {cache_filepath} not created")
+                raise RuntimeError(f"Snapshot failed, file {cache_filepath} not created")
+
+            return ROOT.RDataFrame(tree_name, cache_filepath)
+
+        return wrapper
+    return decorator
 
 
 @dataclass
@@ -138,7 +228,7 @@ class SplitQuantities:
     Handles splitting of quantities based on a sprovided split from configuration dictionary.
 
     This class processes a configuration (from YAML) that defines how the data are to be split
-    into categories based on split category cuts. 
+    into categories based on split category cuts.
     Supports iteration over all split combinations (via __iter__), returning a
     SplitQuantitiesContainer for each split.
 
@@ -256,6 +346,10 @@ class SplitQuantities:
             return itt.cycle([self.config[key]])
         elif isinstance(self.config[key], dict):
             return self._fill_dict_based(key)
+        elif isinstance(self.config[key], list):
+            if len(self.config[key]) != len(self):
+                raise ValueError(f"Length of {key} list does not match number of split combinations")
+            return self.config[key]
         else:
             raise Exception(f"Invalid type for {key}")
 
@@ -289,7 +383,7 @@ class SplitQuantities:
             new_combinations = []
             for combo in combinations:
                 if isinstance(next_variable_categories_config, dict):
-                    parent_key = combo[self.split_variables[i-1]]
+                    parent_key = combo[self.split_variables[i - 1]]
                     if parent_key not in next_variable_categories_config:
                         raise KeyError(f"Category '{parent_key}' not found in '{next_variable_name}' split definition.")
                     sub_categories = next_variable_categories_config[parent_key]
@@ -565,7 +659,7 @@ def fill_corrlib_expression(
     """
     This function fills the correctionlib expressions with the results from the fake factor
     calculation, process fraction or non-closure correction calculation (if a split is
-    provided). If a Dictionary is provided, the function will fill the correctionlib 
+    provided). If a Dictionary is provided, the function will fill the correctionlib
     expressions for each category cut combination. If a List is provided, the function will
     fill a Dictionary with the individual results.
 
@@ -577,7 +671,7 @@ def fill_corrlib_expression(
                                              Defaults to None.
 
     Returns:
-        Dict: Dictionary with the filled correctionlib expressions    
+        Dict: Dictionary with the filled correctionlib expressions
     """
     results = {}
     if split is not None and not isinstance(item, list) and isinstance(item, dict):  # Single result from multiprocessing
@@ -602,12 +696,14 @@ def fill_corrlib_expression(
     return results
 
 
+@cache_rdf_snapshot(cache_dir="./.RDF_CACHE")
 def apply_region_filters(
     rdf: Any,
     channel: str,
     sample: str,
     category_cuts: Union[Dict[str, str], None],
     region_cuts: Dict[str, str],
+    logger: str,
 ) -> Any:
     """
     Function which applies filters to a root DataFrame for the fake factor calculation. This includes the region cuts and the category splitting.
@@ -619,6 +715,7 @@ def apply_region_filters(
         sample: Name of the sample/process of the "rdf", needed to prevent weight application to data
         category_cuts: Dictionary of cuts for the category splitting, for inclusive category this is None
         region_cuts: Dictionary of cuts for a fake factor calculation region
+        logger: Logger name for logging purposes
 
     Return:
         Filtered root DataFrame with adjusted weights
@@ -678,6 +775,14 @@ def apply_region_filters(
         if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
+
+    log = logging.getLogger(logger)
+    # redirecting C++ stdout for Report() to python stdout
+    out = StringIO()
+    with pipes(stdout=out, stderr=STDOUT):
+        rdf.Report().Print()
+    log.info(out.getvalue())
+    log.info("-" * 50)
 
     return rdf
 
@@ -1184,6 +1289,18 @@ def smooth_function(
     nominal_graph, x, y, _, _, error_y_down, error_y_up = build_TGraph(
         hist, return_components=True, add_xerrors_in_graph=True,
     )
+
+    if "skip" in correction_option:
+        return (
+            nominal_graph,
+            nominal_graph,
+            {
+                "edges": np.array(bin_edges),
+                "nominal": np.array([1.0]),
+                "up": np.array([1.0]) + 1e-6,
+                "down": np.array([1.0]) - 1e-6,
+            },
+        )
 
     # values for slicing and range determination in case of hybrid correction
     (
