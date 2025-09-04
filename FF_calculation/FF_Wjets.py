@@ -330,6 +330,7 @@ def non_closure_correction(
         )
 
         # event filter for Wjets application-like region
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -339,8 +340,6 @@ def non_closure_correction(
             region_cuts=region_conf,
             logger=logger,
         )
-
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
 
         # evaluate the measured fake factors for the specific processes
         if sample == "data":
@@ -565,6 +564,7 @@ def DR_SR_correction(
             )
 
             # event filter for Wjets application-like region
+            log.info(f"Filtering events for the application-like region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
             rdf_ARlike = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -574,8 +574,6 @@ def DR_SR_correction(
                 region_cuts=region_conf,
                 logger=logger,
             )
-
-            log.info(f"Filtering events for the application-like region. Target process: {process}")
 
             rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
             # additionally evaluate the previous corrections

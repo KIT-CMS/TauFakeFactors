@@ -34,9 +34,7 @@ parser.add_argument(
     "--ignore-cached-intermediary-steps",
     action="store_true",
     help="""
-        Flag to use cached non closure corrections and FF for DRtoSR corrections if
-        available. Will check for existance assuming the same order of all previous
-        correction calculations.
+        Flag to use intermediary filtered ROOT RDataFrames even if cached versions are available.
     """,
 )
 
