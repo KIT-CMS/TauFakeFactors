@@ -94,6 +94,7 @@ templates:
 channel: mt
 target_processes:
   QCD:
+    chain_DR_SR_to_non_closure: true
     non_closure:
       m_vis:
         <<: [*m_vis, *3j_split]
@@ -170,6 +171,7 @@ target_processes:
           <<: [*tau_decaymode_2, *3j_split]
 
   Wjets:
+    chain_DR_SR_to_non_closure: true
     non_closure:
       m_vis:
         <<: [*m_vis, *3j_split]

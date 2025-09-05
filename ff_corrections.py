@@ -141,6 +141,8 @@ def run_non_closure_correction(
 ):
     """
     Function to calculate the non closure corrections for a given process.
+    If DR_SR_evaluator is given and for_DRtoSR is False the non closure corrections will be
+    calculated including the DR to SR correction applied first.
 
     Args:
         config: Dictionary with information for fake factor calculation
@@ -151,6 +153,7 @@ def run_non_closure_correction(
         sample_paths: List of file paths where samples are stored
         output_path: Path where generated plots are stored
         for_DRtoSR: If True closure correction for the DR to SR correction will be calculated
+        DR_SR_evaluator: Evaluator with the DR to SR correction if it is already calculated
         logger: Name of the logger that should be used
 
     Return:
@@ -414,7 +417,12 @@ def run_correction(
 
     var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
 
-    chain_DR_SR = "DR_SR" in corr_config["target_processes"][process] and corr_config["target_processes"][process].get("chain_DR_SR", False)
+    chain_DR_SR = all(
+        [
+            "DR_SR" in corr_config["target_processes"][process],
+            corr_config["target_processes"][process].get("chain_DR_SR_to_non_closure", False)
+        ]
+    )
 
     if "DR_SR" in corr_config["target_processes"][process]:
         evaluator = FakeFactorEvaluator.loading_from_file(
