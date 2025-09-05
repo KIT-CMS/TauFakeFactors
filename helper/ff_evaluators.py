@@ -209,6 +209,10 @@ class FakeFactorCorrectionEvaluator:
             self.var_dependences = [corr_variable]
 
     @property
+    def corr_str(self) -> str:
+        return f"{self.process}_ff_corr_{self.variable}"
+
+    @property
     def str_var_dependences(self) -> List[str]:
         return ", ".join([f'(float){var}' for var in self.var_dependences])
 
@@ -224,7 +228,144 @@ class FakeFactorCorrectionEvaluator:
         """
         eval_str = self.str_var_dependences + ', "nominal"'
         rdf = rdf.Define(
-            f"{self.process}_ff_corr_{self.variable}",
+            self.corr_str,
             f"{self.process}_corr_{self.variable}_{self.for_DRtoSR}->evaluate({{{eval_str}}})",
+        )
+        return rdf
+
+
+class DRSRCorrectionEvaluator:
+    """
+    Dedicated evaluator class for DR to SR corrections.
+    Loads a correction named '{process}_DR_SR_correction' from a correctionlib file.
+    """
+
+    @classmethod
+    def loading_from_file(
+        cls,
+        config: Dict[str, Union[str, Dict, List]],
+        process: str,
+        corr_variable: Union[str, Tuple[str, ...]],
+        logger: str,
+    ) -> "DRSRCorrectionEvaluator":
+        """
+        Loads a DR_SR correction from a correctionlib file.
+
+        Args:
+            config: A dictionary with all the relevant information for the fake factor correction calculation
+            process: Name of the process the DR to SR correction was calculated for
+            corr_variable: Name of the variable dependence of the correction
+            logger: Name of the logger that should be used
+
+        Returns:
+            An instance of the DRSRCorrectionEvaluator class.
+        """
+        log = logging.getLogger(logger)
+
+        directories = ["workdir", config["workdir_name"], config["era"]]
+        path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
+
+        correctionlib.register_pyroot_binding()
+        log.info(f"Loading DR_SR correction from file {path} for process {process}")
+
+        ROOT.gInterpreter.Declare(
+            f'auto {process}_corr_DR_SR = '
+            f'correction::CorrectionSet::from_file("{path}")'
+            f'->at("{process}_DR_SR_correction");'
+        )
+
+        return cls(process, corr_variable)
+
+    @classmethod
+    def loading_from_CorrectionSet(
+        cls,
+        correction: cs.CorrectionSet,
+        process: str,
+        corr_variable: Union[str, Tuple[str, ...]],
+        logger: str,
+    ) -> "DRSRCorrectionEvaluator":
+        """
+        Loads a DR_SR correction from a correctionlib.CorrectionSet object.
+
+        Args:
+            correction: A correctionlib.CorrectionSet object containing the DR to SR correction.
+            process: Name of the process the DR to SR correction was calculated for.
+            corr_variable: Name of the variable dependence of the correction.
+            logger: Name of the logger that should be used.
+
+        Returns:
+            An instance of the DRSRCorrectionEvaluator class.
+        """
+        log = logging.getLogger(logger)
+
+        assert isinstance(correction, cs.CorrectionSet), "Correction must be of type correctionlib.schemav2.CorrectionSet"
+
+        literal = correction.json().replace('"', r'\"')
+
+        log.info(f"Loading DR_SR correction from string for process {process}")
+        correctionlib.register_pyroot_binding()
+
+        ROOT.gInterpreter.Declare(
+            f'auto {process}_corr_DR_SR = '
+            f'correction::CorrectionSet::from_string("{literal}")'
+            f'->at("{process}_DR_SR_correction");'
+        )
+
+        return cls(process, corr_variable)
+
+    def __init__(
+        self,
+        process: str,
+        corr_variable: Union[str, Tuple[str, ...]],
+    ):
+        """
+        Initializes the DR to SR correction evaluator.
+
+        Args:
+            process: Name of the process the DR to SR correction was calculated for.
+            corr_variable: Name of the variable dependence of the correction.
+
+        Returns:
+            None
+        """
+        self.process = process
+        if not isinstance(corr_variable, str) and isinstance(corr_variable[0], str):
+            self.variable = corr_variable[0]
+            self.var_dependences = corr_variable
+        else:
+            self.variable = corr_variable
+            self.var_dependences = [corr_variable]
+
+    @property
+    def corr_str(self) -> str:
+        """
+        Returns the unique column name for the applied correction.
+        """
+        return f"{self.process}_DR_SR_correction"
+
+    @property
+    def str_var_dependences(self) -> List[str]:
+        """
+        Returns a list of strings with the variable dependences for the correction.
+        """
+        return [f"(float){var}" for var in self.var_dependences]
+
+    def evaluate_correction(self, rdf: Any) -> Any:
+        """
+        Applies the DR to SR correction to the RDataFrame.
+
+        Args:
+            rdf: root DataFrame object
+
+        Returns:
+            root DataFrame object with a new column with the evaluated DR to SR corrections
+        """
+        eval_str = ", ".join(self.str_var_dependences) + ', "nominal"'
+
+        root_corr_name = f"{self.process}_corr_DR_SR"
+
+        rdf = rdf.Define(
+            self.corr_str,
+            f"{root_corr_name}->evaluate({{{eval_str}}})",
         )
         return rdf

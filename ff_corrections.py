@@ -20,7 +20,7 @@ import helper.correctionlib_json as corrlib
 import helper.ff_functions as ff_func
 import helper.functions as func
 from ff_calculation import FF_calculation
-from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator
+from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 
 parser = argparse.ArgumentParser()
@@ -136,10 +136,13 @@ def run_non_closure_correction(
     sample_paths: List[str],
     output_path: str,
     for_DRtoSR: bool,
+    DR_SR_evaluator: Union[FakeFactorCorrectionEvaluator, None],
     logger: str,
 ):
     """
     Function to calculate the non closure corrections for a given process.
+    If DR_SR_evaluator is given and for_DRtoSR is False the non closure corrections will be
+    calculated including the DR to SR correction applied first.
 
     Args:
         config: Dictionary with information for fake factor calculation
@@ -150,6 +153,7 @@ def run_non_closure_correction(
         sample_paths: List of file paths where samples are stored
         output_path: Path where generated plots are stored
         for_DRtoSR: If True closure correction for the DR to SR correction will be calculated
+        DR_SR_evaluator: Evaluator with the DR to SR correction if it is already calculated
         logger: Name of the logger that should be used
 
     Return:
@@ -232,7 +236,8 @@ def run_non_closure_correction(
                 with contextlib.suppress(FileNotFoundError):
                     os.remove(func.get_cached_file_path(output_path=output_path, process=process))
 
-            corr_evaluators = []
+            corr_evaluators = [deepcopy(DR_SR_evaluator)] if DR_SR_evaluator is not None else []
+
             for n in range(idx):
                 assert correction_set is not None, "Correction set must be calculated first! - This should not have happened!"
                 corr_evaluators.append(
@@ -372,6 +377,7 @@ def run_non_closure_correction_for_DRtoSR(
                 sample_paths=sample_paths,
                 output_path=output_path,
                 for_DRtoSR=True,
+                DR_SR_evaluator=None,
                 logger=f"ff_corrections.{process}",
             )
         )
@@ -411,27 +417,12 @@ def run_correction(
 
     var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
 
-    if "non_closure" in corr_config["target_processes"][process]:
-        evaluator = FakeFactorEvaluator.loading_from_file(
-            config=config,
-            process=process,
-            var_dependences=var_dependences,
-            for_DRtoSR=False,
-            logger=f"ff_corrections.{process}",
-        )
-
-        corrections.update(
-            run_non_closure_correction(
-                config=config,
-                corr_config=corr_config,
-                process=process,
-                evaluator=evaluator,
-                sample_paths=sample_paths,
-                output_path=save_path,
-                for_DRtoSR=False,
-                logger=f"ff_corrections.{process}",
-            )
-        )
+    chain_DR_SR = all(
+        [
+            "DR_SR" in corr_config["target_processes"][process],
+            corr_config["target_processes"][process].get("chain_DR_SR_to_non_closure", False)
+        ]
+    )
 
     if "DR_SR" in corr_config["target_processes"][process]:
         evaluator = FakeFactorEvaluator.loading_from_file(
@@ -519,6 +510,45 @@ def run_correction(
                     f,
                     protocol=pickle.HIGHEST_PROTOCOL,
                 )
+
+        DR_SR_correction = DRSRCorrectionEvaluator.loading_from_CorrectionSet(
+            correction=corrlib.generate_correction_corrlib(
+                config=corr_config,
+                corrections=func.remove_empty_keys(corrections),
+                for_DRtoSR=True,
+            ),
+            process=process,
+            corr_variable=tuple(
+                [
+                    corr_config["target_processes"][process]["DR_SR"]["var_dependence"],
+                ] + list(corr_config["target_processes"][process]["DR_SR"].get("split_categories", {}).keys())
+            ),
+            logger=f"ff_corrections.{process}",
+        )
+
+    if "non_closure" in corr_config["target_processes"][process]:
+        evaluator = FakeFactorEvaluator.loading_from_file(
+            config=config,
+            process=process,
+            var_dependences=var_dependences,
+            for_DRtoSR=False,
+            logger=f"ff_corrections.{process}",
+        )
+
+        corrections[process].update(
+            run_non_closure_correction(
+                config=config,
+                corr_config=corr_config,
+                process=process,
+                evaluator=evaluator,
+                sample_paths=sample_paths,
+                output_path=save_path,
+                for_DRtoSR=False,
+                DR_SR_evaluator=DR_SR_correction if chain_DR_SR else None,
+                logger=f"ff_corrections.{process}",
+            )[process]
+        )
+
     return corrections
 
 
