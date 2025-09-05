@@ -401,7 +401,7 @@ def non_closure_correction(
                 rdf_AR = corr_evaluator.evaluate_correction(
                     rdf=rdf_AR,
                 )
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_AR = rdf_AR.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"

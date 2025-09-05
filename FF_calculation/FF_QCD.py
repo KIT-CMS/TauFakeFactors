@@ -272,7 +272,7 @@ def non_closure_correction(
             corr_str = ""
             for corr_evaluator in corr_evaluators:
                 rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff",
@@ -473,7 +473,7 @@ def DR_SR_correction(
             corr_str = ""
             for corr_evaluator in corr_evaluators:
                 rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff",

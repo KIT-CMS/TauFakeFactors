@@ -209,6 +209,10 @@ class FakeFactorCorrectionEvaluator:
             self.var_dependences = [corr_variable]
 
     @property
+    def corr_str(self) -> str:
+        return f"{self.process}_ff_corr_{self.variable}"
+
+    @property
     def str_var_dependences(self) -> List[str]:
         return ", ".join([f'(float){var}' for var in self.var_dependences])
 
