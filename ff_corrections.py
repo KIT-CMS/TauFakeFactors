@@ -162,10 +162,13 @@ def run_non_closure_correction(
 
     log = logging.getLogger(logger)
     corrections = {process: {}}
+    _chained_DR_SR_process_config = None
     if for_DRtoSR:
         process_config = deepcopy(corr_config["target_processes"][process]["DR_SR"])
     else:
         process_config = deepcopy(corr_config["target_processes"][process])
+        if DR_SR_evaluator is None:
+            _chained_DR_SR_process_config = deepcopy(corr_config["target_processes"][process].get("DR_SR"))
 
     all_non_closure_corr_vars, correction_set, is_valid_cache = [], None, True
     for idx, (closure_var, closure_var_config) in enumerate(
@@ -206,7 +209,7 @@ def run_non_closure_correction(
 
         if os.path.exists(cached_non_closure):
             with open(cached_non_closure, "rb") as f:
-                __corrections, __corr_config, __ff_config = pickle.load(f)
+                __corrections, __corr_config, __ff_config, __chained_DR_SR_process_config = pickle.load(f)
                 is_valid_cache &= func.correction_config_comparison(
                     __corr_config,
                     corr_config,
@@ -219,6 +222,10 @@ def run_non_closure_correction(
                 is_valid_cache &= func.nested_object_comparison(
                     __ff_config,
                     ff_config,
+                )
+                is_valid_cache &= func.nested_object_comparison(
+                    __chained_DR_SR_process_config,
+                    _chained_DR_SR_process_config,
                 )
         else:
             is_valid_cache = False
@@ -273,7 +280,14 @@ def run_non_closure_correction(
 
             with open(cached_non_closure, "wb") as f:
                 pickle.dump(
-                    (corrections, corr_config, ff_config),
+                    tuple(
+                        [
+                            corrections,
+                            corr_config,
+                            ff_config,
+                            _chained_DR_SR_process_config,
+                        ]
+                    ),
                     f,
                     protocol=pickle.HIGHEST_PROTOCOL,
                 )
