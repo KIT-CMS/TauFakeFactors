@@ -24,6 +24,7 @@ Each target process needs some specifications:
   ---|---|---
   `non_closure` | `dict` | one or two non closure corrections can be specified indicated by the variable the correction should be calculated for (e.g. `pt_1`), also more than one closure correction are allowed and are calculated while already applying the correction that were already measured
   `DR_SR` | `dict` | this correction should be specified only once per process in `target_processes`
+  `chain_DR_SR_to_non_closure` | `bool` | Option to chain `DR_SR` correction (computed first) to the following `non_closure` corrections
 
 Each correction has following specifications:
 

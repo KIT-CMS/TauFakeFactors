@@ -292,6 +292,8 @@ def nested_object_comparison(obj_1: Any, obj_2: Any) -> bool:
     """
     if type(obj_1) != type(obj_2):
         return False
+    if obj_1 is None and obj_2 is None:
+        return True
     elif isinstance(obj_1, (int, float, str)):
         return obj_1 == obj_2
     elif isinstance(obj_1, (list, tuple)):
