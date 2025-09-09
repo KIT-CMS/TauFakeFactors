@@ -1,0 +1,404 @@
+templates:
+  split_schemes:
+    3j: &3j_split
+      split_categories:
+        njets: ["==0", "==1", ">=2"]
+      split_categories_binedges:
+        njets: [-0.5, 0.5, 1.5, 22.5]
+      correction_option:
+        "==0": "smoothed"
+        "==1": "smoothed"
+        ">=2": "smoothed"
+      bandwidth:
+        "==0": 1.0
+        "==1": 1.0
+        ">=2": 1.0
+    2j: &2j_split
+      split_categories:
+        njets: ["<=1", ">=2"]
+      split_categories_binedges:
+        njets: [-0.5, 1.5, 22.5]
+      correction_option:
+        "<=1": "smoothed"
+        ">=2": "smoothed"
+      bandwidth:
+        "<=1": 1
+        ">=2": 1
+  var_dependence_n_bins:
+    QCD:
+      equipopulated_binning_options: &QCD_var_dependence_n_bins
+        var_dependence_n_bins:
+          "==0": 11
+          "==1": 9
+          ">=2": 7
+    Wjets:
+      equipopulated_binning_options: &Wjets_var_dependence_n_bins
+        var_dependence_n_bins:
+          "==0": 15
+          "==1": 11
+          ">=2": 9
+    ttbar:
+      equipopulated_binning_options: &ttbar_var_dependence_n_bins
+        var_dependence_n_bins:
+          "<=1": 11
+          ">=2": 15
+  variables:
+    jphi_1: &jphi_1
+      var_dependence: jphi_1
+      equipopulated_binning_options: &jphi_1__eq_bin_opt
+        variable_config:
+          jphi_1:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.5
+    jphi_2: &jphi_2
+      var_dependence: jphi_2
+      equipopulated_binning_options: &jphi_2__eq_bin_opt
+        variable_config:
+          jphi_2:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.5
+    deltaEta_12jj: &deltaEta_12jj
+      var_dependence: deltaEta_12jj
+      equipopulated_binning_options: &deltaEta_12jj__eq_bin_opt
+        variable_config:
+          deltaEta_12jj:
+            min: -5.5
+            max: +5.5
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 2.0
+    deltaEta_jj: &deltaEta_jj
+      var_dependence: deltaEta_jj
+      equipopulated_binning_options: &deltaEta_jj__eq_bin_opt
+        variable_config:
+          deltaEta_jj:
+            min: -5.5
+            max: +5.5
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 2.0
+    deltaR_12jj: &deltaR_12jj
+      var_dependence: deltaR_12jj
+      equipopulated_binning_options: &deltaR_12jj__eq_bin_opt
+        variable_config:
+          deltaR_12jj:
+            min: 0.0
+            max: 6.0
+            rounding: 4
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    deltaR_jj: &deltaR_jj
+      var_dependence: deltaR_jj
+      equipopulated_binning_options: &deltaR_jj__eq_bin_opt
+        variable_config:
+          deltaR_jj:
+            min: 0.5
+            max: 6.0
+            rounding: 4
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    deltaR_12j1: &deltaR_12j1
+      var_dependence: deltaR_12j1
+      equipopulated_binning_options: &deltaR_12j1__eq_bin_opt
+        variable_config:
+          deltaR_12j1:
+            min: 0.0
+            max: 6.0
+            rounding: 4
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    deltaR_12j2: &deltaR_12j2
+      var_dependence: deltaR_12j2
+      equipopulated_binning_options: &deltaR_12j2__eq_bin_opt
+        variable_config:
+          deltaR_12j2:
+            min: 0.0
+            max: 6.0
+            rounding: 4
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    deltaPhi_ditaupair: &deltaPhi_ditaupair
+      var_dependence: deltaPhi_ditaupair
+      equipopulated_binning_options: &deltaPhi_ditaupair__eq_bin_opt
+        variable_config:
+          deltaPhi_ditaupair:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    phi_1: &phi_1
+      var_dependence: phi_1
+      equipopulated_binning_options: &phi_1__eq_bin_opt
+        variable_config:
+          phi_1:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    phi_2: &phi_2
+      var_dependence: phi_2
+      equipopulated_binning_options: &phi_2__eq_bin_opt
+        variable_config:
+          phi_2:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.2
+    pt_dijet: &pt_dijet
+      var_dependence: pt_dijet
+      equipopulated_binning_options: &pt_dijet__eq_bin_opt
+        variable_config:
+          pt_dijet:
+            min: 0.0
+            max: 200.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    phi_fastmtt: &phi_fastmtt
+      var_dependence: phi_fastmtt
+      equipopulated_binning_options: &phi_fastmtt__eq_bin_opt
+        variable_config:
+          phi_fastmtt:
+            min: -3.15
+            max: +3.15
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 2.0
+    eta_1: &eta_1
+      var_dependence: eta_1
+      equipopulated_binning_options: &eta_1__eq_bin_opt
+        variable_config:
+          eta_1:
+            min: -2.1
+            max: +2.1
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.0
+    eta_2: &eta_2
+      var_dependence: eta_2
+      equipopulated_binning_options: &eta_2__eq_bin_opt
+        variable_config:
+          eta_2:
+            min: -2.5
+            max: +2.5
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.5
+    deltaEta_ditaupair: &deltaEta_ditaupair
+      var_dependence: deltaEta_ditaupair
+      equipopulated_binning_options: &deltaEta_ditaupair__eq_bin_opt
+        variable_config:
+          deltaEta_ditaupair:
+            min: -4.9
+            max: +4.9
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 1.75
+    deltaR_ditaupair: &deltaR_ditaupair
+      var_dependence: deltaR_ditaupair
+      equipopulated_binning_options: &deltaR_ditaupair__eq_bin_opt
+        variable_config:
+          deltaR_ditaupair:
+            min: 0.5
+            max: 5.0
+            rounding: 4
+      correction_option: "smoothed"
+    pt_1: &pt_1
+      var_dependence: pt_1
+      equipopulated_binning_options: &pt_1__eq_bin_opt
+        variable_config:
+          pt_1:
+            min: 25.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+    jeta_1: &jeta_1
+      var_dependence: jeta_1
+      equipopulated_binning_options: &jeta_1__eq_bin_opt
+        variable_config:
+          jeta_1:
+            min: -5.0
+            max: +5.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 2.0
+    jeta_2: &jeta_2
+      var_dependence: jeta_2
+      equipopulated_binning_options: &jeta_2__eq_bin_opt
+        variable_config:
+          jeta_2:
+            min: -5.0
+            max: +5.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 2.0
+    jpt_1: &jpt_1
+      var_dependence: jpt_1
+      equipopulated_binning_options: &jpt_1__eq_bin_opt
+        variable_config:
+          jpt_1:
+            min: 30.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+    jpt_2: &jpt_2
+      var_dependence: jpt_2
+      equipopulated_binning_options: &jpt_2__eq_bin_opt
+        variable_config:
+          jpt_2:
+            min: 30.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+    met: &met
+      var_dependence: met
+      equipopulated_binning_options: &met__eq_bin_opt
+        variable_config:
+          met:
+            min: 0.0
+            max: 175.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 25
+    pt_tt: &pt_tt
+      var_dependence: pt_tt
+      equipopulated_binning_options: &pt_tt__eq_bin_opt
+        variable_config:
+          pt_tt:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 25
+    pt_ttjj: &pt_ttjj
+      var_dependence: pt_ttjj
+      equipopulated_binning_options: &pt_ttjj__eq_bin_opt
+        variable_config:
+          pt_ttjj:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 25
+    pt_vis: &pt_vis
+      var_dependence: pt_vis
+      equipopulated_binning_options: &pt_vis__eq_bin_opt
+        variable_config:
+          pt_vis:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 25
+    mjj: &mjj
+      var_dependence: mjj
+      equipopulated_binning_options: &mjj__eq_bin_opt
+        variable_config:
+          mjj:
+            min: 10.0
+            max: 300.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 60
+    mt_tot: &mt_tot
+      var_dependence: mt_tot
+      equipopulated_binning_options: &mt_tot__eq_bin_opt
+        variable_config:
+          mt_tot:
+            min: 0.0
+            max: 250.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 40
+    pt_fastmtt: &pt_fastmtt
+      var_dependence: pt_fastmtt
+      equipopulated_binning_options: &pt_fastmtt__eq_bin_opt
+        variable_config:
+          pt_fastmtt:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 20
+    eta_fastmtt: &eta_fastmtt
+      var_dependence: eta_fastmtt
+      equipopulated_binning_options: &eta_fastmtt__eq_bin_opt
+        variable_config:
+          eta_fastmtt:
+            min: -7.0
+            max: +7.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 3.5
+    m_fastmtt: &m_fastmtt
+      var_dependence: m_fastmtt
+      equipopulated_binning_options: &m_fastmtt__eq_bin_opt
+        variable_config:
+          m_fastmtt:
+            min: 0.0
+            max: 250.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 40
+    m_vis: &m_vis
+      var_dependence: m_vis
+      equipopulated_binning_options: &m_vis__eq_bin_opt
+        variable_config:
+          m_vis:
+            min: 10.0
+            max: 250.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    mass_1: &mass_1
+      var_dependence: mass_1
+      correction_option: "binwise"
+      bandwidth: 1.0
+      var_bins: [0.0, 1.0]
+    mass_2: &mass_2
+      var_dependence: mass_2
+      equipopulated_binning_options: &mass_2__eq_bin_opt
+        variable_config:
+          mass_2:
+            min: 0.2
+            max: 2.0
+            rounding: 4
+        add_left: [0.0]
+      correction_option: "binwise#[0]+smoothed"
+      bandwidth: 0.3
+    tau_decaymode_2: &tau_decaymode_2
+      var_dependence: tau_decaymode_2
+      correction_option: "binwise"
+      bandwidth: 1.0
+      var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
+    nbtag: &nbtag
+      var_dependence: nbtag
+      correction_option: "binwise"
+      bandwidth: 1.0
+      var_bins: [-0.5, 0.5, 1.5, 22.5]
+    q_1: &q_1
+      var_dependence: q_1
+      correction_option: "binwise"
+      bandwidth: 1.0
+      var_bins: [-4.5, 4.5]
+    iso_1: &iso_1
+      var_dependence: iso_1
+      equipopulated_binning_options: &iso_1__eq_bin_opt
+        variable_config:
+          iso_1:
+            min: 0.00005
+            max: 0.15
+            rounding: 6
+        add_left: [0.0]
+      correction_option: "binwise#[0]+smoothed"
+      bandwidth: 0.02
+

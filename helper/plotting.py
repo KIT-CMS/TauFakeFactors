@@ -823,6 +823,8 @@ def plot_correction(
         ylabel="Correction",
     )
 
+    ax.hlines(1, * ax.get_xlim(), colors="black", lw=0.8)
+
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
             interval_splitted_category_label(category, var)
