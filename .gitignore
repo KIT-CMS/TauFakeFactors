@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+workdir.*/
+configs.*/
+*.pkl
+*.pickle
+*.ipynb
 
 # C extensions
 *.so

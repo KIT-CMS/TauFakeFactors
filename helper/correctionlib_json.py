@@ -773,7 +773,20 @@ def make_1D_correction(
                         flow="clamp",
                     ),
                 )
-                for direction in ["up", "down"]
+                for direction in [
+                    "StatUp",
+                    "StatDown",
+                    "BandHighUp",
+                    "BandLowUp",
+                    "BandHighDown",
+                    "BandLowDown",
+                    "MCShiftUp",
+                    "MCShiftDown",
+                    "BandAsymUp",
+                    "BandAsymDown",
+                    "OneSigmaStatUp",
+                    "OneSigmaStatDown",
+                ]
             ],
             default=cs.Binning(
                 nodetype="binning",
@@ -852,7 +865,20 @@ def make_2D_correction(
                         flow="clamp",
                     ),
                 )
-                for direction in ["up", "down"]
+                for direction in [
+                    "StatUp",
+                    "StatDown",
+                    "BandHighUp",
+                    "BandLowUp",
+                    "BandHighDown",
+                    "BandLowDown",
+                    "MCShiftUp",
+                    "MCShiftDown",
+                    "BandAsymUp",
+                    "BandAsymDown",
+                    "OneSigmaStatUp",
+                    "OneSigmaStatDown",
+                ]
             ],
             default=cs.Binning(
                 nodetype="binning",

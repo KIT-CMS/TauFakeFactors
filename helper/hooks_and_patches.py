@@ -177,6 +177,64 @@ def calc_center_of_mass(
     return _counts, _means
 
 
+def _AddError(self: ROOT.TH1, scale: float = 1.0) -> ROOT.TH1:
+    """
+    Create a new histogram with bin contents shifted by (scale * bin_error)
+
+    Args:
+        self (ROOT.TH1): Patched histogram
+        scale (float): Scale factor for the bin error
+
+    Returns:
+        ROOT.TH1: New histogram with adjusted content.
+    """
+
+    clone = _original_Clone(self, f"{self.GetName()}_AddError_{scale:+.2f}")
+    nbins = self.GetNbinsX()
+
+    for i in range(1, nbins + 1):
+        count, error = self.GetBinContent(i), self.GetBinError(i)
+        new_count = max(0.0, count + scale * error)
+        clone.SetBinContent(i, new_count)
+        if count != 0:
+            effective_scale = new_count / count  # ensure same relative uncertainty on new bin content: TODO: Needed?
+            new_error = abs(effective_scale) * error
+        else:
+            new_error = 0.0
+        clone.SetBinError(i, new_error)
+
+    if hasattr(self, _EXTRA_PARAM_FLAG) and getattr(self, _EXTRA_PARAM_FLAG):
+        counts_self = getattr(self, _EXTRA_PARAM_COUNTS, None)
+        means_self = getattr(self, _EXTRA_PARAM_MEANS, None)
+
+        if counts_self is not None and means_self is not None:
+            sigmas = [self.GetBinError(i) for i in range(1, nbins + 1)]
+
+            counts_sigma = [abs(scale) * s for s in sigmas]
+            means_sigma = list(means_self)  # mean is not affected
+
+            new_counts, new_means = calc_center_of_mass(
+                means=[means_self, means_sigma],
+                weights=[counts_self, counts_sigma],
+                bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
+                factor=np.sign(scale),
+                weights_combination_operation=lambda a, b: a + np.sign(scale) * b,
+            )
+
+            bin_centers = [(self.GetBinLowEdge(j) + self.GetBinWidth(j) / 2) for j in range(1, nbins + 1)]
+            for idx in range(len(new_counts)):
+                intended = new_counts[idx]
+                new_counts[idx] = max(0.0, intended)
+                if intended < 0.0:  # Clip to >=0 and adjust means (if clipped)
+                    new_means[idx] = bin_centers[idx]
+
+            setattr(clone, _EXTRA_PARAM_COUNTS, new_counts)
+            setattr(clone, _EXTRA_PARAM_MEANS, new_means)
+            setattr(clone, _EXTRA_PARAM_FLAG, True)
+
+    return clone
+
+
 # unpatched
 _original_Add = object.__getattribute__(ROOT.TH1, "Add")
 _original_Multiply = object.__getattribute__(ROOT.TH1, "Multiply")
@@ -363,5 +421,6 @@ if not hasattr(ROOT.TH1, "_patched"):
     ROOT.TH1.Multiply = patched_Multiply
     ROOT.TH1.Divide = patched_Divide
     ROOT.TH1.Clone = patched_Clone
+    ROOT.TH1.AddError = _AddError
     # Mark the class as patched to avoid multiple patching
     ROOT.TH1._patched = True

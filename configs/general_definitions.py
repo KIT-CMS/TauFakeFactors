@@ -124,6 +124,9 @@ color_dict = {
     "fit_graph_mc_sub": OFFICIAL_CMS_COLOR_PALLET[6][0],
     "fit_graph_unc": OFFICIAL_CMS_COLOR_PALLET[6][2],
     "correction_graph": OFFICIAL_CMS_COLOR_PALLET[10][0],
+    "correction_graph_stat_unct": OFFICIAL_CMS_COLOR_PALLET[10][0],
+    "correction_graph_bandwidth_unct": OFFICIAL_CMS_COLOR_PALLET[10][1],
+    "correction_graph_mc_sub_unct": OFFICIAL_CMS_COLOR_PALLET[10][5],
 }
 
 # definitions for process labels on the plots
