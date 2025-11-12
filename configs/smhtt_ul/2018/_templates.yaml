@@ -83,36 +83,6 @@ templates:
             rounding: 2
       correction_option: "smoothed"
       bandwidth: 2.0
-    deltaR_12jj: &deltaR_12jj
-      var_dependence: deltaR_12jj
-      equipopulated_binning_options: &deltaR_12jj__eq_bin_opt
-        variable_config:
-          deltaR_12jj:
-            min: 0.0
-            max: 6.0
-            rounding: 4
-      correction_option: "smoothed"
-      bandwidth: 1.2
-    deltaR_jj: &deltaR_jj
-      var_dependence: deltaR_jj
-      equipopulated_binning_options: &deltaR_jj__eq_bin_opt
-        variable_config:
-          deltaR_jj:
-            min: 0.5
-            max: 6.0
-            rounding: 4
-      correction_option: "smoothed"
-      bandwidth: 1.2
-    deltaR_12j1: &deltaR_12j1
-      var_dependence: deltaR_12j1
-      equipopulated_binning_options: &deltaR_12j1__eq_bin_opt
-        variable_config:
-          deltaR_12j1:
-            min: 0.0
-            max: 6.0
-            rounding: 4
-      correction_option: "smoothed"
-      bandwidth: 1.2
     deltaR_12j2: &deltaR_12j2
       var_dependence: deltaR_12j2
       equipopulated_binning_options: &deltaR_12j2__eq_bin_opt
@@ -401,4 +371,59 @@ templates:
         add_left: [0.0]
       correction_option: "binwise#[0]+smoothed"
       bandwidth: 0.02
-
+        deltaEta_12jj: &deltaEta_12jj
+      var_dependence: deltaEta_12jj
+      equipopulated_binning_options: &deltaEta_12jj__eq_bin_opt
+        variable_config:
+          deltaEta_12jj:
+            min: -9.9
+            max: 9.9
+            rounding: 3
+        correction_option: "smoothed"
+        bandwidth: 2.5
+    deltaR_1j1: &deltaR_1j1
+      var_dependence: deltaR_1j1
+      equipopulated_binning_options: &deltaR_1j1__eq_bin_opt
+        variable_config:
+          deltaR_1j1:
+            min: 0.5
+            max: 7.0
+            rounding: 3
+        correction_option: "smoothed"
+        bandwidth: 0.9
+    deltaR_12j1: &deltaR_12j1
+      var_dependence: deltaR_12j1
+      equipopulated_binning_options: &deltaR_12j1__eq_bin_opt
+        variable_config:
+          deltaR_12j1:
+            min: 0.0
+            max: 10.0
+        correction_option: "smoothed"
+        bandwidth: 1.25
+    deltaR_12jj: &deltaR_12jj
+      var_dependence: deltaR_12jj
+      equipopulated_binning_options: &deltaR_12jj__eq_bin_opt
+        variable_config:
+          deltaR_12jj:
+            min: 0.0
+            max: 11.0
+        correction_option: "smoothed"
+        bandwidth: 1.3
+    deltaR_jj: &deltaR_jj
+      var_dependence: deltaR_jj
+      equipopulated_binning_options: &deltaR_jj__eq_bin_opt
+        variable_config:
+          deltaR_jj:
+            min: 0.0
+            max: 10.0
+        correction_option: "smoothed"
+        bandwidth: 1.25
+    mt_2: &mt_2
+      var_dependence: mt_2
+      equipopulated_binning_options: &mt_2__eq_bin_opt
+        variable_config:
+          mt_2:
+            min: 0.0
+            max: 160.0
+        correction_option: "smoothed"
+        bandwidth: 30
