@@ -196,11 +196,7 @@ def _AddError(self: ROOT.TH1, scale: float = 1.0) -> ROOT.TH1:
         count, error = self.GetBinContent(i), self.GetBinError(i)
         new_count = max(0.0, count + scale * error)
         clone.SetBinContent(i, new_count)
-        if count != 0:
-            effective_scale = new_count / count  # ensure same relative uncertainty on new bin content: TODO: Needed?
-            new_error = abs(effective_scale) * error
-        else:
-            new_error = 0.0
+        new_error = error if new_count > 0 else 0.0
         clone.SetBinError(i, new_error)
 
     if hasattr(self, _EXTRA_PARAM_FLAG) and getattr(self, _EXTRA_PARAM_FLAG):

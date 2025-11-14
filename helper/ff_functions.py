@@ -1033,7 +1033,7 @@ def build_TGraph(
     Return:
         1. TGraph of the histogram,
         2. List of components of the TGraph if return_components is True containing:
-            (x, y, x_err_down, x_err_up, y_err_down, y_err_up) 
+            (x, y, x_err_down, x_err_up, y_err_down, y_err_up)
     """
     if hist is None:
         return None
@@ -1297,41 +1297,42 @@ def smooth_function(
     )
 
     nominal_graph, smooth_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=2.0)
+    corr_dict["Stat2SigmaUp"] = corr_dict["StatUp"]
+    corr_dict["Stat2SigmaDown"] = corr_dict["StatDown"]
 
     _, _, corr_dict_one_sigma = _smooth_function(**_kwargs, stat_sigma=1.0)
-    corr_dict["OneSigmaStatUp"] = corr_dict_one_sigma["StatUp"]
-    corr_dict["OneSigmaStatDown"] = corr_dict_one_sigma["StatDown"]
+    corr_dict["Stat1SigmaUp"] = corr_dict_one_sigma["StatUp"]
+    corr_dict["Stat1SigmaDown"] = corr_dict_one_sigma["StatDown"]
 
     if mc_shifted_hist is None:
-        corr_dict["MCShiftUp"] = corr_dict["nominal"]
-        corr_dict["MCShiftDown"] = corr_dict["nominal"]
+        corr_dict["SystMCShiftUp"] = corr_dict["nominal"]
+        corr_dict["SystMCShiftDown"] = corr_dict["nominal"]
     else:
         _, _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
         _, _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
 
-        corr_dict["MCShiftUp"] = _mc_sub_up["nominal"]
-        corr_dict["MCShiftDown"] = _mc_sub_down["nominal"]
+        corr_dict["SystMCShiftUp"] = _mc_sub_up["nominal"]
+        corr_dict["SystMCShiftDown"] = _mc_sub_down["nominal"]
 
     if correction_option == "binwise" or correction_option == "skip":
-        corr_dict["BandHighUp"] = corr_dict["nominal"]
-        corr_dict["BandHighDown"] = corr_dict["nominal"]
-        corr_dict["BandLowUp"] = corr_dict["nominal"]
-        corr_dict["BandLowDown"] = corr_dict["nominal"]
+        corr_dict["SystBandHighUp"] = corr_dict["nominal"]
+        corr_dict["SystBandHighDown"] = corr_dict["nominal"]
+        corr_dict["SystBandLowUp"] = corr_dict["nominal"]
+        corr_dict["SystBandLowDown"] = corr_dict["nominal"]
 
-        corr_dict["BandAsymUp"] = corr_dict["nominal"]
-        corr_dict["BandAsymDown"] = corr_dict["nominal"]
+        corr_dict["SystBandAsymUp"] = corr_dict["nominal"]
+        corr_dict["SystBandAsymDown"] = corr_dict["nominal"]
     else:
         _, _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
         _, _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
 
-        corr_dict["BandHighUp"] = (_high["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["BandHighDown"] = (corr_dict["nominal"] - _high["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandHighUp"] = (_high["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandHighDown"] = (corr_dict["nominal"] - _high["nominal"]) + corr_dict["nominal"]
 
-        corr_dict["BandLowUp"] = (_low["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["BandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
-
-        corr_dict["BandAsymUp"] = _high["nominal"]
-        corr_dict["BandAsymDown"] = _low["nominal"]
+        corr_dict["SystBandLowUp"] = (_low["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandAsymUp"] = _high["nominal"]
+        corr_dict["SystBandAsymDown"] = _low["nominal"]
 
     return nominal_graph, smooth_graph, corr_dict
 

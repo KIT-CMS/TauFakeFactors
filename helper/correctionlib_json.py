@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+from itertools import product
 from typing import Any, Dict, List, Tuple, Union
 
 import correctionlib.schemav2 as cs
@@ -637,6 +638,10 @@ def generate_correction_corrlib(
             is_2D = "split_categories" in correction_conf
 
             binning = correction_conf["var_bins"]
+
+            correction_variations = correction_conf.get("correction_variations", gd.default_correction_variations)
+            correction_variations = ["".join(it) for it in product(correction_variations, ["Up", "Down"])]
+
             if is_2D:
                 _obj = ff_func.SplitQuantities(correction_conf)
                 split_variables, binning = _obj.split_variables, _obj.to_dict("var_bins")
@@ -646,13 +651,15 @@ def generate_correction_corrlib(
                     correction_name=correction,
                     corrections=correction_dict,
                     variable=variable,
+                    variations=correction_variations,
                 )
             else:
                 corr = make_1D_correction(
-                    process,
-                    variable,
-                    correction,
-                    correction_dict,
+                    process=process,
+                    variable=variable,
+                    correction_name=correction,
+                    correction=correction_dict,
+                    variations=correction_variations,
                 )
 
             corrlib_ff_corrections.append(corr)
@@ -721,6 +728,7 @@ def make_1D_correction(
     variable: str,
     correction_name: str,
     correction: Dict[str, np.ndarray],
+    variations: Tuple[str],
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factor corrections (including variations).
@@ -764,29 +772,16 @@ def make_1D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}_{correction_name}_Corr{direction.capitalize()}",
+                    key=f"{process}_{correction_name}_Corr{variation}",
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
                         edges=list(correction["edges"]),
-                        content=list(correction[direction]),
+                        content=list(correction[variation]),
                         flow="clamp",
                     ),
                 )
-                for direction in [
-                    "StatUp",
-                    "StatDown",
-                    "BandHighUp",
-                    "BandLowUp",
-                    "BandHighDown",
-                    "BandLowDown",
-                    "MCShiftUp",
-                    "MCShiftDown",
-                    "BandAsymUp",
-                    "BandAsymDown",
-                    "OneSigmaStatUp",
-                    "OneSigmaStatDown",
-                ]
+                for variation in variations
             ],
             default=cs.Binning(
                 nodetype="binning",
@@ -803,11 +798,12 @@ def make_1D_correction(
 
 
 def make_2D_correction(
-    process,
-    corr_conf,
-    corrections,
-    correction_name,
-    variable,
+    process: str,
+    corr_conf: Dict[str, Union[Dict, List, str]],
+    corrections: Dict[str, Dict[str, np.ndarray]],
+    correction_name: str,
+    variable: str,
+    variations: Tuple[str],
 ) -> cs.Correction:
     cat_inputs = list(corr_conf["split_categories"].keys())
     cat_values = [corr_conf["split_categories"][cat] for cat in corr_conf["split_categories"]]
@@ -847,7 +843,7 @@ def make_2D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}_{correction_name}_Corr{direction.capitalize()}",
+                    key=f"{process}_{correction_name}_Corr{variation}",
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
@@ -857,7 +853,7 @@ def make_2D_correction(
                                 nodetype="binning",
                                 input=variable,
                                 edges=list(corrections[cat1]["edges"]),
-                                content=list(corrections[cat1][direction]),
+                                content=list(corrections[cat1][variation]),
                                 flow="clamp",
                             )
                             for cat1 in corrections
@@ -865,20 +861,7 @@ def make_2D_correction(
                         flow="clamp",
                     ),
                 )
-                for direction in [
-                    "StatUp",
-                    "StatDown",
-                    "BandHighUp",
-                    "BandLowUp",
-                    "BandHighDown",
-                    "BandLowDown",
-                    "MCShiftUp",
-                    "MCShiftDown",
-                    "BandAsymUp",
-                    "BandAsymDown",
-                    "OneSigmaStatUp",
-                    "OneSigmaStatDown",
-                ]
+                for variation in variations
             ],
             default=cs.Binning(
                 nodetype="binning",

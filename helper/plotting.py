@@ -937,21 +937,46 @@ def plot_correction(
     hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20)
 
     total_unct_up = np.sqrt(
-        (
-            corr_graph["StatUp"] - corr_graph["nominal"]
-        )**2 + (
-            corr_graph["BandAsymUp"] - corr_graph["nominal"]
-        )**2 + (
-            corr_graph["MCShiftUp"] - corr_graph["nominal"]
-        )**2
+        np.maximum(
+            0,
+            np.maximum(
+                corr_graph["Stat2SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat2SigmaDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            np.maximum(
+                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
+                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            np.maximum(
+                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
+                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
+            )
+        ) ** 2
     )
+
     total_unct_down = np.sqrt(
-        (
-            corr_graph["StatDown"] - corr_graph["nominal"]
-        ) ** 2 + (
-            corr_graph["BandAsymDown"] - corr_graph["nominal"]
-        ) ** 2 + (
-            corr_graph["MCShiftDown"] - corr_graph["nominal"]
+        np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["Stat2SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat2SigmaDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
+                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
+                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
+            )
         ) ** 2
     )
 
@@ -975,22 +1000,22 @@ def plot_correction(
     )
 
     _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
-    stat_unct_up, *_ = _step(ax[0], "StatUp")
-    stat_unct_down, *_ = _step(ax[0], "StatDown")
-    _step(ax[1], pad(corr_graph["StatUp"] / corr_graph["nominal"]))
-    _step(ax[1], pad(corr_graph["StatDown"] / corr_graph["nominal"]))
+    stat_unct_up, *_ = _step(ax[0], "Stat2SigmaUp")
+    stat_unct_down, *_ = _step(ax[0], "Stat2SigmaDown")
+    _step(ax[1], pad(corr_graph["Stat2SigmaUp"] / corr_graph["nominal"]))
+    _step(ax[1], pad(corr_graph["Stat2SigmaDown"] / corr_graph["nominal"]))
 
     _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
-    bandwidth_unct_up, *_ = _step(ax[0], "BandAsymUp", _ls="dashed")
-    bandwidth_unct_down, *_ = _step(ax[0], "BandAsymDown", _ls="dashdot")
-    _step(ax[1], pad(corr_graph["BandAsymUp"] / corr_graph["nominal"]), _ls="dashed")
-    _step(ax[1], pad(corr_graph["BandAsymDown"] / corr_graph["nominal"]), _ls="dashdot")
+    bandwidth_unct_up, *_ = _step(ax[0], "SystBandAsymUp", _ls="dashed")
+    bandwidth_unct_down, *_ = _step(ax[0], "SystBandAsymDown", _ls="dashdot")
+    _step(ax[1], pad(corr_graph["SystBandAsymUp"] / corr_graph["nominal"]), _ls="dashed")
+    _step(ax[1], pad(corr_graph["SystBandAsymDown"] / corr_graph["nominal"]), _ls="dashdot")
 
     _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
-    mc_sub_unct_up, *_ = _step(ax[0], "MCShiftUp", _ls="dashed")
-    mc_sub_unct_down, *_ = _step(ax[0], "MCShiftDown", _ls="dashdot")
-    _step(ax[1], pad(corr_graph["MCShiftUp"] / corr_graph["nominal"]), _ls="dashed")
-    _step(ax[1], pad(corr_graph["MCShiftDown"] / corr_graph["nominal"]), _ls="dashdot")
+    mc_sub_unct_up, *_ = _step(ax[0], "SystMCShiftUp", _ls="dashed")
+    mc_sub_unct_down, *_ = _step(ax[0], "SystMCShiftDown", _ls="dashdot")
+    _step(ax[1], pad(corr_graph["SystMCShiftUp"] / corr_graph["nominal"]), _ls="dashed")
+    _step(ax[1], pad(corr_graph["SystMCShiftDown"] / corr_graph["nominal"]), _ls="dashdot")
 
     step(ax[0], "nominal")
 

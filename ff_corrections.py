@@ -603,6 +603,10 @@ if __name__ == "__main__":
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
+    # setting default systematic variations if not present in the config
+    if "correction_variations" not in corr_config:
+        corr_config["correction_variations"] = ("Stat_1Sigma", "Syst_MCShift", "Syst_BandAsym")
+
     ########### needed precalculations for DR to SR corrections ###########
 
     # initializing the fake factor calculation for DR to SR corrections
