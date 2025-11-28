@@ -742,6 +742,15 @@ def make_1D_correction(
     Return:
         Correction object from correcionlib
     """
+
+    default_item = cs.Binning(
+        nodetype="binning",
+        input=variable,
+        edges=list(correction["downsampled"]["nominal"]["edges"]),
+        content=list(correction["downsampled"]["nominal"]["content"]),
+        flow="clamp",
+    )
+
     corr = cs.Correction(
         name=f"{process}_{correction_name}_correction",
         description=f"Calculation of the {correction_name} correction for {process} for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
@@ -776,20 +785,19 @@ def make_1D_correction(
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
-                        edges=list(correction["edges"]),
-                        content=list(correction[variation]),
+                        edges=list(correction["downsampled"][variation]["edges"]),
+                        content=list(correction["downsampled"][variation]["content"]),
                         flow="clamp",
                     ),
                 )
                 for variation in variations
+            ] + [
+                cs.CategoryItem(
+                    key="nominal",
+                    value=default_item,
+                )
             ],
-            default=cs.Binning(
-                nodetype="binning",
-                input=variable,
-                edges=list(correction["edges"]),
-                content=list(correction["nominal"]),
-                flow="clamp",
-            ),
+            default=default_item,
         ),
     )
     rich.print(corr)
@@ -807,6 +815,23 @@ def make_2D_correction(
 ) -> cs.Correction:
     cat_inputs = list(corr_conf["split_categories"].keys())
     cat_values = [corr_conf["split_categories"][cat] for cat in corr_conf["split_categories"]]
+
+    default_item = cs.Binning(
+        nodetype="binning",
+        input=cat_inputs[0],
+        edges=corr_conf["split_categories_binedges"][cat_inputs[0]],
+        content=[
+            cs.Binning(
+                nodetype="binning",
+                input=variable,
+                edges=list(corrections[cat1]["downsampled"]["nominal"]["edges"]),
+                content=list(corrections[cat1]["downsampled"]["nominal"]["content"]),
+                flow="clamp",
+            )
+            for cat1 in corrections
+        ],
+        flow="clamp",
+    )
 
     corr = cs.Correction(
         name=f"{process}_{correction_name}_correction",
@@ -852,8 +877,8 @@ def make_2D_correction(
                             cs.Binning(
                                 nodetype="binning",
                                 input=variable,
-                                edges=list(corrections[cat1]["edges"]),
-                                content=list(corrections[cat1][variation]),
+                                edges=list(corrections[cat1]["downsampled"][variation]["edges"]),
+                                content=list(corrections[cat1]["downsampled"][variation]["content"]),
                                 flow="clamp",
                             )
                             for cat1 in corrections
@@ -862,23 +887,13 @@ def make_2D_correction(
                     ),
                 )
                 for variation in variations
+            ] + [
+                cs.CategoryItem(
+                    key="nominal",
+                    value=default_item,
+                )
             ],
-            default=cs.Binning(
-                nodetype="binning",
-                input=cat_inputs[0],
-                edges=corr_conf["split_categories_binedges"][cat_inputs[0]],
-                content=[
-                    cs.Binning(
-                        nodetype="binning",
-                        input=variable,
-                        edges=list(corrections[cat1]["edges"]),
-                        content=list(corrections[cat1]["nominal"]),
-                        flow="clamp",
-                    )
-                    for cat1 in corrections
-                ],
-                flow="clamp",
-            ),
+            default=default_item,
         ),
     )
     rich.print(corr)

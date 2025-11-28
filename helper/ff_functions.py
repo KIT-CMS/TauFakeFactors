@@ -1265,13 +1265,62 @@ def _get_index_and_slices(
     )
 
 
+def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Sparsifies a histogram based on value change. If the value of the current
+    bin is close to the last kept bin, merge them. If the value changes significantly
+    the bin edge is kept.
+
+    Args:
+        edges: edges array (equidistant)
+        values: Value array
+        threshold: activity threshold in percent of the total Y-range
+
+    Return:
+        Sparsified edges array, sparsified value array
+    """
+
+    if len(edges) != len(values) + 1:
+        raise ValueError("Shape mismatch: edges must be len(values)+1")
+
+    diffs = np.abs(np.diff(values))
+    cumulative_activity = np.concatenate(([0], np.cumsum(diffs)))
+
+    v_range = values.max() - values.min()
+    step_size = v_range * threshold
+
+    if step_size == 0:  # all values are identical
+        return np.array([edges[0], edges[-1]]), np.array([values[0], values[-1]])
+
+    total_variation = cumulative_activity[-1]
+
+    targets = np.arange(0, total_variation, step_size)
+    selected_indices = np.searchsorted(cumulative_activity, targets)
+    selected_indices = np.unique(selected_indices)
+    selected_indices = selected_indices[selected_indices < len(values)]
+
+    if 0 not in selected_indices:  # Force inclusion of the very first block
+        selected_indices = np.insert(selected_indices, 0, 0)
+
+    if (len(values) - 1) not in selected_indices:  # Force inclusion of the very last block
+        selected_indices = np.append(selected_indices, len(values) - 1)
+
+    new_edges = edges[selected_indices]
+    new_edges = np.append(new_edges, edges[-1])
+
+    new_values = values[selected_indices]
+
+    return new_edges, new_values
+
+
 def smooth_function(
     hist: Any,
     bin_edges: List[float],
     correction_option: str,
     bandwidth: float,
     bandwidth_variations: tuple = (0.5, 1.5),
-    mc_shifted_hist: Dict[str, ROOT.TH1D] = None,
+    mc_shifted_hist: Union[Dict[str, ROOT.TH1D], None] = None,
+    sparsify_threshold: float = 0.01,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -1283,6 +1332,7 @@ def smooth_function(
         correction_option: Correction option string
         bandwidth: Bandwidth parameter for the kernel regression estimator
         bandwidth_variations: Tuple with factors to vary the bandwidth up and down if correction_option is not "binwise"
+        sparsify_threshold: Threshold for sparsifying the smoothed function
 
     Return:
         1. root TGraph of the smoothed function,
@@ -1322,6 +1372,16 @@ def smooth_function(
 
         corr_dict["SystBandAsymUp"] = corr_dict["nominal"]
         corr_dict["SystBandAsymDown"] = corr_dict["nominal"]
+
+        # individual downsampling for correctionlib storage, not used for plotting
+        corr_dict["downsampled"] = {}
+        for key in list(corr_dict):
+            if key in {"edges", "downsampled"}:
+                continue
+            corr_dict["downsampled"][key] = {
+                "edges": corr_dict["edges"],
+                "content": corr_dict[key],
+            }
     else:
         _, _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
         _, _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
@@ -1333,6 +1393,18 @@ def smooth_function(
         corr_dict["SystBandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
         corr_dict["SystBandAsymUp"] = _high["nominal"]
         corr_dict["SystBandAsymDown"] = _low["nominal"]
+
+        # individual downsampling for correctionlib storage, not used for plotting
+        corr_dict["downsampled"] = {}
+        for key in list(corr_dict):
+            if key in {"edges", "downsampled"}:
+                continue
+            corr_dict["downsampled"][key] = {
+                k: v for k, v in zip(
+                    ["edges", "content"],
+                    sparsify(corr_dict["edges"], corr_dict[key])
+                )
+            }
 
     return nominal_graph, smooth_graph, corr_dict
 

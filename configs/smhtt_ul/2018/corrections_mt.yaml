@@ -45,17 +45,11 @@ templates:
   correction_variations__with_mc_subtraction_shift: &correction_variations__with_mc_subtraction_shift
     correction_variations:
       - Stat1Sigma
-      - Stat2Sigma
       - SystMCShift
-      - SystBandHigh
-      - SystBandLow
       - SystBandAsym
   correction_variations__without_mc_subtraction_shift: &correction_variations__without_mc_subtraction_shift
     correction_variations:
       - Stat1Sigma
-      - Stat2Sigma
-      - SystBandHigh
-      - SystBandLow
       - SystBandAsym
   variables:
     eta_1: &eta_1
@@ -245,7 +239,7 @@ target_processes:
     non_closure:
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *3j_split]
-        correction_variations: ["Stat1Sigma", "Stat2Sigma", "SystMCShift"]
+        correction_variations: ["Stat1Sigma", "SystMCShift"]
       eta_1:
         <<: [*eta_1, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
@@ -436,7 +430,7 @@ target_processes:
       non_closure:
         nbtag:
           <<: [*nbtag, *3j_split]
-          correction_variations: ["Stat1Sigma", "Stat2Sigma", "SystMCShift"]
+          correction_variations: ["Stat1Sigma", "SystMCShift"]
 
   Wjets:
     chain_DR_SR_to_non_closure: false
@@ -444,7 +438,7 @@ target_processes:
     non_closure:
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *3j_split]
-        correction_variations: ["Stat1Sigma", "Stat2Sigma", "SystMCShift"]
+        correction_variations: ["Stat1Sigma", "SystMCShift"]
       eta_1:
         <<: [*eta_1, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
@@ -635,16 +629,13 @@ target_processes:
         nbtag:
           <<: [*nbtag, *3j_split]
           var_bins: [-0.5, 0.5, 22.5]
-          correction_variations: ["Stat1Sigma", "Stat2Sigma", "SystMCShift"]
+          correction_variations: ["Stat1Sigma", "SystMCShift"]
 
   ttbar:
     non_closure:
-      nbtag:
-        <<: [*nbtag, *2j_split]
-        correction_variations: ["Stat1Sigma", "Stat2Sigma"]
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *2j_split]
-        correction_variations: ["Stat1Sigma", "Stat2Sigma"]
+        correction_variations: ["Stat1Sigma"]
       eta_1:
         <<: [*eta_1, *2j_split, *correction_variations__without_mc_subtraction_shift]
         equipopulated_binning_options:
@@ -736,14 +727,6 @@ target_processes:
         var_bins:
           "<=1": [0.0, 1.95, 2.47, 2.74, 2.89, 2.98, 3.06, 3.14, 3.29, 3.62, 4.16, 10.0]
           ">=2": [0.0, 1.52, 2.0, 2.26, 2.46, 2.6, 2.72, 2.84, 2.95, 3.04, 3.15, 3.24, 3.39, 3.64, 4.21, 10.0]
-      pt_tt:
-        <<: [*pt_tt, *2j_split, *correction_variations__without_mc_subtraction_shift]
-        equipopulated_binning_options:
-          <<: [*pt_tt__eq_bin_opt, *ttbar_var_dependence_n_bins]
-        bandwidth: [30.0, 25.0]
-        var_bins:
-          "<=1": [0.0, 16.01, 24.77, 32.78, 38.29, 45.63, 50.17, 56.79, 64.36, 77.26, 95.8, 150.0]
-          ">=2": [0.0, 28.0, 37.98, 47.19, 54.56, 62.56, 68.43, 73.9, 81.55, 87.72, 94.12, 102.5, 112.13, 120.56, 134.23, 150.0]
       pt_ttjj:
         <<: [*pt_ttjj, *2j_split, *correction_variations__without_mc_subtraction_shift]
         equipopulated_binning_options:
