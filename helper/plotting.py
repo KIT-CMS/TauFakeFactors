@@ -940,8 +940,8 @@ def plot_correction(
         np.maximum(
             0,
             np.maximum(
-                corr_graph["Stat2SigmaUp"] - corr_graph["nominal"],
-                corr_graph["Stat2SigmaDown"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
             )
         ) ** 2 + np.maximum(
             0,
@@ -962,8 +962,8 @@ def plot_correction(
         np.maximum(
             0,
             -np.minimum(
-                corr_graph["Stat2SigmaUp"] - corr_graph["nominal"],
-                corr_graph["Stat2SigmaDown"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
             )
         ) ** 2 + np.maximum(
             0,
@@ -1000,10 +1000,10 @@ def plot_correction(
     )
 
     _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
-    stat_unct_up, *_ = _step(ax[0], "Stat2SigmaUp")
-    stat_unct_down, *_ = _step(ax[0], "Stat2SigmaDown")
-    _step(ax[1], pad(corr_graph["Stat2SigmaUp"] / corr_graph["nominal"]))
-    _step(ax[1], pad(corr_graph["Stat2SigmaDown"] / corr_graph["nominal"]))
+    stat_unct_up, *_ = _step(ax[0], "Stat1SigmaUp")
+    stat_unct_down, *_ = _step(ax[0], "Stat1SigmaDown")
+    _step(ax[1], pad(corr_graph["Stat1SigmaUp"] / corr_graph["nominal"]))
+    _step(ax[1], pad(corr_graph["Stat1SigmaDown"] / corr_graph["nominal"]))
 
     _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
     bandwidth_unct_up, *_ = _step(ax[0], "SystBandAsymUp", _ls="dashed")

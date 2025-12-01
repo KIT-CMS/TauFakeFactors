@@ -1414,7 +1414,7 @@ def _smooth_function(
     bin_edges: List[float],
     correction_option: str,
     bandwidth: float,
-    stat_sigma: float = 2.0,
+    stat_sigma: float = 1.0,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.

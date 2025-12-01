@@ -14,7 +14,7 @@ default_correction_option = "smoothed"
 
 default_CMS_text = "Own work (Data/Simulation)"
 
-default_correction_variations = ("Stat2Sigma", "SystMCShift", "SystBandAsym")
+default_correction_variations = ("Stat1Sigma", "SystMCShift", "SystBandAsym")
 
 
 class AutoGetDict(dict):

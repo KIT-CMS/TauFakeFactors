@@ -213,8 +213,8 @@ def _AddError(self: ROOT.TH1, scale: float = 1.0) -> ROOT.TH1:
                 means=[means_self, means_sigma],
                 weights=[counts_self, counts_sigma],
                 bin_edges=[self.GetBinLowEdge(i) for i in range(1, self.GetNbinsX() + 2)],
-                factor=np.sign(scale),
-                weights_combination_operation=lambda a, b: a + np.sign(scale) * b,
+                factor=scale,
+                weights_combination_operation=lambda a, b: a + scale * b,
             )
 
             bin_centers = [(self.GetBinLowEdge(j) + self.GetBinWidth(j) / 2) for j in range(1, nbins + 1)]

@@ -167,7 +167,7 @@ def run_non_closure_correction(
         process_config = deepcopy(corr_config["target_processes"][process]["DR_SR"])
     else:
         process_config = deepcopy(corr_config["target_processes"][process])
-        if DR_SR_evaluator is None:
+        if DR_SR_evaluator is not None:
             _chained_DR_SR_process_config = deepcopy(corr_config["target_processes"][process].get("DR_SR"))
 
     all_non_closure_corr_vars, correction_set, is_valid_cache = [], None, True
@@ -438,6 +438,7 @@ def run_correction(
         ]
     )
 
+    DR_SR_correction = None
     if "DR_SR" in corr_config["target_processes"][process]:
         evaluator = FakeFactorEvaluator.loading_from_file(
             config=config,

@@ -119,9 +119,9 @@ def calculation_QCD_FFs(
             "data_subtracted_down",
             "QCD",
         ]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].AddError(1), -1)
-            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].AddError(-1), -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
+            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
+            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in [
             "data",
@@ -130,9 +130,9 @@ def calculation_QCD_FFs(
             "data_subtracted_down",
             "QCD",
         ]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
-            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].AddError(1), -1)
-            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].AddError(-1), -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
+            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 
     # Start of the FF calculation
     FF_hist, FF_hist_up, FF_hist_down = ff_func.calculate_QCD_FF(
