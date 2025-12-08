@@ -781,7 +781,7 @@ def make_1D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}_{correction_name}_Corr{variation}",
+                    key=f"{process}{_correction_name}_Corr{variation}",
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
@@ -790,7 +790,13 @@ def make_1D_correction(
                         flow="clamp",
                     ),
                 )
-                for variation in variations
+                for variation, _correction_name in product(
+                    variations,
+                    [
+                        correction_name,
+                        "_non_closure" if "non_closure" in correction_name else f"_{correction_name}",
+                    ],
+                )
             ] + [
                 cs.CategoryItem(
                     key="nominal",
@@ -868,7 +874,7 @@ def make_2D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}_{correction_name}_Corr{variation}",
+                    key=f"{process}{_correction_name}_Corr{variation}",
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
@@ -886,7 +892,13 @@ def make_2D_correction(
                         flow="clamp",
                     ),
                 )
-                for variation in variations
+                for variation, _correction_name in product(
+                    variations,
+                    [
+                        correction_name,
+                        "_non_closure" if "non_closure" in correction_name else f"_{correction_name}",
+                    ],
+                )
             ] + [
                 cs.CategoryItem(
                     key="nominal",
