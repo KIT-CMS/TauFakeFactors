@@ -540,12 +540,12 @@ def DR_SR_correction(
 
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "QCD"]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
             SRlike_hists_sub_up["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
             SRlike_hists_sub_down["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "data_ff", "QCD"]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
             ARlike_hists_sub_up["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
             ARlike_hists_sub_down["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 

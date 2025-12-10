@@ -175,9 +175,9 @@ def calculation_Wjets_FFs(
             "data_subtracted_down",
             "Wjets",
         ]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].AddError(1), -1)
-            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].AddError(-1), -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
+            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
+            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in [
             "data",
@@ -186,9 +186,9 @@ def calculation_Wjets_FFs(
             "data_subtracted_down",
             "Wjets",
         ]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
-            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].AddError(1), -1)
-            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].AddError(-1), -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
+            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 
     # Start of the FF calculation
     FF_hist, FF_hist_up, FF_hist_down = ff_func.calculate_Wjets_FF(
@@ -434,12 +434,12 @@ def non_closure_correction(
 
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
             SRlike_hists_sub_up["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
             SRlike_hists_sub_down["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "data_ff", "Wjets"]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
             ARlike_hists_sub_up["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
             ARlike_hists_sub_down["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 
