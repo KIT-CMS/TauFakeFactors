@@ -5,6 +5,7 @@ Function for calculating fake factors for the W-jets process
 import array
 import copy
 import logging
+from copy import deepcopy
 from typing import Any, Dict, Tuple, Union
 
 import numpy as np
@@ -174,9 +175,9 @@ def calculation_Wjets_FFs(
             "data_subtracted_down",
             "Wjets",
         ]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
-            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist], -0.93)
-            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist], -1.07)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
+            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
+            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in [
             "data",
@@ -185,9 +186,9 @@ def calculation_Wjets_FFs(
             "data_subtracted_down",
             "Wjets",
         ]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
-            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist], -0.93)
-            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist], -1.07)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
+            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 
     # Start of the FF calculation
     FF_hist, FF_hist_up, FF_hist_down = ff_func.calculate_Wjets_FF(
@@ -351,7 +352,7 @@ def non_closure_correction(
                 rdf_ARlike = corr_evaluator.evaluate_correction(
                     rdf=rdf_ARlike,
                 )
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
@@ -423,12 +424,24 @@ def non_closure_correction(
     SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
     ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
 
+    _pairs = [("data_subtracted", "data"), ("data", "data")]
+
+    SRlike_hists_sub_up = {k1: SRlike_hists[k2].Clone() for k1, k2 in _pairs}
+    SRlike_hists_sub_down = deepcopy(SRlike_hists_sub_up)
+
+    ARlike_hists_sub_up = {k1: ARlike_hists[k2].Clone() for k1, k2 in _pairs + [("data_ff", "data_ff")]}
+    ARlike_hists_sub_down = deepcopy(ARlike_hists_sub_up)
+
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
+            SRlike_hists_sub_up["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
+            SRlike_hists_sub_down["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "data_ff", "Wjets"]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
+            ARlike_hists_sub_up["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists_sub_down["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
 
     correction_hist, process_fraction = ff_func.calculate_non_closure_correction(
         SRlike=SRlike_hists,
@@ -440,6 +453,10 @@ def non_closure_correction(
         bin_edges=splitting.var_bins,
         correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
+        mc_shifted_hist={
+            "MCShiftUp": ff_func.calculate_non_closure_correction(SRlike_hists_sub_up, ARlike_hists_sub_up)[0].Clone(),
+            "MCShiftDown": ff_func.calculate_non_closure_correction(SRlike_hists_sub_down, ARlike_hists_sub_down)[0].Clone(),
+        },
     )
 
     add_str = "_DRtoSR" if for_DRtoSR else ""
@@ -454,6 +471,7 @@ def non_closure_correction(
         output_path=output_path,
         logger=logger,
         category=splitting.split or {"incl": ""},
+        save_data=True,
     )
 
     plot_hists = dict()
@@ -462,7 +480,7 @@ def non_closure_correction(
     plot_hists["data_ff"] = ARlike_hists["data_ff"].Clone()
     plot_hists["data_ff"].Scale(process_fraction)
 
-    for yscale in ["linear", "log"]:
+    for yscale, save_data in zip(["linear", "log"], [True, False]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
@@ -476,9 +494,10 @@ def non_closure_correction(
             output_path=output_path,
             logger=logger,
             yscale=yscale,
+            save_data=save_data,
         )
 
-    for yscale in ["linear", "log"]:
+    for yscale, save_data in zip(["linear", "log"], [True, False]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,
@@ -492,6 +511,7 @@ def non_closure_correction(
             output_path=output_path,
             logger=logger,
             yscale=yscale,
+            save_data=save_data,
         )
 
     if splitting.split is not None:
@@ -582,7 +602,7 @@ def DR_SR_correction(
                 rdf_ARlike = corr_evaluator.evaluate_correction(
                     rdf=rdf_ARlike,
                 )
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_ARlike = rdf_ARlike.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
@@ -646,7 +666,7 @@ def DR_SR_correction(
     plot_hists["data_subtracted"] = SRlike_hists["Wjets"].Clone()
     plot_hists["data_ff"] = ARlike_hists["Wjets_ff"].Clone()
 
-    for yscale in ["linear", "log"]:
+    for yscale, save_data in zip(["linear", "log"], [True, False]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
@@ -660,6 +680,7 @@ def DR_SR_correction(
             output_path=output_path,
             logger=logger,
             yscale=yscale,
+            save_data=save_data,
         )
 
     if splitting.split is not None:

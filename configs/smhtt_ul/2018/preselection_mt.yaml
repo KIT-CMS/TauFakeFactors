@@ -65,12 +65,14 @@ processes:
       - J
       - T
       - L
+
 event_selection:
   had_tau_decay_mode: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
   had_tau_id_vs_ele: id_tau_vsEle_VVLoose_2 > 0.5
   had_tau_id_vs_mu: id_tau_vsMu_Tight_2 > 0.5
   had_tau_pt: pt_2 > 30
   lep_pt: ((pt_1 > 25) && ((trg_single_mu27 > 0.5) || (trg_single_mu24 > 0.5)))
+  nbtag: (nbtag >= 0)
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
   Z_pt_reweighting: ZPtMassReweightWeight
@@ -86,7 +88,7 @@ mc_weights:
   pileup: puweight
   single_trigger: trg_wgt_single_mu24ormu27
 emb_weights:
-  generator: emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt
+  generator: (emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt)
   lep_id: id_wgt_mu_1
   lep_iso: iso_wgt_mu_1
   single_trigger: trg_wgt_single_mu24ormu27

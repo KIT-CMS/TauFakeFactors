@@ -1,8 +1,10 @@
 import array
+import copy
 import logging
 import os
 import pickle
 from copy import deepcopy
+from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -10,6 +12,7 @@ import matplotlib.ticker as ticker
 import mplhep as hep
 import numpy as np
 import ROOT
+from matplotlib.legend_handler import HandlerBase, HandlerTuple
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -17,6 +20,58 @@ import configs.general_definitions as gd
 import helper.ff_functions as func
 
 hep.style.use(hep.style.CMS)
+
+
+class VTuple(tuple):
+    """Vertical tuple: render items stacked (two lines like '=')."""
+    pass
+
+
+class MergedTuple(tuple):
+    """Merged tuple: for combined handles like patch + line, using HandlerTuple."""
+    pass
+
+
+class HandlerEquals(HandlerBase):
+    """
+    Construct handler to render "=" inside legends with adjustable properties for each line.
+    Supported Propreties are:
+        lw: linewidth
+        ls: linestyle
+        c: color
+    """
+    def __init__(self, *args, spacing_factor=0.5, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.spacing_factor = spacing_factor
+
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+        def get_props(item):
+            if isinstance(item, dict):
+                return item
+            elif isinstance(item, Line2D):
+                return {
+                    'c': item.get_color(),
+                    'lw': item.get_linewidth(),
+                    'ls': item.get_linestyle()
+                }
+            else:
+                raise ValueError(f"Unsupported type in handle: {type(item)}")
+
+        if len(orig_handle) != 2:
+            raise ValueError("HandlerEquals expects a tuple of exactly two items (dicts or Line2D).")
+
+        props1, props2 = [get_props(p) for p in orig_handle]
+
+        mid, offset = height / 2, (height * self.spacing_factor) / 2
+        y_top, y_bottom = ydescent + mid + offset, ydescent + mid - offset
+
+        line1 = Line2D([xdescent, xdescent + width], [y_top, y_top])
+        line1.set(**props1)
+
+        line2 = Line2D([xdescent, xdescent + width], [y_bottom, y_bottom])
+        line2.set(**props2)
+
+        return [line1, line2]
 
 
 class SmartSciFormatter(ticker.Formatter):
@@ -51,6 +106,9 @@ class SmartSciFormatter(ticker.Formatter):
             return rf"${mantissa}{dot}10^{{{int(exponent)}}}$"
         else:
             return f"{x}".rstrip("0").rstrip(".")
+
+
+HANDLER_MAP = {MergedTuple: HandlerTuple(ndivide=1, pad=0.0), VTuple: HandlerEquals()}
 
 
 def save_plots_and_data(
@@ -321,7 +379,7 @@ def plot_FFs(
     mc_up_key, mc_down_key = "mc_subtraction_unc_up", "mc_subtraction_unc_down"
 
     if isinstance(ff_ratio, ROOT.TH1):
-        _, x, y, x_err, y_err = TH1_to_numpy(ff_ratio)
+        _, x, y, x_err, y_err = TH1_to_numpy(ff_ratio, is_data=True)
     elif isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
         _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(ff_ratio)
     elif isinstance(ff_ratio, tuple):  # for recreating the plot
@@ -805,23 +863,57 @@ def plot_correction(
         category=category,
     )
 
+    lw = 3
+
+    (
+        color,
+        color_stat_unct,
+        color_bandwidth_unct,
+        color_mc_sub_unct,
+    ) = (
+        gd.color_dict["correction_graph"],
+        gd.color_dict["correction_graph_stat_unct"],
+        gd.color_dict["correction_graph_bandwidth_unct"],
+        gd.color_dict["correction_graph_mc_sub_unct"],
+    )
+
     def pad(item):
         return np.pad(item, (0, 1), "edge")
+
+    def step(_ax, _y, _c=color, _lw=lw, _ls="-"):
+        return _ax.step(
+            corr_graph["edges"],
+            pad(corr_graph[_y]) if isinstance(_y, str) else _y,
+            where="post",
+            color=_c,
+            lw=_lw,
+            ls=_ls,
+        )
+
+    def bin_lookup(_values, edges, values):
+        _idx = np.searchsorted(edges, _values, side="right") - 1
+        _idx = np.clip(_idx, 0, len(values) - 1)
+        return values[_idx]
 
     if isinstance(corr_hist, ROOT.TGraphAsymmErrors):
         _, x, y, x_err, y_err = TGraphAsymmErrors_to_numpy(corr_hist)
     elif isinstance(corr_hist, tuple):  # in case of recreating the plot
         x, y, x_err, y_err = corr_hist
 
-    color, lw = gd.color_dict["correction_graph"], 3
-
-    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-    ax.set(
+    fig, ax = plt.subplots(2, 1, figsize=(14, 12), sharex=True, gridspec_kw={"height_ratios": [3, 1]})
+    ax[0].set(
         xlim=(x[0] - x_err[0][0], x[-1] + x_err[1][-1]),
-        xlabel=gd.variable_dict[channel].get(variable, variable),
         ylim=(0, max(2.2, 1.5 * max(y))),
         ylabel="Correction",
     )
+    ax[1].set(
+        xlabel=gd.variable_dict[channel].get(variable, variable),
+        ylabel="Ratio",
+        ylim=(0.5, 1.5),
+    )
+
+    ax[0].hlines(1, *ax[0].get_xlim(), colors="black", lw=0.8)
+    ax[1].hlines(1, *ax[1].get_xlim(), colors=color, lw=lw)
 
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, {process}, " + ", ".join(
@@ -834,55 +926,130 @@ def plot_correction(
         plot_text = f"{gd.channel_dict[channel]}, {process}"
     plot_text = latex_adjust_selection_string(plot_text)
 
-    ax.set_title(plot_text, loc="left", fontsize=20)
-    ax.set_title(gd.era_dict[era], loc="right", fontsize=20)
+    ax[0].set_title(plot_text, loc="left", fontsize=20)
+    ax[0].set_title(gd.era_dict[era], loc="right", fontsize=20)
 
     if "non_closure" in corr_name:
-        ax.text(0.08, 0.8, "non closure correction", transform=ax.transAxes, fontsize=20)
+        ax[0].text(0.08, 0.8, "non closure correction", transform=ax[0].transAxes, fontsize=20)
     elif "DR_SR" in corr_name:
-        ax.text(0.08, 0.8, "DR to SR correction", transform=ax.transAxes, fontsize=20)
+        ax[0].text(0.08, 0.8, "DR to SR correction", transform=ax[0].transAxes, fontsize=20)
 
-    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=1, fontsize=20)
+    hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20)
 
-    ax.fill_between(
+    total_unct_up = np.sqrt(
+        np.maximum(
+            0,
+            np.maximum(
+                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            np.maximum(
+                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
+                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            np.maximum(
+                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
+                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
+            )
+        ) ** 2
+    )
+
+    total_unct_down = np.sqrt(
+        np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
+                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
+                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
+            )
+        ) ** 2 + np.maximum(
+            0,
+            -np.minimum(
+                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
+                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
+            )
+        ) ** 2
+    )
+
+    ax[0].fill_between(
         corr_graph["edges"],
-        pad(corr_graph["up"]),
-        pad(corr_graph["down"]),
-        alpha=0.25,
+        pad(corr_graph["nominal"] - total_unct_down),
+        pad(corr_graph["nominal"] + total_unct_up),
+        alpha=0.15,
+        step="post",
+        color=color,
+        lw=0,
+    )
+    ax[1].fill_between(
+        corr_graph["edges"],
+        pad((corr_graph["nominal"] - total_unct_down) / corr_graph["nominal"]),
+        pad((corr_graph["nominal"] + total_unct_up) / corr_graph["nominal"]),
+        alpha=0.15,
         step="post",
         color=color,
         lw=0,
     )
 
-    ax.step(
-        corr_graph["edges"],
-        pad(corr_graph["nominal"]),
-        lw=lw,
-        where="post",
-        color=color,
-    )
-    data_handler = ax.errorbar(
+    _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
+    stat_unct_up, *_ = _step(ax[0], "Stat1SigmaUp")
+    stat_unct_down, *_ = _step(ax[0], "Stat1SigmaDown")
+    _step(ax[1], pad(corr_graph["Stat1SigmaUp"] / corr_graph["nominal"]))
+    _step(ax[1], pad(corr_graph["Stat1SigmaDown"] / corr_graph["nominal"]))
+
+    _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
+    bandwidth_unct_up, *_ = _step(ax[0], "SystBandAsymUp", _ls="dashed")
+    bandwidth_unct_down, *_ = _step(ax[0], "SystBandAsymDown", _ls="dashdot")
+    _step(ax[1], pad(corr_graph["SystBandAsymUp"] / corr_graph["nominal"]), _ls="dashed")
+    _step(ax[1], pad(corr_graph["SystBandAsymDown"] / corr_graph["nominal"]), _ls="dashdot")
+
+    _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
+    mc_sub_unct_up, *_ = _step(ax[0], "SystMCShiftUp", _ls="dashed")
+    mc_sub_unct_down, *_ = _step(ax[0], "SystMCShiftDown", _ls="dashdot")
+    _step(ax[1], pad(corr_graph["SystMCShiftUp"] / corr_graph["nominal"]), _ls="dashed")
+    _step(ax[1], pad(corr_graph["SystMCShiftDown"] / corr_graph["nominal"]), _ls="dashdot")
+
+    step(ax[0], "nominal")
+
+    data_handle = ax[0].errorbar(x, y, xerr=x_err, yerr=y_err, fmt="o", color="black", capsize=3, elinewidth=2)
+    ax[1].errorbar(
         x,
-        y,
+        y / bin_lookup(x, corr_graph["edges"], corr_graph["nominal"]),
         xerr=x_err,
-        yerr=y_err,
+        yerr=y_err / np.interp(x, corr_graph["edges"][:-1] + np.diff(corr_graph["edges"]) / 2, corr_graph["nominal"]),
         fmt="o",
         color="black",
         capsize=3,
         elinewidth=2,
     )
 
-    combined_handle = [
-        Patch(color=color, alpha=0.25),
-        Line2D([0], [0], color=color, linewidth=lw),
-    ]
-
-    ax.legend(
-        handles=[data_handler, tuple(combined_handle)],
-        labels=["measured", "smoothed curve"],
+    ax[0].legend(
+        [
+            data_handle,
+            MergedTuple((Patch(color=color, alpha=0.15), Line2D([], [], color=color, linewidth=lw))),
+            VTuple((stat_unct_up, stat_unct_down)),
+            VTuple((bandwidth_unct_up, bandwidth_unct_down)),
+            VTuple((mc_sub_unct_up, mc_sub_unct_down)),
+        ],
+        [
+            "measured",
+            "Smoothed Curve + Total unct.",
+            "Stat. unct.",
+            "Bandwidth unct.",
+            "MC subtraction unct.",
+        ],
         loc="upper right",
         fontsize=20,
         labelspacing=0.3,
+        handler_map=HANDLER_MAP,
     )
 
     fig.tight_layout()

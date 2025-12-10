@@ -1,9 +1,9 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2/CROWNRun"
-output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/amonsch/CROWN/ntuples/ff_and_cr_production_2018UL_mt__2025-11-03_wo_syst_v1/CROWNRun"
+output_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2_2025-11-03
 friends: ["fastmtt_v1"]
-file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2
+file_path: /ceph/amonsch/FFmethod/smhtt_ul/ff_and_cr_production_2018UL_mt__2025-08-21_wo_syst_v2_2025-11-03
 
-workdir_name: test_setup
+workdir_name: extended_corrections_set_with_applied_es_corrections
 
 era: '2018'
 tree: ntuple
