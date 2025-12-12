@@ -380,7 +380,7 @@ if __name__ == "__main__":
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
 
-        if process == "process_fractions" or process == "process_fractions_subleading":
+        if process in ["process_fractions", "process_fractions_subleading"]:
             if process not in config:
                 console.print(f"[red]Block {process} not found in config. Skipping.[/red]")
                 continue
@@ -392,7 +392,7 @@ if __name__ == "__main__":
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
             cuts = " & ".join(f"({c})" for c in cuts_source[f"{args.cut_region}_cuts"].values())
         else:
-            console.print(f"[red]Process '{process}' not found in target_processes or as {process}. Skipping.[/red]")
+            console.print(f"[red]Process '{process}' not found in config. Skipping.[/red]")
             continue
 
         if EQUIPOPULATED_BINNING_OPTIONS_KEY in process_config:
