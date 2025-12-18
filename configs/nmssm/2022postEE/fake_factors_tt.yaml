@@ -186,9 +186,10 @@ process_fractions_subleading:
 
     split_categories:
         n_bjets:
+            - "==1"
             - ">=2"
     split_categories_binedges:
-        n_bjets: [1.5,2.5]
+        n_bjets: [0.5,1.5,2.5]
 
     AR_cuts:
         tau_pair_sign: "(q_1*q_2) < 0" 
