@@ -1,7 +1,7 @@
 ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/mmolch/CROWN/ntuples/ntuples-2025-12-13/CROWNRun"
 #friends: ["fastmtt_v2"]
 tree: "ntuple"
-era: "2022postEE"
+era: "2022preEE"
 nanoAOD_version: "nanoAOD_v12"
 
 tau_vs_jet_wps: 
