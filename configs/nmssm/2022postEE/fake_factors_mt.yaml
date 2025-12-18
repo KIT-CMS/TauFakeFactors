@@ -22,6 +22,7 @@ target_processes:
 
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) > 0" 
+            #lep_mt: "mt_1 < 50"
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
