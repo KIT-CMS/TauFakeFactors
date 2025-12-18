@@ -98,11 +98,8 @@ mc_weights:
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: ""
-    #    stitching:
-    #        # - "DYjets"
-    #        - "Wjets"
     lumi: ""
-    # Z_pt_reweighting: "ZPtMassReweightWeight"
+    Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
 
 emb_weights:
