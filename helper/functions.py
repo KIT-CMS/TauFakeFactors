@@ -134,6 +134,15 @@ class ConfiguredYAML(YAML):
         self.width = 4096  # No line break in the output, never!
 
         def smart_float_representer(representer, data):
+            # Handle special float values inf and -inf before parsing the Decimal, which would throw
+            # an error message.
+            if data == float('inf'):
+                return representer.represent_scalar('tag:yaml.org,2002:float', '.inf')
+            if data == float('-inf'):
+                return representer.represent_scalar('tag:yaml.org,2002:float', '-.inf')
+
+            # At this point, data is expected to be a regular float, here we can go on with the
+            # cleaning.
             cleaned_decimal = Decimal(str(data)).quantize(Decimal('1e-12'))
             formatted_str = f"{cleaned_decimal:.15f}".rstrip('0')
             if formatted_str.endswith('.'):
