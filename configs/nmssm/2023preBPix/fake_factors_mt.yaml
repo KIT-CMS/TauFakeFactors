@@ -1,0 +1,101 @@
+# This is an example config containing information for the FF calculation
+
+channel: "mt" # options are et, mt, tt
+
+use_embedding: False
+
+target_processes: 
+    QCD: 
+        split_categories: 
+            n_jets: 
+                - ">=2"
+        split_categories_binedges:
+            n_jets: [1.5,2.5]
+
+        SRlike_cuts:
+            tau_pair_sign: "(q_1*q_2) > 0" 
+            #lep_mt: "mt_1 < 50"
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        ARlike_cuts:
+            tau_pair_sign: "(q_1*q_2) > 0" 
+            #lep_mt: "mt_1 < 50"
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        var_dependence: "pt_2"
+        var_bins: [20,24,28,32,35,40,50,75,150]
+        fit_option: ["poly_1", "poly_2", "poly_3"]
+
+    ttbar: 
+        split_categories: 
+            n_jets:  
+                - "==2"
+                - "==3"
+                - ">=4"
+        split_categories_binedges:
+            n_jets: [1.5,2.5,3.5,4.5]
+
+        SR_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        AR_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        SRlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+            had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        ARlike_cuts:
+            tau_pair_sign: "(q_1*q_2) < 0" 
+            lep_iso: "iso_1 < 0.15"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))"
+            had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+            bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+        var_dependence: "pt_2"
+        var_bins: [20,24,28,32,35,40,50,75,150]
+        fit_option: ["poly_1", "poly_2", "poly_3"]
+
+process_fractions:
+    processes: ["QCD", "ttbar_J"]
+
+    split_categories:
+        n_bjets:
+            - "==1"
+            - ">=2"
+    split_categories_binedges:
+        n_bjets: [0.5,1.5,2.5]
+
+    AR_cuts:
+        tau_pair_sign: "(q_1*q_2) < 0" 
+        lep_iso: "iso_1 < 0.15"
+        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+        had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
+        bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+    SR_cuts:
+        tau_pair_sign: "(q_1*q_2) < 0" 
+        lep_iso: "iso_1 < 0.15"
+        no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
+        had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
+        bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+
+    var_dependence: "m_vis"
+    var_bins: [0,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,250,300,400,1000]
