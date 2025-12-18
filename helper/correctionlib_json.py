@@ -792,10 +792,7 @@ def make_1D_correction(
                 )
                 for variation, _correction_name in product(
                     variations,
-                    [
-                        correction_name,
-                        "_non_closure" if "non_closure" in correction_name else f"_{correction_name}",
-                    ],
+                    [f"_{correction_name}"] + (["_non_closure"] if "non_closure" in correction_name else []),
                 )
             ] + [
                 cs.CategoryItem(
@@ -894,10 +891,7 @@ def make_2D_correction(
                 )
                 for variation, _correction_name in product(
                     variations,
-                    [
-                        correction_name,
-                        "_non_closure" if "non_closure" in correction_name else f"_{correction_name}",
-                    ],
+                    [f"_{correction_name}"] + (["_non_closure"] if "non_closure" in correction_name else []),
                 )
             ] + [
                 cs.CategoryItem(
