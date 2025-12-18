@@ -581,6 +581,8 @@ if __name__ == "__main__":
     with open(os.path.join(workdir_path, "fake_factors", corr_config["channel"], "config.yaml"), "r") as file:
         config = func.configured_yaml.load(file)
 
+    func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
+
     save_path = os.path.join(workdir_path, "corrections", config["channel"])
     func.check_path(path=os.path.join(os.getcwd(), save_path))
 

@@ -69,6 +69,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             caller_frame = inspect.stack()[1]
             caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
             key_args["_caller_"] = caller_info
+            key_args["_input_file_directory_"] = func.RuntimeVariables.INPUT_FILE_PATH
 
             if "logger" in key_args:
                 del key_args["logger"]
