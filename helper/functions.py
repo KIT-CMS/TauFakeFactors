@@ -22,6 +22,10 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+TAU_FAKE_FACTORS_DIR = os.path.dirname(THIS_DIR)
+
+
 class CachingKeyHelper:
     @staticmethod
     def make_hashable(obj: Union[Dict, List, Tuple, Any]) -> Union[Dict, Tuple, bytes, Any]:
@@ -411,7 +415,21 @@ def load_config(config_file: str) -> Dict:
     else:
         print("No common config file found!")
 
-    config = {}
+    # Container of the loaded configuration
+    # 
+    # Some default values are pre-defined in the config dict that is going to contain the loaded
+    # configuration. These values are overwritten if they are explicitly set in the common config file.
+    #
+    # The variables, for which defaults are set, are:
+    #
+    # - 'sample_database`: Path to the sample database directory. Usuallly, this path is set to the
+    #   `datasets` submodule of the `TauFakeFactors` module. Users can set a custom path, e.g.,
+    #   to an external path to a working version of their sample database.
+    config = {
+        "sample_database": os.path.join(TAU_FAKE_FACTORS_DIR, "datasets"),
+    }
+
+    # Update the config with common settings, applying to all steps
     with open(common_config_file, "r") as file:
         config.update(configured_yaml.load(file))
 
