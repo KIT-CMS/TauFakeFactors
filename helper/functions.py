@@ -712,6 +712,49 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
 
     return rdf
 
+def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
+    """
+    Customizer function to define additional columns in the ntuples.
+     
+    The `column_definitions` dictionary is usually provided with the preselection configuration
+    file. The keys of the dictionary correspond to the columns to be created. The values are
+    dictionaries which contain the information for the column information. The keys of these inner
+    dictionaries have the following meaning:
+
+    - `expression`: The expression string which is used to define the new column.
+
+    - `exclude_processes` (_optional_): A list of process names for which the definition should be
+      skipped. If `process` is in this list, the definition is not applied.
+
+    Note that the new column names must not exist in the ntuples, otherwise an error is raised.
+
+    Args:
+        rdf: root DataFrame
+        column_definitions: Dictionary mapping new column names (keys) to expressions (values)
+        process: Name of the current process
+
+    Return:
+        root DataFrame with redefined variables
+    """
+
+    # Ensure that the new column names are not already present in the ntuple
+    rdf_columns = set(rdf.GetColumnNames())
+    new_columns = set(column_definitions.keys())
+    intersection = rdf_columns.intersection(new_columns)
+    if intersection:
+        raise ValueError(
+            f"The following new column names already exist in the ntuple: {intersection}"
+        )
+
+    # Perform the define declarations on the RDataFrame object
+    for new_column, define_dict in column_definitions.items():
+        expression = define_dict["expression"]
+        exclude_processes = define_dict.get("exclude_processes", [])
+        if process in exclude_processes:
+            continue
+        rdf = rdf.Define(new_column, expression)
+
+    return rdf
 
 def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
     """
