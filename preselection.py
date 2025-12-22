@@ -51,7 +51,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     Return:
         A tuple with the tau gen. level mode and the name of the output file
     """
-    process, config, output_path, ncores, sample, tau_gen_mode = args
+    process, config, output_path, ncores, sample, tau_gen_mode, column_definitions = args
     log = logging.getLogger(f"preselection.{process}")
     ROOT.EnableImplicitMT(ncores)
 
@@ -79,6 +79,10 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if func.rdf_is_empty(rdf=rdf):
         log.info(f"WARNING: Sample {sample} is empty. Skipping...")
         return ()
+
+    # Declare column definitions on the RDataFrame
+    if column_definitions:
+        rdf = func.define_columns(rdf, column_definitions, process)
 
     # apply analysis specific event filters
     selection_conf = config["event_selection"]
@@ -209,9 +213,12 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
         f"Considered samples for process {process}: {config['processes'][process]['samples']}"
     )
 
+    # get renaming of columns
+    column_definitions = config.get("column_definitions", {})
+
     # going through all contributing samples for the process
     args_list = [
-        (process, config, output_path, ncores, sample, tau_gen_mode) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in config["processes"][process]["samples"]
+        (process, config, output_path, ncores, sample, tau_gen_mode, column_definitions) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in config["processes"][process]["samples"]
     ]
 
     results = func.optional_process_pool(
