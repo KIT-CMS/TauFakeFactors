@@ -89,6 +89,13 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     for cut in selection_conf:
         rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
 
+    # For Run 3 DY samples, we need to collect the events from two samples, that need to be selected
+    # for different flavors
+    if sample.startswith("DYto2L"):
+        rdf = rdf.Filter("lhe_drell_yan_decay_flavor == 11 || lhe_drell_yan_decay_flavor == 13", "DY e/mu selection")
+    if sample.startswith("DYto2Tau"):
+        rdf = rdf.Filter("lhe_drell_yan_decay_flavor == 15", "DY tau selection")
+
     if process == "embedding":
         rdf = filters.emb_tau_gen_match(rdf=rdf, channel=config["channel"])
 
