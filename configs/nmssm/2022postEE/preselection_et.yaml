@@ -76,6 +76,16 @@ processes:
             - EGamma_Run2022F-22Sep2023-v1
             - EGamma_Run2022G-22Sep2023-v2
 
+column_definitions:
+    nbtag:
+        expression: n_bjets
+    njets:
+        expression: n_jets
+    btag_weight:
+        expression: id_wgt_bjet_pnet_shape
+        exclude_processes:
+            - data
+
 event_selection:
     lep_pt: "pt_1 > 32"
     had_tau_pt: "pt_2 > 20"
@@ -88,7 +98,7 @@ event_selection:
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    lep_id: "id_wgt_ele_1"
+    lep_id: "id_wgt_ele_wp90nonIso_1"
     had_tau_id_vs_ele: "(id_tau_vsEle_Tight_2>0.5)*id_wgt_tau_vsEle_Tight_2 + (id_tau_vsEle_Tight_2<0.5)"
     had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)"
     single_trigger: "trg_wgt_single_ele30"
@@ -99,12 +109,13 @@ mc_weights:
     lumi: ""
     Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
+    ttbar_norm_weight: "0.89"
 
 output_features:
     - "weight" # this is always needed
-    - "id_wgt_bjet_pnet_shape"
-    - "n_jets"
-    - "n_bjets"
+    - "btag_weight"
+    - "njets"
+    - "nbtag"
     - "pt_1"
     - "pt_2"
     - "eta_1"
