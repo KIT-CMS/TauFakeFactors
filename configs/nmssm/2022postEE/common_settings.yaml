@@ -1,8 +1,9 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/mmolch/CROWN/ntuples/ntuples-2025-12-13/CROWNRun"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/mmolch/CROWN/ntuples/ntuples-2025-12-21/CROWNRun"
 #friends: ["fastmtt_v2"]
 tree: "ntuple"
 era: "2022postEE"
 nanoAOD_version: "nanoAOD_v12"
+sample_database: "/work/mmolch/xyh-bbtautau-crown/KingMaker/sample_database"
 
 tau_vs_jet_wps: 
     - "VVVLoose"
@@ -11,10 +12,10 @@ tau_vs_jet_wgt_wps:
     - "Medium"
 
 # output of preselection
-output_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2025-12-18"
+output_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2025-12-23"
 # output_path and file_path should be the same;
 # the difference is that the first one is used for the preselection step 
 # and the second one for the FF calculation step
-file_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2025-12-18"
+file_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2025-12-23"
 # output of FF measurement
-workdir_name: "fake-factors-2025-12-18"
+workdir_name: "fake-factors-2025-12-23"
