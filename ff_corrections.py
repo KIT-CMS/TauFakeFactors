@@ -579,7 +579,7 @@ if __name__ == "__main__":
             __ffs, __corr_config = pickle.load(f)
             for proc in corr_config["target_processes"]:
                 if "DR_SR" in corr_config["target_processes"][proc]:
-                    __test_config = __corr_config["target_processes"][proc]["DR_SR"]
+                    __test_config = __corr_config["target_processes"][proc].get("DR_SR", {})
                     test_config = corr_config["target_processes"][proc]["DR_SR"]
 
                     is_valid_cache = all(

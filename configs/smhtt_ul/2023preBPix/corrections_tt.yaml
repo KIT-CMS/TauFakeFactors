@@ -1,0 +1,130 @@
+templates:
+  split_schemes:
+    2j: &2j_split
+      split_categories:
+        njets: ["==0", ">=1"]
+      split_categories_binedges:
+        njets: [-0.5, 0.5, 22.5]
+      correction_option:
+        "==0": "smoothed"
+        ">=1": "smoothed"
+      bandwidth:
+        "==0": 1.0
+        ">=1": 1.0
+  var_dependence_n_bins:
+    QCD:
+      equipopulated_binning_options: &QCD_var_dependence_n_bins
+        var_dependence_n_bins:
+          "==0": 15
+          ">=1": 10
+    QCD_subleading:
+      equipopulated_binning_options: &QCD_subleading_var_dependence_n_bins
+        var_dependence_n_bins:
+          "==0": 15
+          ">=1": 10
+  variables:
+    pt_1: &pt_1
+      var_dependence: pt_1
+      equipopulated_binning_options: &pt_1__eq_bin_opt
+        variable_config:
+          pt_1:
+            min: 37.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+    pt_2: &pt_2
+      var_dependence: pt_2
+      equipopulated_binning_options: &pt_2__eq_bin_opt
+        variable_config:
+          pt_2:
+            min: 37.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+    pt_tt: &pt_tt
+      var_dependence: pt_tt
+      equipopulated_binning_options: &pt_tt__eq_bin_opt
+        variable_config:
+          pt_tt:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+
+
+channel: tt
+target_processes:
+  QCD:
+    non_closure:
+      pt_2:
+        <<: [*pt_2, *2j_split]
+        equipopulated_binning_options:
+          <<: [*pt_2__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: [5.0, 5.0]
+        var_bins:
+          "==0": [37.0, 37.65, 38.35, 39.08, 39.82, 40.68, 41.61, 42.63, 43.82, 45.13, 46.73, 48.72, 51.4, 55.36, 62.75, 150.0]
+          ">=1": [37.0, 37.97, 39.02, 40.26, 41.68, 43.42, 45.52, 48.36, 52.69, 60.96, 150.0]
+    DR_SR:
+      <<: [*pt_tt, *2j_split]
+      equipopulated_binning_options:
+        <<: [*pt_tt__eq_bin_opt, *QCD_var_dependence_n_bins]
+      bandwidth: [15, 25]
+      var_bins:
+        "==0": [0.0, 5.95, 8.67, 10.93, 13.07, 15.16, 17.23, 19.39, 21.67, 24.12, 26.87, 30.05, 33.96, 39.3, 48.05, 150.0]
+        ">=1": [0.0, 21.24, 30.0, 37.4, 44.37, 51.71, 59.9, 69.69, 82.24, 101.54, 150.0]
+
+      SRlike_cuts:
+        had_tau_id_vs_jet_2: (id_tau_vsJet_Medium_2 < 0.5)
+      ARlike_cuts:
+        had_tau_id_vs_jet_2: (id_tau_vsJet_Medium_2 < 0.5)
+      AR_SR_cuts:
+        tau_pair_sign: (q_1*q_2) < 0
+
+      non_closure:
+        pt_1:
+          <<: [*pt_2, *2j_split]
+          equipopulated_binning_options:
+            <<: [*pt_2__eq_bin_opt, *QCD_var_dependence_n_bins]
+          bandwidth: [5.0, 5.0]
+          var_bins:
+            "==0": [37.0, 37.72, 38.45, 39.23, 40.08, 40.98, 41.97, 43.05, 44.29, 45.72, 47.47, 49.66, 52.6, 57.01, 65.07, 150.0]
+            ">=1": [37.0, 38.05, 39.2, 40.49, 41.99, 43.81, 46.08, 49.16, 53.84, 62.75, 150.0]
+
+  QCD_subleading:
+    non_closure:
+      pt_1:
+        <<: [*pt_1, *2j_split]
+        equipopulated_binning_options:
+          <<: [*pt_1__eq_bin_opt, *QCD_subleading_var_dependence_n_bins]
+        bandwidth: [5.0, 5.0]
+        var_bins:
+          "==0": [37.0, 41.2, 43.25, 45.01, 46.63, 48.29, 50.06, 51.9, 53.86, 56.11, 58.69, 61.89, 66.04, 71.61, 81.55, 150.0]
+          ">=1": [37.0, 43.25, 46.89, 50.41, 54.22, 58.48, 63.79, 70.54, 79.7, 94.42, 150.0]
+
+    DR_SR:
+      <<: [*pt_tt, *2j_split]
+      equipopulated_binning_options:
+        <<: [*pt_tt__eq_bin_opt, *QCD_subleading_var_dependence_n_bins]
+      bandwidth: [15, 25]
+      var_bins:
+        "==0": [0.0, 5.85, 8.48, 10.7, 12.77, 14.75, 16.74, 18.79, 21.05, 23.4, 26.1, 29.21, 33.05, 38.12, 46.72, 150.0]
+        ">=1": [0.0, 20.5, 29.13, 36.37, 43.36, 50.59, 58.69, 68.37, 81.18, 100.36, 150.0]
+
+      SRlike_cuts:
+        had_tau_id_vs_jet_1: (id_tau_vsJet_Medium_1 < 0.5)
+      ARlike_cuts:
+        had_tau_id_vs_jet_1: (id_tau_vsJet_Medium_1 < 0.5)
+      AR_SR_cuts:
+        tau_pair_sign: (q_1*q_2) < 0
+
+      non_closure:
+        pt_2:
+          <<: [*pt_2, *2j_split]
+          equipopulated_binning_options:
+            <<: [*pt_2__eq_bin_opt, *QCD_subleading_var_dependence_n_bins]
+          bandwidth: [5.0, 5.0]
+          var_bins:
+            "==0": [37.0, 41.17, 43.07, 44.69, 46.26, 47.82, 49.44, 51.18, 53.08, 55.21, 57.68, 60.74, 64.65, 70.24, 80.05, 150.0]
+            ">=1": [37.0, 43.36, 46.81, 50.2, 53.86, 58.06, 63.18, 69.63, 78.99, 94.8, 150.0]
+

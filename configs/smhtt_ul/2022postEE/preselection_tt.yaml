@@ -1,0 +1,149 @@
+channel: tt
+processes:
+  DYjets:
+    samples:
+      - DYto2L-2Jets_MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2L-2Jets_MLL-50_0J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2L-2Jets_MLL-50_1J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2L-2Jets_MLL-50_2J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2Tau-2Jets_MLL-50_0J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2Tau-2Jets_MLL-50_1J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - DYto2Tau-2Jets_MLL-50_2J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ST:
+    samples:
+      - TBbarQ_t-channel_4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_Run3Summer22EENanoAODv12-130X
+      - TBbartoLplusNuBbar-s-channel-4FS_TuneCP5_13p6TeV_amcatnlo-pythia8_Run3Summer22EENanoAODv12-130X
+      - TWminusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TWminusto4Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TWminustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TbarBQ_t-channel_4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_Run3Summer22EENanoAODv12-130X
+      - TbarBtoLminusNuB-s-channel-4FS_TuneCP5_13p6TeV_amcatnlo-pythia8_Run3Summer22EENanoAODv12-130X
+      - TbarWplusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TbarWplusto4Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  Wjets:
+    samples:
+      - WtoLNu-2Jets_0J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - WtoLNu-2Jets_1J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+      - WtoLNu-2Jets_2J_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_Run3Summer22EENanoAODv12-130X
+    tau_gen_modes:
+      - all
+  data:
+    samples:
+      - Tau_Run2022E-22Sep2023-v1
+      - Tau_Run2022F-22Sep2023-v1
+      - Tau_Run2022G-22Sep2023-v1
+    tau_gen_modes:
+      - all
+  diboson:
+    samples:
+      - WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - WWto4Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - WZtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - ZZto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - ZZto4L_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ttbar:
+    samples:
+      - TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+      - TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22EENanoAODv12-130X
+    tau_gen_modes:
+      - J
+      - T
+      - L
+event_selection:
+  had_tau_decay_mode_1: (tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)
+  had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
+  had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
+  had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
+  had_tau_pt: (pt_1 > 37) && (pt_2 > 37) && (trg_double_tau35_mediumiso_hps > 0.5)
+  jet_veto: (Jet_vetomap < 0.5)
+  met_mask: (met_mask > 0.5)
+mc_weights:
+  Top_pt_reweighting: topPtReweightWeight
+  Z_pt_reweighting: zPtReweightWeight
+  generator: ""
+    #stitching:
+    #  - DYjets
+    #  - Wjets
+  had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
+  lumi: ""
+  pileup: puweight
+  double_trigger: (trg_wgt_doubletau35_leg1 * trg_wgt_doubletau35_leg2)  
+#emb_weights:
+#  double_trigger: emb_trg_wgt_1 * emb_trg_wgt_2
+#  generator: emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt
+
+output_features:
+  - mt_1
+  - dimuon_veto
+  - weight
+  - btag_weight
+  - q_1
+  - pt_2
+  - q_2
+  - gen_match_2
+  - gen_match_1
+  - pt_1
+  - extramuon_veto
+  - extraelec_veto
+  - dilepton_veto
+  - tau_decaymode_1
+  - tau_decaymode_2
+  - mass_1
+  - mass_2
+  - iso_1
+  - iso_2
+  - beta_1
+  - beta_2
+  - bphi_1
+  - bphi_2
+  - bpt_1
+  - bpt_2
+  - btag_value_1
+  - btag_value_2
+  - deltaR_ditaupair
+  - eta_1
+  - eta_2
+  - jeta_1
+  - jeta_2
+  - jphi_1
+  - jphi_2
+  - jpt_1
+  - jpt_2
+  - m_vis
+  - met
+  - metphi
+  - mjj
+  - mt_2
+  - mt_tot
+  - nbtag
+  - njets
+  - pfmet
+  - pfmetphi
+  - phi_1
+  - phi_2
+  - pt_dijet
+  - pt_tt
+  - pt_ttjj
+  - pt_vis

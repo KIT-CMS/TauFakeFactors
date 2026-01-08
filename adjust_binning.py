@@ -387,6 +387,13 @@ if __name__ == "__main__":
             process_config = config["process_fractions"]
             cuts = " & ".join(f"({c})" for c in process_config["AR_cuts"].values())
             console.print("Using AR cuts for process_fractions.")
+        elif process == "process_fractions_subleading":
+            if "process_fractions_subleading" not in config:
+                console.print("[red]Block 'process_fractions' not found in config. Skipping.[/red]")
+                continue
+            process_config = config["process_fractions_subleading"]
+            cuts = " & ".join(f"({c})" for c in process_config["AR_cuts"].values())
+            console.print("Using AR cuts for process_fractions.")
         elif process in config.get("target_processes", {}):
             process_config = config["target_processes"][process]
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
