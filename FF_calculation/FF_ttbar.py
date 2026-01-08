@@ -303,10 +303,10 @@ def calculation_FF_data_scaling_factor(
 
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "ttbar_J"]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist], -1)
+            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "ttbar_J"]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist], -1)
+            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
 
     return SRlike_hists, ARlike_hists
 
@@ -401,7 +401,7 @@ def non_closure_correction(
                 rdf_AR = corr_evaluator.evaluate_correction(
                     rdf=rdf_AR,
                 )
-                corr_str += f" * {process}_ff_corr_{corr_evaluator.variable}"
+                corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_AR = rdf_AR.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"

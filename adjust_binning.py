@@ -34,7 +34,7 @@ parser.add_argument(
     nargs="+",
     required=False,
     help="List of processes to adjust binning for.",
-    default=["QCD", "Wjets", "ttbar", "process_fractions"],
+    default=["QCD", "QCD_subleading", "Wjets", "ttbar", "process_fractions", "process_fractions_subleading"],
 )
 parser.add_argument(
     "--cut-region",
@@ -380,11 +380,11 @@ if __name__ == "__main__":
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
 
-        if process == "process_fractions":
-            if "process_fractions" not in config:
-                console.print("[red]Block 'process_fractions' not found in config. Skipping.[/red]")
+        if process in ["process_fractions", "process_fractions_subleading"]:
+            if process not in config:
+                console.print(f"[red]Block {process} not found in config. Skipping.[/red]")
                 continue
-            process_config = config["process_fractions"]
+            process_config = config[process]
             cuts = " & ".join(f"({c})" for c in process_config["AR_cuts"].values())
             console.print("Using AR cuts for process_fractions.")
         elif process == "process_fractions_subleading":
@@ -399,7 +399,7 @@ if __name__ == "__main__":
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
             cuts = " & ".join(f"({c})" for c in cuts_source[f"{args.cut_region}_cuts"].values())
         else:
-            console.print(f"[red]Process '{process}' not found in target_processes or as process_fractions. Skipping.[/red]")
+            console.print(f"[red]Process '{process}' not found in config. Skipping.[/red]")
             continue
 
         if EQUIPOPULATED_BINNING_OPTIONS_KEY in process_config:

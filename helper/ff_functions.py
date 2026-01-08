@@ -69,6 +69,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             caller_frame = inspect.stack()[1]
             caller_info = f"{caller_frame.function}@{caller_frame.filename}:{caller_frame.lineno}"
             key_args["_caller_"] = caller_info
+            key_args["_input_file_directory_"] = func.RuntimeVariables.INPUT_FILE_PATH
 
             if "logger" in key_args:
                 del key_args["logger"]
@@ -1033,7 +1034,7 @@ def build_TGraph(
     Return:
         1. TGraph of the histogram,
         2. List of components of the TGraph if return_components is True containing:
-            (x, y, x_err_down, x_err_up, y_err_down, y_err_up) 
+            (x, y, x_err_down, x_err_up, y_err_down, y_err_up)
     """
     if hist is None:
         return None
@@ -1265,11 +1266,156 @@ def _get_index_and_slices(
     )
 
 
+def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Sparsifies a histogram based on value change. If the value of the current
+    bin is close to the last kept bin, merge them. If the value changes significantly
+    the bin edge is kept.
+
+    Args:
+        edges: edges array (equidistant)
+        values: Value array
+        threshold: activity threshold in percent of the total Y-range
+
+    Return:
+        Sparsified edges array, sparsified value array
+    """
+
+    if len(edges) != len(values) + 1:
+        raise ValueError("Shape mismatch: edges must be len(values)+1")
+
+    diffs = np.abs(np.diff(values))
+    cumulative_activity = np.concatenate(([0], np.cumsum(diffs)))
+
+    v_range = values.max() - values.min()
+    step_size = v_range * threshold
+
+    if step_size == 0:  # all values are identical
+        return np.array([edges[0], edges[-1]]), np.array([values[0], values[-1]])
+
+    total_variation = cumulative_activity[-1]
+
+    targets = np.arange(0, total_variation, step_size)
+    selected_indices = np.searchsorted(cumulative_activity, targets)
+    selected_indices = np.unique(selected_indices)
+    selected_indices = selected_indices[selected_indices < len(values)]
+
+    if 0 not in selected_indices:  # Force inclusion of the very first block
+        selected_indices = np.insert(selected_indices, 0, 0)
+
+    if (len(values) - 1) not in selected_indices:  # Force inclusion of the very last block
+        selected_indices = np.append(selected_indices, len(values) - 1)
+
+    new_edges = edges[selected_indices]
+    new_edges = np.append(new_edges, edges[-1])
+
+    new_values = values[selected_indices]
+
+    return new_edges, new_values
+
+
 def smooth_function(
     hist: Any,
     bin_edges: List[float],
     correction_option: str,
     bandwidth: float,
+    bandwidth_variations: tuple = (0.5, 1.5),
+    mc_shifted_hist: Union[Dict[str, ROOT.TH1D], None] = None,
+    sparsify_threshold: float = 0.01,
+) -> Tuple[Any, Dict[str, np.ndarray]]:
+    """
+    This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
+    For smoothing the Nadaraya-Watson kernel regression estimator is used.
+
+    Args:
+        hist: Histogram of a correction
+        bin_edges: Bin edges of "hist"
+        correction_option: Correction option string
+        bandwidth: Bandwidth parameter for the kernel regression estimator
+        bandwidth_variations: Tuple with factors to vary the bandwidth up and down if correction_option is not "binwise"
+        sparsify_threshold: Threshold for sparsifying the smoothed function
+
+    Return:
+        1. root TGraph of the smoothed function,
+        2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+    """
+
+    _kwargs = dict(
+        hist=hist,
+        bin_edges=bin_edges,
+        correction_option=correction_option,
+        bandwidth=bandwidth,
+    )
+
+    nominal_graph, smooth_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=2.0)
+    corr_dict["Stat2SigmaUp"] = corr_dict["StatUp"]
+    corr_dict["Stat2SigmaDown"] = corr_dict["StatDown"]
+
+    _, _, corr_dict_one_sigma = _smooth_function(**_kwargs, stat_sigma=1.0)
+    corr_dict["Stat1SigmaUp"] = corr_dict_one_sigma["StatUp"]
+    corr_dict["Stat1SigmaDown"] = corr_dict_one_sigma["StatDown"]
+
+    if mc_shifted_hist is None:
+        corr_dict["SystMCShiftUp"] = corr_dict["nominal"]
+        corr_dict["SystMCShiftDown"] = corr_dict["nominal"]
+    else:
+        _, _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
+        _, _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
+
+        corr_dict["SystMCShiftUp"] = _mc_sub_up["nominal"]
+        corr_dict["SystMCShiftDown"] = _mc_sub_down["nominal"]
+
+    if correction_option == "binwise" or correction_option == "skip":
+        corr_dict["SystBandHighUp"] = corr_dict["nominal"]
+        corr_dict["SystBandHighDown"] = corr_dict["nominal"]
+        corr_dict["SystBandLowUp"] = corr_dict["nominal"]
+        corr_dict["SystBandLowDown"] = corr_dict["nominal"]
+
+        corr_dict["SystBandAsymUp"] = corr_dict["nominal"]
+        corr_dict["SystBandAsymDown"] = corr_dict["nominal"]
+
+        # individual downsampling for correctionlib storage, not used for plotting
+        corr_dict["downsampled"] = {}
+        for key in list(corr_dict):
+            if key in {"edges", "downsampled"}:
+                continue
+            corr_dict["downsampled"][key] = {
+                "edges": corr_dict["edges"],
+                "content": corr_dict[key],
+            }
+    else:
+        _, _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
+        _, _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
+
+        corr_dict["SystBandHighUp"] = (_high["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandHighDown"] = (corr_dict["nominal"] - _high["nominal"]) + corr_dict["nominal"]
+
+        corr_dict["SystBandLowUp"] = (_low["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
+        corr_dict["SystBandAsymUp"] = _high["nominal"]
+        corr_dict["SystBandAsymDown"] = _low["nominal"]
+
+        # individual downsampling for correctionlib storage, not used for plotting
+        corr_dict["downsampled"] = {}
+        for key in list(corr_dict):
+            if key in {"edges", "downsampled"}:
+                continue
+            corr_dict["downsampled"][key] = {
+                k: v for k, v in zip(
+                    ["edges", "content"],
+                    sparsify(corr_dict["edges"], corr_dict[key])
+                )
+            }
+
+    return nominal_graph, smooth_graph, corr_dict
+
+
+def _smooth_function(
+    hist: Any,
+    bin_edges: List[float],
+    correction_option: str,
+    bandwidth: float,
+    stat_sigma: float = 1.0,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -1297,8 +1443,8 @@ def smooth_function(
             {
                 "edges": np.array(bin_edges),
                 "nominal": np.array([1.0]),
-                "up": np.array([1.0]) + 1e-6,
-                "down": np.array([1.0]) - 1e-6,
+                "StatUp": np.array([1.0]) + 1e-6,
+                "StatDown": np.array([1.0]) - 1e-6,
             },
         )
 
@@ -1314,10 +1460,10 @@ def smooth_function(
 
     # sampling values for y based on a normal distribution with the bin yield as mean
     # value and with the measured statistical uncertainty
-    n_samples = 20
+    n_samples = 100
 
     with rng_seed(seed=random_seed):
-        sampled_y = np.array([np.random.normal(*it, n_samples) for it in zip(y, error_y_up)])
+        sampled_y = np.array([np.random.normal(_mu, stat_sigma * _sigma, n_samples) for _mu, _sigma in zip(y, error_y_up)])
         sampled_y[sampled_y < 0.0] = 0.0
 
     n_bins = 100 * hist_bins
@@ -1345,13 +1491,13 @@ def smooth_function(
     if correction_option == "binwise":
         _bins = np.array(bin_edges)
         _nom = np.array(y)
-        _up = _nom + np.array(error_y_up)
-        _down = _nom - np.array(error_y_down)
+        _up_stat = _nom + np.array(error_y_up)
+        _down_stat = _nom - np.array(error_y_down)
     elif correction_option == "smoothed":
         _bins = np.array(smooth_x)
         _nom = np.array(smooth_y)
-        _up = _nom + np.array(smooth_y_up)
-        _down = _nom - np.array(smooth_y_down)
+        _up_stat = _nom + np.array(smooth_y_up)
+        _down_stat = _nom - np.array(smooth_y_down)
     elif is_hybrid_correction:
         _bins = np.concatenate(
             (
@@ -1371,7 +1517,7 @@ def smooth_function(
                 y[right_slice],
             ),
         )
-        _up = _nom + np.concatenate(
+        _up_stat = _nom + np.concatenate(
             (
                 error_y_up[left_slice],
                 [smooth_y_up[0]] if start_idx != 0 else [],
@@ -1380,7 +1526,7 @@ def smooth_function(
                 error_y_up[right_slice],
             ),
         )
-        _down = _nom - np.concatenate(
+        _down_stat = _nom - np.concatenate(
             (
                 error_y_down[left_slice],
                 [smooth_y_down[0]] if start_idx != 0 else [],
@@ -1393,20 +1539,31 @@ def smooth_function(
         raise ValueError("Invalid correction option")
 
     _nom[_nom < 0] = 0
-    _up[_up < 0] = 0
-    _down[_down < 0] = 0
+    _up_stat[_up_stat < 0] = 0
+    _down_stat[_down_stat < 0] = 0
 
     # adjustment to bin edges
     if _bins[0] != bin_edges[0]:
-        _prepend = lambda a, b = None: np.concatenate(([a[0] if b is None else b[0]], a))
-        _bins = _prepend(_bins, bin_edges)
-        _nom, _up, _down = _prepend(_nom), _prepend(_up), _prepend(_down)
-    if _bins[-1] != bin_edges[-1]:
-        _append = lambda a, b = None: np.concatenate((a, [a[-1] if b is None else b[-1]]))
-        _bins = _append(_bins, bin_edges)
-        _nom, _up, _down = _append(_nom), _append(_up), _append(_down)
 
-    corr_dict = {"edges": _bins, "nominal": _nom, "up": _up, "down": _down}
+        def _prepend(a, b=None):
+            return np.concatenate(([a[0] if b is None else b[0]], a))
+
+        _bins = _prepend(_bins, bin_edges)
+        _nom, _up_stat, _down_stat = _prepend(_nom), _prepend(_up_stat), _prepend(_down_stat)
+    if _bins[-1] != bin_edges[-1]:
+
+        def _append(a, b=None):
+            return np.concatenate((a, [a[-1] if b is None else b[-1]]))
+
+        _bins = _append(_bins, bin_edges)
+        _nom, _up_stat, _down_stat = _append(_nom), _append(_up_stat), _append(_down_stat)
+
+    corr_dict = {
+        "edges": _bins,
+        "nominal": _nom,
+        "StatUp": _up_stat,
+        "StatDown": _down_stat,
+    }
 
     smooth_graph = ROOT.TGraphAsymmErrors(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
