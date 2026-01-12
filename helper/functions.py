@@ -22,8 +22,7 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-TAU_FAKE_FACTORS_DIR = os.path.dirname(THIS_DIR)
+TAU_FAKE_FACTORS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class CachingKeyHelper:
@@ -715,7 +714,7 @@ def rename_boosted_variables(rdf: Any, channel: str) -> Any:
 def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
     """
     Customizer function to define additional columns in the ntuples.
-     
+
     The `column_definitions` dictionary is usually provided with the preselection configuration
     file. The keys of the dictionary correspond to the columns to be created. The values are
     dictionaries which contain the information for the column information. The keys of these inner
@@ -755,6 +754,7 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
         rdf = rdf.Define(new_column, expression)
 
     return rdf
+
 
 def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
     """
