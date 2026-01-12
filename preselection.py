@@ -304,7 +304,7 @@ if __name__ == "__main__":
     )
     with open(datasets_file, "r") as file:
         datasets = json.load(file)
-    log.log(f"Loading sample database from {datasets_file}")
+    log.info(f"Loading sample database from {datasets_file}")
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]

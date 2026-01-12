@@ -265,26 +265,28 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-    # loading general dataset info file for xsec and event number
-    datasets_file = os.path.join(
-        config["sample_database"], config["nanoAOD_version"], "datasets.json"
-    )
-    print(f"Loading sample database from {datasets_file}")
-    with open(datasets_file, "r") as file:
-        datasets = json.load(file)
-
     # define output path for the preselected samples
     output_path = os.path.join(
         config["output_path"], "preselection", config["era"], config["channel"]
     )
     func.check_path(path=output_path)
 
+    # Set up logger and retrieve logger instance for main routine
     func.setup_logger(
         log_file=output_path + "/preselection.log",
         log_name="preselection",
         log_level=logging.INFO,
         subcategories=config["processes"],
     )
+    log = logging.getLogger("preselection.main")
+
+    # Load general dataset info file for xsec and event number
+    datasets_file = os.path.join(
+        config["sample_database"], config["nanoAOD_version"], "datasets.json"
+    )
+    with open(datasets_file, "r") as file:
+        datasets = json.load(file)
+    log.info(f"Loading sample database from {datasets_file}")
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]
