@@ -421,7 +421,7 @@ def load_config(config_file: str) -> Dict:
     #
     # The variables, for which defaults are set, are:
     #
-    # - 'sample_database`: Path to the sample database directory. Usuallly, this path is set to the
+    # - 'sample_database`: Path to the sample database directory. Usually, this path is set to the
     #   `datasets` submodule of the `TauFakeFactors` module. Users can set a custom path, e.g.,
     #   to an external path to a working version of their sample database.
     config = {
