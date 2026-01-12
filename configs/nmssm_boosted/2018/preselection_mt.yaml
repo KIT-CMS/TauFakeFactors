@@ -69,6 +69,64 @@ processes:
             - "SingleMuon_Run2018C-UL2018_GT36"
             - "SingleMuon_Run2018D-UL2018_GT36"
 
+column_definitions:
+    njets:
+        expression: njets_boosted
+    nbtag:
+        expression: nbtag_boosted
+    metphi:
+        expression: metphi_boosted
+    met:
+        expression: met_boosted
+    pt_1:
+        expression: boosted_pt_1
+    q_1:
+        expression: boosted_q_1
+    pt_2:
+        expression: boosted_pt_2
+    q_2:
+        expression: boosted_q_2
+    mt_1:
+        expression: boosted_mt_1
+    iso_1:
+        expression: boosted_iso_1
+    mass_2:
+        expression: boosted_mass_2
+    tau_decaymode_2:
+        expression: boosted_tau_decaymode_2
+    deltaR_ditaupair:
+        expression: boosted_deltaR_ditaupair
+    m_vis:
+        expression: boosted_m_vis
+    fj_Xbb_pt:
+        expression: fj_Xbb_pt_boosted
+    fj_Xbb_eta:
+        expression: fj_Xbb_eta_boosted
+    fj_Xbb_particleNet_XbbvsQCD:
+        expression: fj_Xbb_particleNet_XbbvsQCD_boosted
+    bpair_pt_1:
+        expression: bpair_pt_1_boosted
+    bpair_pt_2:
+        expression: bpair_pt_2_boosted
+    bpair_btag_value_2:
+        expression: bpair_btag_value_2_boosted
+    bpair_eta_2:
+        expression: bpair_eta_2_boosted
+    extramuon_veto:
+        expression: extramuon_veto_boosted
+    gen_match_2:
+        expression: boosted_gen_match_2
+        exclude_processes:
+        - data
+    btag_weight:
+        expression: btag_weight_boosted
+        exclude_processes:
+        - data
+    pNet_Xbb_weight:
+        expression: pNet_Xbb_weight_boosted
+        exclude_processes:
+        - data
+
 event_selection:
     # lep_pt: "boosted_pt_1 > 55"
     had_tau_pt: "boosted_pt_2 > 40"
