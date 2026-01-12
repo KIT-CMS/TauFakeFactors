@@ -134,7 +134,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
                         "weight", f"weight * ({mc_weight_conf[weight]})"
                     )
             elif weight == "ttbar_norm_weight":
-                if process == "ttbar" and tau_gen_mode in ["L", "T"]:
+                if process == "ttbar" and tau_gen_mode in ["L", "J", "T"]:
                     # This function applies an additional normalization weight to tt backgrounds
                     # obtained from simulation. The factor corrects for a mismodelling of the
                     # normalization of tt compared to data and is extracted in an e mu control
