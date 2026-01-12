@@ -8,12 +8,7 @@ The preselection config has the following parameters:
   ---|---|---
   `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
   `processes` | `dict` | process parameters are explained below
-  `column_definitions` | `dict` | in this section, new columns can be defined
-  based on a given `ROOT` expression. <br>The keys of the dictionary correspond
-  to the name of the defined column. The values are dictionaries itself, with
-  the `expression` key defining the `ROOT` expression for defining the column and
-  the optional entry `exclude_processes` containing a list of processes for
-      which the column should not be added. An example is given below.
+  `column_definitions` | `dict` | in this section, new columns can be defined based on a given `ROOT` expression. <br>The keys of the dictionary correspond to the name of the defined column. The values are dictionaries itself, with the `expression` key defining the `ROOT` expression for defining the column and the optional entry `exclude_processes` containing a list of processes for which the column should not be added. An example is given below.
   `event_selection` | `dict` | with this parameter all selections that should be applied are defined. <br>This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
   `mc_weights` | `dict` | weight parameter are defined below
   `emb_weights` | `dict` | all weights that should be applied for embedded samples are defined. <br>Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
@@ -54,7 +49,8 @@ column_definitions:
 The key `expression` is required and can contain any valid `ROOT` expression.
 The entry `exclude_processes` is optional. This list can contain process names
 from the `processes` section of this configuration. By default, the new columns
-are defined for all processes.
+are defined for all processes. To write the new columns to the output file, you
+have to explicitly add the columns to the `output_features` list.
 
 In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
 There are two types of weights.
