@@ -17,17 +17,17 @@ target_processes:
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "id_tau_vsJet_Medium_2 > 0.5"
-            jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20"
+            jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR > 0.4"
 
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) > 0" 
             lep_iso: "iso_1 < 0.15"
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
             had_tau_id_vs_jet: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-            jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20"
+            jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR > 0.4"
 
         var_dependence: "pt_2"
-        var_bins: [20,25,30,35,40,45,50,75] # [75, 150] bin problematic, as data/MC in SR-like region is close to 1, causing a large F_F
+        var_bins: [20,25,30,35,40,45,50,75,150]
         fit_option: ["poly_1", "poly_2", "poly_3"]
 
     ttbar: 
