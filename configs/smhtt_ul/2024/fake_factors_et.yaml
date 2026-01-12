@@ -2,16 +2,16 @@ channel: et
 target_processes:
   QCD:
     split_categories:
-      njets: ["==0", ">=1"]
+      njets: ["==0", "==1", ">=2"]
     split_categories_binedges:
-      njets: [-0.5, 0.5, 22.5]
+      njets: [-0.5, 0.5, 1.5, 22.5]
     equipopulated_binning_options:
       variable_config:
         pt_2:
           min: 20.0
           max: 150.0
           rounding: 2
-      var_dependence_n_bins: 5
+      var_dependence_n_bins: 15
 
     SRlike_cuts:
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
@@ -43,16 +43,16 @@ target_processes:
 
   Wjets:
     split_categories:
-      njets: ["==0", ">=1"]
+      njets: ["==0", "==1", ">=2"]
     split_categories_binedges:
-      njets: [-0.5, 0.5, 22.5]
+      njets: [-0.5, 0.5, 1.5, 22.5]
     equipopulated_binning_options:
       variable_config:
         pt_2:
           min: 20.0
           max: 150.0
           rounding: 2
-      var_dependence_n_bins: 5
+      var_dependence_n_bins: 15
 
     SRlike_cuts:
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
@@ -81,18 +81,18 @@ target_processes:
       "==0": ["poly_0", "poly_1", "poly_2"]
       ">=1": ["poly_0", "poly_1", "poly_2"]
 
-  ttbar:
+  tttbar:
     split_categories:
-      njets: [">=0"]
+      njets: ["<=1", ">=2"]
     split_categories_binedges:
-      njets: [-0.5, 22.5]
+      njets: [-0.5, 1.5, 22.5]
     equipopulated_binning_options:
       variable_config:
         pt_2:
           min: 20.0
           max: 150.0
           rounding: 2
-      var_dependence_n_bins: 7
+      var_dependence_n_bins: 15
 
     SR_cuts:
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
@@ -143,18 +143,16 @@ process_fractions:
   processes: ["QCD", "Wjets", "ttbar_J"]
 
   split_categories:
-    njets: ["==0", ">=1"]
+    njets: ["==0", "==1", ">=2"]
   split_categories_binedges:
-    njets: [-0.5, 0.5, 22.5]
+    njets: [-0.5, 0.5, 1.5, 22.5]
   equipopulated_binning_options:
     variable_config:
       mt_1:
         min: 0.0
         max: 70.0
         rounding: 2
-    var_dependence_n_bins:
-      "==0": 25
-      ">=1": 20
+    var_dependence_n_bins: 25
 
   SR_cuts:
     had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)

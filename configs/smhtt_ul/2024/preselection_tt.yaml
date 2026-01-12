@@ -100,8 +100,8 @@ event_selection:
   had_tau_decay_mode_1: (tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)
   had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
   had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
-  had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
-  had_tau_pt: (pt_1 >32) && (pt_2 > 32) && (trg_double_tau30_mediumiso_pnet > 0.5) 
+  had_tau_id_vs_mu: (id_tau_vsMu_VLoose_VVLoose_1 > 0.5) && (id_tau_vsMu_VLoose_VVLoose_2 > 0.5)
+  had_tau_pt: (pt_1 > 35) && (pt_2 > 35) && (trg_double_tau30_mediumiso_pnet > 0.5) 
   jet_veto: (Jet_vetomap < 0.5)
   met_mask: (met_mask > 0.5)
 mc_weights:
@@ -113,8 +113,8 @@ mc_weights:
     #  - Wjets
   had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
   had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
-  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)
-  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_VVLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_VVLoose_1 + (id_tau_vsMu_VLoose_VVLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_VVLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_VVLoose_2 + (id_tau_vsMu_VLoose_VVLoose_2<0.5)) + (gen_match_2!=5)
   lumi: ""
   pileup: puweight
   double_trigger: (trg_wgt_doubletau30_leg1 * trg_wgt_doubletau30_leg2)
