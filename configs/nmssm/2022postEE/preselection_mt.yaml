@@ -85,6 +85,8 @@ column_definitions:
         expression: id_wgt_bjet_pnet_shape
         exclude_processes:
             - data
+    jj_deltaR:
+        expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
 
 event_selection:
     lep_pt: "pt_1 > 26"
@@ -103,7 +105,7 @@ mc_weights:
     had_tau_id_vs_ele: "(id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)"
     had_tau_id_vs_mu: "(id_tau_vsMu_Tight_2>0.5)*id_wgt_tau_vsMu_Tight_2 + (id_tau_vsMu_Tight_2<0.5)"
     single_trigger: "trg_wgt_single_mu24"
-    
+
     # special weights: these are not generally applied, e.g. only for a specific process or era
     # here the string is a needed information to apply the weight -> see corresponding functions
     generator: ""
@@ -138,6 +140,13 @@ output_features:
     - "extramuon_veto"
     - "extraelec_veto"
     - "dilepton_veto"
+    - "jpt_1"
+    - "jpt_2"
+    - "jeta_1"
+    - "jeta_2"
+    - "jphi_1"
+    - "jphi_2"
+    - "jj_deltaR"
     - "bpair_pt_1"
     - "bpair_pt_2"
     - "bpair_eta_1"
@@ -153,4 +162,3 @@ output_features:
     - "mt_1"
     - "mt_2"
     - "mt_tot"
-

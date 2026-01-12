@@ -86,6 +86,8 @@ column_definitions:
         expression: id_wgt_bjet_pnet_shape
         exclude_processes:
             - data
+    jj_deltaR:
+        expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
 
 event_selection:
     had_tau_pt: "(pt_1 > 40) && (pt_2 > 40)"
@@ -146,6 +148,13 @@ output_features:
     - "extramuon_veto"
     - "extraelec_veto"
     - "dilepton_veto"
+    - "jpt_1"
+    - "jpt_2"
+    - "jeta_1"
+    - "jeta_2"
+    - "jphi_1"
+    - "jphi_2"
+    - "jj_deltaR"
     - "bpair_pt_1"
     - "bpair_pt_2"
     - "bpair_eta_1"
