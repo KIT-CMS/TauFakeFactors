@@ -730,8 +730,11 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
       skipped. If `process` is in this list, the column definition is not processed. If this entry
       is set, `exclude_processes` cannot be part of `column_definitions`.
 
+    - `allow_redefine` (_optional_): If this flag is set to `True`, the `Redefine` method is used
+      to overwrite the value of an already existing column with the same name. Default: `False`.
 
-    Note that the new column names must not exist in the ntuples, otherwise an error is raised.
+    The new column names must not exist in the ntuples, except for the case that `allow_redefine`
+    is set to true. Otherwise an error is raised.
 
     Args:
         rdf: root DataFrame
@@ -744,11 +747,11 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
 
     # Ensure that the new column names are not already present in the ntuple
     rdf_columns = set(rdf.GetColumnNames())
-    new_columns = set(column_definitions.keys())
+    new_columns = set(k for k, v in column_definitions.items() if not v.get("allow_redefine", False))
     intersection = rdf_columns.intersection(new_columns)
     if intersection:
         raise ValueError(
-            f"The following new column names already exist in the ntuple: {intersection}"
+            f"The following new column names already exist in the ntuple and allow_redefine is not set: {intersection}"
         )
 
     # Perform the define declarations on the RDataFrame object
@@ -767,7 +770,16 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
 
         # Get the ROOT expression for defining the new column
         expression = define_dict["expression"]
-        rdf = rdf.Define(new_column, expression)
+
+        # Use
+        # - `Redefine` if allow_redefine is `True` and the column is already present in the RDataFrame
+        # - `Define` in all other cases
+        rdf_define_call = (
+            rdf.Redefine
+            if new_column in rdf_columns and allow_redefine
+            else rdf.Define
+        )
+        rdf = rdf_define_call(new_column, expression)
 
     return rdf
 
