@@ -72,62 +72,88 @@ processes:
 column_definitions:
     njets:
         expression: njets_boosted
+        allow_redefine: True
     nbtag:
         expression: nbtag_boosted
+        allow_redefine: True
     metphi:
         expression: metphi_boosted
+        allow_redefine: True
     met:
         expression: met_boosted
+        allow_redefine: True
     pt_1:
         expression: boosted_pt_1
+        allow_redefine: True
     q_1:
         expression: boosted_q_1
+        allow_redefine: True
     pt_2:
         expression: boosted_pt_2
+        allow_redefine: True
     q_2:
         expression: boosted_q_2
+        allow_redefine: True
     mt_1:
         expression: boosted_mt_1
+        allow_redefine: True
     iso_1:
         expression: boosted_iso_1
+        allow_redefine: True
     mass_2:
         expression: boosted_mass_2
+        allow_redefine: True
     tau_decaymode_2:
         expression: boosted_tau_decaymode_2
+        allow_redefine: True
     deltaR_ditaupair:
         expression: boosted_deltaR_ditaupair
+        allow_redefine: True
     m_vis:
         expression: boosted_m_vis
+        allow_redefine: True
     fj_Xbb_pt:
         expression: fj_Xbb_pt_boosted
+        allow_redefine: True
     fj_Xbb_eta:
         expression: fj_Xbb_eta_boosted
+        allow_redefine: True
     fj_Xbb_particleNet_XbbvsQCD:
         expression: fj_Xbb_particleNet_XbbvsQCD_boosted
+        allow_redefine: True
     bpair_pt_1:
         expression: bpair_pt_1_boosted
+        allow_redefine: True
     bpair_pt_2:
         expression: bpair_pt_2_boosted
+        allow_redefine: True
     bpair_btag_value_2:
         expression: bpair_btag_value_2_boosted
+        allow_redefine: True
     bpair_eta_2:
         expression: bpair_eta_2_boosted
+        allow_redefine: True
     extraelec_veto:
         expression: extraelec_veto_boosted
+        allow_redefine: True
     gen_match_1:
         expression: boosted_gen_match_1
+        allow_redefine: True
         exclude_processes:
         - data
     gen_match_2:
         expression: boosted_gen_match_2
+        allow_redefine: True
         exclude_processes:
         - data
     btag_weight:
         expression: btag_weight_boosted
+        allow_redefine: True
         exclude_processes:
         - data
     pNet_Xbb_weight:
         expression: pNet_Xbb_weight_boosted
+        allow_redefine: True
         exclude_processes:
         - data
 
