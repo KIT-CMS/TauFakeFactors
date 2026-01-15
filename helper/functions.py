@@ -722,8 +722,14 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
 
     - `expression`: The expression string which is used to define the new column.
 
+    - `processes` (_optional_): A list of process names for which the definition should be
+      skipped. For all processes, that are not part of the list, the column definition is not
+      performed. If this entry is set, `processes` cannot be part of `column_definitions`.
+
     - `exclude_processes` (_optional_): A list of process names for which the definition should be
-      skipped. If `process` is in this list, the definition is not applied.
+      skipped. If `process` is in this list, the column definition is not processed. If this entry
+      is set, `exclude_processes` cannot be part of `column_definitions`.
+
 
     Note that the new column names must not exist in the ntuples, otherwise an error is raised.
 
@@ -747,10 +753,20 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
 
     # Perform the define declarations on the RDataFrame object
     for new_column, define_dict in column_definitions.items():
-        expression = define_dict["expression"]
-        exclude_processes = define_dict.get("exclude_processes", [])
-        if process in exclude_processes:
+        # Check that processes and exclude_processes are not set at the same time
+        if "processes" in define_dict and "exclude_processes" in define_dict:
+            raise ValueError(
+                f"Both processes and exclude_processes have been specified for column {new_column}. You can only set one of them for the same entry."
+            )
+
+        # Check if the process should be skipped
+        if "processes" in define_dict and process not in define_dict["processes"]:
             continue
+        if "exclude_processes" in define_dict and process in define_dict["processes"]:
+            continue
+
+        # Get the ROOT expression for defining the new column
+        expression = define_dict["expression"]
         rdf = rdf.Define(new_column, expression)
 
     return rdf
