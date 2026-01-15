@@ -8,7 +8,7 @@ The preselection config has the following parameters:
   ---|---|---
   `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
   `processes` | `dict` | process parameters are explained below
-  `column_definitions` | `dict` | in this section, new columns can be defined based on a given `ROOT` expression. <br>The keys of the dictionary correspond to the name of the defined column. The values are dictionaries itself, with the `expression` key defining the `ROOT` expression for defining the column and the optional entry `exclude_processes` containing a list of processes for which the column should not be added. An example is given below.
+  `column_definitions` | `dict` | in this section, new columns can be defined based on a given `ROOT` expression. <br>The keys of the dictionary correspond to the name of the defined column. The values are dictionaries itself, with the `expression` key defining the `ROOT` expression for defining the column. Optional entries `processes` and `exclude_processes` allow to target specific processes, the entry `allow_redefine` can be used to enable the use of the `ROOT.RDataFrame.Redefine` function for overwriting already existing columns. For a more detailed description, see below.
   `event_selection` | `dict` | with this parameter all selections that should be applied are defined. <br>This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
   `mc_weights` | `dict` | weight parameter are defined below
   `emb_weights` | `dict` | all weights that should be applied for embedded samples are defined. <br>Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
@@ -32,25 +32,41 @@ The `tau_gen_modes` have following modes:
   `L` | `string` | lepton misidentified as a tau
   `all` | `string` | if no split should be performed
 
-In `column_definitions`, new columns. An example entry could look like this:
+In `column_definitions`, new columns can be added to the output `ntuples` by
+using `ROOT` expression. An example entry could look like this:
 
 ```yaml
 column_definitions:
     nbtag:
         expression: n_bjets
+        processes:
+        - ttbar
+        - DY
     btag_weight:
         expression: id_wgt_bjet_pnet_shape
         exclude_processes:
         - data
+        allow_redefine: True
     jj_deltaR:
         expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
 ```
 
 The key `expression` is required and can contain any valid `ROOT` expression.
-The entry `exclude_processes` is optional. This list can contain process names
-from the `processes` section of this configuration. By default, the new columns
-are defined for all processes. To write the new columns to the output file, you
-have to explicitly add the columns to the `output_features` list.
+
+The entry `exclude_processes` is optional. Column definitions are performed for
+all processes except the ones given in this list. The entry `processes` is also
+optional. The column definition is performed only for processes in this list.
+The lists `processes` and `exclude_processes` can contain the names from the
+`processes` section of this configuration. By default, the new columns are
+defined for all processes. To write the new columns to the output file, you have
+to explicitly add the columns to the `output_features` list. Note that you can
+only set `processes` or `exclude_processes` for a column, but not both at the
+same time.
+
+If the key `allow_redefine` is set to `True`, the `ROOT.RDataFrame.Redefine`
+function is used if a column with the same name has been found in the
+`RDataFrame`. The values in this column are then overwritten by the expression
+given for the new column.
 
 In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
 There are two types of weights.
