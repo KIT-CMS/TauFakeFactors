@@ -722,8 +722,8 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
 
     - `expression`: The expression string which is used to define the new column.
 
-    - `processes` (_optional_): A list of process names for which the definition should be
-      skipped. For all processes, that are not part of the list, the column definition is not
+    - `processes` (_optional_): An exclusive list of process names for which the definition should be
+      performed. For all processes, that are not part of the list, the column definition is not
       performed. If this entry is set, `processes` cannot be part of `column_definitions`.
 
     - `exclude_processes` (_optional_): A list of process names for which the definition should be
