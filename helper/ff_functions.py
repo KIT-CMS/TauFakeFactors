@@ -21,6 +21,7 @@ from wurlitzer import STDOUT, pipes
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
+import helper.logging_helper as logging_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
@@ -53,7 +54,8 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
     def decorator(function: Callable) -> Callable:
         @functools.wraps(function)
         def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
-            log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
+            log_name = kwargs.get("logger") or function.__module__ + '.' + function.__name__
+            log = logging_helper.setup_logging(logger=logging.getLogger(log_name))
             tree_name = "ntuple"
 
             if "rdf" in kwargs:
@@ -777,7 +779,7 @@ def apply_region_filters(
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
 
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
     # redirecting C++ stdout for Report() to python stdout
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):

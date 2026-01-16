@@ -18,6 +18,7 @@ from matplotlib.patches import Patch
 
 import configs.general_definitions as gd
 import helper.ff_functions as func
+import helper.logging_helper as logging_helper
 
 hep.style.use(hep.style.CMS)
 
@@ -361,7 +362,7 @@ def plot_FFs(
     Return:
         None
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     ff_ratio = deepcopy(ff_ratio)
     uncertainties = deepcopy(uncertainties)
@@ -514,7 +515,7 @@ def plot_data_mc_ratio(
     Return:
         None
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     hists = {k: v.Clone() for k, v in hists.items()}  # clone method accounts for center-of-mass x values
 
@@ -728,7 +729,7 @@ def plot_fractions(
     Return:
         None
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     hists = {k: v.Clone() for k, v in hists.items()}
 
@@ -848,7 +849,7 @@ def plot_correction(
     Return:
         None
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     corr_hist = deepcopy(corr_hist)
     corr_graph = deepcopy(corr_graph)

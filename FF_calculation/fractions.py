@@ -10,10 +10,12 @@ from typing import Any, Dict, List, Tuple
 import ROOT
 
 import helper.ff_functions as ff_func
+import helper.logging_helper as logging_helper
 import helper.plotting as plotting
 from helper.functions import RuntimeVariables
 
 
+@logging_helper.grouped_logs(lambda args: f"{args[6]}")
 def fraction_calculation(
     args: Tuple[Any, ...],
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
@@ -44,7 +46,7 @@ def fraction_calculation(
         *_,  # SRlike_hists, ARlike_hists only needed for ttbar
     ) = args
 
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     AR_hists = dict()
     SR_hists = dict()

@@ -14,6 +14,7 @@ from wurlitzer import STDOUT, pipes
 
 import helper.filters as filters
 import helper.functions as func
+import helper.logging_helper as logging_helper
 import helper.weights as weights
 
 parser = argparse.ArgumentParser()
@@ -38,8 +39,13 @@ parser.add_argument(
     action="store_true",
     help="Flag to disable multiprocessing for debugging purposes.",
 )
+parser.add_argument(
+    "--log-level",
+    default="INFO",
+    help="Logging level to use. (default: INFO)",
+)
 
-
+@logging_helper.grouped_logs(lambda args: f"preselection.{args[0]}")
 def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int, str, str]) -> Tuple[str, str]:
     """
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
@@ -52,7 +58,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         A tuple with the tau gen. level mode and the name of the output file
     """
     process, config, output_path, ncores, sample, tau_gen_mode = args
-    log = logging.getLogger(f"preselection.{process}")
+    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
     ROOT.EnableImplicitMT(ncores)
 
     # loading ntuple files
@@ -191,6 +197,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     return (tau_gen_mode, tmp_file_name)
 
 
+@logging_helper.grouped_logs(lambda args: f"preselection.{args[0]}")
 def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, int]) -> None:
     """
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
@@ -203,7 +210,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
         None
     """
     process, config, output_path, ncores = args
-    log = logging.getLogger(f"preselection.{process}")
+    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
 
     log.info(f"Processing process: {process}")
     # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
@@ -275,12 +282,9 @@ if __name__ == "__main__":
     )
     func.check_path(path=output_path)
 
-    func.setup_logger(
-        log_file=output_path + "/preselection.log",
-        log_name="preselection",
-        log_level=logging.INFO,
-        subcategories=config["processes"],
-    )
+    logging_helper.LOG_FILENAME = output_path + "/preselection.log"
+    logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
+    log = logging_helper.setup_logging(logger=logging.getLogger(__name__), level=logging_helper.LOG_LEVEL)
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]
@@ -296,6 +300,8 @@ if __name__ == "__main__":
         for wp in config["tau_iso_wgt_wps"]:
             output_features.append("id_wgt_boostedtau_iso_" + wp + "_1")
 
+    log.info(f"Used output features: {output_features}")
+
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config, output_path, int(args.ncores)) for process in config["processes"]]
 
@@ -307,3 +313,5 @@ if __name__ == "__main__":
     # dumping config to output directory for documentation
     with open(output_path + "/config.yaml", "w") as config_file:
         func.configured_yaml.dump(config, config_file)
+
+    log.info("Preselection finished.")
