@@ -78,7 +78,7 @@ target_processes:
             no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
             had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
             had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-            jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
+            bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
         AR_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
@@ -89,16 +89,14 @@ target_processes:
 
         SRlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            mt_1_cut: "mt_1 > 50"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
             had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
             had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
             bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            mt_1_cut: "mt_1 > 50"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
             had_tau_id_vs_jet_1: "(id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)"
             had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
             bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
@@ -136,16 +134,14 @@ target_processes:
 
         SRlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            mt_1_cut: "mt_1 > 50"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
             had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
             had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
             bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
             
         ARlike_cuts:
             tau_pair_sign: "(q_1*q_2) < 0" 
-            no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)"
-            mt_1_cut: "mt_1 > 50"
+            no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
             had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
             had_tau_id_vs_jet_2: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
             bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
