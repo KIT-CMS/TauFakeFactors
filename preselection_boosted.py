@@ -164,11 +164,6 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     log.debug(out.getvalue())
     log.debug("-" * 50)
 
-    # WARNING: cross check this function is something changes in the list of output features
-    tmp_rdf = func.rename_boosted_variables(
-        rdf=tmp_rdf, channel=config["channel"]
-    )
-
     tmp_file_name = func.get_output_name(
         path=output_path, process=sample, tau_gen_mode=tau_gen_mode
     )
