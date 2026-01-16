@@ -784,8 +784,8 @@ def apply_region_filters(
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         rdf.Report().Print()
-    log.info(out.getvalue())
-    log.info("-" * 50)
+    log.debug(out.getvalue())
+    log.debug("-" * 50)
 
     return rdf
 
