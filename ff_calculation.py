@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     logging_helper.LOG_FILENAME = save_path_plots + "/ff_calculation.log"
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
-    log = logging_helper.setup_logging(logger=logging.getLogger(__name__), level=logging_helper.LOG_LEVEL)
+    log = logging_helper.setup_logging(logger=logging.getLogger("ff_calculation"), level=logging_helper.LOG_LEVEL)
 
     # getting all the ntuple input files
     sample_paths = func.get_samples(config=config)
@@ -262,3 +262,5 @@ if __name__ == "__main__":
 
     with open(os.path.join(save_path_plots, "done"), "w") as done_file:
         done_file.write("")
+
+    log.info("Fake factor calculation finished successfully.")

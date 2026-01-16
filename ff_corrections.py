@@ -22,6 +22,7 @@ import helper.functions as func
 from ff_calculation import FF_calculation
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
+import helper.logging_helper as logging_helper
 
 parser = argparse.ArgumentParser()
 
@@ -46,6 +47,11 @@ parser.add_argument(
         correction calculations.
     """,
 )
+parser.add_argument(
+    "--log-level",
+    default="INFO",
+    help="Logging level to use. (default: INFO)",
+)
 
 NON_CLOSURE_CORRECTION_FUNCTIONS = {
     "QCD": FF_QCD.non_closure_correction,
@@ -62,6 +68,7 @@ DR_SR_CORRECTION_FUNCTIONS = {
 }
 
 
+@logging_helper.grouped_logs
 def non_closure_correction(
     config: Dict[str, Union[str, Dict, List]],
     corr_config: Dict[str, Union[str, Dict]],
@@ -128,6 +135,7 @@ def non_closure_correction(
         return ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
 
+@logging_helper.grouped_logs(lambda *args, **kwargs: args[8])
 def run_non_closure_correction(
     config: Dict[str, Union[str, Dict, List]],
     corr_config: Dict[str, Union[str, Dict]],
@@ -160,7 +168,7 @@ def run_non_closure_correction(
         Dictionary with the process name as key and a dictionary with the corrections
     """
 
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
     corrections = {process: {}}
     _chained_DR_SR_process_config = None
     if for_DRtoSR:
@@ -295,6 +303,7 @@ def run_non_closure_correction(
     return corrections
 
 
+@logging_helper.grouped_logs(lambda args: f"ff_corrections.{args[0]}")
 def run_ff_calculation_for_DRtoSR(
     args: Tuple[
         str,
@@ -314,7 +323,7 @@ def run_ff_calculation_for_DRtoSR(
         If a DR to SR correction is defined for the "process" a dictionary with fake factor function expressions is returned, otherwise None is returned
     """
     process, config, corr_config, sample_paths, output_path = args
-    log = logging.getLogger(f"ff_corrections.{process}")
+    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
 
     if "DR_SR" in corr_config["target_processes"][process]:
         ff_config = copy.deepcopy(config)
@@ -340,6 +349,7 @@ def run_ff_calculation_for_DRtoSR(
     return args, result
 
 
+@logging_helper.grouped_logs(lambda args: f"ff_corrections.{args[0]}")
 def run_non_closure_correction_for_DRtoSR(
     args: Tuple[
         str,
@@ -366,7 +376,7 @@ def run_non_closure_correction_for_DRtoSR(
     """
 
     process, config, corr_config, sample_paths, output_path = args
-    log = logging.getLogger(f"ff_corrections.{process}")
+    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
     corrections = {process: dict()}
 
     process_config = deepcopy(corr_config["target_processes"][process])
@@ -401,6 +411,7 @@ def run_non_closure_correction_for_DRtoSR(
     return args, corrections
 
 
+@logging_helper.grouped_logs(lambda args: f"ff_corrections.{args[0]}")
 def run_correction(
     args,
 ) -> Dict[str, Dict[str, Any]]:
@@ -426,7 +437,7 @@ def run_correction(
         save_path,
     ) = args
 
-    log = logging.getLogger(f"ff_corrections.{process}")
+    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
     corrections = {process: dict()}
 
     var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
@@ -590,12 +601,9 @@ if __name__ == "__main__":
         func.configured_yaml.dump(corr_config, config_file)
 
     # start output logging
-    func.setup_logger(
-        log_file=save_path + "/ff_corrections.log",
-        log_name="ff_corrections",
-        log_level=logging.INFO,
-        subcategories=corr_config["target_processes"].keys(),
-    )
+    logging_helper.LOG_FILENAME = save_path + "/ff_corrections.log"
+    logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
+    log = logging_helper.setup_logging(logger=logging.getLogger("ff_corrections"), level=logging_helper.LOG_LEVEL)
 
     # getting all the input files
     sample_paths = func.get_samples(config=config)
@@ -738,3 +746,5 @@ if __name__ == "__main__":
 
     with open(os.path.join(save_path, "done"), "w") as done_file:
         done_file.write("")
+
+    log.info("Fake factor correction calculation finished successfully.")
