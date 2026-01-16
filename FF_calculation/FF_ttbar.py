@@ -11,10 +11,12 @@ import numpy as np
 import ROOT
 
 import helper.ff_functions as ff_func
+import helper.logging_helper as logging_helper
 import helper.plotting as plotting
 from helper.functions import RuntimeVariables
 
 
+@logging_helper.grouped_logs(lambda args: f"{args[6]}")
 def calculation_ttbar_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
@@ -49,7 +51,7 @@ def calculation_ttbar_FFs(
         ARlike_hists,  # ARlike_hists: Dict[str, ROOT.TH1D],
     ) = args
 
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     # init histogram dict for FF measurement from MC
     SR_hists = dict()
@@ -176,6 +178,7 @@ def calculation_ttbar_FFs(
     return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
 
 
+@logging_helper.grouped_logs(lambda *args, **kwargs: args[4])
 def calculation_FF_data_scaling_factor(
     config: Dict[str, Union[str, Dict, List]],
     process_conf: Dict[str, Union[str, Dict, List]],
@@ -198,7 +201,7 @@ def calculation_FF_data_scaling_factor(
         Tuple of dictionaries containing the histograms for the signal-like and application-like regions
 
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     # init histogram dict for FF data correction
     SRlike_hists = dict()
@@ -311,6 +314,7 @@ def calculation_FF_data_scaling_factor(
     return SRlike_hists, ARlike_hists
 
 
+@logging_helper.grouped_logs(lambda args: f"{args[7]}")
 def non_closure_correction(
     args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
@@ -351,7 +355,7 @@ def non_closure_correction(
         *_,  # for_DRtoSR not needed for ttbar
     ) = args
 
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     # init histogram dict for FF measurement
     SR_hists = dict()

@@ -9,6 +9,8 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
+import helper.logging_helper as logging_helper
+
 
 def _get_gradients(
     x: Union[List[float], str],
@@ -338,7 +340,7 @@ def get_wrapped_functions_from_fits(
         - "mc_up": The best fit function including the upper error from MC subtraction.
         - "mc_down": The best fit function including the lower error from MC subtraction
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
 
     a, b = bounds
     TF1s, Fits = dict(), dict()
@@ -545,7 +547,7 @@ def get_wrapped_hists(
         - "mc_up": measured histogram including the upper error from MC subtraction.
         - "mc_down": measured histogram including the lower error from MC subtraction
     """
-    log = logging.getLogger(logger)
+    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
     if verbose:
         log.info("Measured histograms directly instead of a fit.")
         log.info("-" * 50)
