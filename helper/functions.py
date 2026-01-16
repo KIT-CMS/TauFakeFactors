@@ -694,7 +694,7 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
         # Check if the process should be skipped
         if "processes" in define_dict and process not in define_dict["processes"]:
             continue
-        if "exclude_processes" in define_dict and process in define_dict["processes"]:
+        if "exclude_processes" in define_dict and process in define_dict["exclude_processes"]:
             continue
 
         # Get the ROOT expression for defining the new column
