@@ -1,0 +1,41 @@
+# This is an example config containing information for the FF corrections
+
+channel: "mt" # options are et, mt, tt
+
+target_processes:
+    QCD:
+        non_closure:
+            pt_1:
+                var_dependence: "pt_1"
+                var_bins: [26,30,35,40,45,50,55,60,70,80,100,150]
+            tau_decaymode_2:
+                var_dependence: "tau_decaymode_2"
+                var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+            mass_2:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.]
+
+        DR_SR:
+            var_dependence: "m_vis"
+            var_bins: [0,50,75,100,120,140,160,180,250]
+            SRlike_cuts:
+                lep_iso: "(iso_1 >= 0.15) && (iso_1 < 0.4)"
+            ARlike_cuts:
+                lep_iso: "(iso_1 >= 0.15) && (iso_1 < 0.4)"
+            AR_SR_cuts:
+                tau_pair_sign: "(q_1*q_2) < 0"
+                jj_selection: "1 == 1" # remove jj selection, to be replaced with actual bb selection
+                bb_selection: "(nbtag >= 1) && (bpair_pt_1 > 20) && (bpair_pt_2 > 20)"
+
+    ttbar:
+        non_closure:
+            pt_1:
+                var_dependence: "pt_1"
+                var_bins: [26,30,35,40,45,50,55,60,70,80,100,150]
+            tau_decaymode_2:
+                var_dependence: "tau_decaymode_2"
+                var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+            mass_2:
+                var_dependence: "mass_2"
+                var_bins: [0.,0.2,0.4,0.6,0.8,1.,1.2,1.4,1.6,2.]
+
