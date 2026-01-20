@@ -14,7 +14,7 @@ from wurlitzer import STDOUT, pipes
 
 import helper.filters as filters
 import helper.functions as func
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 import helper.weights as weights
 
 parser = argparse.ArgumentParser()
@@ -46,7 +46,7 @@ parser.add_argument(
 )
 
 
-@logging_helper.grouped_logs(lambda args: f"preselection.{args[0]}")
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"preselection.{args[0]}")
 def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int, str, str]) -> Tuple[str, str]:
     """
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
@@ -193,7 +193,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     return (tau_gen_mode, tmp_file_name)
 
 
-@logging_helper.grouped_logs(lambda args: f"preselection.{args[0]}")
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"preselection.{args[0]}")
 def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, int]) -> None:
     """
     This function can be used for multiprocessing. It runs the preselection step for a specified process.
@@ -278,9 +278,12 @@ if __name__ == "__main__":
     )
     func.check_path(path=output_path)
 
-    logging_helper.LOG_FILENAME = output_path + "/preselection.log"
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
-    log = logging_helper.setup_logging(logger=logging.getLogger(__name__), level=logging_helper.LOG_LEVEL)
+    log = logging_helper.setup_logging(
+        output_file=output_path + "/preselection.log",
+        logger=logging.getLogger(__name__),
+        level=logging_helper.LOG_LEVEL,
+    )
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]

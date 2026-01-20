@@ -6,7 +6,7 @@ import correctionlib
 import correctionlib.schemav2 as cs
 import ROOT
 
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 
 
 class FakeFactorEvaluator:

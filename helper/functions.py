@@ -21,7 +21,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 
 
 class CachingKeyHelper:

@@ -21,7 +21,7 @@ from wurlitzer import STDOUT, pipes
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,

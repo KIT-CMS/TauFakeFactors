@@ -9,7 +9,7 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 
 
 def _get_gradients(

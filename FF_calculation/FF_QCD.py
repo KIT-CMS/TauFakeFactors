@@ -12,12 +12,12 @@ import numpy as np
 import ROOT
 
 import helper.ff_functions as ff_func
-import helper.logging_helper as logging_helper
+import CustomLogging as logging_helper
 import helper.plotting as plotting
 from helper.functions import RuntimeVariables
 
 
-@logging_helper.grouped_logs(lambda args: f"{args[6]}")
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
 def calculation_QCD_FFs(
     args: Tuple[Any, ...],
 ) -> Dict[str, Union[str, Dict[str, str]]]:
@@ -190,7 +190,7 @@ def calculation_QCD_FFs(
     return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
 
 
-@logging_helper.grouped_logs(lambda args: f"{args[7]}")
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[7]}")
 def non_closure_correction(
     args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
@@ -413,7 +413,7 @@ def non_closure_correction(
         return correction_dict
 
 
-@logging_helper.grouped_logs(lambda args: f"{args[6]}")
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
 def DR_SR_correction(
     args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
