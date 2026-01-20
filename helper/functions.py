@@ -24,6 +24,9 @@ from XRootD import client
 import CustomLogging as logging_helper
 
 
+TAU_FAKE_FACTORS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 class CachingKeyHelper:
     @staticmethod
     def make_hashable(obj: Union[Dict, List, Tuple, Any]) -> Union[Dict, Tuple, bytes, Any]:
@@ -416,7 +419,21 @@ def load_config(config_file: str) -> Dict:
     else:
         print("No common config file found!")
 
-    config = {}
+    # Container of the loaded configuration
+    # 
+    # Some default values are pre-defined in the config dict that is going to contain the loaded
+    # configuration. These values are overwritten if they are explicitly set in the common config file.
+    #
+    # The variables, for which defaults are set, are:
+    #
+    # - 'sample_database`: Path to the sample database directory. Usually, this path is set to the
+    #   `datasets` submodule of the `TauFakeFactors` module. Users can set a custom path, e.g.,
+    #   to an external path to a working version of their sample database.
+    config = {
+        "sample_database": os.path.join(TAU_FAKE_FACTORS_DIR, "datasets"),
+    }
+
+    # Update the config with common settings, applying to all steps
     with open(common_config_file, "r") as file:
         config.update(configured_yaml.load(file))
 
@@ -585,74 +602,75 @@ def get_output_name(
     return os.path.join(path, f"{process}{tau_gen_mode}.root")
 
 
-def rename_boosted_variables(rdf: Any, channel: str) -> Any:
+def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
     """
-    Function to redefine variables to the boosted tau pair information. Redefining only variables
-    which are written out for the fake factor measurement. Due to the hardcoded naming and redifinitions
-    this function needs to be adjusted if something changes in the list of output variables.
+    Customizer function to define additional columns in the ntuples.
+
+    The `column_definitions` dictionary is usually provided with the preselection configuration
+    file. The keys of the dictionary correspond to the columns to be created. The values are
+    dictionaries which contain the information for the column information. The keys of these inner
+    dictionaries have the following meaning:
+
+    - `expression`: The expression string which is used to define the new column.
+
+    - `processes` (_optional_): An exclusive list of process names for which the definition should be
+      performed. For all processes, that are not part of the list, the column definition is not
+      performed. If this entry is set, `processes` cannot be part of `column_definitions`.
+
+    - `exclude_processes` (_optional_): A list of process names for which the definition should be
+      skipped. If `process` is in this list, the column definition is not processed. If this entry
+      is set, `exclude_processes` cannot be part of `column_definitions`.
+
+    - `allow_redefine` (_optional_): If this flag is set to `True`, the `Redefine` method is used
+      to overwrite the value of an already existing column with the same name. Default: `False`.
+
+    The new column names must not exist in the ntuples, except for the case that `allow_redefine`
+    is set to true. Otherwise an error is raised.
 
     Args:
         rdf: root DataFrame
-        channel: Analysis channel of the tau analysis e.g. "et", "mt" or "tt"
+        column_definitions: Dictionary mapping new column names (keys) to expressions (values)
+        process: Name of the current process
 
     Return:
         root DataFrame with redefined variables
     """
-    rdf = rdf.Redefine("njets", "njets_boosted")
-    rdf = rdf.Redefine("nbtag", "nbtag_boosted")
-    rdf = rdf.Redefine("metphi", "metphi_boosted")
-    rdf = rdf.Redefine("met", "met_boosted")
-    rdf = rdf.Redefine("pt_1", "boosted_pt_1")
-    rdf = rdf.Redefine("q_1", "boosted_q_1")
-    rdf = rdf.Redefine("pt_2", "boosted_pt_2")
-    rdf = rdf.Redefine("q_2", "boosted_q_2")
-    rdf = rdf.Redefine("mt_1", "boosted_mt_1")
-    rdf = rdf.Redefine("iso_1", "boosted_iso_1")
-    rdf = rdf.Redefine("mass_2", "boosted_mass_2")
-    rdf = rdf.Redefine("tau_decaymode_2", "boosted_tau_decaymode_2")
-    rdf = rdf.Redefine("deltaR_ditaupair", "boosted_deltaR_ditaupair")
-    rdf = rdf.Redefine("m_vis", "boosted_m_vis")
-    rdf = rdf.Redefine("fj_Xbb_pt", "fj_Xbb_pt_boosted")
-    rdf = rdf.Redefine("fj_Xbb_eta", "fj_Xbb_eta_boosted")
-    rdf = rdf.Redefine(
-        "fj_Xbb_particleNet_XbbvsQCD", "fj_Xbb_particleNet_XbbvsQCD_boosted"
-    )
-    rdf = rdf.Redefine("bpair_pt_1", "bpair_pt_1_boosted")
-    rdf = rdf.Redefine("bpair_pt_2", "bpair_pt_2_boosted")
-    rdf = rdf.Redefine("bpair_btag_value_2", "bpair_btag_value_2_boosted")
-    rdf = rdf.Redefine("bpair_eta_2", "bpair_eta_2_boosted")
 
-    if "boosted_gen_match_2" in rdf.GetColumnNames():
-        rdf = rdf.Redefine("gen_match_2", "boosted_gen_match_2")
-    else:
-        rdf = rdf.Define("boosted_gen_match_2", "-1.")
-        rdf = rdf.Redefine("gen_match_2", "boosted_gen_match_2")
+    # Ensure that the new column names are not already present in the ntuple
+    rdf_columns = set(rdf.GetColumnNames())
+    new_columns = set(k for k, v in column_definitions.items() if not v.get("allow_redefine", False))
+    intersection = rdf_columns.intersection(new_columns)
+    if intersection:
+        raise ValueError(
+            f"The following new column names already exist in the ntuple and allow_redefine is not set: {intersection}"
+        )
 
-    if "btag_weight_boosted" in rdf.GetColumnNames():
-        rdf = rdf.Redefine("btag_weight", "btag_weight_boosted")
-    else:
-        rdf = rdf.Define("btag_weight_boosted", "1.")
-        rdf = rdf.Redefine("btag_weight", "btag_weight_boosted")
+    # Perform the define declarations on the RDataFrame object
+    for new_column, define_dict in column_definitions.items():
+        # Check that processes and exclude_processes are not set at the same time
+        if "processes" in define_dict and "exclude_processes" in define_dict:
+            raise ValueError(
+                f"Both processes and exclude_processes have been specified for column {new_column}. You can only set one of them for the same entry."
+            )
 
-    if "pNet_Xbb_weight_boosted" in rdf.GetColumnNames():
-        rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
-    else:
-        rdf = rdf.Define("pNet_Xbb_weight_boosted", "1.")
-        rdf = rdf.Redefine("pNet_Xbb_weight", "pNet_Xbb_weight_boosted")
+        # Check if the process should be skipped
+        if "processes" in define_dict and process not in define_dict["processes"]:
+            continue
+        if "exclude_processes" in define_dict and process in define_dict["exclude_processes"]:
+            continue
 
-    if channel == "tt":
-        rdf = rdf.Redefine("mass_1", "boosted_mass_1")
-        rdf = rdf.Redefine("tau_decaymode_1", "boosted_tau_decaymode_1")
-        if "boosted_gen_match_1" in rdf.GetColumnNames():
-            rdf = rdf.Redefine("gen_match_1", "boosted_gen_match_1")
-        else:
-            rdf = rdf.Define("boosted_gen_match_1", "-1.")
-            rdf = rdf.Redefine("gen_match_1", "boosted_gen_match_1")
+        # Get the ROOT expression for defining the new column
+        expression = define_dict["expression"]
 
-    if channel == "et":
-        rdf = rdf.Redefine("extraelec_veto", "boosted_extraelec_veto")
-    if channel == "mt":
-        rdf = rdf.Redefine("extramuon_veto", "boosted_extramuon_veto")
+        # Use
+        # - `Redefine` if allow_redefine is `True` and the column is already present in the RDataFrame
+        # - `Define` in all other cases
+        rdf_define_call = (
+            rdf.Redefine
+            if new_column in rdf_columns and allow_redefine
+            else rdf.Define
+        )
+        rdf = rdf_define_call(new_column, expression)
 
     return rdf
 

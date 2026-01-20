@@ -170,11 +170,6 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     log.debug(out.getvalue())
     log.debug("-" * 50)
 
-    # WARNING: cross check this function is something changes in the list of output features
-    tmp_rdf = func.rename_boosted_variables(
-        rdf=tmp_rdf, channel=config["channel"]
-    )
-
     tmp_file_name = func.get_output_name(
         path=output_path, process=sample, tau_gen_mode=tau_gen_mode
     )
@@ -272,10 +267,6 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-    # loading general dataset info file for xsec and event number
-    with open(f"datasets/{config['nanoAOD_version']}/datasets.json", "r") as file:
-        datasets = json.load(file)
-
     # define output path for the preselected samples
     output_path = os.path.join(
         config["output_path"], "preselection", config["era"], config["channel"]
@@ -288,6 +279,14 @@ if __name__ == "__main__":
         logger=logging.getLogger(__name__),
         level=logging_helper.LOG_LEVEL,
     )
+
+    # Load general dataset info file for xsec and event number
+    datasets_file = os.path.join(
+        config["sample_database"], config["nanoAOD_version"], "datasets.json"
+    )
+    with open(datasets_file, "r") as file:
+        datasets = json.load(file)
+    log.info(f"Loading sample database from {datasets_file}")
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]

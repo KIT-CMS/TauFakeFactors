@@ -87,10 +87,22 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         log.info(f"WARNING: Sample {sample} is empty. Skipping...")
         return ()
 
+    # get column definitions from config and declare definitions on the RDataFrame
+    column_definitions = config.get("column_definitions", {})
+    if column_definitions:
+        rdf = func.define_columns(rdf, column_definitions, process)
+
     # apply analysis specific event filters
     selection_conf = config["event_selection"]
     for cut in selection_conf:
         rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
+
+    # For Run 3 DY samples, we need to collect the events from two samples, that need to be selected
+    # for different flavors
+    if sample.startswith("DYto2L"):
+        rdf = rdf.Filter("lhe_drell_yan_decay_flavor == 11 || lhe_drell_yan_decay_flavor == 13", "DY e/mu selection")
+    if sample.startswith("DYto2Tau"):
+        rdf = rdf.Filter("lhe_drell_yan_decay_flavor == 15", "DY tau selection")
 
     if process == "embedding":
         rdf = filters.emb_tau_gen_match(rdf=rdf, channel=config["channel"])
@@ -126,6 +138,15 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
                     )
             elif weight == "Top_pt_reweighting":
                 if process == "ttbar":
+                    rdf = rdf.Redefine(
+                        "weight", f"weight * ({mc_weight_conf[weight]})"
+                    )
+            elif weight == "ttbar_norm_weight":
+                if process == "ttbar" and tau_gen_mode in ["L", "J", "T"]:
+                    # This function applies an additional normalization weight to tt backgrounds
+                    # obtained from simulation. The factor corrects for a mismodelling of the
+                    # normalization of tt compared to data and is extracted in an e mu control
+                    # region.
                     rdf = rdf.Redefine(
                         "weight", f"weight * ({mc_weight_conf[weight]})"
                     )
@@ -268,10 +289,6 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-    # loading general dataset info file for xsec and event number
-    with open(f"datasets/{config['nanoAOD_version']}/datasets.json", "r") as file:
-        datasets = json.load(file)
-
     # define output path for the preselected samples
     output_path = os.path.join(
         config["output_path"], "preselection", config["era"], config["channel"]
@@ -284,6 +301,14 @@ if __name__ == "__main__":
         logger=logging.getLogger(__name__),
         level=logging_helper.LOG_LEVEL,
     )
+
+    # Load general dataset info file for xsec and event number
+    datasets_file = os.path.join(
+        config["sample_database"], config["nanoAOD_version"], "datasets.json"
+    )
+    with open(datasets_file, "r") as file:
+        datasets = json.load(file)
+    log.info(f"Loading sample database from {datasets_file}")
 
     # get needed features for fake factor calculation
     output_features = config["output_features"]
