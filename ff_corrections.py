@@ -451,7 +451,7 @@ def run_correction(
         corr_evaluators = []
         DR_SR_config = corr_config["target_processes"][process]["DR_SR"]
 
-        for corr_var in DR_SR_config["non_closure"].keys():
+        for corr_var in DR_SR_config.get("non_closure", {}).keys():
             non_closure_corr_vars_DR_SR = corr_var
             if "split_categories" in DR_SR_config["non_closure"][corr_var]:
                 split_variables = list(DR_SR_config["non_closure"][corr_var]["split_categories"].keys())
