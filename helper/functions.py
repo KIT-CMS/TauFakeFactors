@@ -380,7 +380,7 @@ def optional_process_pool(
 
     """
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(__name__))
+    log = logging.getLogger(__name__)
 
     if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
         results = [function(args) for args in args_list]
@@ -487,7 +487,7 @@ def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:
     Return:
         List of file paths
     """
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
+    log = logging.getLogger(f"preselection.{process}")
     sample_path = os.path.join(
         config["ntuple_path"], config["era"], sample, config["channel"]
     )
@@ -519,7 +519,7 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     Return:
         List of file paths with not empty files
     """
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
+    log = logging.getLogger(f"preselection.{process}")
 
     fsname = "root://cmsdcache-kit-disk.gridka.de/"
     xrdclient = client.FileSystem(fsname)
@@ -687,7 +687,7 @@ def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
     Return:
         List of all paths to the relevant samples
     """
-    log = logging_helper.setup_logging(logger=logging.getLogger("ff_calc"))
+    log = logging.getLogger("ff_calc")
 
     general_sample_path = os.path.join(
         config["file_path"], "preselection", config["era"], config["channel"], "*.root"

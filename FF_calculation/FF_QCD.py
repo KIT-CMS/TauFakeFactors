@@ -48,7 +48,7 @@ def calculation_QCD_FFs(
         *_,  # SRlike_hists, ARlike_hists only used in ttbar calculation
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -227,7 +227,7 @@ def non_closure_correction(
         for_DRtoSR,
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SRlike_hists = dict()
@@ -446,7 +446,7 @@ def DR_SR_correction(
         corr_evaluators,
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SRlike_hists = dict()

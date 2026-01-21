@@ -168,7 +168,7 @@ def run_non_closure_correction(
         Dictionary with the process name as key and a dictionary with the corrections
     """
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
     corrections = {process: {}}
     _chained_DR_SR_process_config = None
     if for_DRtoSR:
@@ -323,7 +323,7 @@ def run_ff_calculation_for_DRtoSR(
         If a DR to SR correction is defined for the "process" a dictionary with fake factor function expressions is returned, otherwise None is returned
     """
     process, config, corr_config, sample_paths, output_path = args
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
+    log = logging.getLogger(f"ff_corrections.{process}")
 
     if "DR_SR" in corr_config["target_processes"][process]:
         ff_config = copy.deepcopy(config)
@@ -376,7 +376,7 @@ def run_non_closure_correction_for_DRtoSR(
     """
 
     process, config, corr_config, sample_paths, output_path = args
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
+    log = logging.getLogger(f"ff_corrections.{process}")
     corrections = {process: dict()}
 
     process_config = deepcopy(corr_config["target_processes"][process])
@@ -437,7 +437,7 @@ def run_correction(
         save_path,
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_corrections.{process}"))
+    log = logging.getLogger(f"ff_corrections.{process}")
     corrections = {process: dict()}
 
     var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())

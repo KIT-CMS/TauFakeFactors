@@ -155,7 +155,7 @@ def run_ff_calculation(
         Depending on the "process" either a dictionary with fake factor function expressions or a dictionary with process fraction values
     """
     process, config, sample_paths, output_path = args
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"ff_calculation.{process}"))
+    log = logging.getLogger(f"ff_calculation.{process}")
 
     log.info(f"Calculating fake factors for the {process} process.")
     log.info("-" * 50)
@@ -201,11 +201,14 @@ if __name__ == "__main__":
         subcategories = subcategories + ["process_fractions_subleading"]
 
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
+    print(logging_helper.LOG_LEVEL)
     log = logging_helper.setup_logging(
         output_file=save_path_plots + "/ff_calculation.log",
         logger=logging.getLogger("ff_calculation"),
         level=logging_helper.LOG_LEVEL,
     )
+    import time
+    time.sleep(10)
 
     # getting all the ntuple input files
     sample_paths = func.get_samples(config=config)

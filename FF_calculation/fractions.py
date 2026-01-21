@@ -46,7 +46,7 @@ def fraction_calculation(
         *_,  # SRlike_hists, ARlike_hists only needed for ttbar
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     AR_hists = dict()
     SR_hists = dict()

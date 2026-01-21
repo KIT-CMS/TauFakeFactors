@@ -23,7 +23,7 @@ class FakeFactorEvaluator:
         for_DRtoSR: bool,
         logger: str,
     ) -> "FakeFactorEvaluator":
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         directories = ["workdir", config["workdir_name"], config["era"]]
         if not for_DRtoSR:
@@ -56,7 +56,7 @@ class FakeFactorEvaluator:
         for_DRtoSR: bool,
         logger: str,
     ) -> "FakeFactorEvaluator":
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         assert isinstance(fake_factors, cs.CorrectionSet), "face_factors must be of type correctionlib.schemav2.CorrectionSet"
         literal = fake_factors.json().replace('"', r'\"')
@@ -130,7 +130,7 @@ class FakeFactorCorrectionEvaluator:
         for_DRtoSR: bool,
         logger: str,
     ) -> "FakeFactorCorrectionEvaluator":
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         _for_DRtoSR = "for_DRtoSR" if for_DRtoSR else ""
         directories = ["workdir", config["workdir_name"], config["era"]]
@@ -166,7 +166,7 @@ class FakeFactorCorrectionEvaluator:
         for_DRtoSR: bool,
         logger: str,
     ) -> "FakeFactorCorrectionEvaluator":
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         assert isinstance(correction, cs.CorrectionSet), "Correction must be of type correctionlib.schemav2.CorrectionSet"
 
@@ -262,7 +262,7 @@ class DRSRCorrectionEvaluator:
         Returns:
             An instance of the DRSRCorrectionEvaluator class.
         """
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         directories = ["workdir", config["workdir_name"], config["era"]]
         path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
@@ -298,7 +298,7 @@ class DRSRCorrectionEvaluator:
         Returns:
             An instance of the DRSRCorrectionEvaluator class.
         """
-        log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+        log = logging.getLogger(logger)
 
         assert isinstance(correction, cs.CorrectionSet), "Correction must be of type correctionlib.schemav2.CorrectionSet"
 

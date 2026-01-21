@@ -59,7 +59,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         A tuple with the tau gen. level mode and the name of the output file
     """
     process, config, output_path, ncores, sample, tau_gen_mode = args
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
+    log = logging.getLogger(f"preselection.{process}")
     ROOT.EnableImplicitMT(ncores)
 
     # loading ntuple files
@@ -227,7 +227,7 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
         None
     """
     process, config, output_path, ncores = args
-    log = logging_helper.setup_logging(logger=logging.getLogger(f"preselection.{process}"))
+    log = logging.getLogger(f"preselection.{process}")
 
     log.info(f"Processing process: {process}")
     # bookkeeping of samples files due to splitting based on the tau origin (genuine, jet fake, lepton fake)
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
     log = logging_helper.setup_logging(
         output_file=output_path + "/preselection.log",
-        logger=logging.getLogger(__name__),
+        logger=logging.getLogger("preselection.main"),
         level=logging_helper.LOG_LEVEL,
     )
 

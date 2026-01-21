@@ -55,7 +55,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
         @functools.wraps(function)
         def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
             log_name = kwargs.get("logger") or function.__module__ + '.' + function.__name__
-            log = logging_helper.setup_logging(logger=logging.getLogger(log_name))
+            log = logging.getLogger(log_name)
             tree_name = "ntuple"
 
             if "rdf" in kwargs:
@@ -779,7 +779,7 @@ def apply_region_filters(
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
     # redirecting C++ stdout for Report() to python stdout
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):

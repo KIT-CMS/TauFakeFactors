@@ -51,7 +51,7 @@ def calculation_ttbar_FFs(
         ARlike_hists,  # ARlike_hists: Dict[str, ROOT.TH1D],
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement from MC
     SR_hists = dict()
@@ -201,7 +201,7 @@ def calculation_FF_data_scaling_factor(
         Tuple of dictionaries containing the histograms for the signal-like and application-like regions
 
     """
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF data correction
     SRlike_hists = dict()
@@ -355,7 +355,7 @@ def non_closure_correction(
         *_,  # for_DRtoSR not needed for ttbar
     ) = args
 
-    log = logging_helper.setup_logging(logger=logging.getLogger(logger))
+    log = logging.getLogger(logger)
 
     # init histogram dict for FF measurement
     SR_hists = dict()
