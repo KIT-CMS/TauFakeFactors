@@ -201,14 +201,11 @@ if __name__ == "__main__":
         subcategories = subcategories + ["process_fractions_subleading"]
 
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
-    print(logging_helper.LOG_LEVEL)
     log = logging_helper.setup_logging(
         output_file=save_path_plots + "/ff_calculation.log",
         logger=logging.getLogger("ff_calculation"),
         level=logging_helper.LOG_LEVEL,
     )
-    import time
-    time.sleep(10)
 
     # getting all the ntuple input files
     sample_paths = func.get_samples(config=config)
