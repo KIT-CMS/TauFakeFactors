@@ -12,10 +12,10 @@ tau_vs_jet_wgt_wps:
     - "Medium"
 
 # output of preselection
-output_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2026-01-13"
+output_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2026-01-21"
 # output_path and file_path should be the same;
 # the difference is that the first one is used for the preselection step 
 # and the second one for the FF calculation step
-file_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2026-01-13"
+file_path: "/ceph/mmolch/xyh-bbtautau-crown/TauFakeFactors/fake-factors-2026-01-21"
 # output of FF measurement
-workdir_name: "fake-factors-2026-01-13"
+workdir_name: "fake-factors-2026-01-21"
