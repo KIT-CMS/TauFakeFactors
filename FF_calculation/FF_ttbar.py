@@ -47,6 +47,7 @@ def calculation_ttbar_FFs(
         logger,  # logger: str,
         SRlike_hists,  # SRlike_hists: Dict[str, ROOT.TH1D],
         ARlike_hists,  # ARlike_hists: Dict[str, ROOT.TH1D],
+        lock,  # lock: str, (needed for cache snapshots)
     ) = args
 
     log = logging.getLogger(logger)
@@ -75,6 +76,7 @@ def calculation_ttbar_FFs(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             # event filter for ttbar application region
@@ -87,6 +89,7 @@ def calculation_ttbar_FFs(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             # get binning of the dependent variable
@@ -182,6 +185,7 @@ def calculation_FF_data_scaling_factor(
     sample_paths: List[str],
     process: str,
     logger: str,
+    lock: multiplrocessing.Lock,
 ) -> Tuple[Dict[str, ROOT.TH1D], Dict[str, ROOT.TH1D]]:
     """
     This function calculates the global SR-like and AR-like histograms for the ttbar process
@@ -225,6 +229,7 @@ def calculation_FF_data_scaling_factor(
             category_cuts=None,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # QCD estimation from same sign in signal-like region
@@ -241,6 +246,7 @@ def calculation_FF_data_scaling_factor(
             category_cuts=None,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for ttbar application-like region
@@ -253,6 +259,7 @@ def calculation_FF_data_scaling_factor(
             category_cuts=None,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # QCD estimation from same sign in application-like region
@@ -269,6 +276,7 @@ def calculation_FF_data_scaling_factor(
             category_cuts=None,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # make yield histograms for FF data correction
@@ -348,6 +356,7 @@ def non_closure_correction(
         logger,
         evaluator,
         corr_evaluators,
+        lock,  # lock: str, (needed for cache snapshots)
         *_,  # for_DRtoSR not needed for ttbar
     ) = args
 
@@ -379,6 +388,7 @@ def non_closure_correction(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             # event filter for ttbar application region
@@ -391,6 +401,7 @@ def non_closure_correction(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             rdf_AR = evaluator.evaluate_fake_factor(rdf=rdf_AR)
