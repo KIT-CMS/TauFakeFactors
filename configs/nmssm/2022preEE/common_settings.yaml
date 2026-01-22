@@ -3,6 +3,7 @@ ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/mmolch/CROWN/ntupl
 tree: "ntuple"
 era: "2022preEE"
 nanoAOD_version: "nanoAOD_v12"
+sample_database: "/work/mmolch/xyh-bbtautau-crown/KingMaker/sample_database"
 
 tau_vs_jet_wps: 
     - "VVVLoose"
