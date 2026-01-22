@@ -97,7 +97,7 @@ event_selection:
 mc_weights:
     # general weights: string is passed directly as weight
     pileup: "puweight"
-    lep_id: "id_wgt_ele_1"
+    lep_id: " id_wgt_ele_wp90nonIso_1"
     had_tau_id_vs_ele: "(id_tau_vsEle_Tight_2>0.5)*id_wgt_tau_vsEle_Tight_2 + (id_tau_vsEle_Tight_2<0.5)"
     had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)"
     single_trigger: "trg_wgt_single_ele30"
