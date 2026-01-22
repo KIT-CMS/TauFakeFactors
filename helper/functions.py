@@ -12,7 +12,6 @@ import os
 import re
 import sys
 from decimal import Decimal
-from tqdm import tqdm
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
@@ -384,8 +383,7 @@ def optional_process_pool(
     log = logging.getLogger(__name__)
 
     if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
-        with logging_helper.LogContext(log).redirect_tqdm():
-            results = [function(args) for args in tqdm(args_list)]
+        results = [function(args) for args in args_list]
     else:
         n = max_workers if max_workers is not None else len(args_list)
         with logging_helper.LogContext(log).parallel_session() as pool_config:
@@ -407,9 +405,6 @@ def load_config(config_file: str) -> Dict:
     Return:
         Configuration as a dictionary
     """
-
-    log = logging.getLogger(__name__)
-
     common_config_file_name = "common_settings.yaml"
 
     common_config_file = os.path.join(
@@ -417,12 +412,12 @@ def load_config(config_file: str) -> Dict:
         common_config_file_name,
     )
     if os.path.exists(common_config_file):
-        log.info(
+        print(
             f"Using {common_config_file_name} file found in {os.path.split(config_file)[0]}"
         )
-        log.info("-" * 50)
+        print("-" * 50)
     else:
-        log.warning("No common config file found!")
+        print("No common config file found!")
 
     # Container of the loaded configuration
     # 
@@ -449,9 +444,9 @@ def load_config(config_file: str) -> Dict:
             repeating_keys = set(config.keys()).intersection(set(_config.keys()))
             if repeating_keys:
                 _overwriting = "\n\t".join(f"{k}: {_config[k]}" for k in repeating_keys)
-                log.warning(
+                print(
                     f"""
-    The following keys are present in both the common and the specific config file:
+    Warning: The following keys are present in both the common and the specific config file:
         {repeating_keys}
     and are overwritten by the ones in {config_file} to
         {_overwriting}
@@ -460,7 +455,7 @@ def load_config(config_file: str) -> Dict:
             config.update(_config)
 
     except FileNotFoundError:
-        log.critical(f"Config file {config_file} not found.")
+        print(f"Error: Config file {config_file} not found.")
         sys.exit(1)
 
     return config
