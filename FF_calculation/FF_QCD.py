@@ -43,6 +43,7 @@ def calculation_QCD_FFs(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        lock,  # lock: str, (needed for cache snapshots)
         *_,  # SRlike_hists, ARlike_hists only used in ttbar calculation
     ) = args
 
@@ -70,6 +71,7 @@ def calculation_QCD_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for QCD application-like region
@@ -82,6 +84,7 @@ def calculation_QCD_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # get binning of the dependent variable
@@ -222,6 +225,7 @@ def non_closure_correction(
         evaluator,
         corr_evaluators,
         for_DRtoSR,
+        lock,  # lock: str, (needed for cache snapshots)
     ) = args
 
     log = logging.getLogger(logger)
@@ -251,6 +255,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for QCD application-like region
@@ -263,6 +268,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # evaluate the measured fake factors for the specific processes
@@ -469,6 +475,7 @@ def DR_SR_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for QCD application-like region
@@ -481,6 +488,7 @@ def DR_SR_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # evaluate the measured fake factors for the specific processes
