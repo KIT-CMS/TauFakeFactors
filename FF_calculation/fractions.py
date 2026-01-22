@@ -41,6 +41,7 @@ def fraction_calculation(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        lock,  # lock: str, (needed for cache snapshots)
         *_,  # SRlike_hists, ARlike_hists only needed for ttbar
     ) = args
 
@@ -67,6 +68,7 @@ def fraction_calculation(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for signal region; this is not needed for the FF calculation, just for control plots
@@ -79,6 +81,7 @@ def fraction_calculation(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # get binning of the dependent variable

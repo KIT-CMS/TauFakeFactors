@@ -43,6 +43,7 @@ def calculation_Wjets_FFs(
         sample_paths,  # sample_paths: List[str],
         output_path,  # output_path: str,
         logger,  # logger: str,
+        lock,  # lock: str, (needed for cache snapshots)
         *_,  # SRlike_hists, ARlike_hists  only used in ttbar calculation
     ) = args
 
@@ -73,6 +74,7 @@ def calculation_Wjets_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # QCD estimation from same sign in signal-like region
@@ -89,6 +91,7 @@ def calculation_Wjets_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for Wjets application-like region
@@ -101,6 +104,7 @@ def calculation_Wjets_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # QCD estimation from same sign in application-like region
@@ -119,6 +123,7 @@ def calculation_Wjets_FFs(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # get binning of the dependent variable from the computed binning
@@ -279,6 +284,7 @@ def non_closure_correction(
         evaluator,
         corr_evaluators,
         for_DRtoSR,
+        lock,  # lock: str, (needed for cache snapshots)
     ) = args
 
     log = logging.getLogger(logger)
@@ -312,6 +318,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # QCD estimation from same sign in signal-like region
@@ -328,6 +335,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # event filter for Wjets application-like region
@@ -340,6 +348,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # evaluate the measured fake factors for the specific processes
@@ -372,6 +381,7 @@ def non_closure_correction(
             category_cuts=splitting.split,
             region_cuts=region_conf,
             logger=logger,
+            lock=lock,
         )
 
         # get binning of the dependent variable
@@ -581,6 +591,7 @@ def DR_SR_correction(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             # event filter for Wjets application-like region
@@ -593,6 +604,7 @@ def DR_SR_correction(
                 category_cuts=splitting.split,
                 region_cuts=region_conf,
                 logger=logger,
+                lock=lock,
             )
 
             rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)

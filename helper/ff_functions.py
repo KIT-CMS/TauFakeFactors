@@ -53,6 +53,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
     def decorator(function: Callable) -> Callable:
         @functools.wraps(function)
         def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
+            lock = kwargs;get("lock")
             log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
             tree_name = "ntuple"
 
@@ -81,25 +82,28 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
 
             if os.path.exists(cache_filepath) and func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
                 log.info(f"Using existent filtered Rdf: {cache_filepath}")
-                return ROOT.RDataFrame(tree_name, cache_filepath)
+                with lock:
+                    rdf = ROOT.RDataFrame(tree_name, cache_filepath)
+                return rdf
 
             log.info(f"Creating filtered Rdf under: {cache_filepath}")
 
-            cols = [str(c) for c in base_rdf.GetColumnNames()]
-            filtered_rdf = function(*args, **kwargs)
+            with lock:
+                cols = [str(c) for c in base_rdf.GetColumnNames()]
+                filtered_rdf = function(*args, **kwargs)
 
-            if filtered_rdf.Count().GetValue() == 0:
-                log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
-                f = ROOT.TFile(cache_filepath, "RECREATE")
-                tree = ROOT.TTree(tree_name, tree_name)
-                for c in cols:
-                    arr = ROOT.std.vector("float")()
-                    tree.Branch(c, arr)
-                tree.Write()
-                f.Close()
-            else:
-                snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
-                snapshot_result.GetValue()  # force execution
+                if filtered_rdf.Count().GetValue() == 0:
+                    log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
+                    f = ROOT.TFile(cache_filepath, "RECREATE")
+                    tree = ROOT.TTree(tree_name, tree_name)
+                    for c in cols:
+                        arr = ROOT.std.vector("float")()
+                        tree.Branch(c, arr)
+                    tree.Write()
+                    f.Close()
+                else:
+                    snapshot_result = filtered_rdf.Snapshot(tree_name, cache_filepath, cols)
+                    snapshot_result.GetValue()  # force execution
 
             if not os.path.exists(cache_filepath):
                 log.error(f"Snapshot failed, file {cache_filepath} not created")
@@ -699,12 +703,14 @@ def fill_corrlib_expression(
 
 @cache_rdf_snapshot(cache_dir="./.RDF_CACHE")
 def apply_region_filters(
+    *,  # require all arguments to be keyword arguments
     rdf: Any,
     channel: str,
     sample: str,
     category_cuts: Union[Dict[str, str], None],
     region_cuts: Dict[str, str],
     logger: str,
+    lock: multiprocessing.Lock,
 ) -> Any:
     """
     Function which applies filters to a root DataFrame for the fake factor calculation. This includes the region cuts and the category splitting.
