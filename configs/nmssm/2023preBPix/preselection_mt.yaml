@@ -117,6 +117,7 @@ mc_weights:
     lumi: ""
     Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
+    ttbar_norm_weight: "0.85"
 
 output_features:
     - "weight" # this is always needed
