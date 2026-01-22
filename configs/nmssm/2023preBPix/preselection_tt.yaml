@@ -77,6 +77,18 @@ processes:
             - Tau_Run2023C-22Sep2023_v3-v1
             - Tau_Run2023C-22Sep2023_v4-v1
 
+column_definitions:
+    nbtag:
+        expression: n_bjets
+    njets:
+        expression: n_jets
+    btag_weight:
+        expression: id_wgt_bjet_pnet_shape
+        exclude_processes:
+            - data
+    jj_deltaR:
+        expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
+
 event_selection:
     had_tau_pt: "(pt_1 > 40) && (pt_2 > 40)"
     had_tau_eta: "(abs(eta_1) < 2.1) && (abs(eta_2) < 2.1)"
@@ -104,9 +116,9 @@ mc_weights:
 
 output_features:
     - "weight" # this is always needed
-    - "id_wgt_bjet_pnet_shape"
-    - "n_jets"
-    - "n_bjets"
+    - "btag_weight"
+    - "njets"
+    - "nbtag"
     - "pt_1"
     - "pt_2"
     - "eta_1"
@@ -129,6 +141,13 @@ output_features:
     - "extramuon_veto"
     - "extraelec_veto"
     - "dilepton_veto"
+    - "jpt_1"
+    - "jpt_2"
+    - "jeta_1"
+    - "jeta_2"
+    - "jphi_1"
+    - "jphi_2"
+    - "jj_deltaR"
     - "bpair_pt_1"
     - "bpair_pt_2"
     - "bpair_eta_1"
