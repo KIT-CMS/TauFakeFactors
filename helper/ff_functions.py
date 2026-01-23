@@ -21,6 +21,7 @@ from wurlitzer import STDOUT, pipes
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
+import CustomLogging as logging_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
@@ -53,7 +54,8 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
     def decorator(function: Callable) -> Callable:
         @functools.wraps(function)
         def wrapper(*args: Any, **kwargs: Any) -> ROOT.RDataFrame:
-            log = logging.getLogger(kwargs.get("logger") or function.__module__ + '.' + function.__name__)
+            log_name = kwargs.get("logger") or function.__module__ + '.' + function.__name__
+            log = logging.getLogger(log_name)
             tree_name = "ntuple"
 
             if "rdf" in kwargs:
@@ -782,8 +784,8 @@ def apply_region_filters(
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
         rdf.Report().Print()
-    log.info(out.getvalue())
-    log.info("-" * 50)
+    log.debug(out.getvalue())
+    log.debug("-" * 50)
 
     return rdf
 

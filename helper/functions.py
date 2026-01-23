@@ -21,6 +21,8 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
+import CustomLogging as logging_helper
+
 
 TAU_FAKE_FACTORS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -378,12 +380,15 @@ def optional_process_pool(
 
     """
 
+    log = logging.getLogger(__name__)
+
     if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
         results = [function(args) for args in args_list]
     else:
         n = max_workers if max_workers is not None else len(args_list)
-        with concurrent.futures.ProcessPoolExecutor(max_workers=n) as executor:
-            results = list(executor.map(function, args_list))
+        with logging_helper.LogContext(log).parallel_session() as pool_config:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=n, **pool_config) as executor:
+                results = list(executor.map(function, args_list))
 
     return results
 
@@ -468,49 +473,6 @@ def check_path(path: str) -> None:
     """
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
-
-
-def setup_logger(
-    log_file: str, log_name: str, log_level: int, subcategories: Union[List[str], None] = None
-) -> None:
-    """
-    Setting up all relevant loggers and handlers.
-
-    Args:
-        log_file: Name of the file the logging information will be stored in
-        log_name: General name of the logger
-        log_level: Level of the logger, e.g. logging.INFO, logging.DEBUG, etc.
-        subcategories: List of different sub logger names e.g. can be used to differentiate between processes (default: None)
-
-    Return:
-        None
-    """
-    # create file handler
-    fh = logging.FileHandler(log_file)
-    fh.setLevel(log_level)
-    # create console handler with a higher log level
-    ch = logging.StreamHandler()
-    ch.setLevel(log_level)
-    # create formatter and add it to the handlers
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    ch.setFormatter(formatter)
-    fh.setFormatter(formatter)
-
-    if subcategories is not None:
-        for cat in subcategories:
-            log = logging.getLogger(f"{log_name}.{cat}")
-            log.setLevel(log_level)
-            # add the handlers to logger
-            log.addHandler(ch)
-            log.addHandler(fh)
-    else:
-        log = logging.getLogger(f"{log_name}")
-        log.setLevel(log_level)
-        # add the handlers to logger
-        log.addHandler(ch)
-        log.addHandler(fh)
 
 
 def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:

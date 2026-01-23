@@ -2,3 +2,7 @@
 	path = datasets
 	url = git@github.com:KIT-CMS/KingMaker_sample_database.git
 	branch = main
+[submodule "CustomLogging"]
+	path = CustomLogging
+	url = git@github.com:KIT-CMS/CustomLogging.git
+	branch = main

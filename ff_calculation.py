@@ -13,6 +13,7 @@ import FF_calculation.FF_Wjets as FF_Wjets
 import helper.correctionlib_json as corrlib
 import helper.ff_functions as ff_func
 import helper.functions as func
+import CustomLogging as logging_helper
 from FF_calculation.fractions import fraction_calculation
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 
@@ -36,6 +37,11 @@ parser.add_argument(
     help="""
         Flag to use intermediary filtered ROOT RDataFrames even if cached versions are available.
     """,
+)
+parser.add_argument(
+    "--log-level",
+    default="INFO",
+    help="Logging level to use. (default: INFO)",
 )
 
 FF_CALCULATION_FUNCTIONS = {
@@ -62,6 +68,7 @@ FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS = {
 }
 
 
+@logging_helper.LogDecorator().grouped_logs()
 def FF_calculation(
     config: Dict[str, Union[str, Dict, List]],
     sample_paths: List[str],
@@ -134,6 +141,7 @@ def FF_calculation(
         return ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
 
+@logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"ff_calculation.{args[0]}")
 def run_ff_calculation(
     args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
 ) -> Tuple[Tuple, Dict]:
@@ -192,11 +200,11 @@ if __name__ == "__main__":
     if "process_fractions_subleading" in config:
         subcategories = subcategories + ["process_fractions_subleading"]
 
-    func.setup_logger(
-        log_file=save_path_plots + "/ff_calculation.log",
-        log_name="ff_calculation",
-        log_level=logging.INFO,
-        subcategories=subcategories,
+    logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
+    log = logging_helper.setup_logging(
+        output_file=save_path_plots + "/ff_calculation.log",
+        logger=logging.getLogger("ff_calculation"),
+        level=logging_helper.LOG_LEVEL,
     )
 
     # getting all the ntuple input files
@@ -257,3 +265,5 @@ if __name__ == "__main__":
 
     with open(os.path.join(save_path_plots, "done"), "w") as done_file:
         done_file.write("")
+
+    log.info("Fake factor calculation finished successfully.")
