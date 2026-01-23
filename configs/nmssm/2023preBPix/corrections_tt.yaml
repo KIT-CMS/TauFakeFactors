@@ -11,6 +11,8 @@ target_processes:
             tau_decaymode_1:
                 var_dependence: "tau_decaymode_1"
                 var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+                correction_option: "binwise"
+                bandwidth: 1.0
             mass_1:
                 var_dependence: "mass_1"
                 var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
@@ -35,6 +37,8 @@ target_processes:
             tau_decaymode_2:
                 var_dependence: "tau_decaymode_2"
                 var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+                correction_option: "binwise"
+                bandwidth: 1.0
             mass_2:
                 var_dependence: "mass_2"
                 var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
@@ -59,6 +63,8 @@ target_processes:
             tau_decaymode_1:
                 var_dependence: "tau_decaymode_1"
                 var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+                correction_option: "binwise"
+                bandwidth: 1.0
             mass_1:
                 var_dependence: "mass_1"
                 var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
@@ -71,6 +77,8 @@ target_processes:
             tau_decaymode_2:
                 var_dependence: "tau_decaymode_2"
                 var_bins: [-0.5,0.5,1.5,9.5,10.5,11.5]
+                correction_option: "binwise"
+                bandwidth: 1.0
             mass_2:
                 var_dependence: "mass_2"
                 var_bins: [0.,0.2,0.5,0.8,1.1,1.4,2.]
