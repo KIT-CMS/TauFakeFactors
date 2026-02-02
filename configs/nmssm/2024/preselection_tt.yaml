@@ -1,0 +1,173 @@
+# This is an example config containing information for the preselection
+
+channel: "tt"
+
+processes:
+    DYjets:
+        tau_gen_modes:
+            - "J"
+            - "T"
+            - "L"
+        samples:
+            - "DYto2E-2Jets_Bin-0J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2E-2Jets_Bin-1J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2E-2Jets_Bin-2J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2E-2Jets_Bin-MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Mu-2Jets_Bin-0J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Mu-2Jets_Bin-1J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Mu-2Jets_Bin-2J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Mu-2Jets_Bin-MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Tau-2Jets_Bin-0J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Tau-2Jets_Bin-1J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Tau-2Jets_Bin-2J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "DYto2Tau-2Jets_Bin-MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+
+    diboson:
+        tau_gen_modes:
+            - "J"
+            - "T"
+            - "L"
+        samples:
+            - "WW_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WZ_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "ZZ_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
+
+    ttbar:
+        tau_gen_modes:
+            - "J"
+            - "T"
+            - "L"
+        samples:
+            - "TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+
+    Wjets:
+        tau_gen_modes:
+            - "all"
+        samples:
+            - "WtoENu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WtoMuNu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WtoTauNu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X"
+
+    ST:
+        tau_gen_modes:
+            - "J"
+            - "T"
+            - "L"
+        samples:
+            - "TWminusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TWminusto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TWminustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarWplusto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarWplusto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TBbarQto2Q-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TBbarQtoLNu-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarBQto2Q-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarBQtoLNu-t-channel-4FS_TuneCP5_13p6TeV_powheg-madspin-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TBbarto2Q-s-channel_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TBbartoLNu-s-channel_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarBto2Q-s-channel_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "TbarBtoLNu-s-channel_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+
+    data:
+        tau_gen_modes:
+            - "all"
+        samples:
+            - "Tau_Run2024C-MINIv6NANOv15-v1"
+            - "Tau_Run2024D-MINIv6NANOv15-v1"
+            - "Tau_Run2024E-MINIv6NANOv15-v1"
+            - "Tau_Run2024F-MINIv6NANOv15-v1"
+            - "Tau_Run2024G-MINIv6NANOv15-v1"
+            - "Tau_Run2024H-MINIv6NANOv15-v1"
+            - "Tau_Run2024I-MINIv6NANOv15-v1"
+            - "Tau_Run2024I-MINIv6NANOv15_v2-v1"
+
+column_definitions:
+    nbtag:
+        expression: n_bjets
+    njets:
+        expression: n_jets
+    btag_weight:
+        expression: 1.0  # TODO not available yet, add correct weight as soon as possible
+        exclude_processes:
+            - data
+    jj_deltaR:
+        expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
+
+event_selection:
+    had_tau_pt: "(pt_1 > 40) && (pt_2 > 40)"
+    had_tau_eta: "(abs(eta_1) < 2.1) && (abs(eta_2) < 2.1)"
+    had_tau_decay_mode_1: "(tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)"
+    had_tau_decay_mode_2: "(tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)"
+    had_tau_id_vs_ele: "(id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)"
+    had_tau_id_vs_mu: "(id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)"
+    double_trigger: "trg_double_tau35"
+
+mc_weights:
+    # general weights: string is passed directly as weight
+    pileup: "puweight"
+    had_tau_id_vs_ele_1: "(id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)"
+    had_tau_id_vs_ele_2: "(id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)"
+    had_tau_id_vs_mu_1: "(id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)"
+    had_tau_id_vs_mu_2: "(id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)"
+    double_trigger: "trg_wgt_double_tau35_leg1 * trg_wgt_double_tau35_leg2"
+
+    # special weights: these are not generally applied, e.g. only for a specific process or era
+    # here the string is a needed information to apply the weight -> see corresponding functions
+    generator: ""
+    lumi: ""
+    Z_pt_reweighting: "ZPtMassReweightWeight"
+    Top_pt_reweighting: "topPtReweightWeight"
+    ttbar_norm_weight: "1.0"  # TODO update
+
+output_features:
+    - "weight" # this is always needed
+    - "btag_weight"
+    - "njets"
+    - "nbtag"
+    - "pt_1"
+    - "pt_2"
+    - "eta_1"
+    - "eta_2"
+    - "phi_1"
+    - "phi_2"
+    - "mass_1"
+    - "mass_2"
+    - "q_1"
+    - "q_2"
+    - "iso_1"
+    - "iso_2"
+    - "tau_decaymode_1"
+    - "tau_decaymode_2"
+    - "gen_match_1"
+    - "gen_match_2"
+    - "m_vis"
+    - "pt_vis"
+    - "deltaR_ditaupair"
+    - "extramuon_veto"
+    - "extraelec_veto"
+    - "dilepton_veto"
+    - "jpt_1"
+    - "jpt_2"
+    - "jeta_1"
+    - "jeta_2"
+    - "jphi_1"
+    - "jphi_2"
+    - "jj_deltaR"
+    - "bpair_pt_1"
+    - "bpair_pt_2"
+    - "bpair_eta_1"
+    - "bpair_eta_2"
+    - "bpair_phi_1"
+    - "bpair_phi_2"
+    - "bpair_btag_value_1"
+    - "bpair_btag_value_2"
+    - "bpair_m_inv"
+    - "bpair_deltaR"
+    - "met"
+    - "metphi"
+    - "mt_1"
+    - "mt_2"
+    - "mt_tot"
