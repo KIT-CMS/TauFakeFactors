@@ -298,7 +298,7 @@ if __name__ == "__main__":
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
     log = logging_helper.setup_logging(
         output_file=output_path + "/preselection.log",
-        logger=logging.getLogger("preselection.main"),
+        logger=logging.getLogger("preselection"),
         level=logging_helper.LOG_LEVEL,
     )
 
