@@ -284,7 +284,7 @@ if __name__ == "__main__":
     log.info(f"Loading sample database from {datasets_file}")
 
     # get needed features for fake factor calculation
-    output_features = config["output_features"]
+    output_features = list(set(config["output_features"]))
 
     for wp in config["tau_iso_wps"]:
         output_features.append("id_boostedtau_iso_" + wp + "_2")
