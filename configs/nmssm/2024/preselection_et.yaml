@@ -98,7 +98,7 @@ column_definitions:
     njets:
         expression: n_jets
     btag_weight:
-        expression: 1.0  # TODO not available yet, add correct weight as soon as possible
+        expression: id_wgt_bjet
         exclude_processes:
             - data
     jj_deltaR:
