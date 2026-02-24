@@ -175,7 +175,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     # for data set gen_match to -1
     if process == "data":
         rdf = rdf.Define("gen_match_2", "-1.")
-        if config["channel"] == "tt":
+        if config["channel"] in ["tt", "mm"]:
             rdf = rdf.Define("gen_match_1", "-1.")
 
     # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
@@ -313,10 +313,11 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = list(set(config["output_features"]))
 
-    for wp in config["tau_vs_jet_wps"]:
-        output_features.append("id_tau_vsJet_" + wp + "_2")
-    for wp in config["tau_vs_jet_wgt_wps"]:
-        output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
+    if config["channel"] != "mm":
+        for wp in config["tau_vs_jet_wps"]:
+            output_features.append("id_tau_vsJet_" + wp + "_2")
+        for wp in config["tau_vs_jet_wgt_wps"]:
+            output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
 
     if config["channel"] == "tt":
         for wp in config["tau_vs_jet_wps"]:
