@@ -22,6 +22,7 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
 import CustomLogging as logging_helper
+from helper.hooks_and_patches import PassThroughWrapper
 
 
 TAU_FAKE_FACTORS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -171,10 +172,14 @@ class RuntimeVariables(object):
 
     Attributes:
         USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
+        USE_CACHED_INTERMEDIATE_STEPS (bool): Flag to enable or disable caching of intermediate steps globally
+        RDataFrameWrapper (class): The class to be used as wrapper for the RDataFrame. By default, it is set to
+            a 'PassThroughWrapper' which directly uses RDataFrames. Another optional wrapper is 'Histo1DPatchedRDataFrame'
+            which calculates the center-of-mass for each histogram bin.
     """
     USE_MULTIPROCESSING = True
     USE_CACHED_INTERMEDIATE_STEPS = False
-    RDataFrameWrapper = None
+    RDataFrameWrapper = PassThroughWrapper
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
@@ -667,7 +672,7 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
         # - `Define` in all other cases
         rdf_define_call = (
             rdf.Redefine
-            if new_column in rdf_columns and allow_redefine
+            if new_column in rdf_columns and define_dict["allow_redefine"]
             else rdf.Define
         )
         rdf = rdf_define_call(new_column, expression)
@@ -770,7 +775,7 @@ def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
             if len(fraction_categories[cat]) != (
                 len(fraction_categories_edges[cat]) - 1
             ):
-                raise Exception("Categories and binning for the categories does not match up for {cat} for fractions.")
+                raise Exception(f"Categories and binning for the categories does not match up for {cat} for fractions.")
 
 
 def modify_config(

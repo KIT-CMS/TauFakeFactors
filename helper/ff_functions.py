@@ -21,7 +21,6 @@ from wurlitzer import STDOUT, pipes
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
-import CustomLogging as logging_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
@@ -965,23 +964,19 @@ def add_fraction_variations(
 
     for p in processes:
         hists_up = dict(hists)
-        for hist in hists_up:
-            hists_up[hist] = hists_up[hist].Clone()
-            if p == hist:
-                hists_up[hist].Scale(1.07)
-            else:
-                hists_up[hist].Scale(0.93)
-        variations["frac_{}_up".format(p)] = hists_up
-
-    for p in processes:
         hists_down = dict(hists)
-        for hist in hists_down:
+        for hist in hists:
+            hists_up[hist] = hists_up[hist].Clone()
             hists_down[hist] = hists_down[hist].Clone()
             if p == hist:
+                hists_up[hist].Scale(1.07)
                 hists_down[hist].Scale(0.93)
             else:
+                hists_up[hist].Scale(0.93)
                 hists_down[hist].Scale(1.07)
-        variations["frac_{}_down".format(p)] = hists_down
+        proc_name = "TTbar" if p == "ttbar_J" else p
+        variations[f"frac{proc_name}UncUp"] = hists_up
+        variations[f"frac{proc_name}UncDown"] = hists_down
 
     return variations
 
@@ -1099,9 +1094,10 @@ def fit_function(
                     str: "poly_n" or "binwise", where n is the order of the polynomial fit
 
     Return:
-        1. Dictionary with the fitted function for each variation,
-        2. Dictionary with graphs for each variation,
-        3. Dictionary of function expressions for correctionlib (nominal and variations)
+        1. Initial histogram as TGraph or TH1 (if binwise is used)
+        2. Dictionary of the fitted function for nominal and each variation
+        3. Dictionary of function string expressions (same functions as in 2.) for correctionlib (nominal and variations)
+        4. Name of the best fit which is used as nominal correction in the correctionlib file
     """
     if not isinstance(fit_option, list) and fit_option != "binwise":
         fit_option = [fit_option]
@@ -1324,6 +1320,7 @@ def smooth_function(
     bandwidth_variations: tuple = (0.5, 1.5),
     mc_shifted_hist: Union[Dict[str, ROOT.TH1D], None] = None,
     sparsify_threshold: float = 0.01,
+    for_FF: bool = False,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -1336,9 +1333,9 @@ def smooth_function(
         bandwidth: Bandwidth parameter for the kernel regression estimator
         bandwidth_variations: Tuple with factors to vary the bandwidth up and down if correction_option is not "binwise"
         sparsify_threshold: Threshold for sparsifying the smoothed function
-
+        for_FF: If True, the function is used for fake factor calculations and returns a different set of keys
     Return:
-        1. root TGraph of the smoothed function,
+        1. Initial root TGraph of the histogram,
         2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
     """
 
@@ -1348,68 +1345,80 @@ def smooth_function(
         correction_option=correction_option,
         bandwidth=bandwidth,
     )
+    stat = "StatShiftFF" if for_FF else "StatShift"
+    syst_MCshift = "SystMCShiftFF" if for_FF else "SystMCShift"
+    syst_BandHigh = "SystBandHighFF" if for_FF else "SystBandHigh"
+    syst_BandLow = "SystBandLowFF" if for_FF else "SystBandLow"
+    syst_BandAsym = "SystBandAsymFF" if for_FF else "SystBandAsym"
 
-    nominal_graph, smooth_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=2.0)
-    corr_dict["Stat2SigmaUp"] = corr_dict["StatUp"]
-    corr_dict["Stat2SigmaDown"] = corr_dict["StatDown"]
+    nominal_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=1.0)
+    corr_dict["default"]["variations"][stat + "Up"] = corr_dict["default"]["variations"]["StatUp"]
+    corr_dict["default"]["variations"][stat + "Down"] = corr_dict["default"]["variations"]["StatDown"]
 
-    _, _, corr_dict_one_sigma = _smooth_function(**_kwargs, stat_sigma=1.0)
-    corr_dict["Stat1SigmaUp"] = corr_dict_one_sigma["StatUp"]
-    corr_dict["Stat1SigmaDown"] = corr_dict_one_sigma["StatDown"]
-
+    corr_dict["default"]["variations"].pop("StatUp")
+    corr_dict["default"]["variations"].pop("StatDown")
+    
     if mc_shifted_hist is None:
-        corr_dict["SystMCShiftUp"] = corr_dict["nominal"]
-        corr_dict["SystMCShiftDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][syst_MCshift + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_MCshift + "Down"] = corr_dict["default"]["nominal"]
     else:
-        _, _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
-        _, _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
+        _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
+        _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
 
-        corr_dict["SystMCShiftUp"] = _mc_sub_up["nominal"]
-        corr_dict["SystMCShiftDown"] = _mc_sub_down["nominal"]
+        corr_dict["default"]["variations"][syst_MCshift + "Up"] = _mc_sub_up["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_MCshift + "Down"] = _mc_sub_down["default"]["nominal"]
 
     if correction_option == "binwise" or correction_option == "skip":
-        corr_dict["SystBandHighUp"] = corr_dict["nominal"]
-        corr_dict["SystBandHighDown"] = corr_dict["nominal"]
-        corr_dict["SystBandLowUp"] = corr_dict["nominal"]
-        corr_dict["SystBandLowDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][syst_BandHigh + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandHigh + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandLow + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandLow + "Down"] = corr_dict["default"]["nominal"]
 
-        corr_dict["SystBandAsymUp"] = corr_dict["nominal"]
-        corr_dict["SystBandAsymDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][syst_BandAsym + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandAsym + "Down"] = corr_dict["default"]["nominal"]
 
         # individual downsampling for correctionlib storage, not used for plotting
-        corr_dict["downsampled"] = {}
-        for key in list(corr_dict):
-            if key in {"edges", "downsampled"}:
+        corr_dict["downsampled"] = {"nominal": None, "variations": {}}
+        corr_dict["downsampled"]["nominal"] = {
+            "edges": corr_dict["default"]["edges"],
+            "content": corr_dict["default"]["nominal"],
+        }
+        for key in list(corr_dict["default"]["variations"].keys()):
+            if key == "edges":
                 continue
-            corr_dict["downsampled"][key] = {
-                "edges": corr_dict["edges"],
-                "content": corr_dict[key],
+            corr_dict["downsampled"]["variations"][key] = {
+                "edges": corr_dict["default"]["edges"],
+                "content": corr_dict["default"]["variations"][key],
             }
     else:
-        _, _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
-        _, _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
+        _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
+        _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
 
-        corr_dict["SystBandHighUp"] = (_high["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandHighDown"] = (corr_dict["nominal"] - _high["nominal"]) + corr_dict["nominal"]
+        corr_dict["default"]["variations"][syst_BandHigh + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandHigh + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
 
-        corr_dict["SystBandLowUp"] = (_low["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandAsymUp"] = _high["nominal"]
-        corr_dict["SystBandAsymDown"] = _low["nominal"]
+        corr_dict["default"]["variations"][syst_BandLow + "Up"] = (_low["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandLow + "Down"] = (corr_dict["default"]["nominal"] - _low["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandAsym + "Up"] = _high["default"]["nominal"]
+        corr_dict["default"]["variations"][syst_BandAsym + "Down"] = _low["default"]["nominal"]
 
         # individual downsampling for correctionlib storage, not used for plotting
-        corr_dict["downsampled"] = {}
-        for key in list(corr_dict):
-            if key in {"edges", "downsampled"}:
-                continue
-            corr_dict["downsampled"][key] = {
+        corr_dict["downsampled"] = {"nominal": None, "variations": {}}
+        corr_dict["downsampled"]["nominal"] = {
+            k: v for k, v in zip(
+                ["edges", "content"],
+                sparsify(corr_dict["default"]["edges"], corr_dict["default"]["nominal"], threshold=sparsify_threshold),
+            )
+        }
+        for key in list(corr_dict["default"]["variations"].keys()):
+            corr_dict["downsampled"]["variations"][key] = {
                 k: v for k, v in zip(
                     ["edges", "content"],
-                    sparsify(corr_dict["edges"], corr_dict[key])
+                    sparsify(corr_dict["default"]["edges"], corr_dict["default"]["variations"][key], threshold=sparsify_threshold),
                 )
             }
 
-    return nominal_graph, smooth_graph, corr_dict
+    return nominal_graph, corr_dict
 
 
 def _smooth_function(
@@ -1426,10 +1435,13 @@ def _smooth_function(
     Args:
         hist: Histogram of a correction
         bin_edges: Bin edges of "hist"
+        correction_option: String defining how the correction should look like, examples are "binwise", "smoothed", "binwise#[0,]#[-1,]+smoothed" (binned for first and last bin, rest smoothed)
+        bandwidth: Bandwidth parameter for the kernel regression estimator
+        stat_sigma: Value used for the definition of the statistical uncertainty variation (used multiplicatively on the standard deviation)
 
     Return:
-        1. root TGraph of the smoothed function,
-        2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+        1. Initial histogram as TGraph
+        2. Dictionary of default arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
     """
     hist_bins = hist.GetNbinsX()
 
@@ -1441,12 +1453,15 @@ def _smooth_function(
     if "skip" in correction_option:
         return (
             nominal_graph,
-            nominal_graph,
             {
-                "edges": np.array(bin_edges),
-                "nominal": np.array([1.0]),
-                "StatUp": np.array([1.0]) + 1e-6,
-                "StatDown": np.array([1.0]) - 1e-6,
+                "default": {
+                    "edges": np.array([bin_edges[0], bin_edges[-1]]),
+                    "nominal": np.array([1.0]),
+                    "variations": {
+                        "StatUp": np.array([1.0]) + 1e-6,
+                        "StatDown": np.array([1.0]) - 1e-6,
+                    },
+                },
             },
         )
 
@@ -1561,13 +1576,14 @@ def _smooth_function(
         _nom, _up_stat, _down_stat = _append(_nom), _append(_up_stat), _append(_down_stat)
 
     corr_dict = {
-        "edges": _bins,
-        "nominal": _nom,
-        "StatUp": _up_stat,
-        "StatDown": _down_stat,
+        "default": {
+            "edges": _bins,
+            "nominal": _nom,
+            "variations": {
+                "StatUp": _up_stat,
+                "StatDown": _down_stat,
+            },
+        },
     }
 
-    smooth_graph = ROOT.TGraphAsymmErrors(
-        len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
-    )
-    return nominal_graph, smooth_graph, corr_dict
+    return nominal_graph, corr_dict

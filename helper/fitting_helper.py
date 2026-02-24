@@ -335,10 +335,11 @@ def get_wrapped_functions_from_fits(
 
     Returns: Dict[str, Callable]: Dictionary with the best fit function containing:
         - "nominal": The best fit function.
-        - "up": The best fit function including the upper error.
-        - "down": The best fit function including the lower error.
-        - "mc_up": The best fit function including the upper error from MC subtraction.
-        - "mc_down": The best fit function including the lower error from MC subtraction
+        - "variations": A dictionary containing the variations of the best fit function:
+            - "StatShiftFFUp": The best fit function including the upper error.
+            - "StatShiftFFDown": The best fit function including the lower error.
+            - "SystMCShiftFFUp": The best fit function including the upper error from MC subtraction.
+            - "SystMCShiftFFDown": The best fit function including the lower error from MC subtraction.
     """
     log = logging.getLogger(logger)
 
@@ -432,7 +433,7 @@ def get_wrapped_functions_from_fits(
         log.info(out.getvalue())
         log.info("-" * 50)
 
-    callable_results, str_results = {}, {}
+    callable_results, str_results = {"nominal": None, "variations": {}}, {"nominal": None, "variations": {}}
 
     nominal_param, cov = extract_param_and_cov(Fits[name])
     variation_param = [*nominal_param, *cov.flatten()]
@@ -440,35 +441,35 @@ def get_wrapped_functions_from_fits(
     callable_results["nominal"] = lambda x: _functions_limited[name][0](
         [x], nominal_param
     )
-    callable_results["unc_up"] = lambda x: _functions_limited[name][1](
+    callable_results["variations"]["StatShiftFFUp"] = lambda x: _functions_limited[name][1](
         [x], variation_param
     )
-    callable_results["unc_down"] = lambda x: _functions_limited[name][2](
+    callable_results["variations"]["StatShiftFFDown"] = lambda x: _functions_limited[name][2](
         [x], variation_param
     )
 
     str_results["nominal"] = _str_functions_limited[name][0](" ( x ) ", nominal_param)
-    str_results["unc_up"] = _str_functions_limited[name][1](" ( x ) ", variation_param)
-    str_results["unc_down"] = _str_functions_limited[name][2](
+    str_results["variations"]["StatShiftFFUp"] = _str_functions_limited[name][1](" ( x ) ", variation_param)
+    str_results["variations"]["StatShiftFFDown"] = _str_functions_limited[name][2](
         " ( x ) ", variation_param
     )
 
     if do_mc_subtr_unc:
         param_up, _ = extract_param_and_cov(Fits_up[name])
         param_down, _ = extract_param_and_cov(Fits_down[name])
-        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][0](
+        callable_results["variations"]["SystMCShiftFFUp"] = lambda x: _functions_limited[name][0](
             [x],
             param_up,
         )
-        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[name][0](
+        callable_results["variations"]["SystMCShiftFFDown"] = lambda x: _functions_limited[name][0](
             [x],
             param_down,
         )
-        str_results["mc_subtraction_unc_up"] = _str_functions_limited[name][0](
+        str_results["variations"]["SystMCShiftFFUp"] = _str_functions_limited[name][0](
             " ( x ) ",
             param_up,
         )
-        str_results["mc_subtraction_unc_down"] = _str_functions_limited[name][0](
+        str_results["variations"]["SystMCShiftFFDown"] = _str_functions_limited[name][0](
             " ( x ) ",
             param_down,
         )
@@ -542,43 +543,47 @@ def get_wrapped_hists(
 
     Returns: Dict[str, Union[List, Callable]]: Dictionary with the histograms containing:
         - "nominal": measured histogram.
-        - "up": measured histogram including the upper error.
-        - "down": measured histogram including the lower error.
-        - "mc_up": measured histogram including the upper error from MC subtraction.
-        - "mc_down": measured histogram including the lower error from MC subtraction
+        - "variations": A dictionary containing the variations of the histogram:
+            - "StatShiftFFUp": measured histogram including the upper error.
+            - "StatShiftFFDown": measured histogram including the lower error.
+            - "SystMCShiftFFUp": measured histogram including the upper error from MC subtraction.
+            - "SystMCShiftFFDown": measured histogram including the lower error from MC subtraction.
     """
     log = logging.getLogger(logger)
     if verbose:
         log.info("Measured histograms directly instead of a fit.")
         log.info("-" * 50)
 
-    callable_results = dict(
-        zip(
-            ["nominal", "unc_up", "unc_down"],
-            hist_func(ff_hist, return_callable=True),
-        )
-    )
-    str_results = dict(
-        zip(
-            ["nominal", "unc_up", "unc_down"],
-            hist_func(ff_hist, return_callable=False),
-        )
-    )
+    callable_results, str_results = {"nominal": None, "variations": {}}, {"nominal": None, "variations": {}}
+    
+    _nom = hist_func(ff_hist, return_callable=True)
+    _nom_str = hist_func(ff_hist, return_callable=False)
+    
+    callable_results["nominal"] = _nom[0]
+    callable_results["variations"]["StatShiftFFUp"] = _nom[1]
+    callable_results["variations"]["StatShiftFFDown"] = _nom[2]
+    
+    str_results["nominal"] = _nom_str[0]
+    str_results["variations"]["StatShiftFFUp"] = _nom_str[1]
+    str_results["variations"]["StatShiftFFDown"] = _nom_str[2]
+    
     if do_mc_subtr_unc:
         callable_results.update(
             {
-                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=True)[0],
-                "mc_subtraction_unc_down": hist_func(
+                "SystMCShiftFFUp": hist_func(
+                    ff_hist_up, return_callable=True
+                )[0],
+                "SystMCShiftFFDown": hist_func(
                     ff_hist_down, return_callable=True
                 )[0],
             }
         )
         str_results.update(
             {
-                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=False)[
-                    0
-                ],
-                "mc_subtraction_unc_down": hist_func(
+                "SystMCShiftFFUp": hist_func(
+                    ff_hist_up, return_callable=False
+                )[0],
+                "SystMCShiftFFDown": hist_func(
                     ff_hist_down, return_callable=False
                 )[0],
             }
