@@ -15,7 +15,7 @@ import helper.ff_functions as ff_func
 import helper.functions as func
 import CustomLogging as logging_helper
 from FF_calculation.fractions import fraction_calculation
-from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame
 
 parser = argparse.ArgumentParser()
 
@@ -215,7 +215,6 @@ if __name__ == "__main__":
     # check binning of defined categories in the config
     func.check_categories(config=config)
 
-    func.RuntimeVariables.RDataFrameWrapper = PassThroughWrapper
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
