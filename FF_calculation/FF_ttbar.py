@@ -22,18 +22,19 @@ def calculation_ttbar_FFs(
 ) -> Dict[str, Union[str, Dict[str, str]]]:
     """
     This function calculates fake factors for the ttbar process for a specific category (split).
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the fake factors.
 
     Args:
-        args: Tuple of arguments that are passed to the function
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
-            process: Name of the process
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
-            SRlike_hists: Dictionary containing histograms for the signal-like region
-            ARlike_hists: Dictionary containing histograms for the application-like region
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+        process: Name of the process
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
+        SRlike_hists: Dictionary containing histograms for the signal-like region
+        ARlike_hists: Dictionary containing histograms for the application-like region
 
     Return:
         Dictionary with the category information as keys and the fitted functions (including variations) as values
@@ -62,13 +63,17 @@ def calculation_ttbar_FFs(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
         if sample in ["ttbar_J"]:
-            log.info(f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category.")
+            log.info(
+                f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
+            )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for ttbar signal region
-            log.info(f"Filtering events for the signal region. Target process: {process}")
+            log.info(
+                f"Filtering events for the signal region. Target process: {process}"
+            )
             region_conf = copy.deepcopy(process_conf["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -80,7 +85,9 @@ def calculation_ttbar_FFs(
             )
 
             # event filter for ttbar application region
-            log.info(f"Filtering events for the application region. Target process: {process}")
+            log.info(
+                f"Filtering events for the application region. Target process: {process}"
+            )
             region_conf = copy.deepcopy(process_conf["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -128,18 +135,33 @@ def calculation_ttbar_FFs(
         ARlike=ARlike_hists,
     )
     # performing the fit and calculating the uncertainties
-    nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
-        ff_hists=FF_hist.Clone(),
-        bin_edges=splitting.var_bins,
-        logger=logger,
-        fit_option=splitting.fit_option,
-        limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
-    )
+    if isinstance(splitting.fit_option, list):
+        nominal_draw_obj, unc_draw_obj, results, used_fit = ff_func.fit_function(
+            ff_hists=FF_hist.Clone(),
+            bin_edges=splitting.var_bins,
+            logger=logger,
+            fit_option=splitting.fit_option,
+            limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
+        )
+    elif isinstance(splitting.fit_option, str):
+        nominal_draw_obj, results = ff_func.smooth_function(
+            hist=FF_hist.Clone(),
+            bin_edges=splitting.var_bins,
+            correction_option=splitting.fit_option,
+            bandwidth=splitting.bandwidth,
+            for_FF=True,
+        )
+        unc_draw_obj = results["default"]
+        used_fit = splitting.fit_option
+    else:
+        raise ValueError(
+            f"Invalid fit option {splitting.fit_option}. It should be either a list of polynomials or a single string defining the fit procedure."
+        )
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
         ff_ratio=nominal_draw_obj,
-        uncertainties=fit_graphs,
+        variations=unc_draw_obj,
         era=config["era"],
         channel=config["channel"],
         process=process,
@@ -152,8 +174,18 @@ def calculation_ttbar_FFs(
 
     # doing some control plots
     for _hist, _region, _data, _samples in [
-        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
-        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
+        (
+            SRlike_hists,
+            "SR_like",
+            "data",
+            ff_func.controlplot_samples(config["use_embedding"]),
+        ),
+        (
+            ARlike_hists,
+            "AR_like",
+            "data",
+            ff_func.controlplot_samples(config["use_embedding"]),
+        ),
         (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
     ]:
@@ -175,10 +207,19 @@ def calculation_ttbar_FFs(
             )
     log.info("-" * 50)
 
-    return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
+    if splitting.split is not None:
+        return ff_func.fill_corrlib_expression(
+            results, splitting.variables, splitting.split
+        )
+    else:
+        return results
 
 
-@logging_helper.LogDecorator().grouped_logs(extractor=lambda *args, **kwargs: kwargs["logger"] if "config" in kwargs else args[4])
+@logging_helper.LogDecorator().grouped_logs(
+    extractor=lambda *args, **kwargs: (
+        kwargs["logger"] if "config" in kwargs else args[4]
+    )
+)
 def calculation_FF_data_scaling_factor(
     config: Dict[str, Union[str, Dict, List]],
     process_conf: Dict[str, Union[str, Dict, List]],
@@ -219,7 +260,9 @@ def calculation_FF_data_scaling_factor(
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for ttbar signal-like region
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for the signal-like region. Target process: {process}"
+        )
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -234,9 +277,13 @@ def calculation_FF_data_scaling_factor(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
+            raise ValueError(
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
+            )
 
-        log.info(f"Filtering events for QCD estimation in the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
+        )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -247,7 +294,9 @@ def calculation_FF_data_scaling_factor(
         )
 
         # event filter for ttbar application-like region
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for the application-like region. Target process: {process}"
+        )
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -262,9 +311,13 @@ def calculation_FF_data_scaling_factor(
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
+            raise ValueError(
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
+            )
 
-        log.info(f"Filtering events for QCD estimation in the application-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
+        )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -319,26 +372,28 @@ def non_closure_correction(
     args: Tuple[Any, ...],
 ) -> Dict[str, np.ndarray]:
     """
-    This function calculates the non closure correction for the ttbar process.
+    This function calculates the non-closure correction for the ttbar process.
 
     Intded to be used in a multiprocessing environment.
+    
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the non-closure correction.
 
     Args:
-        args: Tuple of arguments that are passed to the function
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            correction_conf: Dictionary with all the relevant information for the non closure correction
-            process: Name of the process
-            closure_variable: Name of the variable for which the non closure correction is calculated
-            split_variables: List of variables that are used for the category splitting
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
-            evaluator: FakeFactorEvaluator instance
-            corr_evaluators: List of FakeFactorCorrectionEvaluator instances
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        correction_conf: Dictionary with all the relevant information for the non-closure correction
+        process: Name of the process
+        closure_variable: Name of the variable for which the non-closure correction is calculated
+        split_variables: List of variables that are used for the category splitting
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
+        evaluator: FakeFactorEvaluator instance
+        corr_evaluators: List of FakeFactorCorrectionEvaluator instances
 
     Return:
-        Dictionary with the category information as key and the non closure correction as value
+        Dictionary with the category information as key and the non-closure correction as value
 
     """
     (
@@ -366,15 +421,21 @@ def non_closure_correction(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "ttbar_J":
             if splitting.split is not None:
-                log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
+                log.info(
+                    f"Processing {sample} for the non-closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
+                )
             else:
-                log.info(f"Processing {sample} for the non closure correction for {process}.")
+                log.info(
+                    f"Processing {sample} for the non-closure correction for {process}."
+                )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
             # event filter for ttbar signal region
-            log.info(f"Filtering events for the signal region. Target process: {process}")
+            log.info(
+                f"Filtering events for the signal region. Target process: {process}"
+            )
             region_conf = copy.deepcopy(config["target_processes"][process]["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -386,7 +447,9 @@ def non_closure_correction(
             )
 
             # event filter for ttbar application region
-            log.info(f"Filtering events for the application region. Target process: {process}")
+            log.info(
+                f"Filtering events for the application region. Target process: {process}"
+            )
             region_conf = copy.deepcopy(config["target_processes"][process]["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -444,7 +507,7 @@ def non_closure_correction(
         SR=SR_hists, AR=AR_hists
     )
 
-    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, results = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
         correction_option=splitting.correction_option,
@@ -454,7 +517,7 @@ def non_closure_correction(
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=correction_dict,
+        corr_graph=results["default"],
         corr_name="non_closure_" + closure_variable,
         era=config["era"],
         channel=config["channel"],
@@ -488,6 +551,8 @@ def non_closure_correction(
         )
 
     if splitting.split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
+        return ff_func.fill_corrlib_expression(
+            results, splitting.variables, splitting.split
+        )
     else:
-        return correction_dict
+        return results
