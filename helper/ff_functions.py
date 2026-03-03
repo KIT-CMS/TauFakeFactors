@@ -1138,7 +1138,7 @@ def fit_function(
 
 
 def calculate_non_closure_correction(
-    SRlike: Dict[str, Any], ARlike: Dict[str, Any]
+    SRlike: Dict[str, Any], ARlike: Dict[str, Any], skip_frac: bool = False,
 ) -> Tuple[Any, Any]:
     """
     Function which calculates non closure corrections based on the histograms from the determination regions.
@@ -1146,12 +1146,13 @@ def calculate_non_closure_correction(
     Args:
         SRlike: Dictionary with histograms from the signal-like determination region for all relevant processes
         ARlike: Dictionary with histograms from the application-like determination region for all relevant processes
+        skip:frac: Skip the fraction scaling if FF * AR-like matches SR-like by FF construction. Set frac to 1.0
 
     Return:
         1. Ratio histogram of data (MC subtracted) in a signal-like region and data (scaled to MC subtracted) with applied fake factors in an application-like region,
         2. Process fraction in the application-like region
     """
-    frac = ARlike["data_subtracted"].GetMaximum() / ARlike["data"].GetMaximum()
+    frac = 1.0 if skip_frac else (ARlike["data_subtracted"].GetMaximum() / ARlike["data"].GetMaximum())
     predicted = ARlike["data_ff"].Clone()
     predicted.Scale(frac)
 

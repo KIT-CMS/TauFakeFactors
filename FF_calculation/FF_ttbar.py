@@ -53,7 +53,6 @@ def calculation_ttbar_FFs(
 
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF measurement from MC
     SR_hists = dict()
     AR_hists = dict()
 
@@ -67,7 +66,6 @@ def calculation_ttbar_FFs(
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-            # event filter for ttbar signal region
             log.info(f"Filtering events for the signal region. Target process: {process}")
             region_conf = copy.deepcopy(process_conf["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
@@ -79,7 +77,6 @@ def calculation_ttbar_FFs(
                 logger=logger,
             )
 
-            # event filter for ttbar application region
             log.info(f"Filtering events for the application region. Target process: {process}")
             region_conf = copy.deepcopy(process_conf["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
@@ -91,34 +88,21 @@ def calculation_ttbar_FFs(
                 logger=logger,
             )
 
-            # get binning of the dependent variable
             xbinning = array.array("d", splitting.var_bins)
             nbinsx = len(splitting.var_bins) - 1
 
             # making the histograms
-            h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
-                (
-                    process_conf["var_dependence"],
-                    f"{sample}",
-                    nbinsx,
-                    xbinning,
-                ),
+            SR_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
+                (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 process_conf["var_dependence"],
                 "weight",
-            )
-            SR_hists[sample] = h.GetValue()
+            ).GetValue()
 
-            h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
-                (
-                    process_conf["var_dependence"],
-                    f"{sample}",
-                    nbinsx,
-                    xbinning,
-                ),
+            AR_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
+                (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 process_conf["var_dependence"],
                 "weight",
-            )
-            AR_hists[sample] = h.GetValue()
+            ).GetValue()
 
     # Start of the FF calculation
     FF_hist = ff_func.calculate_ttbar_FF(
@@ -150,7 +134,7 @@ def calculation_ttbar_FFs(
         save_data=True,
     )
 
-    # doing some control plots
+    # doing control plots
     for _hist, _region, _data, _samples in [
         (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
         (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
@@ -203,10 +187,8 @@ def calculation_FF_data_scaling_factor(
     """
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF data correction
     SRlike_hists = dict()
     ARlike_hists = dict()
-    # init histogram dict for QCD SS/OS estimation
     SRlike_hists_qcd = dict()
     ARlike_hists_qcd = dict()
 
@@ -218,7 +200,6 @@ def calculation_FF_data_scaling_factor(
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        # event filter for ttbar signal-like region
         log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
@@ -230,8 +211,7 @@ def calculation_FF_data_scaling_factor(
             logger=logger,
         )
 
-        # QCD estimation from same sign in signal-like region
-        if "tau_pair_sign" in region_conf:
+        if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in signal-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
@@ -246,7 +226,6 @@ def calculation_FF_data_scaling_factor(
             logger=logger,
         )
 
-        # event filter for ttbar application-like region
         log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
@@ -258,8 +237,7 @@ def calculation_FF_data_scaling_factor(
             logger=logger,
         )
 
-        # QCD estimation from same sign in application-like region
-        if "tau_pair_sign" in region_conf:
+        if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in application-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
             raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
@@ -275,26 +253,22 @@ def calculation_FF_data_scaling_factor(
         )
 
         # make yield histograms for FF data correction
-        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
+        SRlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        SRlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
-        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+        ARlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        ARlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
         # make yield histograms for QCD estimation
-        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
+        SRlike_hists_qcd[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        SRlike_hists_qcd[sample] = h_qcd.GetValue()
+        ).GetValue()
 
-        h_qcd = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
+        ARlike_hists_qcd[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
             ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        ARlike_hists_qcd[sample] = h_qcd.GetValue()
+        ).GetValue()
 
     # calculate QCD estimation
     SRlike_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SRlike_hists_qcd)
@@ -357,7 +331,6 @@ def non_closure_correction(
 
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF measurement
     SR_hists = dict()
     AR_hists = dict()
 
@@ -373,7 +346,6 @@ def non_closure_correction(
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-            # event filter for ttbar signal region
             log.info(f"Filtering events for the signal region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
@@ -385,7 +357,6 @@ def non_closure_correction(
                 logger=logger,
             )
 
-            # event filter for ttbar application region
             log.info(f"Filtering events for the application region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
@@ -402,49 +373,33 @@ def non_closure_correction(
             # additionally evaluate the previous corrections
             corr_str = ""
             for corr_evaluator in corr_evaluators:
-                rdf_AR = corr_evaluator.evaluate_correction(
-                    rdf=rdf_AR,
-                )
+                rdf_AR = corr_evaluator.evaluate_correction(rdf=rdf_AR)
                 corr_str += f" * {corr_evaluator.corr_str}"
 
             rdf_AR = rdf_AR.Define(
                 "weight_ff", f"weight * {process}_fake_factor{corr_str}"
             )
 
-            # get binning of the dependent variable
             xbinning = array.array("d", splitting.var_bins)
             nbinsx = len(splitting.var_bins) - 1
 
-            # making the histograms
-            h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
-                (
-                    correction_conf["var_dependence"],
-                    f"{sample}",
-                    nbinsx,
-                    xbinning,
-                ),
+            SR_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
+                (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 correction_conf["var_dependence"],
                 "weight",
-            )
-            SR_hists[sample] = h.GetValue()
+            ).GetValue()
 
-            h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
-                (
-                    correction_conf["var_dependence"],
-                    f"{sample}",
-                    nbinsx,
-                    xbinning,
-                ),
+            AR_hists["ttbar_ff"] = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
+                (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
                 correction_conf["var_dependence"],
                 "weight_ff",
-            )
-            AR_hists["ttbar_ff"] = h.GetValue()
+            ).GetValue()
 
     correction_hist = ff_func.calculate_non_closure_correction_ttbar_fromMC(
         SR=SR_hists, AR=AR_hists
     )
 
-    nominal_draw_obj, smoothed_graph, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, _, correction_dict = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
         correction_option=splitting.correction_option,

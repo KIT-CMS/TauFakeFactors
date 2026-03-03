@@ -20,7 +20,7 @@ import helper.correctionlib_json as corrlib
 import helper.ff_functions as ff_func
 import helper.functions as func
 from ff_calculation import FF_calculation
-from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
+from helper.ff_evaluators import get_fake_factor_evaluator, FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 import CustomLogging as logging_helper
 
@@ -384,7 +384,7 @@ def run_non_closure_correction_for_DRtoSR(
         assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
 
         var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
@@ -451,7 +451,7 @@ def run_correction(
 
     DR_SR_correction = None
     if "DR_SR" in corr_config["target_processes"][process]:
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
@@ -553,7 +553,7 @@ def run_correction(
         )
 
     if "non_closure" in corr_config["target_processes"][process]:
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
@@ -718,7 +718,7 @@ if __name__ == "__main__":
         for_DRtoSR=True,
     )
 
-    ########### real fake factor corrections ###########
+    ########### non closure fake factor corrections ###########
 
     corrections = {
         "QCD": {},
