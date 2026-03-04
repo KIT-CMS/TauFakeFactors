@@ -480,6 +480,7 @@ class ONNXFakeFactorEvaluator:
         self.model_path = model_path
         self.model_inputs = model_inputs
         self.define_columns = define_columns
+        self.cxx_func_name = f"onnx_eval_{self.process}"
 
         self.log = logging.getLogger(logger) if logger else logging.getLogger(__name__)
         self._is_initialized = False
@@ -490,8 +491,6 @@ class ONNXFakeFactorEvaluator:
         """
         state = self.__dict__.copy()
         state['_is_initialized'] = False
-        if 'log' in state:
-            del state['log']
         return state
 
     def __setstate__(self, state):
@@ -499,7 +498,6 @@ class ONNXFakeFactorEvaluator:
         Called inside the Multiprocessing Worker to rebuild the object.
         """
         self.__dict__.update(state)
-        self.log = logging.getLogger(self.log_name)
 
     def _initialize_worker_state(self):
         """
