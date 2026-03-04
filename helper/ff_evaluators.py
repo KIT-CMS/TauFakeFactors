@@ -576,8 +576,7 @@ def get_fake_factor_evaluator(
     evaluator or the new ONNX YAML-based NN evaluator.
     """
 
-    if process in config.get("target_processes", {}) and "model_path" in config["target_processes"][process]:
-        return ONNXFakeFactorEvaluator.loading_from_config(config, process, logger)
+    log = logging.getLogger(logger)
 
     directories = ["workdir", config["workdir_name"], config["era"]]
     if not for_DRtoSR:
@@ -585,17 +584,13 @@ def get_fake_factor_evaluator(
     else:
         yaml_path = os.path.join(*directories, f"fake_factors_models_DR_SR_{config['channel']}.yaml")
 
-    # with open(yaml_path, "r") as f:
-    #     nn_config = func.configured_yaml.load(f)
+    if os.path.exists(yaml_path):
+        log.info(f"Found FF model config at {yaml_path}. Attempting to load ONNX-based evaluator for process {process}.")
+        with open(yaml_path, "r") as f:
+            nn_config = func.configured_yaml.load(f)
+        log.debug(f"NN Config for process {process}: {nn_config.get('target_processes', {}).get(process, {})}")
+        if process in nn_config.get("target_processes", {}) and "model_path" in nn_config["target_processes"][process]:
+            return ONNXFakeFactorEvaluator.loading_from_config(nn_config, process, logger)
 
-    # return ONNXFakeFactorEvaluator.loading_from_config(nn_config, process, logger)
-
+    log.info(f"Using classic correctionlib-based FakeFactorEvaluator for process {process}")
     return FakeFactorEvaluator.loading_from_file(config, process, var_dependences, for_DRtoSR, logger)
-
-    # if os.path.exists(yaml_path):
-    #     with open(yaml_path, "r") as f:
-    #         nn_config = func.configured_yaml.load(f)
-    #     if process in nn_config.get("target_processes", {}) and "model_path" in nn_config["target_processes"][process]:
-    #         return ONNXFakeFactorEvaluator.loading_from_config(nn_config, process, logger)
-
-    # return FakeFactorEvaluator.loading_from_file(config, process, var_dependences, for_DRtoSR, logger)

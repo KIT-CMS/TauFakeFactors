@@ -389,7 +389,7 @@ def run_non_closure_correction_for_DRtoSR(
             process=process,
             var_dependences=var_dependences,
             for_DRtoSR=True,
-            logger=f"ff_corrections.{process}",
+            logger=f"ff_corrections.{process}.DR_SR",
         )
 
         corrections.update(
@@ -402,7 +402,7 @@ def run_non_closure_correction_for_DRtoSR(
                 output_path=output_path,
                 for_DRtoSR=True,
                 DR_SR_evaluator=None,
-                logger=f"ff_corrections.{process}",
+                logger=f"ff_corrections.{process}.DR_SR",
             )
         )
     else:
