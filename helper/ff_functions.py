@@ -5,6 +5,7 @@ Collection of helpful functions for the fake factor calculation scripts
 import array
 import functools
 import inspect
+import io
 import itertools as itt
 import logging
 import os
@@ -16,12 +17,14 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
+import scipy.stats
+from rich.console import Console
+from rich.table import Table
 from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
-import CustomLogging as logging_helper
 import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
@@ -1294,7 +1297,7 @@ def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> 
     step_size = v_range * threshold
 
     if step_size == 0:  # all values are identical
-        return np.array([edges[0], edges[-1]]), np.array([values[0], values[-1]])
+        return np.array([edges[0], edges[-1]]), np.array([values[0]])
 
     total_variation = cumulative_activity[-1]
 
@@ -1315,6 +1318,79 @@ def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> 
     new_values = values[selected_indices]
 
     return new_edges, new_values
+
+
+def fit_to_constant(hist: ROOT.TH1) -> Tuple[float, float]:
+    """
+    Fits a histogram to a constant function and returns the fit result and its uncertainty.
+
+    Args:
+        hist: ROOT histogram to be fitted
+    Return:
+        Tuple containing the fit result (constant value) and its uncertainty
+    """
+    fit_res = hist.Fit("pol0", "SQN0")
+    if int(fit_res) == 0:
+        return fit_res.Get().Parameter(0), fit_res.Get().ParError(0)
+    else:
+        return 1.0, 0.0
+
+
+def statistical_check(
+    hist: Any,
+    corr_dict: Dict[str, np.ndarray],
+    mc_shifted_hist: Union[Dict[str, Any], None] = None
+) -> Dict[str, np.ndarray]:
+    """
+    Performs chi2 test checking compatibility of the correction with 1.0 within data uncertainties.
+    If compatible and RuntimeVariables.AUTO_SKIP_COMPATIBLE is True, correction is set to 1.0.
+    Then additionally stat. and bandwidth variations are set to 1.0. For MCShift variations,
+    if histograms are provided, they are fitted to a constant if RuntimeVariables.AUTO_SKIP_UNCERTAINTIES is False,
+    otherwise they are set to 1.0 as well.
+
+    Args:
+        hist: Histogram of the correction to be checked
+        corr_dict: Dictionary with the correction values and variations to be updated if the correction is compatible with 1.0
+        mc_shifted_hist: Dictionary with histograms for the MC shifted variations
+
+    Return:
+        Updated corr_dict with additional keys:
+            "p_value": p-value of the chi2 test,
+            "_auto_skipped": boolean if correction was set to 1.0
+    """
+
+    _, _, y_val, _, _, err_dn, err_up = build_TGraph(hist, return_components=True, add_xerrors_in_graph=True)
+
+    y, err = np.array(y_val), (np.array(err_dn) + np.array(err_up)).clip(min=1e-6) / 2.0
+    chi2, ndf = np.sum(((y - 1.0) / err) ** 2), len(y)
+    p_value = scipy.stats.chi2.sf(chi2, ndf)
+    corr_dict["p_value"] = p_value
+
+    if (p_value > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
+        corr_dict["_auto_skipped"] = True
+        corr_dict["nominal"] = np.ones_like(corr_dict["nominal"])
+
+        for key in list(corr_dict.keys()):
+            if key.startswith("Stat") or key.startswith("SystBand"):  # no stat. unct. on constant, no bandwidth
+                corr_dict[key] = np.ones_like(corr_dict[key])
+
+        if func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE:
+            for key in list(corr_dict.keys()):
+                if key.startswith("SystMCShift"):
+                    corr_dict[key] = np.ones_like(corr_dict[key])
+        else:
+            if mc_shifted_hist is None:
+                corr_dict["SystMCShiftUp"] = np.ones_like(corr_dict["nominal"])
+                corr_dict["SystMCShiftDown"] = np.ones_like(corr_dict["nominal"])
+            else:
+                mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
+                mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
+                corr_dict["SystMCShiftUp"] = np.full_like(corr_dict["nominal"], mc_up_val)
+                corr_dict["SystMCShiftDown"] = np.full_like(corr_dict["nominal"], mc_dn_val)
+    else:
+        corr_dict["_auto_skipped"] = False
+
+    return corr_dict
 
 
 def smooth_function(
@@ -1398,15 +1474,17 @@ def smooth_function(
         corr_dict["SystBandAsymUp"] = _high["nominal"]
         corr_dict["SystBandAsymDown"] = _low["nominal"]
 
+        corr_dict = statistical_check(hist, corr_dict, mc_shifted_hist)
+
         # individual downsampling for correctionlib storage, not used for plotting
         corr_dict["downsampled"] = {}
         for key in list(corr_dict):
-            if key in {"edges", "downsampled"}:
+            if key in {"edges", "downsampled", "p_value", "_auto_skipped"}:
                 continue
             corr_dict["downsampled"][key] = {
                 k: v for k, v in zip(
                     ["edges", "content"],
-                    sparsify(corr_dict["edges"], corr_dict[key])
+                    sparsify(corr_dict["edges"], corr_dict[key], threshold=sparsify_threshold),
                 )
             }
 
@@ -1572,3 +1650,109 @@ def _smooth_function(
         len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
     )
     return nominal_graph, smooth_graph, corr_dict
+
+
+def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure_corrections: dict, logger: str) -> None:
+    """
+    Generates an ASCII table summarizing which corrections were applied vs. set to 1.0
+    due to compatibility with 1.0.
+
+    Args:
+        DR_SR_corrections: Dictionary with DR/SR corrections
+        non_closure_corrections: Dictionary with non-closure corrections
+    """
+
+    log = logging.getLogger(logger)
+
+    if not func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
+        return
+
+    def flatten_categories(node, current_path=""):
+        if isinstance(node, dict) and "nominal" in node:
+            return {current_path if current_path else "Inclusive": node}
+        flattened = {}
+        if isinstance(node, dict):
+            for k, v in node.items():
+                formatted_k = str(k).replace("#", " ")  # i.e. "njets#==0"
+                new_path = f"{current_path} | {formatted_k}" if current_path else formatted_k
+                flattened.update(flatten_categories(v, new_path))
+        return flattened
+
+    merged = {}
+    for _dict in [DR_SR_corrections, non_closure_corrections]:
+        for process, correction in _dict.items():
+            if process not in merged:
+                merged[process] = {}
+            for correction_name, correction_categories in correction.items():
+                flat_correction_categories = flatten_categories(correction_categories)
+                if correction_name not in merged[process]:
+                    merged[process][correction_name] = {}
+                merged[process][correction_name].update(flat_correction_categories)
+
+    string_io = io.StringIO()  # headless Console writing to a string buffer without ANSI
+    console = Console(file=string_io, force_terminal=False, color_system=None, width=300)
+
+    log.info("Summary of corrections applied vs. set to 1.0 due to compatibility with 1.0:\n")
+    log.info(f"p-value threshold for auto-skipping: {func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE:.3f}")
+    log.info(f"Auto-skipping enabled: {func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE}")
+    log.info(f"MCshift variations also set to 1.0 if compatible: {func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE}\n")
+
+    for process, correction in merged.items():
+        if not correction:
+            continue
+
+        all_categories = set()
+        for correction_categories in correction.values():
+            all_categories.update(correction_categories.keys())
+        all_categories = sorted(list(all_categories), key=lambda x: ("", x) if x == "Inclusive" else (x, x))
+
+        table = Table(title=f"Process: {process}", show_header=True)
+        table.add_column("Correction", no_wrap=True)
+
+        for category in all_categories:
+            table.add_column(f"Status\n{category}", justify="center")
+
+        table.add_column("", justify="center", width=2)
+
+        for category in all_categories:
+            table.add_column(f"p-value\n{category}", justify="center")
+
+        for correction_name, correction_categories in correction.items():
+            row = [correction_name.replace("non_closure_", "(nc) ")]
+
+            for category in all_categories:
+                node = correction_categories.get(category)
+                if node is None:
+                    row.append("—")
+                else:
+                    if node.get("_auto_skipped", False):
+                        row.append("1.0")
+                    elif "p_value" not in node:
+                        if np.all(np.array(node["nominal"]) == 1.0):
+                            row.append("Skip")
+                        else:
+                            row.append("Binwise")
+                    else:
+                        row.append("Applied")
+
+            row.append("")
+
+            for category in all_categories:
+                node = correction_categories.get(category)
+                if node is None:
+                    row.append("—")
+                else:
+                    if "p_value" in node:
+                        pval = node['p_value']
+                        row.append(f"{pval:.3f}")
+                    else:
+                        row.append("—")
+
+            table.add_row(*row)
+
+        console.print(table)
+        console.print()
+
+    for line in string_io.getvalue().splitlines():
+        if line.strip():
+            log.info(line)

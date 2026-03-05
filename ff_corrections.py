@@ -617,11 +617,15 @@ if __name__ == "__main__":
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
+    func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_corrections_compatible_to_one", False)
+    func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_uncertainties_of_corrections_compatible_to_one", False)
+    func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE = corr_config.get("skip_corrections_p_value", 0.05)
+
     # setting default systematic variations if not present in the config
     if "correction_variations" not in corr_config:
         corr_config["correction_variations"] = ("Stat_1Sigma", "Syst_MCShift", "Syst_BandAsym")
 
-    ########### needed precalculations for DR to SR corrections ###########
+    # ########## needed precalculations for DR to SR corrections ########## #
 
     # initializing the fake factor calculation for DR to SR corrections
     ff_for_DRtoSR_file = os.path.join(
@@ -718,7 +722,7 @@ if __name__ == "__main__":
         for_DRtoSR=True,
     )
 
-    ########### non closure fake factor corrections ###########
+    # ########## non closure fake factor corrections ########## #
 
     corrections = {
         "QCD": {},
@@ -746,6 +750,8 @@ if __name__ == "__main__":
         output_path=workdir_path,
         for_DRtoSR=False,
     )
+
+    ff_func.print_statistical_compatibility_summary(DR_SR_corrections, corrections, logger="ff_corrections")
 
     with open(os.path.join(save_path, "done"), "w") as done_file:
         done_file.write("")

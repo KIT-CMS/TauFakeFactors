@@ -171,10 +171,17 @@ class RuntimeVariables(object):
 
     Attributes:
         USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
+        USE_CACHED_INTERMEDIATE_STEPS (bool): Flag to enable or disable caching of intermediate steps globally
+        RDataFrameWrapper (Any): A wrapper class for ROOT RDataFrame, can be set at runtime for different implementations histogram x-value extraction
     """
     USE_MULTIPROCESSING = True
     USE_CACHED_INTERMEDIATE_STEPS = False
+
     RDataFrameWrapper = None
+
+    SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
+    SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE = False
+    SKIP_CORRECTIONS_P_VALUE = 0.05
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
