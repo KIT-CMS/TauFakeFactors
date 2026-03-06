@@ -1360,13 +1360,29 @@ def statistical_check(
     """
 
     _, _, y_val, _, _, err_dn, err_up = build_TGraph(hist, return_components=True, add_xerrors_in_graph=True)
-
     y, err = np.array(y_val), (np.array(err_dn) + np.array(err_up)).clip(min=1e-6) / 2.0
-    chi2, ndf = np.sum(((y - 1.0) / err) ** 2), len(y)
-    p_value = scipy.stats.chi2.sf(chi2, ndf)
-    corr_dict["p_value"] = p_value
 
-    if (p_value > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
+    chi2_global, ndf = np.sum(((y - 1.0) / err) ** 2), len(y)
+    p_value_global = scipy.stats.chi2.sf(chi2_global, ndf)
+
+    chi2_bins = ((y - 1.0) / err) ** 2
+    p_values_bins = scipy.stats.chi2.sf(chi2_bins, 1)
+    p_values_bins_min = p_values_bins.min()
+    p_value_sidak = 1 - (1 - p_values_bins_min) ** len(p_values_bins)
+
+    p_value_shape_min = 1.0
+    pulls = (y - 1.0) / err
+    for window in range(1, ndf + 1):
+        for i in range(ndf - window + 1):
+            z_window = np.abs(np.sum(pulls[i: i + window]) / np.sqrt(window))
+            p_window = scipy.stats.norm.sf(z_window) * 2
+            if p_window < p_value_shape_min:
+                p_value_shape_min = p_window
+    p_shape = 1 - (1 - p_value_shape_min) ** len(y)
+
+    corr_dict["p_value"] = min(p_value_global, p_value_sidak, p_shape)
+
+    if (corr_dict["p_value"] > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
         corr_dict["_auto_skipped"] = True
         corr_dict["nominal"] = np.ones_like(corr_dict["nominal"])
 

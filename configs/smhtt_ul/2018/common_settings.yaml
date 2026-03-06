@@ -26,5 +26,5 @@ use_embedding: true
 use_center_of_mass_bins: true
 
 skip_corrections_compatible_to_one: true
-skip_uncertainties_of_corrections_compatible_to_one: true
+skip_uncertainties_of_corrections_compatible_to_one: false
 skip_corrections_p_value: 0.05
