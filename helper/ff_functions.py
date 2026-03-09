@@ -97,9 +97,70 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
                 log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
                 f = ROOT.TFile(cache_filepath, "RECREATE")
                 tree = ROOT.TTree(tree_name, tree_name)
+                _refs = []  # Keep references in memory to prevent GC during branch assignment
                 for c in cols:
-                    arr = ROOT.std.vector("float")()
-                    tree.Branch(c, arr)
+                    col_type = str(filtered_rdf.GetColumnType(c)).replace("ROOT::VecOps::RVec", "std::vector")
+
+                    if col_type.startswith("std::vector"):
+                        inner = col_type[col_type.find("<") + 1: col_type.rfind(">")]
+                        try:
+                            vec = ROOT.std.vector(inner)()
+                        except Exception:
+                            vec = ROOT.std.vector("float")()
+                        tree.Branch(c, vec)
+                        _refs.append(vec)
+                    elif "string" in col_type:
+                        s = ROOT.std.string()
+                        tree.Branch(c, s)
+                        _refs.append(s)
+                    elif "Double" in col_type or "double" in col_type:
+                        arr = array.array("d", [0.0])
+                        tree.Branch(c, arr, f"{c}/D")
+                        _refs.append(arr)
+                    elif "Float" in col_type or "float" in col_type:
+                        arr = array.array("f", [0.0])
+                        tree.Branch(c, arr, f"{c}/F")
+                        _refs.append(arr)
+                    elif "ULong" in col_type or "unsigned long" in col_type:
+                        arr = array.array("Q", [0])
+                        tree.Branch(c, arr, f"{c}/l")
+                        _refs.append(arr)
+                    elif "Long" in col_type or "long" in col_type:
+                        arr = array.array("q", [0])
+                        tree.Branch(c, arr, f"{c}/L")
+                        _refs.append(arr)
+                    elif "UInt" in col_type or "unsigned int" in col_type:
+                        arr = array.array("I", [0])
+                        tree.Branch(c, arr, f"{c}/i")
+                        _refs.append(arr)
+                    elif "Int" in col_type or "int" in col_type:
+                        arr = array.array("i", [0])
+                        tree.Branch(c, arr, f"{c}/I")
+                        _refs.append(arr)
+                    elif "UShort" in col_type or "unsigned short" in col_type:
+                        arr = array.array("H", [0])
+                        tree.Branch(c, arr, f"{c}/s")
+                        _refs.append(arr)
+                    elif "Short" in col_type or "short" in col_type:
+                        arr = array.array("h", [0])
+                        tree.Branch(c, arr, f"{c}/S")
+                        _refs.append(arr)
+                    elif "UChar" in col_type or "unsigned char" in col_type:
+                        arr = array.array("B", [0])
+                        tree.Branch(c, arr, f"{c}/b")
+                        _refs.append(arr)
+                    elif "Char" in col_type or "char" in col_type:
+                        arr = array.array("b", [0])
+                        tree.Branch(c, arr, f"{c}/B")
+                        _refs.append(arr)
+                    elif "Bool" in col_type or "bool" in col_type:
+                        arr = array.array("b", [0])
+                        tree.Branch(c, arr, f"{c}/O")
+                        _refs.append(arr)
+                    else:
+                        arr = array.array("f", [0.0])
+                        tree.Branch(c, arr, f"{c}/F")
+                        _refs.append(arr)
                 tree.Write()
                 f.Close()
             else:
@@ -622,19 +683,20 @@ def rng_seed(seed: int) -> Generator[None, None, None]:
 
 
 def controlplot_samples(
-    use_embedding: bool,
+    sample_paths: List[str],
     add_qcd: bool = True,
 ) -> List[str]:
     """
     Returns the list of samples that should be used for the control plots.
 
     Args:
-        use_embedding: Boolean to use embedding or MC for genuine tau processes
+        sample_paths: List of sample paths to dynamically determine if embedding is used
         add_qcd: Add QCD samples to the collection of samples to be plotted.
 
     Returns:
         List of samples used for controlplots
     """
+    use_embedding = any("embedding" == p.rsplit("/")[-1].rsplit(".")[0] for p in sample_paths)
     samples = [
         "diboson_J",
         "diboson_L",
@@ -1745,7 +1807,7 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
                         row.append("1.0")
                     elif "p_value" not in node:
                         if np.all(np.array(node["nominal"]) == 1.0):
-                            row.append("Skip")
+                            row.append("-")
                         else:
                             row.append("Binwise")
                     else:
@@ -1762,7 +1824,7 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
                         pval = node['p_value']
                         row.append(f"{pval:.3f}")
                     else:
-                        row.append("—")
+                        row.append("-")
 
             table.add_row(*row)
 

@@ -166,7 +166,7 @@ def fraction_calculation(
                 process=process,
                 region=_region,
                 data="data",
-                samples=ff_func.controlplot_samples(config["use_embedding"]),
+                samples=ff_func.controlplot_samples(sample_paths),
                 category=splitting.split,
                 output_path=output_path,
                 logger=logger,

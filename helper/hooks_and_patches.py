@@ -39,7 +39,7 @@ class PassThroughWrapper:
         Returns:
             Attribute value.
         """
-        try: # Try to get the attribute from this instance or subclass.
+        try:  # Try to get the attribute from this instance or subclass.
             return object.__getattribute__(self, name)
         except AttributeError:  # Fallback: delegate to the wrapped object.
             _obj = object.__getattribute__(self, "_obj")
@@ -69,7 +69,7 @@ class PassThroughWrapper:
 
 class Histo1DPatchedRDataFrame(PassThroughWrapper):
     """
-    A wrapper around ROOT.RDataFrame patching Histo1D method adding extra attributes 
+    A wrapper around ROOT.RDataFrame patching Histo1D method adding extra attributes
     (weighted counts and weighted means) to the produced histograms.
     """
 

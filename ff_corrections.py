@@ -309,7 +309,7 @@ def run_ff_calculation_for_DRtoSR(
         str,
         Dict[str, Union[Dict, List, str]],
         Dict[str, Union[Dict, str]],
-        List[str],
+        func.SamplePathList,
         str,
     ]
 ) -> Union[Dict, None]:
@@ -333,11 +333,22 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
+
+        use_data_flag = corr_config["target_processes"][process]["DR_SR"].get("compute_different_set_of_fake_factors_using_data", True)
+        if process.startswith("QCD") and not use_data_flag:
+            raise NotImplementedError("compute_different_set_of_fake_factors_using_data=False is not currently implemented for QCD.")
+        ff_config["target_processes"][process]["compute_different_set_of_fake_factors_using_data"] = use_data_flag
+
         log.info(f"Calculating fake factors for the DR to SR correction for the {process} process.")
         log.info("-" * 50)
         result = FF_calculation(
             config=ff_config,
-            sample_paths=sample_paths,
+            sample_paths=sample_paths.switch_embedding_state(
+                corr_config["target_processes"][process]["DR_SR"].get(
+                    "use_embedding",
+                    config.get("use_embedding", False)
+                )
+            ),
             output_path=output_path,
             process=process,
             logger=f"ff_corrections.{process}",
@@ -398,7 +409,12 @@ def run_non_closure_correction_for_DRtoSR(
                 corr_config=corr_config,
                 process=process,
                 evaluator=evaluator,
-                sample_paths=sample_paths,
+                sample_paths=sample_paths.switch_embedding_state(
+                    process_config["DR_SR"].get(
+                        "use_embedding",
+                        config.get("use_embedding", False)
+                    )
+                ),
                 output_path=output_path,
                 for_DRtoSR=True,
                 DR_SR_evaluator=None,
@@ -455,14 +471,14 @@ def run_correction(
             config=config,
             process=process,
             var_dependences=var_dependences,
-            for_DRtoSR=True,
+            for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("compute_different_set_of_fake_factors", True),
             logger=f"ff_corrections.{process}",
         )
 
         corr_evaluators = []
         DR_SR_config = corr_config["target_processes"][process]["DR_SR"]
 
-        for corr_var in DR_SR_config["non_closure"].keys():
+        for corr_var in DR_SR_config.get("non_closure", {}).keys():
             non_closure_corr_vars_DR_SR = corr_var
             if "split_categories" in DR_SR_config["non_closure"][corr_var]:
                 split_variables = list(DR_SR_config["non_closure"][corr_var]["split_categories"].keys())
@@ -511,10 +527,10 @@ def run_correction(
                 args_list=[
                     (
                         split_collection,
-                        config,
+                        ff_config,
                         DR_SR_config,
                         process,
-                        sample_paths,
+                        sample_paths.switch_embedding_state(DR_SR_config.get("use_embedding", config.get("use_embedding", False))),
                         save_path,
                         f"ff_corrections.{process}",
                         evaluator,
@@ -649,8 +665,8 @@ if __name__ == "__main__":
                     test_config = corr_config["target_processes"][proc].get("DR_SR", {})
 
                     is_valid_cache = all(
-                        func.nested_object_comparison(__test_config[k], test_config[k])
-                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts")
+                        func.nested_object_comparison(__test_config.get(k), test_config.get(k))
+                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "compute_different_set_of_fake_factors_using_data")
                     )
     else:
         is_valid_cache = False
@@ -685,6 +701,7 @@ if __name__ == "__main__":
                 fractions_subleading=None,
                 output_path=save_path,
                 for_corrections=True,
+                variation_scheme={process: {"unc_up": "FFuncUp", "unc_down": "FFuncDown"} for process in corr_config["target_processes"]},
             )
 
         with open(cached_DR_SR_ffs, "wb") as f:

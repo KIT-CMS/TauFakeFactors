@@ -136,8 +136,8 @@ def calculation_ttbar_FFs(
 
     # doing control plots
     for _hist, _region, _data, _samples in [
-        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
-        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
+        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(sample_paths)),
+        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(sample_paths)),
         (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
     ]:

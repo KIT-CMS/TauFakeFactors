@@ -285,6 +285,7 @@ def correction_config_comparison(
 
         is_same &= nested_object_comparison(_test_config["SRlike_cuts"], _config["SRlike_cuts"])
         is_same &= nested_object_comparison(_test_config["ARlike_cuts"], _config["ARlike_cuts"])
+        is_same &= nested_object_comparison(_test_config.get("use_embedding"), _config.get("use_embedding"))
 
     _test_config = _test_config["non_closure"][closure_corr]
     _config = _config["non_closure"][closure_corr]
@@ -682,6 +683,35 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
     return rdf
 
 
+class SamplePathList(list):
+    """
+    A list-like object holding sample paths that can safely toggle between
+    embedding and MC-only states while preserving the full unmodified list in memory.
+    """
+    def __init__(self, all_paths: List[str], use_embedding: bool):
+        self.all_paths = all_paths
+        self.is_embedded = use_embedding
+
+        filtered_paths = []
+        for f in all_paths:
+            sample = f.rsplit("/")[-1].rsplit(".")[0]
+            if use_embedding and "_T" in sample:
+                continue
+            elif not use_embedding and sample == "embedding":
+                continue
+            filtered_paths.append(f)
+
+        super().__init__(filtered_paths)
+
+    def switch_embedding_state(self, use_embedding: bool) -> 'SamplePathList':
+        if use_embedding == self.is_embedded:
+            return self
+        return SamplePathList(self.all_paths, use_embedding)
+
+    def __reduce__(self):
+        return (self.__class__, (self.all_paths, self.is_embedded))
+
+
 def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
     """
     Function to get a list of all sample paths which will be used for the fake factor calculation.
@@ -703,15 +733,7 @@ def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
         f"The following files are loaded for era: {config['era']}, channel: {config['channel']} from {general_sample_path}"
     )
     log.info("-" * 50)
-    sample_paths = glob.glob(general_sample_path)
-    tmp_list = glob.glob(general_sample_path)
-
-    for f in tmp_list:
-        sample = f.rsplit("/")[-1].rsplit(".")[0]
-        if config["use_embedding"] and "_T" in sample:
-            sample_paths.remove(f)
-        elif not config["use_embedding"] and sample == "embedding":
-            sample_paths.remove(f)
+    sample_paths = SamplePathList(glob.glob(general_sample_path), config.get("use_embedding", False))
 
     for f in sample_paths:
         log.info(f)

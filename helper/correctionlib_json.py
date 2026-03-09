@@ -115,6 +115,7 @@ def generate_ff_corrlib_json(
     fractions_subleading: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
     output_path: Union[str, None] = None,
     for_corrections: bool = False,
+    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.CorrectionSet:
     """
     Function which produces a correctionlib file based on the measured fake factors and fractions (including variations).
@@ -126,6 +127,7 @@ def generate_ff_corrlib_json(
         fractions_subleading: Second dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS] (can be relvant for tt channel)
         output_path: Path where the generated correctionlib files should be stored
         for_corrections: Boolean which decides where the produced correctionlib file is stored, this is needed because additional fake factors are needed to calculate some corrections and therefore they are stored in a different place (default: False)
+        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used. Passed to make_2D_ff and make_1D_ff
 
     Return:
         None
@@ -144,6 +146,7 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
+                    variation_scheme=variation_scheme,
                 )
             elif len(proc_conf["split_categories"]) == 2:
                 process_ff = make_2D_ff(
@@ -151,6 +154,7 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
+                    variation_scheme=variation_scheme,
                 )
             corrlib_corrections.append(process_ff)
 
@@ -210,6 +214,7 @@ def make_1D_ff(
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, str]],
+    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 1D categories.
@@ -219,6 +224,7 @@ def make_1D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION]
+        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used
 
     Return:
         Correction object from correcionlib
@@ -226,6 +232,7 @@ def make_1D_ff(
     # get categories from config
     cat_inputs = list(process_conf["split_categories"].keys())
     cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
+    variation_scheme = variation_scheme or gd.ff_variation_dict
 
     ff = cs.Correction(
         name=f"{process}_fake_factors",
@@ -283,7 +290,7 @@ def make_1D_ff(
                         flow="clamp",
                     ),
                 )
-                for unc, unc_name in gd.ff_variation_dict[process].items()
+                for unc, unc_name in variation_scheme[process].items()
             ],
             default=cs.Binning(
                 nodetype="binning",
@@ -316,6 +323,7 @@ def make_2D_ff(
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, Dict[str, str]]],
+    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 2D categories.
@@ -325,6 +333,7 @@ def make_2D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION]
+        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used
 
     Return:
         Correction object from correcionlib
@@ -333,6 +342,7 @@ def make_2D_ff(
     cat_inputs = list(process_conf["split_categories"].keys())
     cat_values_conf = process_conf["split_categories"]
     binedges_conf = process_conf["split_categories_binedges"]
+    variation_scheme = variation_scheme or gd.ff_variation_dict
     cat2_values_for_desc = []
     cat2_conf = cat_values_conf[cat_inputs[1]]
     if isinstance(cat2_conf, dict):  # New format
@@ -416,7 +426,7 @@ def make_2D_ff(
                         flow="clamp",
                     ),
                 )
-                for unc, unc_name in gd.ff_variation_dict[process].items()
+                for unc, unc_name in variation_scheme[process].items()
             ],
             default=cs.Binning(
                 nodetype="binning",

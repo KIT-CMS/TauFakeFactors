@@ -159,44 +159,56 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
     SRlike_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SRlike_hists_qcd)
     ARlike_hists["QCD"] = ff_func.QCD_SS_estimate(hists=ARlike_hists_qcd)
 
-    # calculate Wjets enriched data by subtraction all there backgrould sample
-    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
-    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
-    SRlike_hists["data_subtracted_up"] = SRlike_hists["data"].Clone()
-    ARlike_hists["data_subtracted_up"] = ARlike_hists["data"].Clone()
-    SRlike_hists["data_subtracted_down"] = SRlike_hists["data"].Clone()
-    ARlike_hists["data_subtracted_down"] = ARlike_hists["data"].Clone()
+    use_data = process_conf.get("compute_different_set_of_fake_factors_using_data", True)
 
-    for hist in SRlike_hists:
-        if hist not in [
-            "data",
-            "data_subtracted",
-            "data_subtracted_up",
-            "data_subtracted_down",
-            "Wjets",
-        ]:
-            SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
-            SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
-            SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
-    for hist in ARlike_hists:
-        if hist not in [
-            "data",
-            "data_subtracted",
-            "data_subtracted_up",
-            "data_subtracted_down",
-            "Wjets",
-        ]:
-            ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
-            ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
-            ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
+    if use_data:
+        # calculate Wjets enriched data by subtraction all there backgrould sample
+        SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_up"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_up"] = ARlike_hists["data"].Clone()
+        SRlike_hists["data_subtracted_down"] = SRlike_hists["data"].Clone()
+        ARlike_hists["data_subtracted_down"] = ARlike_hists["data"].Clone()
 
-    # Start of the FF calculation
-    FF_hist, FF_hist_up, FF_hist_down = ff_func.calculate_Wjets_FF(
-        SRlike=SRlike_hists, ARlike=ARlike_hists
-    )
+        for hist in SRlike_hists:
+            if hist not in [
+                "data",
+                "data_subtracted",
+                "data_subtracted_up",
+                "data_subtracted_down",
+                "Wjets",
+            ]:
+                SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
+                SRlike_hists["data_subtracted_up"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
+                SRlike_hists["data_subtracted_down"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
+        for hist in ARlike_hists:
+            if hist not in [
+                "data",
+                "data_subtracted",
+                "data_subtracted_up",
+                "data_subtracted_down",
+                "Wjets",
+            ]:
+                ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
+                ARlike_hists["data_subtracted_up"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+                ARlike_hists["data_subtracted_down"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
+
+        # Start of the FF calculation
+        FF_hist, FF_hist_up, FF_hist_down = ff_func.calculate_Wjets_FF(
+            SRlike=SRlike_hists, ARlike=ARlike_hists
+        )
+        ff_hists_to_fit = [FF_hist.Clone(), FF_hist_up, FF_hist_down]
+    else:
+        SRlike_hists["data_subtracted"] = SRlike_hists["Wjets"].Clone()
+        ARlike_hists["data_subtracted"] = ARlike_hists["Wjets"].Clone()
+
+        FF_hist = SRlike_hists["Wjets"].Clone()
+        FF_hist.Divide(ARlike_hists["Wjets"])
+        ff_hists_to_fit = FF_hist.Clone()
+
     # performing the fit and calculating the uncertainties
     nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
-        ff_hists=[FF_hist.Clone(), FF_hist_up, FF_hist_down],
+        ff_hists=ff_hists_to_fit,
         bin_edges=splitting.var_bins,
         logger=logger,
         fit_option=splitting.fit_option,
@@ -219,8 +231,8 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
 
     # producing some control plots
     for _hist, _region, _data, _samples in [
-        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
-        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(config["use_embedding"])),
+        (SRlike_hists, "SR_like", "data", ff_func.controlplot_samples(sample_paths)),
+        (ARlike_hists, "AR_like", "data", ff_func.controlplot_samples(sample_paths)),
         (SRlike_hists, "SR_like", "data_subtracted", ["Wjets"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["Wjets"]),
     ]:
@@ -500,7 +512,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             process=process,
             region=f"non_closure_{closure_variable}{add_str}_SRlike",
             data="data",
-            samples=ff_func.controlplot_samples(config["use_embedding"]),
+            samples=ff_func.controlplot_samples(sample_paths),
             category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
