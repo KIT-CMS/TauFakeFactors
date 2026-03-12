@@ -76,7 +76,7 @@ def _equipopulated_binned_variable(
     return np.quantile(
         a=item,
         q=np.linspace(0, 1, n_bins + 1),
-        weights=weights,
+        weights=abs(weights) if weights is not None else None,
         method="linear" if weights is None else "inverted_cdf",
     )
 
