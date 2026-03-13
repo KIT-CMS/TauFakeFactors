@@ -1422,22 +1422,27 @@ def statistical_check(
     """
 
     _, _, y_val, _, _, err_dn, err_up = build_TGraph(hist, return_components=True, add_xerrors_in_graph=True)
-    y, err = np.array(y_val), (np.array(err_dn) + np.array(err_up)).clip(min=1e-6) / 2.0
 
-    chi2_global, ndf = np.sum(((y - 1.0) / err) ** 2), len(y)
-    p_value_global = scipy.stats.chi2.sf(chi2_global, ndf)
+    if hasattr(hist, "_extra_base_errors_mc_suppressed"):
+        if func.RuntimeVariables.USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION:
+            err = hist._extra_base_errors_mc_suppressed.clip(min=1e-6)
+        else:
+            err = hist._extra_base_errors_std.clip(min=1e-6)
+    else:  # fallback
+        err = (np.array(err_dn) + np.array(err_up)).clip(min=1e-6) / 2.0
 
-    chi2_bins = ((y - 1.0) / err) ** 2
-    p_values_bins = scipy.stats.chi2.sf(chi2_bins, 1)
-    p_values_bins_min = p_values_bins.min()
-    p_value_sidak = 1 - (1 - p_values_bins_min) ** len(p_values_bins)
+    y, ndf = np.array(y_val), len(y_val)
 
-    p_value_shape_min = 1.0
-    pulls = (y - 1.0) / err
+    p_value_global = scipy.stats.chi2.sf(np.sum(((y - 1.0) / err) ** 2), ndf)
+
+    p_values_bins_min = scipy.stats.chi2.sf(((y - 1.0) / err) ** 2, 1).min()
+    p_value_sidak = 1 - (1 - p_values_bins_min) ** ndf
+
+    p_value_shape_min, pulls = 1.0, (y - 1.0) / err
     for window in range(1, ndf + 1):
         for i in range(ndf - window + 1):
             z_window = np.abs(np.sum(pulls[i: i + window]) / np.sqrt(window))
-            p_window = scipy.stats.norm.sf(z_window) * 2
+            p_window = scipy.stats.norm.sf(z_window) * 2  # two-sided p-value
             if p_window < p_value_shape_min:
                 p_value_shape_min = p_window
     p_shape = 1 - (1 - p_value_shape_min) ** len(y)
@@ -1448,23 +1453,28 @@ def statistical_check(
         corr_dict["_auto_skipped"] = True
         corr_dict["nominal"] = np.ones_like(corr_dict["nominal"])
 
-        for key in list(corr_dict.keys()):
-            if key.startswith("Stat") or key.startswith("SystBand"):  # no stat. unct. on constant, no bandwidth
-                corr_dict[key] = np.ones_like(corr_dict[key])
+        stat_unct_inclusive = 1.0 / np.sqrt(np.sum(1.0 / err**2))
 
-        if func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE:
-            for key in list(corr_dict.keys()):
-                if key.startswith("SystMCShift"):
-                    corr_dict[key] = np.ones_like(corr_dict[key])
+        for key in list(corr_dict.keys()):
+            if key.startswith("SystBand"):  # No bandwidth uncertainty for a flat line
+                corr_dict[key] = np.ones_like(corr_dict[key])
+            elif "Stat1SigmaUp" in key or key == "StatUp":
+                corr_dict[key] = np.full_like(corr_dict[key], 1.0 + stat_unct_inclusive)
+            elif "Stat1SigmaDown" in key or key == "StatDown":
+                corr_dict[key] = np.full_like(corr_dict[key], 1.0 - stat_unct_inclusive)
+            elif "Stat2SigmaUp" in key:
+                corr_dict[key] = np.full_like(corr_dict[key], 1.0 + 2.0 * stat_unct_inclusive)
+            elif "Stat2SigmaDown" in key:
+                corr_dict[key] = np.full_like(corr_dict[key], 1.0 - 2.0 * stat_unct_inclusive)
+
+        if mc_shifted_hist is None:
+            corr_dict["SystMCShiftUp"] = np.ones_like(corr_dict["nominal"])
+            corr_dict["SystMCShiftDown"] = np.ones_like(corr_dict["nominal"])
         else:
-            if mc_shifted_hist is None:
-                corr_dict["SystMCShiftUp"] = np.ones_like(corr_dict["nominal"])
-                corr_dict["SystMCShiftDown"] = np.ones_like(corr_dict["nominal"])
-            else:
-                mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
-                mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
-                corr_dict["SystMCShiftUp"] = np.full_like(corr_dict["nominal"], mc_up_val)
-                corr_dict["SystMCShiftDown"] = np.full_like(corr_dict["nominal"], mc_dn_val)
+            mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
+            mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
+            corr_dict["SystMCShiftUp"] = np.full_like(corr_dict["nominal"], mc_up_val)
+            corr_dict["SystMCShiftDown"] = np.full_like(corr_dict["nominal"], mc_dn_val)
     else:
         corr_dict["_auto_skipped"] = False
 
@@ -1773,7 +1783,6 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
     log.info("Summary of corrections applied vs. set to 1.0 due to compatibility with 1.0:\n")
     log.info(f"p-value threshold for auto-skipping: {func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE:.3f}")
     log.info(f"Auto-skipping enabled: {func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE}")
-    log.info(f"MCshift variations also set to 1.0 if compatible: {func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE}\n")
 
     for process, correction in merged.items():
         if not correction:

@@ -7,6 +7,9 @@ import ROOT
 _EXTRA_PARAM_MEANS = "_extra_weighted_means"
 _EXTRA_PARAM_COUNTS = "_extra_weighted_counts"
 _EXTRA_PARAM_FLAG = "_has_extra_params"
+_EXTRA_PARAM_BASE_VALUES = "_extra_base_values"
+_EXTRA_PARAM_BASE_ERRORS_STD = "_extra_base_errors_std"
+_EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED = "_extra_base_errors_mc_suppressed"
 
 
 class PassThroughWrapper:
@@ -134,6 +137,14 @@ class Histo1DPatchedRDataFrame(PassThroughWrapper):
             setattr(main_hist, _EXTRA_PARAM_MEANS, weighted_means)
             setattr(main_hist, _EXTRA_PARAM_FLAG, flag)
 
+            N_bins = main_hist.GetNbinsX()
+            values = np.array([main_hist.GetBinContent(i) for i in range(1, N_bins + 1)])
+            errors = np.array([main_hist.GetBinError(i) for i in range(1, N_bins + 1)])
+
+            setattr(main_hist, _EXTRA_PARAM_BASE_VALUES, values)
+            setattr(main_hist, _EXTRA_PARAM_BASE_ERRORS_STD, errors)
+            setattr(main_hist, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, errors.copy())
+
             # Overwrite GetValue so further calls return the histogram directly.
             main_hist.GetValue = lambda: main_hist
             return main_hist
@@ -228,6 +239,14 @@ def _AddError(self: ROOT.TH1, scale: float = 1.0) -> ROOT.TH1:
             setattr(clone, _EXTRA_PARAM_MEANS, new_means)
             setattr(clone, _EXTRA_PARAM_FLAG, True)
 
+        if hasattr(self, _EXTRA_PARAM_BASE_VALUES):
+            values = getattr(self, _EXTRA_PARAM_BASE_VALUES)
+            error_std = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD)
+            error_supressed = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED)
+            setattr(clone, _EXTRA_PARAM_BASE_VALUES, values + scale * error_std)
+            setattr(clone, _EXTRA_PARAM_BASE_ERRORS_STD, error_std.copy())
+            setattr(clone, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, error_supressed.copy())
+
     return clone
 
 
@@ -275,6 +294,30 @@ def patched_Add(
         setattr(self, _EXTRA_PARAM_MEANS, _means)
         setattr(self, _EXTRA_PARAM_FLAG, True)
 
+        values_1 = getattr(self, _EXTRA_PARAM_BASE_VALUES, None)
+        values_2 = getattr(other, _EXTRA_PARAM_BASE_VALUES, None)
+        if values_1 is not None and values_2 is not None:
+            values = values_1 + factor * values_2
+
+            errors_std_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+            errors_std_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+
+            assert errors_std_1 is not None and errors_std_2 is not None, "Both histograms must have _extra_base_errors_std for error propagation."
+            errors_std = np.sqrt(errors_std_1 ** 2 + (factor * errors_std_2) ** 2)
+
+            errors_supressed_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+            errors_supressed_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+
+            assert errors_supressed_1 is not None and errors_supressed_2 is not None, "Both histograms must have _extra_base_errors_mc_suppressed for error propagation."
+            if factor < 0:
+                errors_supressed = errors_supressed_1.copy()
+            else:
+                errors_supressed = np.sqrt(errors_supressed_1 ** 2 + (factor * errors_supressed_2) ** 2)
+
+            setattr(self, _EXTRA_PARAM_BASE_VALUES, values)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, errors_std)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, errors_supressed)
+
     return self
 
 
@@ -312,6 +355,31 @@ def patched_Multiply(
         setattr(self, _EXTRA_PARAM_MEANS, _means)
         setattr(self, _EXTRA_PARAM_FLAG, True)
 
+        values_1 = getattr(self, _EXTRA_PARAM_BASE_VALUES, None)
+        values_2 = getattr(other, _EXTRA_PARAM_BASE_VALUES, None)
+        if values_1 is not None and values_2 is not None:
+            values = values_1 * (factor * values_2)
+
+            error_std_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+            error_std_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+
+            assert error_std_1 is not None and error_std_2 is not None, "Both histograms must have _extra_base_errors_std for error propagation."
+            relative_error_std_1 = np.divide(error_std_1, values_1, out=np.zeros_like(error_std_1), where=(values_1 != 0))
+            relative_error_std_2 = np.divide(error_std_2, values_2, out=np.zeros_like(error_std_2), where=(values_2 != 0))
+            error_std = np.abs(values) * np.sqrt(relative_error_std_1 ** 2 + relative_error_std_2 ** 2)
+
+            error_supressed_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+            error_supressed_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+            assert error_supressed_1 is not None and error_supressed_2 is not None, "Both histograms must have _extra_base_errors_mc_suppressed for error propagation."
+
+            relative_error_supressed_1 = np.divide(error_supressed_1, values_1, out=np.zeros_like(error_supressed_1), where=(values_1 != 0))
+            relative_error_supressed_2 = np.divide(error_supressed_2, values_2, out=np.zeros_like(error_supressed_2), where=(values_2 != 0))
+            error_supressed = np.abs(values) * np.sqrt(relative_error_supressed_1 ** 2 + relative_error_supressed_2 ** 2)
+
+            setattr(self, _EXTRA_PARAM_BASE_VALUES, values)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, error_std)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, error_supressed)
+
     return self
 
 
@@ -348,6 +416,31 @@ def patched_Divide(
         setattr(self, _EXTRA_PARAM_MEANS, _means)
         setattr(self, _EXTRA_PARAM_FLAG, True)
 
+        values_1 = getattr(self, _EXTRA_PARAM_BASE_VALUES, None)
+        values_2 = getattr(other, _EXTRA_PARAM_BASE_VALUES, None)
+        if values_1 is not None and values_2 is not None:
+            values = np.divide(values_1, factor * values_2, out=np.zeros_like(values_1), where=(values_2 != 0))
+
+            error_std_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+            error_std_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+            assert error_std_1 is not None and error_std_2 is not None, "Both histograms must have _extra_base_errors_std for error propagation."
+
+            relative_error_std_1 = np.divide(error_std_1, values_1, out=np.zeros_like(error_std_1), where=(values_1 != 0))
+            relative_error_std_2 = np.divide(error_std_2, values_2, out=np.zeros_like(error_std_2), where=(values_2 != 0))
+            error_std = np.abs(values) * np.sqrt(relative_error_std_1 ** 2 + relative_error_std_2 ** 2)
+
+            error_supressed_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+            error_supressed_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+            assert error_supressed_1 is not None and error_supressed_2 is not None, "Both histograms must have _extra_base_errors_mc_suppressed for error propagation."
+
+            relative_error_supressed_1 = np.divide(error_supressed_1, values_1, out=np.zeros_like(error_supressed_1), where=(values_1 != 0))
+            relative_error_supressed_2 = np.divide(error_supressed_2, values_2, out=np.zeros_like(error_supressed_2), where=(values_2 != 0))
+            error_supressed = np.abs(values) * np.sqrt(relative_error_supressed_1 ** 2 + relative_error_supressed_2 ** 2)
+
+            setattr(self, _EXTRA_PARAM_BASE_VALUES, values)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, error_std)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, error_supressed)
+
     return self
 
 
@@ -380,6 +473,18 @@ def patched_Scale(
         setattr(self, _EXTRA_PARAM_MEANS, _means)
         setattr(self, _EXTRA_PARAM_FLAG, True)
 
+        values = getattr(self, _EXTRA_PARAM_BASE_VALUES, None)
+        if values is not None:
+            error_std = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
+            error_std_supressed = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
+
+            assert error_std is not None and error_std_supressed is not None, "Histogram must have _extra_base_errors_std and _extra_base_errors_mc_suppressed for error propagation."
+            assert error_std_supressed is not None, "Histogram must have _extra_base_errors_mc_suppressed for error propagation."
+
+            setattr(self, _EXTRA_PARAM_BASE_VALUES, values * factor)
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, error_std * abs(factor))
+            setattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, error_std_supressed * abs(factor))
+
     return self
 
 
@@ -408,6 +513,12 @@ def patched_Clone(
         setattr(clone, _EXTRA_PARAM_COUNTS, getattr(self, _EXTRA_PARAM_COUNTS))
     if hasattr(self, _EXTRA_PARAM_MEANS):
         setattr(clone, _EXTRA_PARAM_MEANS, getattr(self, _EXTRA_PARAM_MEANS))
+    if hasattr(self, _EXTRA_PARAM_BASE_VALUES):
+        setattr(clone, _EXTRA_PARAM_BASE_VALUES, getattr(self, _EXTRA_PARAM_BASE_VALUES).copy())
+    if hasattr(self, _EXTRA_PARAM_BASE_ERRORS_STD):
+        setattr(clone, _EXTRA_PARAM_BASE_ERRORS_STD, getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD).copy())
+    if hasattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED):
+        setattr(clone, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED).copy())
 
     return clone
 

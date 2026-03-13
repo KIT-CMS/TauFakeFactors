@@ -180,8 +180,8 @@ class RuntimeVariables(object):
     RDataFrameWrapper = None
 
     SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
-    SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE = False
     SKIP_CORRECTIONS_P_VALUE = 0.05
+    USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = True
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):

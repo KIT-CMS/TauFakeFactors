@@ -634,8 +634,8 @@ if __name__ == "__main__":
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
     func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_corrections_compatible_to_one", False)
-    func.RuntimeVariables.SKIP_UNCERTAINTIES_OF_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_uncertainties_of_corrections_compatible_to_one", False)
     func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE = corr_config.get("skip_corrections_p_value", 0.05)
+    func.RuntimeVariables.USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = corr_config.get("use_suppressed_mc_errors_for_correction_selection", True)
 
     # setting default systematic variations if not present in the config
     if "correction_variations" not in corr_config:
