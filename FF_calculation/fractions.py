@@ -15,6 +15,48 @@ import helper.plotting as plotting
 from helper.functions import RuntimeVariables
 
 
+def get_mc_shifted_fractions(hists: Dict[str, Any], processes: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Function to calculate the fractions of the processes for the fake factor calculation with shifted variations.
+
+    Args:
+        hists: Dictionary containing the histograms of the processes for the fraction calculation
+        processes: List of processes for which the fractions should be calculated
+
+    Returns:
+        Dictionary containing the fractions of the processes for the nominal and shifted variations
+    """
+
+    variations = {}
+    variations["nominal"] = {}
+    for process in processes:
+        variations["nominal"][process] = ff_func.calc_fraction(hists, process, processes)
+
+    for variation_process in processes:
+        hists_up, hists_down = {}, {}
+        for process in processes:
+            hists_up[process] = hists[process].Clone()
+            hists_down[process] = hists[process].Clone()
+            if process == variation_process:
+                hists_up[process] = hists_up[process].AddError(1)
+                hists_down[process] = hists_down[process].AddError(-1)
+
+                for b in range(1, hists_down[process].GetNbinsX() + 1):
+                    if hists_down[process].GetBinContent(b) < 0.0:
+                        hists_down[process].SetBinContent(b, 0.0)
+                    if hists_up[process].GetBinContent(b) < 0.0:
+                        hists_up[process].SetBinContent(b, 0.0)
+
+        variations[f"frac_{variation_process}_up"] = {}
+        variations[f"frac_{variation_process}_down"] = {}
+
+        for process in processes:
+            variations[f"frac_{variation_process}_up"][process] = ff_func.calc_fraction(hists_up, process, processes)
+            variations[f"frac_{variation_process}_down"][process] = ff_func.calc_fraction(hists_down, process, processes)
+
+    return variations
+
+
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
 def fraction_calculation(
     args: Tuple[Any, ...],
@@ -50,8 +92,6 @@ def fraction_calculation(
 
     AR_hists = dict()
     SR_hists = dict()
-    frac_hists = dict()
-    SR_frac_hists = dict()
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
@@ -103,27 +143,10 @@ def fraction_calculation(
     AR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=AR_hists)
     SR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SR_hists)
 
-    for p in config[process]["processes"]:
-        frac_hists[p] = ff_func.calc_fraction(
-            hists=AR_hists,
-            target=p,
-            processes=config[process]["processes"],
-        )
-    frac_hists = ff_func.add_fraction_variations(
-        hists=frac_hists,
-        processes=config[process]["processes"],
-    )
+    processes_list = config[process]["processes"]
 
-    for p in config[process]["processes"]:
-        SR_frac_hists[p] = ff_func.calc_fraction(
-            hists=SR_hists,
-            target=p,
-            processes=config[process]["processes"],
-        )
-    SR_frac_hists = ff_func.add_fraction_variations(
-        hists=SR_frac_hists,
-        processes=config[process]["processes"],
-    )
+    frac_hists = get_mc_shifted_fractions(AR_hists, processes_list)
+    SR_frac_hists = get_mc_shifted_fractions(SR_hists, processes_list)
 
     plotting.plot_fractions(
         variable=process_conf["var_dependence"],

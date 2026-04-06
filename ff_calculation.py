@@ -7,13 +7,13 @@ import logging
 import os
 from typing import Dict, List, Tuple, Union
 
+import CustomLogging as logging_helper
 import FF_calculation.FF_QCD as FF_QCD
 import FF_calculation.FF_ttbar as FF_ttbar
 import FF_calculation.FF_Wjets as FF_Wjets
 import helper.correctionlib_json as corrlib
 import helper.ff_functions as ff_func
 import helper.functions as func
-import CustomLogging as logging_helper
 from FF_calculation.fractions import fraction_calculation
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
 
@@ -55,13 +55,15 @@ FF_CALCULATION_FUNCTIONS = {
 }
 
 FF_DATA_SCALING_FACTOR_CALCULATION_FUNCTIONS = {
-    **{k: lambda *args, **kwargs: (None, None) for k in {
-        "QCD",
-        "QCD_subleading",
-        "Wjets",
-        "process_fractions",
-        "process_fractions_subleading",
-    }
+    **{
+        k: lambda *args, **kwargs: (None, None)
+        for k in {
+            "QCD",
+            "QCD_subleading",
+            "Wjets",
+            "process_fractions",
+            "process_fractions_subleading",
+        }
     },  # only necessary for ttbar and ttbar_subleading
     "ttbar": FF_ttbar.calculation_FF_data_scaling_factor,
     "ttbar_subleading": FF_ttbar.calculation_FF_data_scaling_factor,
@@ -142,9 +144,7 @@ def FF_calculation(
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"ff_calculation.{args[0]}")
-def run_ff_calculation(
-    args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]
-) -> Tuple[Tuple, Dict]:
+def run_ff_calculation(args: Tuple[str, Dict[str, Union[Dict, List, str]], List[str], str]) -> Tuple[Tuple, Dict]:
     """
     This function can be used for multiprocessing. It runs the fake factor calculation step for a specified process.
 

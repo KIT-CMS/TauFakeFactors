@@ -16,7 +16,6 @@ except ImportError:
     np = None
 
 import helper.functions as func
-import CustomLogging as logging_helper
 
 
 class FakeFactorEvaluator:

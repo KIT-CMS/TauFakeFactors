@@ -91,9 +91,9 @@ def lumi_weight(rdf: Any, era: str) -> Any:
     elif era == "2016postVFP":
         rdf = rdf.Redefine("weight", "weight * 16.81 * 1000.")
     elif era == "2017":
-        rdf = rdf.Redefine("weight", "weight * 41.48 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 42.07 * 1000.")
     elif era == "2018":
-        rdf = rdf.Redefine("weight", "weight * 59.83 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 59.56 * 1000.")
     elif era == "2022preEE":
         rdf = rdf.Redefine("weight", "weight * 7.9804 * 1000.")
     elif era == "2022postEE":
