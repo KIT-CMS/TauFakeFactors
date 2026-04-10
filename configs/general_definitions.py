@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import Any, List, Union
 
 import ROOT
@@ -13,8 +13,22 @@ default_correction_option = "smoothed"
 
 default_CMS_text = "Own work (Data/Simulation)"
 
-default_correction_variations = ("StatShift", "SystMCShift", "SystBandAsym")
-
+VARIATIONS = namedtuple(
+    "Variations", [
+        "STAT", 
+        "SYST_MC", 
+        "SYST_BAND_ASYM",
+        "SYST_BAND_LOW",
+        "SYST_BAND_HIGH",
+    ],
+)(
+    STAT="StatShift",
+    SYST_MC="SystMCShift",
+    SYST_BAND_ASYM="SystBandAsym",
+    SYST_BAND_LOW="SystBandLow",
+    SYST_BAND_HIGH="SystBandHigh"
+)
+default_correction_variations = (VARIATIONS.STAT, VARIATIONS.SYST_MC, VARIATIONS.SYST_BAND_ASYM)
 
 class AutoGetDict(dict):
     def __getitem__(self, key: Any) -> Any:

@@ -1345,37 +1345,32 @@ def smooth_function(
         correction_option=correction_option,
         bandwidth=bandwidth,
     )
-    stat = "StatShiftFF" if for_FF else "StatShift"
-    syst_MCshift = "SystMCShiftFF" if for_FF else "SystMCShift"
-    syst_BandHigh = "SystBandHighFF" if for_FF else "SystBandHigh"
-    syst_BandLow = "SystBandLowFF" if for_FF else "SystBandLow"
-    syst_BandAsym = "SystBandAsymFF" if for_FF else "SystBandAsym"
 
     nominal_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=1.0)
-    corr_dict["default"]["variations"][stat + "Up"] = corr_dict["default"]["variations"]["StatUp"]
-    corr_dict["default"]["variations"][stat + "Down"] = corr_dict["default"]["variations"]["StatDown"]
+    corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Up"] = corr_dict["default"]["variations"]["StatUp"]
+    corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Down"] = corr_dict["default"]["variations"]["StatDown"]
 
     corr_dict["default"]["variations"].pop("StatUp")
     corr_dict["default"]["variations"].pop("StatDown")
     
     if mc_shifted_hist is None:
-        corr_dict["default"]["variations"][syst_MCshift + "Up"] = corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_MCshift + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = corr_dict["default"]["nominal"]
     else:
         _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
         _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
 
-        corr_dict["default"]["variations"][syst_MCshift + "Up"] = _mc_sub_up["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_MCshift + "Down"] = _mc_sub_down["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = _mc_sub_up["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = _mc_sub_down["default"]["nominal"]
 
     if correction_option == "binwise" or correction_option == "skip":
-        corr_dict["default"]["variations"][syst_BandHigh + "Up"] = corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandHigh + "Down"] = corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandLow + "Up"] = corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandLow + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Down"] = corr_dict["default"]["nominal"]
 
-        corr_dict["default"]["variations"][syst_BandAsym + "Up"] = corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandAsym + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Down"] = corr_dict["default"]["nominal"]
 
         # individual downsampling for correctionlib storage, not used for plotting
         corr_dict["downsampled"] = {"nominal": None, "variations": {}}
@@ -1394,13 +1389,13 @@ def smooth_function(
         _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
         _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
 
-        corr_dict["default"]["variations"][syst_BandHigh + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandHigh + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
 
-        corr_dict["default"]["variations"][syst_BandLow + "Up"] = (_low["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandLow + "Down"] = (corr_dict["default"]["nominal"] - _low["default"]["nominal"]) + corr_dict["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandAsym + "Up"] = _high["default"]["nominal"]
-        corr_dict["default"]["variations"][syst_BandAsym + "Down"] = _low["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Up"] = (_low["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Down"] = (corr_dict["default"]["nominal"] - _low["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Up"] = _high["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Down"] = _low["default"]["nominal"]
 
         # individual downsampling for correctionlib storage, not used for plotting
         corr_dict["downsampled"] = {"nominal": None, "variations": {}}

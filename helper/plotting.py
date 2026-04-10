@@ -484,13 +484,11 @@ def plot_FFs(
         gd.color_dict["graph_bandwidth_unct"],
         gd.color_dict["graph_mc_sub_unct"],
     )
-    
-    stat_key, syst_mc_key, syst_band_key = "StatShiftFF", "SystMCShiftFF", "SystBandAsymFF"
 
     if "poly" in draw_option:
         up, down = (
-            unc_variations[stat_key + "Up"],
-            unc_variations[stat_key + "Down"],
+            unc_variations[gd.VARIATIONS.STAT + "Up"],
+            unc_variations[gd.VARIATIONS.STAT + "Down"],
         )
 
         ax.plot(x_sample, nominal, lw=lw, color=color)
@@ -500,8 +498,8 @@ def plot_FFs(
         handlers.append((Patch(color=color_stat_unct, alpha=0.25), Line2D([-1], [-1], color=color_stat_unct, lw=lw)))
         labels.append(gd.label_dict["fit_graph_unc"][draw_option])
 
-        if syst_mc_key + "Up" in unc_variations and syst_mc_key + "Down" in unc_variations:
-            up_mc, down_mc = unc_variations[syst_mc_key + "Up"], unc_variations[syst_mc_key + "Down"]
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            up_mc, down_mc = unc_variations[gd.VARIATIONS.SYST_MC + "Up"], unc_variations[gd.VARIATIONS.SYST_MC + "Down"]
             ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=color_mc_sub_unct)
 
             handlers.append((Patch(color=color_mc_sub_unct, alpha=0.25), Line2D([-1], [-1], color=color_mc_sub_unct, lw=3)))
@@ -529,9 +527,9 @@ def plot_FFs(
                 ls=_ls,
             )
         
-        unc_list = [stat_key, syst_band_key]
-        if syst_mc_key + "Up" in unc_variations and syst_mc_key + "Down" in unc_variations:
-            unc_list += [syst_mc_key]
+        unc_list = [gd.VARIATIONS.STAT, gd.VARIATIONS.SYST_BAND_ASYM]
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            unc_list += [gd.VARIATIONS.SYST_MC]
 
         total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, unc_list)
 
@@ -546,17 +544,17 @@ def plot_FFs(
         )
 
         _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
-        stat_unct_up, *_ = _step(ax, pad(unc_variations[stat_key + "Up"]))
-        stat_unct_down, *_ = _step(ax, pad(unc_variations[stat_key + "Down"]))
+        stat_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.STAT + "Up"]))
+        stat_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.STAT + "Down"]))
 
         _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
-        bandwidth_unct_up, *_ = _step(ax, pad(unc_variations[syst_band_key + "Up"]), _ls="dashed")
-        bandwidth_unct_down, *_ = _step(ax, pad(unc_variations[syst_band_key + "Down"]), _ls="dashdot")
+        bandwidth_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"]), _ls="dashed")
+        bandwidth_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"]), _ls="dashdot")
 
-        if syst_mc_key + "Up" in unc_variations and syst_mc_key + "Down" in unc_variations:
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
             _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
-            mc_sub_unct_up, *_ = _step(ax, pad(unc_variations[syst_mc_key + "Up"]), _ls="dashed")
-            mc_sub_unct_down, *_ = _step(ax, pad(unc_variations[syst_mc_key + "Down"]), _ls="dashdot")
+            mc_sub_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"]), _ls="dashed")
+            mc_sub_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"]), _ls="dashdot")
 
         step(ax, pad(nominal))
         
@@ -584,7 +582,7 @@ def plot_FFs(
             "Bandwidth unct.",
         ]
         
-        if syst_mc_key + "Up" in unc_variations and syst_mc_key + "Down" in unc_variations:
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
             handlers.append(VTuple((mc_sub_unct_up, mc_sub_unct_down)))
             labels.append("MC subtraction unct.")
 
@@ -1078,10 +1076,8 @@ def plot_correction(
         ax[0].text(0.08, 0.8, "DR to SR correction", transform=ax[0].transAxes, fontsize=20)
 
     hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20)
-
-    stat_key, syst_mc_key, syst_band_key = "StatShift", "SystMCShift", "SystBandAsym"
     
-    total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, [stat_key, syst_mc_key, syst_band_key])
+    total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, [gd.VARIATIONS.STAT, gd.VARIATIONS.SYST_MC, gd.VARIATIONS.SYST_BAND_ASYM])
 
     ax[0].fill_between(
         corr_graph["edges"],
@@ -1103,22 +1099,22 @@ def plot_correction(
     )
 
     _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
-    stat_unct_up, *_ = _step(ax[0], pad(unc_variations[stat_key + "Up"]))
-    stat_unct_down, *_ = _step(ax[0], pad(unc_variations[stat_key + "Down"]))
-    _step(ax[1], pad(unc_variations[stat_key + "Up"] / nominal))
-    _step(ax[1], pad(unc_variations[stat_key + "Down"] / nominal))
+    stat_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.STAT + "Up"]))
+    stat_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.STAT + "Down"]))
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.STAT + "Up"] / nominal))
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.STAT + "Down"] / nominal))
 
     _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
-    bandwidth_unct_up, *_ = _step(ax[0], pad(unc_variations[syst_band_key + "Up"]), _ls="dashed")
-    bandwidth_unct_down, *_ = _step(ax[0], pad(unc_variations[syst_band_key + "Down"]), _ls="dashdot")
-    _step(ax[1], pad(unc_variations[syst_band_key + "Up"] / nominal), _ls="dashed")
-    _step(ax[1], pad(unc_variations[syst_band_key + "Down"] / nominal), _ls="dashdot")
+    bandwidth_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"]), _ls="dashed")
+    bandwidth_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"]), _ls="dashdot")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"] / nominal), _ls="dashed")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"] / nominal), _ls="dashdot")
 
     _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
-    mc_sub_unct_up, *_ = _step(ax[0], pad(unc_variations[syst_mc_key + "Up"]), _ls="dashed")
-    mc_sub_unct_down, *_ = _step(ax[0], pad(unc_variations[syst_mc_key + "Down"]), _ls="dashdot")
-    _step(ax[1], pad(unc_variations[syst_mc_key + "Up"] / nominal), _ls="dashed")
-    _step(ax[1], pad(unc_variations[syst_mc_key + "Down"] / nominal), _ls="dashdot")
+    mc_sub_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"]), _ls="dashed")
+    mc_sub_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"]), _ls="dashdot")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"] / nominal), _ls="dashed")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"] / nominal), _ls="dashdot")
 
     step(ax[0], pad(nominal))
 
