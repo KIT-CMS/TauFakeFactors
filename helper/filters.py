@@ -156,6 +156,29 @@ def tau_origin_split(rdf: Any, channel: str, tau_gen_mode: str) -> Any:
                 f"Eventfilter: tau gen match: tt: Such a tau gen. match is not defined: {tau_gen_mode}"
             )
 
+    elif channel == "mm":
+        if tau_gen_mode == "all":
+            pass
+        elif tau_gen_mode == "T":
+            rdf = rdf.Filter(
+                "(gen_match_1 == 4) && (gen_match_2 == 4)",
+                "tau gen. match split cuts",
+            )
+        elif tau_gen_mode == "J":
+            rdf = rdf.Filter(
+                "(gen_match_1 == 6) || (gen_match_2 == 6)",
+                "tau gen. match split cuts",
+            )
+        elif tau_gen_mode == "L":
+            rdf = rdf.Filter(
+                "(!((gen_match_1 == 4) && (gen_match_2 == 4)) && !((gen_match_1 == 6) || (gen_match_2 == 6)))",
+                "tau gen. match split cuts",
+            )
+        else:
+            raise ValueError(
+                f"Eventfilter: tau gen match: mm: Such a tau gen. match is not defined: {tau_gen_mode}"
+            )
+
     else:
         raise ValueError(
             f"Eventfilter: tau gen match: Such a channel is not defined: {channel}"

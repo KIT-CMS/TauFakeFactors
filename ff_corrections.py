@@ -21,7 +21,7 @@ import helper.ff_functions as ff_func
 import helper.functions as func
 from ff_calculation import FF_calculation
 from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
-from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame
 import CustomLogging as logging_helper
 
 parser = argparse.ArgumentParser()
@@ -613,7 +613,6 @@ if __name__ == "__main__":
     if len(sample_paths) == 0:
         raise Exception("No input files found!")
 
-    func.RuntimeVariables.RDataFrameWrapper = PassThroughWrapper
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 

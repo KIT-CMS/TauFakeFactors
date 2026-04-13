@@ -330,10 +330,50 @@ def latex_adjust_selection_string(string):
     return string
 
 
+def calc_total_uncertainty(
+    nominal: np.ndarray,
+    variations: Dict[str, np.ndarray], 
+    variation_keys: list, 
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Function to calculate the total uncertainty by summing up the individual uncertainties in quadrature.
+
+    Args:
+        nominal (np.ndarray): Nominal values
+        variations (Dict[str, np.ndarray]): Dictionary of variations (e.g., up/down) for each uncertainty
+        variation_keys (list): List of variation keys (e.g., "SystMCShiftFF", "StatShift") that should be 
+            considered for the total uncertainty calculation
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Total uncertainty up and down
+    """
+
+    def calculate_total_uncertainty_up(variations, nominal, variation_key):
+        return np.maximum(0, np.maximum(variations[f"{variation_key}Up"] - nominal, variations[f"{variation_key}Down"] - nominal)) ** 2
+
+    def calculate_total_uncertainty_down(variations, nominal, variation_key):
+        return np.maximum(0, -np.minimum(variations[f"{variation_key}Up"] - nominal, variations[f"{variation_key}Down"] - nominal)) ** 2
+
+    # Calculate total uncertainties
+    total_unct_up = np.sqrt(
+        sum(
+            calculate_total_uncertainty_up(variations, nominal, key)
+            for key in variation_keys
+        )
+    )
+    total_unct_down = np.sqrt(
+        sum(
+            calculate_total_uncertainty_down(variations, nominal, key)
+            for key in variation_keys
+        )
+    )
+    return (total_unct_up, total_unct_down)
+
+
 def plot_FFs(
     variable: str,
     ff_ratio: Any,
-    uncertainties: Dict[str, Callable],
+    variations: Dict[str, Callable],
     era: str,
     channel: str,
     process: str,
@@ -349,7 +389,7 @@ def plot_FFs(
     Args:
         variable: Name of the variable the fake factor is measured in
         ff_ratio: Histogram of the ratio (fake factor) or TGraph
-        uncertainties: Dictionary with graphs for each uncertainty/variation corresponding to "ff_ratio"
+        variations: Dictionary with functions for each uncertainty/variation corresponding to "ff_ratio"
         era: Information about the era is added to the plot
         channel: Information about the channel is added to the plot
         process: Information about the process is added to the plot
@@ -365,7 +405,8 @@ def plot_FFs(
     log = logging.getLogger(logger)
 
     ff_ratio = deepcopy(ff_ratio)
-    uncertainties = deepcopy(uncertainties)
+    nominal = deepcopy(variations["nominal"])
+    unc_variations = deepcopy(variations["variations"])
 
     recreation_summary = dict(
         variable=variable,
@@ -376,9 +417,6 @@ def plot_FFs(
         draw_option=draw_option,
     )
 
-    nominal_key, unc_up_key, unc_down_key = "nominal", "unc_up", "unc_down"
-    mc_up_key, mc_down_key = "mc_subtraction_unc_up", "mc_subtraction_unc_down"
-
     if isinstance(ff_ratio, ROOT.TH1):
         _, x, y, x_err, y_err = TH1_to_numpy(ff_ratio, is_data=True)
     elif isinstance(ff_ratio, ROOT.TGraphAsymmErrors):
@@ -387,16 +425,22 @@ def plot_FFs(
         x, y, x_err, y_err = ff_ratio
 
     _xmin, _xmax = x[0] - x_err[0][0], x[-1] + x_err[1][-1]
-    x_sample = np.linspace(_xmin, _xmax, 1000)
-    for k in uncertainties:  # for recreating the plot
-        if not isinstance(uncertainties[k], np.ndarray):
-            uncertainties[k] = np.vectorize(uncertainties[k])(x_sample)
+    _nbins = len(nominal) if isinstance(nominal, np.ndarray) else 1000
+    x_sample = np.linspace(_xmin, _xmax, _nbins)
+    
+    nominal = nominal if isinstance(nominal, np.ndarray) else np.vectorize(nominal)(x_sample)
+    for k in unc_variations:  # for recreating the plot
+        if not isinstance(unc_variations[k], np.ndarray):
+            unc_variations[k] = np.vectorize(unc_variations[k])(x_sample)
 
+    variations["nominal"] = nominal
+    variations["variations"] = unc_variations
+    
     fig, ax = plt.subplots(1, 1, figsize=(11, 8))
     ax.set(
         xlim=(_xmin, _xmax),
-        xlabel=gd.variable_dict[channel].get(variable, variable),
         ylim=(0, max(0.3, 1.7 * max(y))),
+        xlabel=gd.variable_dict[channel].get(variable, variable),
         ylabel=gd.FF_YAxis[process],
     )
 
@@ -426,42 +470,136 @@ def plot_FFs(
         capsize=3,
         elinewidth=2,
     )
-
-    handlers, labels = [data_handler], ["measured"]
-
-    color = gd.color_dict["fit_graph_unc"]
-    nominal, up, down = (
-        uncertainties[nominal_key],
-        uncertainties[unc_up_key],
-        uncertainties[unc_down_key],
+    
+    lw = 3
+    
+    (
+        color,
+        color_stat_unct,
+        color_bandwidth_unct,
+        color_mc_sub_unct,
+    ) = (
+        gd.color_dict["graph_nominal"],
+        gd.color_dict["graph_stat_unct"],
+        gd.color_dict["graph_bandwidth_unct"],
+        gd.color_dict["graph_mc_sub_unct"],
     )
 
-    ax.plot(x_sample, nominal, lw=3, color=color)
-    ax.fill_between(x_sample, up, down, alpha=0.25, lw=0, color=color)
+    if "poly" in draw_option:
+        up, down = (
+            unc_variations[gd.VARIATIONS.STAT + "Up"],
+            unc_variations[gd.VARIATIONS.STAT + "Down"],
+        )
 
-    handlers.append((Patch(color=color, alpha=0.25), Line2D([-1], [-1], color=color, lw=3)))
-    labels.append(gd.label_dict["fit_graph_unc"][draw_option])
+        ax.plot(x_sample, nominal, lw=lw, color=color)
+        ax.fill_between(x_sample, up, down, alpha=0.25, lw=0, color=color_stat_unct)
 
-    if mc_up_key in uncertainties and mc_down_key in uncertainties:
-        up_mc, down_mc = uncertainties[mc_up_key], uncertainties[mc_down_key]
-        mc_color = gd.color_dict["fit_graph_mc_sub"]
-        ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=mc_color)
+        handlers, labels = [data_handler], ["measured"]
+        handlers.append((Patch(color=color_stat_unct, alpha=0.25), Line2D([-1], [-1], color=color_stat_unct, lw=lw)))
+        labels.append(gd.label_dict["fit_graph_unc"][draw_option])
 
-        handlers.append((Patch(color=mc_color, alpha=0.25), Line2D([-1], [-1], color=mc_color, lw=3)))
-        labels.append(gd.label_dict["fit_graph_mc_sub"][draw_option])
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            up_mc, down_mc = unc_variations[gd.VARIATIONS.SYST_MC + "Up"], unc_variations[gd.VARIATIONS.SYST_MC + "Down"]
+            ax.fill_between(x_sample, up_mc, down_mc, alpha=0.25, lw=0, color=color_mc_sub_unct)
 
-    # Add legend with both the combined entry and the histogram
-    ax.legend(
-        handles=handlers,
-        labels=labels,
-        loc="upper right",
-        fontsize=20,
-        labelspacing=0.3,
-    )
+            handlers.append((Patch(color=color_mc_sub_unct, alpha=0.25), Line2D([-1], [-1], color=color_mc_sub_unct, lw=3)))
+            labels.append(gd.label_dict["fit_graph_mc_sub"][draw_option])
 
+        # Add legend with both the combined entry and the histogram
+        ax.legend(
+            handles=handlers,
+            labels=labels,
+            loc="upper right",
+            fontsize=20,
+            labelspacing=0.3,
+        )
+    else:
+        def pad(item):
+            return np.pad(item, (0, 1), "edge")
+
+        def step(_ax, _y, _c=color, _lw=lw, _ls="-"):
+            return _ax.step(
+                variations["edges"],
+                _y,
+                where="post",
+                color=_c,
+                lw=_lw,
+                ls=_ls,
+            )
+        
+        unc_list = [gd.VARIATIONS.STAT, gd.VARIATIONS.SYST_BAND_ASYM]
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            unc_list += [gd.VARIATIONS.SYST_MC]
+
+        total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, unc_list)
+
+        ax.fill_between(
+            variations["edges"],
+            pad(nominal - total_unct_down),
+            pad(nominal + total_unct_up),
+            alpha=0.15,
+            step="post",
+            color=color,
+            lw=0,
+        )
+
+        _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
+        stat_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.STAT + "Up"]))
+        stat_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.STAT + "Down"]))
+
+        _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
+        bandwidth_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"]), _ls="dashed")
+        bandwidth_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"]), _ls="dashdot")
+
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
+            mc_sub_unct_up, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"]), _ls="dashed")
+            mc_sub_unct_down, *_ = _step(ax, pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"]), _ls="dashdot")
+
+        step(ax, pad(nominal))
+        
+        data_handler = ax.errorbar(
+            x,
+            y,
+            xerr=x_err,
+            yerr=y_err,
+            fmt="o",
+            color="black",
+            capsize=3,
+            elinewidth=2,
+        )
+        
+        handlers = [
+            data_handler,
+            MergedTuple((Patch(color=color, alpha=0.15), Line2D([], [], color=color, linewidth=lw))),
+            VTuple((stat_unct_up, stat_unct_down)),
+            VTuple((bandwidth_unct_up, bandwidth_unct_down)),
+        ]
+        labels = [
+            "measured",
+            "Smoothed Curve + Total unct.",
+            "Stat. unct.",
+            "Bandwidth unct.",
+        ]
+        
+        if gd.VARIATIONS.SYST_MC + "Up" in unc_variations and gd.VARIATIONS.SYST_MC + "Down" in unc_variations:
+            handlers.append(VTuple((mc_sub_unct_up, mc_sub_unct_down)))
+            labels.append("MC subtraction unct.")
+
+        ax.legend(
+            handles=handlers,
+            labels=labels,
+            loc="upper right",
+            fontsize=18,
+            labelspacing=0.3,
+            handler_map=HANDLER_MAP,
+        )
+        
     fig.tight_layout()
 
-    selection = "_".join([f"{var}_{category[var]}" for var in category.keys()])
+    selection = ""
+    if category is not None:
+        selection = "_".join([f"{var}_{category[var]}" for var in category.keys()])
     base_filename = f"ff_{variable}_{process}_{selection}"
     save_plots_and_data(
         output_path=output_path,
@@ -470,7 +608,7 @@ def plot_FFs(
             f"data_{base_filename}",
             {
                 "ff_ratio": (x, y, x_err, y_err),
-                "uncertainties": uncertainties,
+                "variations": variations,
                 **recreation_summary,
             },
         ) if save_data else None,
@@ -852,7 +990,9 @@ def plot_correction(
     log = logging.getLogger(logger)
 
     corr_hist = deepcopy(corr_hist)
-    corr_graph = deepcopy(corr_graph)
+    nominal = deepcopy(corr_graph["nominal"])
+    unc_variations = deepcopy(corr_graph["variations"])
+    
 
     recreation_summary = dict(
         variable=variable,
@@ -872,10 +1012,10 @@ def plot_correction(
         color_bandwidth_unct,
         color_mc_sub_unct,
     ) = (
-        gd.color_dict["correction_graph"],
-        gd.color_dict["correction_graph_stat_unct"],
-        gd.color_dict["correction_graph_bandwidth_unct"],
-        gd.color_dict["correction_graph_mc_sub_unct"],
+        gd.color_dict["graph_nominal"],
+        gd.color_dict["graph_stat_unct"],
+        gd.color_dict["graph_bandwidth_unct"],
+        gd.color_dict["graph_mc_sub_unct"],
     )
 
     def pad(item):
@@ -884,7 +1024,7 @@ def plot_correction(
     def step(_ax, _y, _c=color, _lw=lw, _ls="-"):
         return _ax.step(
             corr_graph["edges"],
-            pad(corr_graph[_y]) if isinstance(_y, str) else _y,
+            _y,
             where="post",
             color=_c,
             lw=_lw,
@@ -936,55 +1076,13 @@ def plot_correction(
         ax[0].text(0.08, 0.8, "DR to SR correction", transform=ax[0].transAxes, fontsize=20)
 
     hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20)
-
-    total_unct_up = np.sqrt(
-        np.maximum(
-            0,
-            np.maximum(
-                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
-                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
-            )
-        ) ** 2 + np.maximum(
-            0,
-            np.maximum(
-                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
-                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
-            )
-        ) ** 2 + np.maximum(
-            0,
-            np.maximum(
-                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
-                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
-            )
-        ) ** 2
-    )
-
-    total_unct_down = np.sqrt(
-        np.maximum(
-            0,
-            -np.minimum(
-                corr_graph["Stat1SigmaUp"] - corr_graph["nominal"],
-                corr_graph["Stat1SigmaDown"] - corr_graph["nominal"],
-            )
-        ) ** 2 + np.maximum(
-            0,
-            -np.minimum(
-                corr_graph["SystBandAsymUp"] - corr_graph["nominal"],
-                corr_graph["SystBandAsymDown"] - corr_graph["nominal"],
-            )
-        ) ** 2 + np.maximum(
-            0,
-            -np.minimum(
-                corr_graph["SystMCShiftUp"] - corr_graph["nominal"],
-                corr_graph["SystMCShiftDown"] - corr_graph["nominal"],
-            )
-        ) ** 2
-    )
+    
+    total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, [gd.VARIATIONS.STAT, gd.VARIATIONS.SYST_MC, gd.VARIATIONS.SYST_BAND_ASYM])
 
     ax[0].fill_between(
         corr_graph["edges"],
-        pad(corr_graph["nominal"] - total_unct_down),
-        pad(corr_graph["nominal"] + total_unct_up),
+        pad(nominal - total_unct_down),
+        pad(nominal + total_unct_up),
         alpha=0.15,
         step="post",
         color=color,
@@ -992,8 +1090,8 @@ def plot_correction(
     )
     ax[1].fill_between(
         corr_graph["edges"],
-        pad((corr_graph["nominal"] - total_unct_down) / corr_graph["nominal"]),
-        pad((corr_graph["nominal"] + total_unct_up) / corr_graph["nominal"]),
+        pad((nominal - total_unct_down) / nominal),
+        pad((nominal + total_unct_up) / nominal),
         alpha=0.15,
         step="post",
         color=color,
@@ -1001,26 +1099,26 @@ def plot_correction(
     )
 
     _step = partial(step, _lw=lw - 2, _c=color_stat_unct)
-    stat_unct_up, *_ = _step(ax[0], "Stat1SigmaUp")
-    stat_unct_down, *_ = _step(ax[0], "Stat1SigmaDown")
-    _step(ax[1], pad(corr_graph["Stat1SigmaUp"] / corr_graph["nominal"]))
-    _step(ax[1], pad(corr_graph["Stat1SigmaDown"] / corr_graph["nominal"]))
+    stat_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.STAT + "Up"]))
+    stat_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.STAT + "Down"]))
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.STAT + "Up"] / nominal))
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.STAT + "Down"] / nominal))
 
     _step = partial(step, _lw=lw - 2, _c=color_bandwidth_unct)
-    bandwidth_unct_up, *_ = _step(ax[0], "SystBandAsymUp", _ls="dashed")
-    bandwidth_unct_down, *_ = _step(ax[0], "SystBandAsymDown", _ls="dashdot")
-    _step(ax[1], pad(corr_graph["SystBandAsymUp"] / corr_graph["nominal"]), _ls="dashed")
-    _step(ax[1], pad(corr_graph["SystBandAsymDown"] / corr_graph["nominal"]), _ls="dashdot")
+    bandwidth_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"]), _ls="dashed")
+    bandwidth_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"]), _ls="dashdot")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Up"] / nominal), _ls="dashed")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_BAND_ASYM + "Down"] / nominal), _ls="dashdot")
 
     _step = partial(step, _lw=lw - 2, _c=color_mc_sub_unct)
-    mc_sub_unct_up, *_ = _step(ax[0], "SystMCShiftUp", _ls="dashed")
-    mc_sub_unct_down, *_ = _step(ax[0], "SystMCShiftDown", _ls="dashdot")
-    _step(ax[1], pad(corr_graph["SystMCShiftUp"] / corr_graph["nominal"]), _ls="dashed")
-    _step(ax[1], pad(corr_graph["SystMCShiftDown"] / corr_graph["nominal"]), _ls="dashdot")
+    mc_sub_unct_up, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"]), _ls="dashed")
+    mc_sub_unct_down, *_ = _step(ax[0], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"]), _ls="dashdot")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Up"] / nominal), _ls="dashed")
+    _step(ax[1], pad(unc_variations[gd.VARIATIONS.SYST_MC + "Down"] / nominal), _ls="dashdot")
 
-    step(ax[0], "nominal")
+    step(ax[0], pad(nominal))
 
-    data_handle = ax[0].errorbar(x, y, xerr=x_err, yerr=y_err, fmt="o", color="black", capsize=3, elinewidth=2)
+    data_handler = ax[0].errorbar(x, y, xerr=x_err, yerr=y_err, fmt="o", color="black", capsize=3, elinewidth=2)
     ax[1].errorbar(
         x,
         y / bin_lookup(x, corr_graph["edges"], corr_graph["nominal"]),
@@ -1034,7 +1132,7 @@ def plot_correction(
 
     ax[0].legend(
         [
-            data_handle,
+            data_handler,
             MergedTuple((Patch(color=color, alpha=0.15), Line2D([], [], color=color, linewidth=lw))),
             VTuple((stat_unct_up, stat_unct_down)),
             VTuple((bandwidth_unct_up, bandwidth_unct_down)),

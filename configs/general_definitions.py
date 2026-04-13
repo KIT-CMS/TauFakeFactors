@@ -1,5 +1,4 @@
-from collections import defaultdict
-from copy import deepcopy
+from collections import defaultdict, namedtuple
 from typing import Any, List, Union
 
 import ROOT
@@ -14,8 +13,22 @@ default_correction_option = "smoothed"
 
 default_CMS_text = "Own work (Data/Simulation)"
 
-default_correction_variations = ("Stat1Sigma", "SystMCShift", "SystBandAsym")
-
+VARIATIONS = namedtuple(
+    "Variations", [
+        "STAT",
+        "SYST_MC",
+        "SYST_BAND_ASYM",
+        "SYST_BAND_LOW",
+        "SYST_BAND_HIGH",
+    ],
+)(
+    STAT="StatShift",
+    SYST_MC="SystMCShift",
+    SYST_BAND_ASYM="SystBandAsym",
+    SYST_BAND_LOW="SystBandLow",
+    SYST_BAND_HIGH="SystBandHigh",
+)
+default_correction_variations = (VARIATIONS.STAT, VARIATIONS.SYST_MC, VARIATIONS.SYST_BAND_ASYM)
 
 class AutoGetDict(dict):
     def __getitem__(self, key: Any) -> Any:
@@ -88,11 +101,16 @@ FF_YAxis = AutoGetDict(
         "Wjets": r"$F_{F}^{Wjets}$",
         "QCD": r"$F_{F}^{QCD}$",
         "QCD_subleading": r"$F_{F}^{QCD}$",
+        "DYjets": r"$SF_{DYjets}$",
     }
 )
 
 # definitions for channels
-channel_dict = AutoGetDict({"et": r"$e\tau_{h}$", "mt": r"$\mu\tau_{h}$", "tt": r"$\tau_{h}\tau_{h}$"})
+channel_dict = AutoGetDict({
+    "et": r"$e\tau_{h}$",
+    "mt": r"$\mu\tau_{h}$",
+    "tt": r"$\tau_{h}\tau_{h}$",
+    "mm": r"$\mu\mu$"})
 
 # definitions for era and luminosity
 era_dict = AutoGetDict(
@@ -101,6 +119,11 @@ era_dict = AutoGetDict(
         "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
         "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
         "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
+        "2022preEE": r"$7.98\,fb^{-1}$ (2022preEE, 13.6 TeV)",
+        "2022postEE": r"$26.67\,fb^{-1}$ (2022postEE, 13.6 TeV)",
+        "2023preBPix": r"$18.06\,fb^{-1}$ (2023preBPix, 13.6 TeV)",
+        "2023postBPix": r"$9.69\,fb^{-1}$ (2023postBPix, 13.6 TeV)",
+        "2024": r"$108.83\,fb^{-1}$ (2024, 13.6 TeV)",
     }
 )
 
@@ -123,12 +146,10 @@ color_dict = {
     "embedding": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
     "tau_fakes": "#B9AC70",  # (185, 172, 112)
     "data_ff": OFFICIAL_CMS_COLOR_PALLET[10][1],  # (255, 169, 14)
-    "fit_graph_mc_sub": OFFICIAL_CMS_COLOR_PALLET[6][0],
-    "fit_graph_unc": OFFICIAL_CMS_COLOR_PALLET[6][2],
-    "correction_graph": OFFICIAL_CMS_COLOR_PALLET[10][0],
-    "correction_graph_stat_unct": OFFICIAL_CMS_COLOR_PALLET[10][0],
-    "correction_graph_bandwidth_unct": OFFICIAL_CMS_COLOR_PALLET[10][1],
-    "correction_graph_mc_sub_unct": OFFICIAL_CMS_COLOR_PALLET[10][5],
+    "graph_nominal": OFFICIAL_CMS_COLOR_PALLET[10][0],
+    "graph_stat_unct": OFFICIAL_CMS_COLOR_PALLET[10][0],
+    "graph_mc_sub_unct": OFFICIAL_CMS_COLOR_PALLET[10][2],
+    "graph_bandwidth_unct": OFFICIAL_CMS_COLOR_PALLET[10][1],
 }
 
 # definitions for process labels on the plots
@@ -171,6 +192,7 @@ channel_indipendent_variable_dict = AutoGetDict(
         "metphi": r"$\phi(p_T^{miss})$",
         "met": r"$p_T^{miss}$ (GeV)",
         "m_vis": r"$m_{vis}$ (GeV)",
+        "pt_vis": r"$p_{T}^{vis}$ (GeV)",
         "nbtag": r"$N_{b-jets}$",
     }
 )
@@ -223,6 +245,22 @@ variable_dict = {
             **channel_indipendent_variable_dict,
         }
     ),
+    "mm": AutoGetDict(
+        {
+            "pt_1": r"$p_{T}^{\mu_1}$ (GeV)",
+            "eta_1": r"$\eta^{\mu_1}$",
+            "phi_1": r"$\phi^{\mu_1}$",
+            "iso_1": r"$iso^{\mu_1}$",
+            "mt_1": r"$m_{T}(\mu_1,p_T^{miss})$ (GeV)",
+            "pt_2": r"$p_{T}^{\mu_2}$ (GeV)",
+            "eta_2": r"$\eta^{\mu_2}$",
+            "phi_2": r"$\phi^{\mu_2}$",
+            "mass_2": r"$\mu_2$ mass",
+            "deltaR_ditaupair": r"$\Delta R(\mu_1,\mu_2)$",
+            # "tau_decaymode_2": r"$\tau_{h}^{DM}$",
+            **channel_indipendent_variable_dict,
+        }
+    ),
 }
 
 # definitions to translate category cuts to readable language
@@ -241,12 +279,6 @@ category_dict = AutoGetDict(
 
 ### For correctionlib ###
 
-# intern naming translation helper for variables
-variable_translator = {
-    "QCD": "QCD",
-    "Wjets": "Wjets",
-    "ttbar_J": "ttbar",
-}
 # definitions for the variable type, needed for correctionlib
 variable_type = defaultdict(
     lambda: "real",
@@ -284,39 +316,3 @@ variable_description = AutoGetDict(
         "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",
     }
 )
-# intern naming translation helper for fit uncertainties
-# naming has to match the one used in helper/ff_functions.py -> fit_function()
-ff_variation_dict = {
-    **{
-        k: {
-            "unc_up": "FFuncUp",
-            "unc_down": "FFuncDown",
-            "mc_subtraction_unc_up": "FFmcSubUncUp",
-            "mc_subtraction_unc_down": "FFmcSubUncDown",
-        }
-        for k in ["QCD", "QCD_subleading", "Wjets"]
-    },
-    **{
-        k: {
-            "unc_up": "FFuncUp",
-            "unc_down": "FFuncDown",
-        }
-        for k in ["ttbar", "ttbar_subleading"]
-    },
-}
-# intern naming translation helper for fraction uncertainties
-# naming has to match the one used in helper/ff_functions.py -> add_fraction_variations()
-frac_variation_dict = {
-    "QCD": {
-        "frac_QCD_up": "fracQCDUncUp",
-        "frac_QCD_down": "fracQCDUncDown",
-    },
-    "Wjets": {
-        "frac_Wjets_up": "fracWjetsUncUp",
-        "frac_Wjets_down": "fracWjetsUncDown",
-    },
-    "ttbar_J": {
-        "frac_ttbar_J_up": "fracTTbarUncUp",
-        "frac_ttbar_J_down": "fracTTbarUncDown",
-    },
-}
