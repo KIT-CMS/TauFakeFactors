@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -444,7 +444,7 @@
 
 <h1 id="fake-factor-calculation">Fake Factor calculation<a class="headerlink" href="#fake-factor-calculation" title="Permanent link">&para;</a></h1>
 <p>In this step the fake factors are calculated. This should be run after the preselection step.</p>
-<p>All information for the FF calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. <br>
+<p>All information for the FF calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. The <code>common_settings.yaml</code> has to be named like that and is used for all steps of the fake factor estimation (<code>preselection</code>, <code>FF calculation</code>, <code>FF corrections</code>). <br>
 The FF calculation config has the following parameters:</p>
 <p>General options for the calculation:</p>
 <table>
@@ -525,9 +525,14 @@ Each target process needs some specifications:</p>
 <td>bin edges for the variable specified in <code>var_dependence</code>. <br> Can either be a list representing the binning or a dictionary of lists, where keys correspond to the string representations of split categories defined in <code>split_categories</code>. <br> In the case of two split categories, the dictionary can be nested. If not all second split category elements share the first split category binning, the binning for the affected category must be specified separately. When using split binning, at least the first split category's bin edges must be fully defined.</td>
 </tr>
 <tr>
-<td><code>fit_options</code></td>
+<td><code>fit_option</code></td>
 <td><code>list</code></td>
-<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); futher it is possible to specify <code>"binwise"</code> which means that the histograms are written out directly without a fit</td>
+<td>a list of polynomials that should be considered for the fake factor fits can be defined with this parameter (default: <code>["poly_1"]</code>); besides polynominal fits, it is possible to use <code>"smoothed"</code> (applies a gaussian density kernel), <code>"binwise"</code> or <code>"skip"</code>. First two can also be combined into e.g. <code>"binwise#[0,]+smoothed"</code>, <code>"binwise#[-1,-2,]+smoothed"</code> or <code>"binwise#[0,]#[-1,]+smoothed"</code> where the nth-bin(s) is computed using binwise method and the rest in smoothed manner. For left bins, positive bin index is used. For last bins, the count is done using negative integers, starting at -1 (like in the example). If both options are provided, then the binwise calculation is applied for the stated left and right bins. The <code>"skip"</code> option simply returns 1.0 for all events; this is intended for subspaces where a variable implies no events (e.g. a jet variable when <code>njets=0</code>), ensuring compatibility with other fake factors in the chain.</td>
+</tr>
+<tr>
+<td><code>bandwidth</code></td>
+<td><code>float</code></td>
+<td>if <code>fit_option</code> includes <code>"smoothed"</code> this value can be set to adjust for the bandwidth used during smoothing procedure (has no effect on the result in case of <code>"binwise"</code>). If not set the default value of histogram range divided by 5 is chosen. <br> Can either be a float value representing the bandwidth for all fake factors or a dictionary of float values, where keys correspond to the string representations of split categories defined in <code>split_categories</code>.</td>
 </tr>
 <tr>
 <td><code>limit_kwargs</code></td>

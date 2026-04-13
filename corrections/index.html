@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -449,7 +449,7 @@
 <li>non closure correction depending on a specific variable</li>
 <li>DR to SR interpolation correction depending on a specific variable</li>
 </ol>
-<p>All information for the FF correction calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). <br>
+<p>All information for the FF correction calculation step is defined in a configuration file in the <code>configs/ANALYSIS/ERA/</code> folder using the <code>common_settings.yaml</code> and a more specific config file. The <code>common_settings.yaml</code> has to be named like that and is used for all steps of the fake factor estimation (<code>preselection</code>, <code>FF calculation</code>, <code>FF corrections</code>). Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). <br>
 The FF correction config has the following parameters:</p>
 <p>The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*</p>
 <table>
@@ -515,17 +515,17 @@ Each target process needs some specifications:</p>
 <tr>
 <td><code>split_categories</code></td>
 <td><code>dict</code></td>
-<td>Optional, analogous to <code>FakeFactor calculation</code> (only 1D).</td>
+<td>Optional, analogous to <code>Fake Factor Calculation</code> (only 1D).</td>
 </tr>
 <tr>
 <td><code>var_bins</code></td>
 <td><code>list</code> or <code>dict[list]</code></td>
-<td>Analogous to <code>var_bins</code> in <code>FakeFactor calculation</code></td>
+<td>Analogous to <code>var_bins</code> described in <code>Fake Factor Calculation</code></td>
 </tr>
 <tr>
 <td><code>correction_option</code></td>
 <td><code>str</code></td>
-<td><code>correction_option</code></td>
+<td>Definition of how a correction should be measured. Options are <code>"smoothed"</code> (applies a gaussian density kernel), <code>"binwise"</code>, <code>"skip"</code>. First two can also be combined into e.g. <code>"binwise#[0,]+smoothed"</code>, <code>"binwise#[-1,-2,]+smoothed"</code> or <code>"binwise#[0,]#[-1,]+smoothed"</code> where the nth-bin(s) is computed using binwise method and the rest in smoothed manner. For left bins, positive bin index is used. For last bins, the count is done using negative integers, starting at -1 (like in the example). If both options are provided, then the binwise calculation is applied for the stated left and right bins. The <code>"skip"</code> option simply returns 1.0 for all events; this is intended for subspaces where a variable implies no events (e.g. a jet variable when <code>njets=0</code>), ensuring compatibility with other corrections in the chain.</td>
 </tr>
 <tr>
 <td><code>bandwidth</code></td>
