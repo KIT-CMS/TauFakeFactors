@@ -15,8 +15,8 @@ default_CMS_text = "Own work (Data/Simulation)"
 
 VARIATIONS = namedtuple(
     "Variations", [
-        "STAT", 
-        "SYST_MC", 
+        "STAT",
+        "SYST_MC",
         "SYST_BAND_ASYM",
         "SYST_BAND_LOW",
         "SYST_BAND_HIGH",
@@ -26,7 +26,7 @@ VARIATIONS = namedtuple(
     SYST_MC="SystMCShift",
     SYST_BAND_ASYM="SystBandAsym",
     SYST_BAND_LOW="SystBandLow",
-    SYST_BAND_HIGH="SystBandHigh"
+    SYST_BAND_HIGH="SystBandHigh",
 )
 default_correction_variations = (VARIATIONS.STAT, VARIATIONS.SYST_MC, VARIATIONS.SYST_BAND_ASYM)
 
