@@ -97,7 +97,7 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
                 log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
                 f = ROOT.TFile(cache_filepath, "RECREATE")
                 tree = ROOT.TTree(tree_name, tree_name)
-                _refs = []  # Keep references in memory to prevent GC during branch assignment
+                _refs = []  # References needed in memory to prevent GC during branch assignment
                 for c in cols:
                     col_type = str(filtered_rdf.GetColumnType(c)).replace("ROOT::VecOps::RVec", "std::vector")
 
@@ -1010,52 +1010,11 @@ def calc_fraction(hists: Dict[str, Any], target: str, processes: List[str]) -> A
     return frac
 
 
-def add_fraction_variations(
-    hists: Dict[str, Any], processes: List[str]
-) -> Dict[str, Dict[str, Any]]:
-    """
-    Function which calculates variations of fraction histograms. The fraction of each process
-    is once varied up by 7% and all other processes are varied down by 7%. The same is done
-    the other way around to get the down variations.
-
-    Args:
-        hists: Dictionary with fraction histograms for all considered processes
-        processes: List of all cosidered processes for the fraction calculation
-
-    Return:
-        Dictionary with nominal, up and down variations of all considered processes
-    """
-    variations = dict()
-    variations["nominal"] = dict(hists)
-
-    for p in processes:
-        hists_up = dict(hists)
-        for hist in hists_up:
-            hists_up[hist] = hists_up[hist].Clone()
-            if p == hist:
-                hists_up[hist].Scale(1.07)
-            else:
-                hists_up[hist].Scale(0.93)
-        variations["frac_{}_up".format(p)] = hists_up
-
-    for p in processes:
-        hists_down = dict(hists)
-        for hist in hists_down:
-            hists_down[hist] = hists_down[hist].Clone()
-            if p == hist:
-                hists_down[hist].Scale(0.93)
-            else:
-                hists_down[hist].Scale(1.07)
-        variations["frac_{}_down".format(p)] = hists_down
-
-    return variations
-
-
 def get_yields_from_hists(
     hists: Dict[str, Dict[str, Any]], processes: List[str]
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
-    This function transforms fraction histograms (with variations) obtained from calc_fraction() and add_fraction_variations()
+    This function transforms fraction histograms (with variations) obtained from calc_fraction()
     into lists of fraction values which are later used to produce in the production of the correctionlib file.
 
     Args:
@@ -1143,6 +1102,7 @@ def fit_function(
     logger: str,
     fit_option: Union[str, List[str]],
     limit_kwargs: Dict[str, Any],
+    stat_sigma: float = 1.0,
 ) -> Tuple[
     Union[ROOT.TH1, ROOT.TGraphAsymmErrors],
     Dict[str, Any],
@@ -1162,11 +1122,14 @@ def fit_function(
                     with best fit being the one with the lowest chi2/ndf value and nominal and
                     variations being > 0 in fit range.
                     str: "poly_n" or "binwise", where n is the order of the polynomial fit
+        limit_kwargs: Dictionary with the keyword arguments for the fit limits, needs to include "limit_x" which is the upper limit of the fit range in x
+        stat_sigma: Sigma for the statistical uncertainty variation, default is 1.0 which corresponds
 
     Return:
-        1. Dictionary with the fitted function for each variation,
-        2. Dictionary with graphs for each variation,
-        3. Dictionary of function expressions for correctionlib (nominal and variations)
+        1. Initial histogram as TGraph or TH1 (if binwise is used)
+        2. Dictionary of the fitted function for nominal and each variation
+        3. Dictionary of function string expressions (same functions as in 2.) for correctionlib (nominal and variations)
+        4. Name of the best fit which is used as nominal correction in the correctionlib file
     """
     if not isinstance(fit_option, list) and fit_option != "binwise":
         fit_option = [fit_option]
@@ -1192,6 +1155,7 @@ def fit_function(
         function_collection=fit_option,
         verbose=True,
         limit_x=limit_kwargs["limit_x"],
+        stat_sigma=stat_sigma,
     )
 
     return (
@@ -1211,7 +1175,7 @@ def calculate_non_closure_correction(
     Args:
         SRlike: Dictionary with histograms from the signal-like determination region for all relevant processes
         ARlike: Dictionary with histograms from the application-like determination region for all relevant processes
-        skip:frac: Skip the fraction scaling if FF * AR-like matches SR-like by FF construction. Set frac to 1.0
+        skip_frac: Skip the fraction scaling if FF * AR-like matches SR-like by FF construction. Set frac to 1.0
 
     Return:
         1. Ratio histogram of data (MC subtracted) in a signal-like region and data (scaled to MC subtracted) with applied fake factors in an application-like region,
@@ -1401,14 +1365,15 @@ def fit_to_constant(hist: ROOT.TH1) -> Tuple[float, float]:
 def statistical_check(
     hist: Any,
     corr_dict: Dict[str, np.ndarray],
-    mc_shifted_hist: Union[Dict[str, Any], None] = None
+    mc_shifted_hist: Union[Dict[str, Any], None] = None,
+    stat_sigma: float = 1.0,
 ) -> Dict[str, np.ndarray]:
     """
     Performs chi2 test checking compatibility of the correction with 1.0 within data uncertainties.
     If compatible and RuntimeVariables.AUTO_SKIP_COMPATIBLE is True, correction is set to 1.0.
     Then additionally stat. and bandwidth variations are set to 1.0. For MCShift variations,
-    if histograms are provided, they are fitted to a constant if RuntimeVariables.AUTO_SKIP_UNCERTAINTIES is False,
-    otherwise they are set to 1.0 as well.
+    if histograms are provided, they are fitted to a constant if RuntimeVariables.AUTO_SKIP_UNCERTAINTIES
+    is False, otherwise they are set to 1.0 as well.
 
     Args:
         hist: Histogram of the correction to be checked
@@ -1433,11 +1398,6 @@ def statistical_check(
 
     y, ndf = np.array(y_val), len(y_val)
 
-    p_value_global = scipy.stats.chi2.sf(np.sum(((y - 1.0) / err) ** 2), ndf)
-
-    p_values_bins_min = scipy.stats.chi2.sf(((y - 1.0) / err) ** 2, 1).min()
-    p_value_sidak = 1 - (1 - p_values_bins_min) ** ndf
-
     p_value_shape_min, pulls = 1.0, (y - 1.0) / err
     for window in range(1, ndf + 1):
         for i in range(ndf - window + 1):
@@ -1447,36 +1407,32 @@ def statistical_check(
                 p_value_shape_min = p_window
     p_shape = 1 - (1 - p_value_shape_min) ** len(y)
 
-    corr_dict["p_value"] = min(p_value_global, p_value_sidak, p_shape)
+    corr_dict["default"]["p_value"] = p_shape
 
-    if (corr_dict["p_value"] > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
-        corr_dict["_auto_skipped"] = True
-        corr_dict["nominal"] = np.ones_like(corr_dict["nominal"])
+    if (corr_dict["default"]["p_value"] > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
+        corr_dict["default"]["_auto_skipped"] = True
+        corr_dict["default"]["nominal"] = np.ones_like(corr_dict["default"]["nominal"])
 
         stat_unct_inclusive = 1.0 / np.sqrt(np.sum(1.0 / err**2))
 
-        for key in list(corr_dict.keys()):
-            if key.startswith("SystBand"):  # No bandwidth uncertainty for a flat line
-                corr_dict[key] = np.ones_like(corr_dict[key])
-            elif "Stat1SigmaUp" in key or key == "StatUp":
-                corr_dict[key] = np.full_like(corr_dict[key], 1.0 + stat_unct_inclusive)
-            elif "Stat1SigmaDown" in key or key == "StatDown":
-                corr_dict[key] = np.full_like(corr_dict[key], 1.0 - stat_unct_inclusive)
-            elif "Stat2SigmaUp" in key:
-                corr_dict[key] = np.full_like(corr_dict[key], 1.0 + 2.0 * stat_unct_inclusive)
-            elif "Stat2SigmaDown" in key:
-                corr_dict[key] = np.full_like(corr_dict[key], 1.0 - 2.0 * stat_unct_inclusive)
+        for key in list(corr_dict["default"]["variations"].keys()):
+            if key.startswith((gd.VARIATIONS.SYST_BAND_ASYM, gd.VARIATIONS.SYST_BAND_HIGH, gd.VARIATIONS.SYST_BAND_LOW)):  # No bandwidth uncertainty for a flat line
+                corr_dict["default"]["variations"][key] = np.ones_like(corr_dict["default"]["variations"][key])
+            elif key.startswith(gd.VARIATIONS.STAT) and "Up" in key:
+                corr_dict["default"]["variations"][key] = np.full_like(corr_dict["default"]["variations"][key], 1.0 + stat_sigma * stat_unct_inclusive)
+            elif key.startswith(gd.VARIATIONS.STAT) and "Down" in key:
+                corr_dict["default"]["variations"][key] = np.full_like(corr_dict["default"]["variations"][key], 1.0 - stat_sigma * stat_unct_inclusive)
 
         if mc_shifted_hist is None:
-            corr_dict["SystMCShiftUp"] = np.ones_like(corr_dict["nominal"])
-            corr_dict["SystMCShiftDown"] = np.ones_like(corr_dict["nominal"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Up"] = np.ones_like(corr_dict["default"]["nominal"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Down"] = np.ones_like(corr_dict["default"]["nominal"])
         else:
             mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
             mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
-            corr_dict["SystMCShiftUp"] = np.full_like(corr_dict["nominal"], mc_up_val)
-            corr_dict["SystMCShiftDown"] = np.full_like(corr_dict["nominal"], mc_dn_val)
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Up"] = np.full_like(corr_dict["default"]["nominal"], mc_up_val)
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Down"] = np.full_like(corr_dict["default"]["nominal"], mc_dn_val)
     else:
-        corr_dict["_auto_skipped"] = False
+        corr_dict["default"]["_auto_skipped"] = False
 
     return corr_dict
 
@@ -1488,6 +1444,7 @@ def smooth_function(
     bandwidth: float,
     bandwidth_variations: tuple = (0.5, 1.5),
     mc_shifted_hist: Union[Dict[str, ROOT.TH1D], None] = None,
+    stat_sigma: float = 1.0,
     sparsify_threshold: float = 0.01,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
@@ -1501,9 +1458,8 @@ def smooth_function(
         bandwidth: Bandwidth parameter for the kernel regression estimator
         bandwidth_variations: Tuple with factors to vary the bandwidth up and down if correction_option is not "binwise"
         sparsify_threshold: Threshold for sparsifying the smoothed function
-
     Return:
-        1. root TGraph of the smoothed function,
+        1. Initial root TGraph of the histogram,
         2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
     """
 
@@ -1514,69 +1470,76 @@ def smooth_function(
         bandwidth=bandwidth,
     )
 
-    nominal_graph, smooth_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=2.0)
-    corr_dict["Stat2SigmaUp"] = corr_dict["StatUp"]
-    corr_dict["Stat2SigmaDown"] = corr_dict["StatDown"]
+    nominal_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=stat_sigma)
+    corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Up"] = corr_dict["default"]["variations"]["StatUp"]
+    corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Down"] = corr_dict["default"]["variations"]["StatDown"]
 
-    _, _, corr_dict_one_sigma = _smooth_function(**_kwargs, stat_sigma=1.0)
-    corr_dict["Stat1SigmaUp"] = corr_dict_one_sigma["StatUp"]
-    corr_dict["Stat1SigmaDown"] = corr_dict_one_sigma["StatDown"]
-
+    corr_dict["default"]["variations"].pop("StatUp")
+    corr_dict["default"]["variations"].pop("StatDown")
+    
     if mc_shifted_hist is None:
-        corr_dict["SystMCShiftUp"] = corr_dict["nominal"]
-        corr_dict["SystMCShiftDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = corr_dict["default"]["nominal"]
     else:
-        _, _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
-        _, _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
+        _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"], "stat_sigma": stat_sigma})
+        _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"], "stat_sigma": stat_sigma})
 
-        corr_dict["SystMCShiftUp"] = _mc_sub_up["nominal"]
-        corr_dict["SystMCShiftDown"] = _mc_sub_down["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = _mc_sub_up["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = _mc_sub_down["default"]["nominal"]
 
     if correction_option == "binwise" or correction_option == "skip":
-        corr_dict["SystBandHighUp"] = corr_dict["nominal"]
-        corr_dict["SystBandHighDown"] = corr_dict["nominal"]
-        corr_dict["SystBandLowUp"] = corr_dict["nominal"]
-        corr_dict["SystBandLowDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Down"] = corr_dict["default"]["nominal"]
 
-        corr_dict["SystBandAsymUp"] = corr_dict["nominal"]
-        corr_dict["SystBandAsymDown"] = corr_dict["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Up"] = corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Down"] = corr_dict["default"]["nominal"]
 
         # individual downsampling for correctionlib storage, not used for plotting
-        corr_dict["downsampled"] = {}
-        for key in list(corr_dict):
-            if key in {"edges", "downsampled"}:
+        corr_dict["downsampled"] = {"nominal": None, "variations": {}}
+        corr_dict["downsampled"]["nominal"] = {
+            "edges": corr_dict["default"]["edges"],
+            "content": corr_dict["default"]["nominal"],
+        }
+        for key in list(corr_dict["default"]["variations"].keys()):
+            if key == "edges":
                 continue
-            corr_dict["downsampled"][key] = {
-                "edges": corr_dict["edges"],
-                "content": corr_dict[key],
+            corr_dict["downsampled"]["variations"][key] = {
+                "edges": corr_dict["default"]["edges"],
+                "content": corr_dict["default"]["variations"][key],
             }
     else:
-        _, _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
-        _, _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
+        _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1], "stat_sigma": stat_sigma})
+        _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0], "stat_sigma": stat_sigma})
 
-        corr_dict["SystBandHighUp"] = (_high["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandHighDown"] = (corr_dict["nominal"] - _high["nominal"]) + corr_dict["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
 
-        corr_dict["SystBandLowUp"] = (_low["nominal"] - corr_dict["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandLowDown"] = (corr_dict["nominal"] - _low["nominal"]) + corr_dict["nominal"]
-        corr_dict["SystBandAsymUp"] = _high["nominal"]
-        corr_dict["SystBandAsymDown"] = _low["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Up"] = (_low["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Down"] = (corr_dict["default"]["nominal"] - _low["default"]["nominal"]) + corr_dict["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Up"] = _high["default"]["nominal"]
+        corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Down"] = _low["default"]["nominal"]
 
-        corr_dict = statistical_check(hist, corr_dict, mc_shifted_hist)
+        corr_dict = statistical_check(hist, corr_dict, mc_shifted_hist, stat_sigma)
 
         # individual downsampling for correctionlib storage, not used for plotting
-        corr_dict["downsampled"] = {}
-        for key in list(corr_dict):
-            if key in {"edges", "downsampled", "p_value", "_auto_skipped"}:
-                continue
-            corr_dict["downsampled"][key] = {
+        corr_dict["downsampled"] = {"nominal": None, "variations": {}}
+        corr_dict["downsampled"]["nominal"] = {
+            k: v for k, v in zip(
+                ["edges", "content"],
+                sparsify(corr_dict["default"]["edges"], corr_dict["default"]["nominal"], threshold=sparsify_threshold),
+            )
+        }
+        for key in list(corr_dict["default"]["variations"].keys()):
+            corr_dict["downsampled"]["variations"][key] = {
                 k: v for k, v in zip(
                     ["edges", "content"],
-                    sparsify(corr_dict["edges"], corr_dict[key], threshold=sparsify_threshold),
+                    sparsify(corr_dict["default"]["edges"], corr_dict["default"]["variations"][key], threshold=sparsify_threshold),
                 )
             }
 
-    return nominal_graph, smooth_graph, corr_dict
+    return nominal_graph, corr_dict
 
 
 def _smooth_function(
@@ -1593,10 +1556,13 @@ def _smooth_function(
     Args:
         hist: Histogram of a correction
         bin_edges: Bin edges of "hist"
+        correction_option: String defining how the correction should look like, examples are "binwise", "smoothed", "binwise#[0,]#[-1,]+smoothed" (binned for first and last bin, rest smoothed)
+        bandwidth: Bandwidth parameter for the kernel regression estimator
+        stat_sigma: Value used for the definition of the statistical uncertainty variation (used multiplicatively on the standard deviation)
 
     Return:
-        1. root TGraph of the smoothed function,
-        2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
+        1. Initial histogram as TGraph
+        2. Dictionary of default arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
     """
     hist_bins = hist.GetNbinsX()
 
@@ -1608,12 +1574,15 @@ def _smooth_function(
     if "skip" in correction_option:
         return (
             nominal_graph,
-            nominal_graph,
             {
-                "edges": np.array(bin_edges),
-                "nominal": np.array([1.0]),
-                "StatUp": np.array([1.0]) + 1e-6,
-                "StatDown": np.array([1.0]) - 1e-6,
+                "default": {
+                    "edges": np.array([bin_edges[0], bin_edges[-1]]),
+                    "nominal": np.array([1.0]),
+                    "variations": {
+                        "StatUp": np.array([1.0]) + 1e-6,
+                        "StatDown": np.array([1.0]) - 1e-6,
+                    },
+                },
             },
         )
 
@@ -1660,8 +1629,8 @@ def _smooth_function(
     if correction_option == "binwise":
         _bins = np.array(bin_edges)
         _nom = np.array(y)
-        _up_stat = _nom + np.array(error_y_up)
-        _down_stat = _nom - np.array(error_y_down)
+        _up_stat = _nom + stat_sigma * np.array(error_y_up)
+        _down_stat = _nom - stat_sigma * np.array(error_y_down)
     elif correction_option == "smoothed":
         _bins = np.array(smooth_x)
         _nom = np.array(smooth_y)
@@ -1688,20 +1657,20 @@ def _smooth_function(
         )
         _up_stat = _nom + np.concatenate(
             (
-                error_y_up[left_slice],
+                stat_sigma * np.array(error_y_up[left_slice]),
                 [smooth_y_up[0]] if start_idx != 0 else [],
                 np.array(smooth_y_up)[overlap_slice],
                 [smooth_y_up[-1]] if end_idx != -1 else [],
-                error_y_up[right_slice],
+                stat_sigma * np.array(error_y_up[right_slice]),
             ),
         )
         _down_stat = _nom - np.concatenate(
             (
-                error_y_down[left_slice],
+                stat_sigma * np.array(error_y_down[left_slice]),
                 [smooth_y_down[0]] if start_idx != 0 else [],
                 np.array(smooth_y_down)[overlap_slice],
                 [smooth_y_down[-1]] if end_idx != -1 else [],
-                error_y_down[right_slice],
+                stat_sigma * np.array(error_y_down[right_slice]),
             ),
         )
     else:
@@ -1728,16 +1697,17 @@ def _smooth_function(
         _nom, _up_stat, _down_stat = _append(_nom), _append(_up_stat), _append(_down_stat)
 
     corr_dict = {
-        "edges": _bins,
-        "nominal": _nom,
-        "StatUp": _up_stat,
-        "StatDown": _down_stat,
+        "default": {
+            "edges": _bins,
+            "nominal": _nom,
+            "variations": {
+                "StatUp": _up_stat,
+                "StatDown": _down_stat,
+            },
+        },
     }
 
-    smooth_graph = ROOT.TGraphAsymmErrors(
-        len(smooth_x), smooth_x, smooth_y, 0, 0, smooth_y_down, smooth_y_up
-    )
-    return nominal_graph, smooth_graph, corr_dict
+    return nominal_graph, corr_dict
 
 
 def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure_corrections: dict, logger: str) -> None:
@@ -1752,9 +1722,6 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
 
     log = logging.getLogger(logger)
 
-    if not func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
-        return
-
     def flatten_categories(node, current_path=""):
         if isinstance(node, dict) and "nominal" in node:
             return {current_path if current_path else "Inclusive": node}
@@ -1763,9 +1730,10 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
             for k, v in node.items():
                 formatted_k = str(k).replace("#", " ")  # i.e. "njets#==0"
                 new_path = f"{current_path} | {formatted_k}" if current_path else formatted_k
-                flattened.update(flatten_categories(v, new_path))
+                flattened.update(flatten_categories(v["default"], new_path))
         return flattened
 
+    # import ipdb;ipdb.set_trace()
     merged = {}
     for _dict in [DR_SR_corrections, non_closure_corrections]:
         for process, correction in _dict.items():
@@ -1830,7 +1798,7 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
                     row.append("—")
                 else:
                     if "p_value" in node:
-                        pval = node['p_value']
+                        pval = node["p_value"]
                         row.append(f"{pval:.3f}")
                     else:
                         row.append("-")

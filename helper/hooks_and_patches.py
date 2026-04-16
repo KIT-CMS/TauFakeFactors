@@ -301,13 +301,11 @@ def patched_Add(
 
             errors_std_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
             errors_std_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_STD, None)
-
             assert errors_std_1 is not None and errors_std_2 is not None, "Both histograms must have _extra_base_errors_std for error propagation."
             errors_std = np.sqrt(errors_std_1 ** 2 + (factor * errors_std_2) ** 2)
 
             errors_supressed_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
             errors_supressed_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_MC_SUPPRESSED, None)
-
             assert errors_supressed_1 is not None and errors_supressed_2 is not None, "Both histograms must have _extra_base_errors_mc_suppressed for error propagation."
             if factor < 0:
                 errors_supressed = errors_supressed_1.copy()
@@ -362,8 +360,8 @@ def patched_Multiply(
 
             error_std_1 = getattr(self, _EXTRA_PARAM_BASE_ERRORS_STD, None)
             error_std_2 = getattr(other, _EXTRA_PARAM_BASE_ERRORS_STD, None)
-
             assert error_std_1 is not None and error_std_2 is not None, "Both histograms must have _extra_base_errors_std for error propagation."
+            
             relative_error_std_1 = np.divide(error_std_1, values_1, out=np.zeros_like(error_std_1), where=(values_1 != 0))
             relative_error_std_2 = np.divide(error_std_2, values_2, out=np.zeros_like(error_std_2), where=(values_2 != 0))
             error_std = np.abs(values) * np.sqrt(relative_error_std_1 ** 2 + relative_error_std_2 ** 2)

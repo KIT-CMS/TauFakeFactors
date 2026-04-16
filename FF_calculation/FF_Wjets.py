@@ -21,16 +21,17 @@ from helper.functions import RuntimeVariables
 def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, str], Dict[str, Dict[str, str]]]]:
     """
     This function calculates fake factors for the Wjets process for a specific category (split).
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the fake factors.
 
     Args:
-        args: Tuple containing all the necessary information for the calculation of the fake factors
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
-            process: Name of the process
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+        process: Name of the process
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
 
     Return:
         Dictionary with the category information as keys and the fitted functions (including variations) as values
@@ -58,13 +59,17 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category.")
+        log.info(
+            f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
+        )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for Wjets signal-like region
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for the signal-like region. Target process: {process}"
+        )
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -79,9 +84,13 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
+            raise ValueError(
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
+            )
 
-        log.info(f"Filtering events for QCD estimation in the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
+        )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -92,7 +101,9 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         )
 
         # event filter for Wjets application-like region
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for the application-like region. Target process: {process}"
+        )
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -111,7 +122,9 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
                 f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
             )
 
-        log.info(f"Filtering events for QCD estimation in the application-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
+        )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -204,21 +217,41 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
 
         FF_hist = SRlike_hists["Wjets"].Clone()
         FF_hist.Divide(ARlike_hists["Wjets"])
-        ff_hists_to_fit = FF_hist.Clone()
+        ff_hists_to_fit = [FF_hist.Clone()]
 
     # performing the fit and calculating the uncertainties
-    nominal_draw_obj, fit_graphs, corrlib_exp, used_fit = ff_func.fit_function(
-        ff_hists=ff_hists_to_fit,
-        bin_edges=splitting.var_bins,
-        logger=logger,
-        fit_option=splitting.fit_option,
-        limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
-    )
+    if isinstance(splitting.fit_option, list):
+        nominal_draw_obj, unc_draw_obj, results, used_fit = ff_func.fit_function(
+            ff_hists=ff_hists_to_fit,
+            bin_edges=splitting.var_bins,
+            logger=logger,
+            fit_option=splitting.fit_option,
+            limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
+            stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
+        )
+    elif isinstance(splitting.fit_option, str):
+        nominal_draw_obj, results = ff_func.smooth_function(
+            hist=ff_hists_to_fit[0],
+            bin_edges=splitting.var_bins,
+            correction_option=splitting.fit_option,
+            bandwidth=splitting.bandwidth,
+            mc_shifted_hist={
+                "MCShiftUp": FF_hist_up.Clone(),
+                "MCShiftDown": FF_hist_down.Clone(),
+            },
+            stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
+        )
+        unc_draw_obj = results["default"]
+        used_fit = splitting.fit_option
+    else:
+        raise ValueError(
+            f"Invalid fit option {splitting.fit_option}. It should be either a list of polynomials or a single string defining the fit procedure."
+        )
 
     plotting.plot_FFs(
         variable=process_conf["var_dependence"],
         ff_ratio=nominal_draw_obj,
-        uncertainties=fit_graphs,
+        variations=unc_draw_obj,
         era=config["era"],
         channel=config["channel"],
         process=process,
@@ -254,29 +287,36 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
             )
     log.info("-" * 50)
 
-    return ff_func.fill_corrlib_expression(corrlib_exp, splitting.variables, splitting.split)
+    if splitting.split is not None:
+        return ff_func.fill_corrlib_expression(
+            results, splitting.variables, splitting.split
+        )
+    else:
+        return results
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[7]}")
 def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     """
-    This function calculates the non closure correction for the Wjet process for a specific category.
+    This function calculates the non-closure correction for the Wjet process for a specific category.
 
     Intended to be used in a multiprocessing environment.
+    
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the non-closure correction.
 
     Args:
-        args: Tuple containing all the necessary information for the calculation of the non-closure correction
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            correction_conf: Dictionary with all the relevant information for the non-closure correction
-            process: Name of the process
-            closure_variable: Name of the variable dependence of the closure correction
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
-            evaluator: FakeFactorEvaluator object
-            corr_evaluators: List of FakeFactorCorrectionEvaluator objects
-            for_DRtoSR: If True the correction is calculated for the DR to SR correction
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        correction_conf: Dictionary with all the relevant information for the non-closure correction
+        process: Name of the process
+        closure_variable: Name of the variable dependence of the closure correction
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
+        evaluator: FakeFactorEvaluator object
+        corr_evaluators: List of FakeFactorCorrectionEvaluator objects
+        for_DRtoSR: If True the correction is calculated for the DR to SR correction
     """
     (
         splitting,
@@ -306,9 +346,13 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if splitting.split is not None:
-            log.info(f"Processing {sample} for the non closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
+            log.info(
+                f"Processing {sample} for the non-closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
+            )
         else:
-            log.info(f"Processing {sample} for the non closure correction for {process}.")
+            log.info(
+                f"Processing {sample} for the non-closure correction for {process}."
+            )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -327,9 +371,13 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in signal-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
+            raise ValueError(
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
+            )
 
-        log.info(f"Filtering events for QCD estimation in the signal-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
+        )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -353,9 +401,13 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in application-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
         else:
-            raise ValueError(f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation.")
+            raise ValueError(
+                f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
+            )
 
-        log.info(f"Filtering events for QCD estimation in the application-like region. Target process: {process}")
+        log.info(
+            f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
+        )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
             rdf=rdf,
             channel=config["channel"],
@@ -431,8 +483,12 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
             SRlike_hists["data_subtracted"].Add(SRlike_hists[hist].Clone(), -1)
-            SRlike_hists_sub_up["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(1), -1)
-            SRlike_hists_sub_down["data_subtracted"].Add(SRlike_hists[hist].Clone().AddError(-1), -1)
+            SRlike_hists_sub_up["data_subtracted"].Add(
+                SRlike_hists[hist].Clone().AddError(1), -1
+            )
+            SRlike_hists_sub_down["data_subtracted"].Add(
+                SRlike_hists[hist].Clone().AddError(-1), -1
+            )
     for hist in ARlike_hists:
         if hist not in ["data", "data_subtracted", "Wjets"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
@@ -454,7 +510,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         skip_frac=True,
     )
 
-    nominal_draw_obj, _, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, results = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
         correction_option=splitting.correction_option,
@@ -463,13 +519,14 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             "MCShiftUp": ff_func.calculate_non_closure_correction(SRlike_hists_sub_up, ARlike_hists_sub_up, skip_frac=True)[0].Clone(),
             "MCShiftDown": ff_func.calculate_non_closure_correction(SRlike_hists_sub_down, ARlike_hists_sub_down, skip_frac=True)[0].Clone(),
         },
+        stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
     )
 
     add_str = "_DRtoSR" if for_DRtoSR else ""
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=correction_dict,
+        corr_graph=results["default"],
         corr_name=f"non_closure_{closure_variable}{add_str}",
         era=config["era"],
         channel=config["channel"],
@@ -521,9 +578,11 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         )
 
     if splitting.split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
+        return ff_func.fill_corrlib_expression(
+            results, splitting.variables, splitting.split
+        )
     else:
-        return correction_dict
+        return results
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
@@ -534,19 +593,21 @@ def DR_SR_correction(
     This function calculates DR to SR correction for fake factors for Wjets.
 
     Intended to be used in a multiprocessing environment.
+    
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the DR to SR correction.
 
     Args:
-        args: Tuple containing all the necessary information for the calculation of the DR to SR correction
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            correction_conf: Dictionary with all the relevant information for the correction calculation
-            process: Name of the process
-            split_variables: List of variables that are used for the category splitting
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
-            evaluator: Evaluator with Wjets fake factors
-            corr_evaluators: List of evaluators with corrections to Wjets fake factors
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        correction_conf: Dictionary with all the relevant information for the correction calculation
+        process: Name of the process
+        split_variables: List of variables that are used for the category splitting
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
+        evaluator: Evaluator with Wjets fake factors
+        corr_evaluators: List of evaluators with corrections to Wjets fake factors
     """
     (
         splitting,
@@ -570,9 +631,13 @@ def DR_SR_correction(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "Wjets":
             if splitting.split is not None:
-                log.info(f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}.")
+                log.info(
+                    f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
+                )
             else:
-                log.info(f"Processing {sample} for the DR to SR correction for {process}.")
+                log.info(
+                    f"Processing {sample} for the DR to SR correction for {process}."
+                )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -626,17 +691,18 @@ def DR_SR_correction(
         SRlike=SRlike_hists, ARlike=ARlike_hists
     )
 
-    nominal_draw_obj, _, correction_dict = ff_func.smooth_function(
+    nominal_draw_obj, results = ff_func.smooth_function(
         hist=correction_hist.Clone(),
         bin_edges=splitting.var_bins,
         correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
+        stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
     )
 
     plotting.plot_correction(
         variable=correction_conf["var_dependence"],
         corr_hist=nominal_draw_obj,
-        corr_graph=correction_dict,
+        corr_graph=results["default"],
         corr_name="DR_SR",
         era=config["era"],
         channel=config["channel"],
@@ -670,6 +736,8 @@ def DR_SR_correction(
         )
 
     if splitting.split is not None:
-        return ff_func.fill_corrlib_expression(correction_dict, splitting.variables, splitting.split)
+        return ff_func.fill_corrlib_expression(
+            results, splitting.variables, splitting.split
+        )
     else:
-        return correction_dict
+        return results

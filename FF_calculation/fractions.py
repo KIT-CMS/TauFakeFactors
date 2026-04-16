@@ -63,16 +63,17 @@ def fraction_calculation(
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
     This function calculates the fractions of the processes for the fake factor calculation for a given category.
-
+    The function expects as 'args' a Tuple containing all the necessary information for the
+    calculation of the fractions.
+    
     Args:
-        args: Tuple containing all the necessary information for the calculation of the fake factors
-            splitting: SplitQuantitiesContainer, contains the splitting information
-            config: Dictionary with all the relevant information for the fake factor calculation
-            process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
-            process: Name of the process
-            sample_paths: List of file paths where the samples are stored
-            output_path: Path where the generated plots should be stored
-            logger: Name of the logger that should be used
+        splitting: SplitQuantitiesContainer, contains the splitting information
+        config: Dictionary with all the relevant information for the fake factor calculation
+        process_conf: Dictionary with all the relevant information for the fake factor calculation of the specific process
+        process: Name of the process
+        sample_paths: List of file paths where the samples are stored
+        output_path: Path where the generated plots should be stored
+        logger: Name of the logger that should be used
 
     Return:
         Dictionary with the category information as key and the fractions of the processes as value
@@ -96,7 +97,9 @@ def fraction_calculation(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category.")
+        log.info(
+            f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
+        )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
@@ -198,4 +201,6 @@ def fraction_calculation(
             )
     log.info("-" * 50)
 
-    return {f"{splitting.variables[0]}#{splitting.split[splitting.variables[0]]}": frac_hists}
+    return {
+        f"{splitting.variables[0]}#{splitting.split[splitting.variables[0]]}": frac_hists
+    }

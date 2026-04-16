@@ -115,7 +115,6 @@ def generate_ff_corrlib_json(
     fractions_subleading: Union[Dict[str, Dict[str, Dict[str, List[float]]]], None],
     output_path: Union[str, None] = None,
     for_corrections: bool = False,
-    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.CorrectionSet:
     """
     Function which produces a correctionlib file based on the measured fake factors and fractions (including variations).
@@ -127,7 +126,6 @@ def generate_ff_corrlib_json(
         fractions_subleading: Second dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS] (can be relvant for tt channel)
         output_path: Path where the generated correctionlib files should be stored
         for_corrections: Boolean which decides where the produced correctionlib file is stored, this is needed because additional fake factors are needed to calculate some corrections and therefore they are stored in a different place (default: False)
-        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used. Passed to make_2D_ff and make_1D_ff
 
     Return:
         None
@@ -146,7 +144,6 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
-                    variation_scheme=variation_scheme,
                 )
             elif len(proc_conf["split_categories"]) == 2:
                 process_ff = make_2D_ff(
@@ -154,7 +151,6 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
-                    variation_scheme=variation_scheme,
                 )
             corrlib_corrections.append(process_ff)
 
@@ -163,16 +159,11 @@ def generate_ff_corrlib_json(
         var = frac_conf["var_dependence"]
         binning = ff_func.SplitQuantities(frac_conf).to_dict("var_bins")
 
-        frac_unc = dict()
-        for proc in frac_conf["processes"]:
-            frac_unc.update(gd.frac_variation_dict[proc])
-
         fraction = make_1D_fractions(
             fraction_conf=frac_conf,
             variable_info=(var, binning),
             fractions=fractions,
             fraction_name="process_fractions",
-            uncertainties=frac_unc,
         )
         corrlib_corrections.append(fraction)
 
@@ -181,16 +172,11 @@ def generate_ff_corrlib_json(
         var = frac_conf["var_dependence"]
         binning = ff_func.SplitQuantities(frac_conf).to_dict("var_bins")
 
-        frac_unc = dict()
-        for proc in frac_conf["processes"]:
-            frac_unc.update(gd.frac_variation_dict[proc])
-
         fraction = make_1D_fractions(
             fraction_conf=frac_conf,
             variable_info=(var, binning),
             fractions=fractions_subleading,
             fraction_name="process_fractions_subleading",
-            uncertainties=frac_unc,
         )
         corrlib_corrections.append(fraction)
 
@@ -209,12 +195,72 @@ def generate_ff_corrlib_json(
     return cset
 
 
+def get_ff_content(category: str, variable_info: Tuple[str, List[float]], ff_info: Dict, variation: str) -> cs.Category:
+    """
+    Function which produces a correctionlib Category with Binning as content based on the measured fake factors for a specific category and variation.
+    
+    Args:
+        category: Name of the category for which the content is produced
+        variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
+        ff_info: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION]
+        variation: Name of the variation for which the content is produced
+    
+    Return:
+        Category object from correctionlib with Binning as content
+    """
+    # this is the case if smoothing is used to estimate the fake factor function
+    if "default" in ff_info[category].keys():
+        ff_version = "default" if "downsampled" not in ff_info[category] else "downsampled"
+        unc_list = list(ff_info[category][ff_version]["variations"].keys())
+        if variation not in unc_list and variation != "nominal":
+            return cs.Binning(
+                nodetype="binning",
+                input=variable_info[0],
+                edges=list(ff_info[category][ff_version]["nominal"]["edges"]),
+                content=list(ff_info[category][ff_version]["nominal"]["content"]),
+                flow="clamp",
+            )
+        ff_bin_info = ff_info[category][ff_version]["variations"][variation] if variation != "nominal" else ff_info[category][ff_version]["nominal"]
+        return cs.Binning(
+            nodetype="binning",
+            input=variable_info[0],
+            edges=list(ff_bin_info["edges"]),
+            content=list(ff_bin_info["content"]),
+            flow="clamp",
+        )
+    # this is the case if a polynomial fit is used to estimate the fake factor function
+    elif "nominal" in ff_info[category].keys():
+        unc_list = list(ff_info[category]["variations"].keys())
+        if variation not in unc_list and variation != "nominal":
+            return cs.Binning(
+                nodetype="binning",
+                input=variable_info[0], 
+                **get_edges_and_content(
+                    ff_info[category]["nominal"],
+                    variable_info[0],
+                    variable_info[1][category],
+                ),
+                flow="clamp",
+            )
+        return cs.Binning(
+            nodetype="binning",
+            input=variable_info[0],
+            **get_edges_and_content(
+                ff_info[category]["variations"][variation] if variation != "nominal" else ff_info[category]["nominal"],
+                variable_info[0],
+                variable_info[1][category],
+            ),
+            flow="clamp",
+        )
+    else:
+        raise ValueError(f"The provided fake factor information for category {category} is not valid. Please check the ff_functions dictionary.")
+
+
 def make_1D_ff(
     process: str,
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, str]],
-    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 1D categories.
@@ -224,7 +270,6 @@ def make_1D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION]
-        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used
 
     Return:
         Correction object from correcionlib
@@ -232,8 +277,15 @@ def make_1D_ff(
     # get categories from config
     cat_inputs = list(process_conf["split_categories"].keys())
     cat_values = [process_conf["split_categories"][cat] for cat in process_conf["split_categories"]]
-    variation_scheme = variation_scheme or gd.ff_variation_dict
-
+    
+    uncertainties = []
+    for cat in list(ff_functions.keys()):
+        variations = ff_functions[cat].get("variations")
+        if variations:
+            uncertainties.extend(unc for unc in variations.keys() if unc not in uncertainties)
+        else:
+            uncertainties.extend(unc for unc in ff_functions[cat]["default"]["variations"].keys() if unc not in uncertainties)
+    
     ff = cs.Correction(
         name=f"{process}_fake_factors",
         description=f"Calculation of the {process} part the for data-driven background estimation (fake factors) for misindentified jets as tau leptons in H->tautau analysis.",
@@ -275,39 +327,19 @@ def make_1D_ff(
                         input=cat_inputs[0],
                         edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
-                            cs.Binning(
-                                nodetype="binning",
-                                input=variable_info[0],
-                                **get_edges_and_content(
-                                    ff_functions[cat1][unc],
-                                    variable_info[0],
-                                    variable_info[1][cat1],
-                                ),
-                                flow="clamp",
-                            )
-                            for cat1 in ff_functions
+                            get_ff_content(cat1, variable_info, ff_functions, unc_name) for cat1 in ff_functions
                         ],
                         flow="clamp",
                     ),
                 )
-                for unc, unc_name in variation_scheme[process].items()
+                for unc_name in uncertainties
             ],
             default=cs.Binning(
                 nodetype="binning",
                 input=cat_inputs[0],
                 edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
-                    cs.Binning(
-                        nodetype="binning",
-                        input=variable_info[0],
-                        **get_edges_and_content(
-                            ff_functions[cat1]["nominal"],
-                            variable_info[0],
-                            variable_info[1][cat1],
-                        ),
-                        flow="clamp",
-                    )
-                    for cat1 in ff_functions
+                    get_ff_content(cat1, variable_info, ff_functions, "nominal") for cat1 in ff_functions
                 ],
                 flow="clamp",
             ),
@@ -323,7 +355,6 @@ def make_2D_ff(
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, Dict[str, str]]],
-    variation_scheme: Union[Dict[str, Dict[str, str]], None] = None,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 2D categories.
@@ -333,7 +364,6 @@ def make_2D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION]
-        variation_scheme: Process dictionary containing key: variation type combinaitons if provided. If none is provided gd.ff_variation_dict[process] definition is used
 
     Return:
         Correction object from correcionlib
@@ -342,15 +372,23 @@ def make_2D_ff(
     cat_inputs = list(process_conf["split_categories"].keys())
     cat_values_conf = process_conf["split_categories"]
     binedges_conf = process_conf["split_categories_binedges"]
-    variation_scheme = variation_scheme or gd.ff_variation_dict
-    cat2_values_for_desc = []
+    cat2_values_for_description = []
     cat2_conf = cat_values_conf[cat_inputs[1]]
     if isinstance(cat2_conf, dict):  # New format
         for cat_list in cat2_conf.values():
-            cat2_values_for_desc.extend(cat_list)
-        cat2_values_for_desc = list(dict.fromkeys(cat2_values_for_desc))
+            cat2_values_for_description.extend(cat_list)
+        cat2_values_for_description = list(dict.fromkeys(cat2_values_for_description))
     else:  # Old format
-        cat2_values_for_desc = cat2_conf
+        cat2_values_for_description = cat2_conf
+        
+    uncertainties = []
+    for cat1 in list(ff_functions.keys()):
+        for cat2 in list(ff_functions[cat1].keys()):
+            variations = ff_functions[cat1][cat2].get("variations")
+            if variations:
+                uncertainties.extend(unc for unc in variations.keys() if unc not in uncertainties)
+            else:
+                uncertainties.extend(unc for unc in ff_functions[cat1][cat2]["default"]["variations"].keys() if unc not in uncertainties)
 
     ff = cs.Correction(
         name=f"{process}_fake_factors",
@@ -374,7 +412,7 @@ def make_2D_ff(
             cs.Variable(
                 name=cat_inputs[1],
                 type=gd.variable_type[cat_inputs[1]],
-                description=f"{gd.variable_description[cat_inputs[1]]} {', '.join(cat2_values_for_desc)}",
+                description=f"{gd.variable_description[cat_inputs[1]]} {', '.join(cat2_values_for_description)}",
             ),
             cs.Variable(
                 name="syst",
@@ -407,17 +445,7 @@ def make_2D_ff(
                                     else binedges_conf[cat_inputs[1]]
                                 ),
                                 content=[
-                                    cs.Binning(
-                                        nodetype="binning",
-                                        input=variable_info[0],
-                                        **get_edges_and_content(
-                                            ff_functions[cat1][cat2][unc],
-                                            variable_info[0],
-                                            variable_info[1][cat1][cat2],
-                                        ),
-                                        flow="clamp",
-                                    )
-                                    for cat2 in ff_functions[cat1]
+                                    get_ff_content(cat2, variable_info, ff_functions[cat1], unc_name) for cat2 in ff_functions[cat1]
                                 ],
                                 flow="clamp",
                             )
@@ -426,7 +454,7 @@ def make_2D_ff(
                         flow="clamp",
                     ),
                 )
-                for unc, unc_name in variation_scheme[process].items()
+                for unc_name in uncertainties
             ],
             default=cs.Binning(
                 nodetype="binning",
@@ -442,17 +470,7 @@ def make_2D_ff(
                             else binedges_conf[cat_inputs[1]]
                         ),
                         content=[
-                            cs.Binning(
-                                nodetype="binning",
-                                input=variable_info[0],
-                                **get_edges_and_content(
-                                    ff_functions[cat1][cat2]["nominal"],
-                                    variable_info[0],
-                                    variable_info[1][cat1][cat2],
-                                ),
-                                flow="clamp",
-                            )
-                            for cat2 in ff_functions[cat1]
+                            get_ff_content(cat2, variable_info, ff_functions[cat1], "nominal") for cat2 in ff_functions[cat1]
                         ],
                         flow="clamp",
                     )
@@ -472,7 +490,6 @@ def make_1D_fractions(
     variable_info: Tuple[str, List[float]],
     fractions: Dict[str, Dict[str, Dict[str, List[float]]]],
     fraction_name: str,
-    uncertainties: Dict[str, str],
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fractions (including variations).
@@ -490,6 +507,8 @@ def make_1D_fractions(
     # get categories from config
     cat_inputs = list(fraction_conf["split_categories"].keys())
     cat_values = [fraction_conf["split_categories"][cat] for cat in fraction_conf["split_categories"]]
+    uncertainties = fractions[list(fractions.keys())[0]].keys()
+    
     frac = cs.Correction(
         name=fraction_name,
         description=f"Calculation of process contributions ({fraction_name}) for the fake factor calculation.",
@@ -536,7 +555,7 @@ def make_1D_fractions(
                         input="process",
                         content=[
                             cs.CategoryItem(
-                                key=gd.variable_translator[p],
+                                key="ttbar" if p == "ttbar_J" else p,
                                 value=cs.Binning(
                                     nodetype="binning",
                                     input=cat_inputs[0],
@@ -546,7 +565,7 @@ def make_1D_fractions(
                                             nodetype="binning",
                                             input=variable_info[0],
                                             edges=variable_info[1][cat],
-                                            content=fractions[cat][unc][p],
+                                            content=fractions[cat][unc_name][p],
                                             flow="clamp",
                                         )
                                         for cat in fractions
@@ -559,14 +578,14 @@ def make_1D_fractions(
                         default=None,
                     ),
                 )
-                for unc, unc_name in uncertainties.items()
+                for unc_name in uncertainties
             ],
             default=cs.Category(
                 nodetype="category",
                 input="process",
                 content=[
                     cs.CategoryItem(
-                        key=gd.variable_translator[p],
+                        key="ttbar" if p == "ttbar_J" else p,
                         value=cs.Binning(
                             nodetype="binning",
                             input=cat_inputs[0],
@@ -795,8 +814,8 @@ def make_1D_correction(
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
-                        edges=list(correction["downsampled"][variation]["edges"]),
-                        content=list(correction["downsampled"][variation]["content"]),
+                        edges=list(correction["downsampled"]["variations"][variation]["edges"]),
+                        content=list(correction["downsampled"]["variations"][variation]["content"]),
                         flow="clamp",
                     ),
                 )
@@ -890,8 +909,8 @@ def make_2D_correction(
                             cs.Binning(
                                 nodetype="binning",
                                 input=variable,
-                                edges=list(corrections[cat1]["downsampled"][variation]["edges"]),
-                                content=list(corrections[cat1]["downsampled"][variation]["content"]),
+                                edges=list(corrections[cat1]["downsampled"]["variations"][variation]["edges"]),
+                                content=list(corrections[cat1]["downsampled"]["variations"][variation]["content"]),
                                 flow="clamp",
                             )
                             for cat1 in corrections

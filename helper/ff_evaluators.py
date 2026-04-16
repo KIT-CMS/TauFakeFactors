@@ -8,15 +8,12 @@ import correctionlib
 import correctionlib.schemav2 as cs
 import ROOT
 
-try:
-    import onnxruntime as ort
-    import numpy as np
-except ImportError:
-    ort = None
-    np = None
+import onnxruntime as ort
+import numpy as np
 
 import helper.functions as func
 
+_DECLARED_CXX_OBJECTS: set = set()
 
 class FakeFactorEvaluator:
     """
@@ -45,14 +42,21 @@ class FakeFactorEvaluator:
                 f"fake_factors_{config['channel']}_for_corrections.json",
             )
 
-        correctionlib.register_pyroot_binding()
-
         log.info(f"Loading fake factor file {path} for process {process}")
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_{"for_DRtoSR" if for_DRtoSR else ""} = '
-            f'correction::CorrectionSet::from_file("{path}")->'
-            f'at("{process}_fake_factors");'
-        )
+        correctionlib.register_pyroot_binding()
+        
+        _declare_command_object = f"{process}_{'for_DRtoSR' if for_DRtoSR else ''}"
+        _declare_command = " ".join([
+            f"{process}_{'for_DRtoSR' if for_DRtoSR else ''} =",
+            f"correction::CorrectionSet::from_file(\"{path}\") ->",
+            f"at(\"{process}_fake_factors\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, var_dependences, for_DRtoSR, logger=logger)
 
@@ -72,11 +76,19 @@ class FakeFactorEvaluator:
 
         log.info(f"Loading fake factor from string for process {process}")
         correctionlib.register_pyroot_binding()
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_{"for_DRtoSR" if for_DRtoSR else ""} = '
-            f'correction::CorrectionSet::from_string("{literal}")->'
-            f'at("{process}_fake_factors");'
-        )
+        
+        _declare_command_object = f"{process}_{'for_DRtoSR' if for_DRtoSR else ''}"
+        _declare_command = " ".join([
+            f"{process}_{'for_DRtoSR' if for_DRtoSR else ''} =",
+            f"correction::CorrectionSet::from_string(\"{literal}\") ->",
+            f"at(\"{process}_fake_factors\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, var_dependences, for_DRtoSR, logger=logger)
 
@@ -123,7 +135,7 @@ class FakeFactorEvaluator:
         eval_str = self.str_var_dependences + ', "nominal"'
         rdf = rdf.Define(
             f"{self.process}_fake_factor",
-            f'{self.process}_{self.for_DRtoSR}->evaluate({{{eval_str}}})',
+            f"{self.process}_{self.for_DRtoSR}->evaluate({{{eval_str}}})",
         )
         self.log.debug(f"Defined column '{self.process}_fake_factor' with evaluation string: {self.process}_{self.for_DRtoSR}->evaluate({{{eval_str}}})")
         return rdf
@@ -161,13 +173,21 @@ class FakeFactorCorrectionEvaluator:
 
         variable = corr_variable if isinstance(corr_variable, str) else corr_variable[0]
 
-        correctionlib.register_pyroot_binding()
         log.info(f"Loading fake factor correction file {path} for process {process}")
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_{variable}_{_for_DRtoSR} = '
-            f'correction::CorrectionSet::from_file("{path}")'
-            f'->at("{process}_non_closure_{variable}_correction");'
-        )
+        correctionlib.register_pyroot_binding()
+        
+        _declare_command_object = f"{process}_corr_{variable}_{_for_DRtoSR}"
+        _declare_command = " ".join([
+            f"{process}_corr_{variable}_{_for_DRtoSR} =",
+            f"correction::CorrectionSet::from_file(\"{path}\") ->",
+            f"at(\"{process}_non_closure_{variable}_correction\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, corr_variable, for_DRtoSR, logger=logger)
 
@@ -189,11 +209,19 @@ class FakeFactorCorrectionEvaluator:
 
         log.info(f"Loading fake factor correction from string for process {process}")
         correctionlib.register_pyroot_binding()
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_{variable}_{"for_DRtoSR" if for_DRtoSR else ""} = '
-            f'correction::CorrectionSet::from_string("{literal}")'
-            f'->at("{process}_non_closure_{variable}_correction");'
-        )
+        
+        _declare_command_object = f"{process}_corr_{variable}_{'for_DRtoSR' if for_DRtoSR else ''}"
+        _declare_command = " ".join([
+            f"{process}_corr_{variable}_{'for_DRtoSR' if for_DRtoSR else ''} =",
+            f"correction::CorrectionSet::from_string(\"{literal}\") ->",
+            f"at(\"{process}_non_closure_{variable}_correction\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, corr_variable, for_DRtoSR, logger=logger)
 
@@ -286,14 +314,21 @@ class DRSRCorrectionEvaluator:
         directories = ["workdir", config["workdir_name"], config["era"]]
         path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
 
-        correctionlib.register_pyroot_binding()
         log.info(f"Loading DR_SR correction from file {path} for process {process}")
-
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_DR_SR = '
-            f'correction::CorrectionSet::from_file("{path}")'
-            f'->at("{process}_DR_SR_correction");'
-        )
+        correctionlib.register_pyroot_binding()
+        
+        _declare_command_object = f"{process}_corr_DR_SR"
+        _declare_command = " ".join([
+            f"{process}_corr_DR_SR =",
+            f"correction::CorrectionSet::from_file(\"{path}\") ->",
+            f"at(\"{process}_DR_SR_correction\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, corr_variable, logger=logger)
 
@@ -325,12 +360,19 @@ class DRSRCorrectionEvaluator:
 
         log.info(f"Loading DR_SR correction from string for process {process}")
         correctionlib.register_pyroot_binding()
-
-        ROOT.gInterpreter.Declare(
-            f'auto {process}_corr_DR_SR = '
-            f'correction::CorrectionSet::from_string("{literal}")'
-            f'->at("{process}_DR_SR_correction");'
-        )
+        
+        _declare_command_object = f"{process}_corr_DR_SR"
+        _declare_command = " ".join([
+            f"{process}_corr_DR_SR =",
+            f"correction::CorrectionSet::from_string(\"{literal}\") ->",
+            f"at(\"{process}_DR_SR_correction\");",
+        ])
+        
+        if _declare_command_object not in _DECLARED_CXX_OBJECTS:
+            ROOT.gInterpreter.Declare(f"std::shared_ptr<const correction::Correction> {_declare_command_object} = nullptr;")
+            _DECLARED_CXX_OBJECTS.add(_declare_command_object)
+        
+        ROOT.gInterpreter.ProcessLine(_declare_command)
 
         return cls(process, corr_variable, logger=logger)
 
@@ -398,7 +440,7 @@ class DRSRCorrectionEvaluator:
 def _onnx_ctypes_callback(proc_id: int, features_ptr) -> float:
     """
     Pure Python function called natively from C++.
-    Intercepts raw memory pointer of the RDataFrame array, zero-copy casts  it to numpy, and
+    Intercepts raw memory pointer of the RDataFrame array, zero-copy casts it to numpy, and
     runs ONNX inference.
     """
     try:
@@ -472,9 +514,6 @@ class ONNXFakeFactorEvaluator:
         define_columns: Dict[str, str],
         logger: Union[str, logging.Logger, None] = None
     ):
-        if ort is None:
-            raise ImportError("onnxruntime and numpy are required for ONNXFakeFactorEvaluator")
-
         self.process = process
         self.model_path = model_path
         self.model_inputs = model_inputs

@@ -13,6 +13,7 @@ import re
 import sys
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Tuple, Union
+import pathlib
 
 import numpy as np
 import ROOT
@@ -22,6 +23,7 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from XRootD import client
 
 import CustomLogging as logging_helper
+from helper.hooks_and_patches import PassThroughWrapper
 
 
 TAU_FAKE_FACTORS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -172,12 +174,13 @@ class RuntimeVariables(object):
     Attributes:
         USE_MULTIPROCESSING (bool): Flag to enable or disable multiprocessing globally
         USE_CACHED_INTERMEDIATE_STEPS (bool): Flag to enable or disable caching of intermediate steps globally
-        RDataFrameWrapper (Any): A wrapper class for ROOT RDataFrame, can be set at runtime for different implementations histogram x-value extraction
+        RDataFrameWrapper (class): The class to be used as wrapper for the RDataFrame. By default, it is set to
+            a 'PassThroughWrapper' which directly uses RDataFrames. Another optional wrapper is 'Histo1DPatchedRDataFrame'
+            which calculates the center-of-mass for each histogram bin.
     """
     USE_MULTIPROCESSING = True
     USE_CACHED_INTERMEDIATE_STEPS = False
-
-    RDataFrameWrapper = None
+    RDataFrameWrapper = PassThroughWrapper
 
     SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
     SKIP_CORRECTIONS_P_VALUE = 0.05
@@ -530,13 +533,18 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     log = logging.getLogger(f"preselection.{process}")
 
     fsname = "root://cmsdcache-kit-disk.gridka.de/"
-    xrdclient = client.FileSystem(fsname)
-    status, listing = xrdclient.dirlist(path.replace(fsname, ""))
+    if fsname in path:
+        xrdclient = client.FileSystem(fsname)
+        status, listing = xrdclient.dirlist(path.replace(fsname, ""))
 
-    if not status.ok:
-        log.info(f"Error: {status.message}")
-        sys.exit(1)
-
+        if not status.ok:
+            raise FileNotFoundError(f"Could not access path {path} on xrootd server. Status: {status.message}")
+            
+    elif path.startswith("/ceph"):
+        listing = [pathlib.Path(it) for it in os.listdir(path)]
+    else:
+        raise ValueError(f"Unsupported file system for path {path}")
+        
     selected_files = []
     for f in listing:
         if f.name.endswith(".root"):
@@ -675,7 +683,7 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
         # - `Define` in all other cases
         rdf_define_call = (
             rdf.Redefine
-            if new_column in rdf_columns and allow_redefine
+            if new_column in rdf_columns and define_dict["allow_redefine"]
             else rdf.Define
         )
         rdf = rdf_define_call(new_column, expression)
@@ -688,7 +696,7 @@ class SamplePathList(list):
     A list-like object holding sample paths that can safely toggle between
     embedding and MC-only states while preserving the full unmodified list in memory.
     """
-    def __init__(self, all_paths: List[str], use_embedding: bool):
+    def __init__(self, all_paths: List[str], use_embedding: bool) -> None:
         self.all_paths = all_paths
         self.is_embedded = use_embedding
 
@@ -703,7 +711,7 @@ class SamplePathList(list):
 
         super().__init__(filtered_paths)
 
-    def switch_embedding_state(self, use_embedding: bool) -> 'SamplePathList':
+    def switch_embedding_state(self, use_embedding: bool) -> "SamplePathList":
         if use_embedding == self.is_embedded:
             return self
         return SamplePathList(self.all_paths, use_embedding)
@@ -799,7 +807,7 @@ def check_categories(config: Dict[str, Union[str, Dict, List]]) -> None:
             if len(fraction_categories[cat]) != (
                 len(fraction_categories_edges[cat]) - 1
             ):
-                raise Exception("Categories and binning for the categories does not match up for {cat} for fractions.")
+                raise Exception(f"Categories and binning for the categories does not match up for {cat} for fractions.")
 
 
 def modify_config(

@@ -21,8 +21,9 @@ import helper.ff_functions as ff_func
 import helper.functions as func
 from ff_calculation import FF_calculation
 from helper.ff_evaluators import get_fake_factor_evaluator, FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
-from helper.hooks_and_patches import Histo1DPatchedRDataFrame, PassThroughWrapper
+from helper.hooks_and_patches import Histo1DPatchedRDataFrame
 import CustomLogging as logging_helper
+import configs.general_definitions as gd
 
 parser = argparse.ArgumentParser()
 
@@ -334,10 +335,10 @@ def run_ff_calculation_for_DRtoSR(
             to_AR_SR=False,
         )
 
-        use_data_flag = corr_config["target_processes"][process]["DR_SR"].get("compute_different_set_of_fake_factors_using_data", True)
-        if process.startswith("QCD") and not use_data_flag:
-            raise NotImplementedError("compute_different_set_of_fake_factors_using_data=False is not currently implemented for QCD.")
-        ff_config["target_processes"][process]["compute_different_set_of_fake_factors_using_data"] = use_data_flag
+        use_data_str = corr_config["target_processes"][process]["DR_SR"].get("orthogonal_fake_factors", "use_data")
+        if process.startswith("QCD") and use_data_str != "use_data":
+            raise NotImplementedError("orthogonal_fake_factors!='use_data' is not currently implemented for QCD.")
+        ff_config["target_processes"][process]["orthogonal_fake_factors"] = use_data_str
 
         log.info(f"Calculating fake factors for the DR to SR correction for the {process} process.")
         log.info("-" * 50)
@@ -471,7 +472,7 @@ def run_correction(
             config=config,
             process=process,
             var_dependences=var_dependences,
-            for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("compute_different_set_of_fake_factors", True),
+            for_DRtoSR=False if corr_config["target_processes"][process]["DR_SR"].get("orthogonal_fake_factors", None) == None else True,
             logger=f"ff_corrections.{process}",
         )
 
@@ -530,7 +531,7 @@ def run_correction(
                         ff_config,
                         DR_SR_config,
                         process,
-                        sample_paths.switch_embedding_state(DR_SR_config.get("use_embedding", config.get("use_embedding", False))),
+                        sample_paths.switch_embedding_state(DR_SR_config.get("use_embedding", ff_config.get("use_embedding", False))),
                         save_path,
                         f"ff_corrections.{process}",
                         evaluator,
@@ -629,7 +630,6 @@ if __name__ == "__main__":
     if len(sample_paths) == 0:
         raise Exception("No input files found!")
 
-    func.RuntimeVariables.RDataFrameWrapper = PassThroughWrapper
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
@@ -639,7 +639,7 @@ if __name__ == "__main__":
 
     # setting default systematic variations if not present in the config
     if "correction_variations" not in corr_config:
-        corr_config["correction_variations"] = ("Stat_1Sigma", "Syst_MCShift", "Syst_BandAsym")
+        corr_config["correction_variations"] = gd.default_correction_variations
 
     # ########## needed precalculations for DR to SR corrections ########## #
 
@@ -666,7 +666,7 @@ if __name__ == "__main__":
 
                     is_valid_cache = all(
                         func.nested_object_comparison(__test_config.get(k), test_config.get(k))
-                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "compute_different_set_of_fake_factors_using_data")
+                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "orthogonal_fake_factors")
                     )
     else:
         is_valid_cache = False
@@ -701,7 +701,6 @@ if __name__ == "__main__":
                 fractions_subleading=None,
                 output_path=save_path,
                 for_corrections=True,
-                variation_scheme={process: {"unc_up": "FFuncUp", "unc_down": "FFuncDown"} for process in corr_config["target_processes"]},
             )
 
         with open(cached_DR_SR_ffs, "wb") as f:

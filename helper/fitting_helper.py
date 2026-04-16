@@ -9,7 +9,7 @@ import numpy as np
 import ROOT
 from wurlitzer import STDOUT, pipes
 
-import CustomLogging as logging_helper
+import configs.general_definitions as gd
 
 
 def _get_gradients(
@@ -88,6 +88,7 @@ def poly_n_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
+    sigma: float = 1.0,
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function with degree n and an up and down varied version.
@@ -115,7 +116,7 @@ def poly_n_func(
         x = [_limit(x[0], *limit_x_up)]
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(nom + unc / 2.0, *limit_y_up)
+        return _limit(nom + sigma * unc / 2.0, *limit_y_up)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -128,7 +129,7 @@ def poly_n_func(
         x = [_limit(x[0], *limit_x_down)]
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(nom - unc / 2.0, *limit_y_down)
+        return _limit(nom - sigma * unc / 2.0, *limit_y_down)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -146,6 +147,7 @@ def poly_n_str_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
+    sigma: float = 1.0,
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function as a string with degree n and an up and down varied version.
@@ -173,7 +175,7 @@ def poly_n_str_func(
         x = _limit(x, *limit_x_up, is_string=True)
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(f"(({nom}) + ({unc}) / 2.0)", *limit_y_up, is_string=True)
+        return _limit(f"(({nom}) + ({sigma} * {unc}) / 2.0)", *limit_y_up, is_string=True)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -182,7 +184,7 @@ def poly_n_str_func(
         x = _limit(x, *limit_x_down, is_string=True)
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(f"(({nom}) - ({unc}) / 2.0)", *limit_y_down, is_string=True)
+        return _limit(f"(({nom}) - ({sigma} * {unc}) / 2.0)", *limit_y_down, is_string=True)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -315,6 +317,7 @@ def get_wrapped_functions_from_fits(
         Tuple[float, float], Dict[str, Tuple[float, float]]
     ] = _no_limit_default,
     #
+    stat_sigma: float = 1.0,
     **kwargs: Dict[str, Any],
 ) -> Tuple[Dict[str, Callable], Dict[str, str]]:
     """
@@ -335,10 +338,11 @@ def get_wrapped_functions_from_fits(
 
     Returns: Dict[str, Callable]: Dictionary with the best fit function containing:
         - "nominal": The best fit function.
-        - "up": The best fit function including the upper error.
-        - "down": The best fit function including the lower error.
-        - "mc_up": The best fit function including the upper error from MC subtraction.
-        - "mc_down": The best fit function including the lower error from MC subtraction
+        - "variations": A dictionary containing the variations of the best fit function:
+            - gd.VARIATIONS.STAT+"Up": The best fit function including the upper error.
+            - gd.VARIATIONS.STAT+"Down": The best fit function including the lower error.
+            - gd.VARIATIONS.SYST_MC+"Up": The best fit function including the upper error from MC subtraction.
+            - gd.VARIATIONS.SYST_MC+"Down": The best fit function including the lower error from MC subtraction.
     """
     log = logging.getLogger(logger)
 
@@ -355,8 +359,8 @@ def get_wrapped_functions_from_fits(
         verbose=verbose,
     )
 
-    poly_n_func_limited = partial(poly_n_func, **limit_kwargs)
-    poly_n_str_func_limited = partial(poly_n_str_func, **limit_kwargs)
+    poly_n_func_limited = partial(poly_n_func, **limit_kwargs, sigma=stat_sigma)
+    poly_n_str_func_limited = partial(poly_n_str_func, **limit_kwargs, sigma=stat_sigma)
 
     _functions, _str_functions = dict(), dict()
     _functions_limited, _str_functions_limited = dict(), dict()
@@ -432,7 +436,7 @@ def get_wrapped_functions_from_fits(
         log.info(out.getvalue())
         log.info("-" * 50)
 
-    callable_results, str_results = {}, {}
+    callable_results, str_results = {"nominal": None, "variations": {}}, {"nominal": None, "variations": {}}
 
     nominal_param, cov = extract_param_and_cov(Fits[name])
     variation_param = [*nominal_param, *cov.flatten()]
@@ -440,35 +444,35 @@ def get_wrapped_functions_from_fits(
     callable_results["nominal"] = lambda x: _functions_limited[name][0](
         [x], nominal_param
     )
-    callable_results["unc_up"] = lambda x: _functions_limited[name][1](
+    callable_results["variations"][gd.VARIATIONS.STAT + "Up"] = lambda x: _functions_limited[name][1](
         [x], variation_param
     )
-    callable_results["unc_down"] = lambda x: _functions_limited[name][2](
+    callable_results["variations"][gd.VARIATIONS.STAT + "Down"] = lambda x: _functions_limited[name][2](
         [x], variation_param
     )
 
     str_results["nominal"] = _str_functions_limited[name][0](" ( x ) ", nominal_param)
-    str_results["unc_up"] = _str_functions_limited[name][1](" ( x ) ", variation_param)
-    str_results["unc_down"] = _str_functions_limited[name][2](
+    str_results["variations"][gd.VARIATIONS.STAT + "Up"] = _str_functions_limited[name][1](" ( x ) ", variation_param)
+    str_results["variations"][gd.VARIATIONS.STAT + "Down"] = _str_functions_limited[name][2](
         " ( x ) ", variation_param
     )
 
     if do_mc_subtr_unc:
         param_up, _ = extract_param_and_cov(Fits_up[name])
         param_down, _ = extract_param_and_cov(Fits_down[name])
-        callable_results["mc_subtraction_unc_up"] = lambda x: _functions_limited[name][0](
+        callable_results["variations"][gd.VARIATIONS.SYST_MC + "Up"] = lambda x: _functions_limited[name][0](
             [x],
             param_up,
         )
-        callable_results["mc_subtraction_unc_down"] = lambda x: _functions_limited[name][0](
+        callable_results["variations"][gd.VARIATIONS.SYST_MC + "Down"] = lambda x: _functions_limited[name][0](
             [x],
             param_down,
         )
-        str_results["mc_subtraction_unc_up"] = _str_functions_limited[name][0](
+        str_results["variations"][gd.VARIATIONS.SYST_MC + "Up"] = _str_functions_limited[name][0](
             " ( x ) ",
             param_up,
         )
-        str_results["mc_subtraction_unc_down"] = _str_functions_limited[name][0](
+        str_results["variations"][gd.VARIATIONS.SYST_MC + "Down"] = _str_functions_limited[name][0](
             " ( x ) ",
             param_down,
         )
@@ -478,14 +482,15 @@ def get_wrapped_functions_from_fits(
 
 def hist_func(
     hist: ROOT.TH1,
+    sigma: float = 1.0,
     return_callable: bool = True,
 ) -> Tuple[Callable, List[float], List[float]]:
 
     _nominal, _up, _down, _edges = [], [], [], []
     for i in range(1, hist.GetNbinsX() + 1):
         _nominal.append(hist.GetBinContent(i))
-        _up.append(hist.GetBinContent(i) + hist.GetBinErrorUp(i))
-        _down.append(hist.GetBinContent(i) - hist.GetBinErrorLow(i))
+        _up.append(hist.GetBinContent(i) + sigma * hist.GetBinErrorUp(i))
+        _down.append(hist.GetBinContent(i) - sigma * hist.GetBinErrorLow(i))
         _edges.append((hist.GetBinLowEdge(i), hist.GetBinLowEdge(i + 1)))
 
     def nominal(x):
@@ -528,6 +533,7 @@ def get_wrapped_hists(
     do_mc_subtr_unc: bool,
     logger: str,
     verbose: bool = True,
+    sigma: float = 1.0,
     **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
     """
@@ -542,44 +548,48 @@ def get_wrapped_hists(
 
     Returns: Dict[str, Union[List, Callable]]: Dictionary with the histograms containing:
         - "nominal": measured histogram.
-        - "up": measured histogram including the upper error.
-        - "down": measured histogram including the lower error.
-        - "mc_up": measured histogram including the upper error from MC subtraction.
-        - "mc_down": measured histogram including the lower error from MC subtraction
+        - "variations": A dictionary containing the variations of the histogram:
+            - gd.VARIATIONS.STAT+"Up": measured histogram including the upper error.
+            - gd.VARIATIONS.STAT+"Down": measured histogram including the lower error.
+            - gd.VARIATIONS.SYST_MC+"Up": measured histogram including the upper error from MC subtraction.
+            - gd.VARIATIONS.SYST_MC+"Down": measured histogram including the lower error from MC subtraction.
     """
     log = logging.getLogger(logger)
     if verbose:
         log.info("Measured histograms directly instead of a fit.")
         log.info("-" * 50)
 
-    callable_results = dict(
-        zip(
-            ["nominal", "unc_up", "unc_down"],
-            hist_func(ff_hist, return_callable=True),
-        )
-    )
-    str_results = dict(
-        zip(
-            ["nominal", "unc_up", "unc_down"],
-            hist_func(ff_hist, return_callable=False),
-        )
-    )
+    callable_results, str_results = {"nominal": None, "variations": {}}, {"nominal": None, "variations": {}}
+    
+    _nom = hist_func(ff_hist, sigma=sigma, return_callable=True)
+    _nom_str = hist_func(ff_hist, sigma=sigma, return_callable=False)
+    
+    callable_results["nominal"] = _nom[0]
+    callable_results["variations"][gd.VARIATIONS.STAT + "Up"] = _nom[1]
+    callable_results["variations"][gd.VARIATIONS.STAT + "Down"] = _nom[2]
+    
+    str_results["nominal"] = _nom_str[0]
+    str_results["variations"][gd.VARIATIONS.STAT + "Up"] = _nom_str[1]
+    str_results["variations"][gd.VARIATIONS.STAT + "Down"] = _nom_str[2]
+    
     if do_mc_subtr_unc:
         callable_results.update(
             {
-                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=True)[0],
-                "mc_subtraction_unc_down": hist_func(
-                    ff_hist_down, return_callable=True
+                gd.VARIATIONS.SYST_MC + "Up": hist_func(
+                    ff_hist_up, sigma=sigma, return_callable=True
+                )[0],
+                gd.VARIATIONS.SYST_MC + "Down": hist_func(
+                    ff_hist_down, sigma=sigma, return_callable=True
                 )[0],
             }
         )
         str_results.update(
             {
-                "mc_subtraction_unc_up": hist_func(ff_hist_up, return_callable=False)[
-                    0
-                ],
-                "mc_subtraction_unc_down": hist_func(
-                    ff_hist_down, return_callable=False
+                gd.VARIATIONS.SYST_MC + "Up": hist_func(
+                    ff_hist_up, sigma=sigma, return_callable=False
+                )[0],
+                gd.VARIATIONS.SYST_MC + "Down": hist_func(
+                    ff_hist_down, sigma=sigma, return_callable=False
                 )[0],
             }
         )
