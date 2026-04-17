@@ -66,10 +66,6 @@ processes:
       - T
       - L
 
-column_definitions:
-    event_parity:
-        expression: event % 2
-
 event_selection:
   had_tau_decay_mode: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
   had_tau_id_vs_ele: id_tau_vsEle_VVLoose_2 > 0.5
@@ -84,26 +80,38 @@ mc_weights:
     stitching:
       - DYjets
       - Wjets
-  had_tau_id_vs_ele: id_wgt_tau_vsEle_VVLoose_2
-  had_tau_id_vs_mu: id_wgt_tau_vsMu_Tight_2
+  had_tau_id_vs_ele: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu: (gen_match_2==5) * ((id_tau_vsMu_Tight_2>0.5)*id_wgt_tau_vsMu_Tight_2 + (id_tau_vsMu_Tight_2<0.5)) + (gen_match_2!=5)
   lep_id: id_wgt_mu_1
   lep_iso: iso_wgt_mu_1
   lumi: ""
   pileup: puweight
-  single_trigger: ((pt_1>25)*trg_wgt_single_mu24ormu27)
-  # for ml ffs add this
-  # had_tau_id_vs_jet: ((gen_match_2 == 5) * ((id_tau_vsJet_Tight_2 > 0.5) * id_wgt_tau_vsJet_Tight_2 + (id_tau_vsJet_Tight_2 < 0.5)) + (gen_match_2 != 5))
-  # btag: btag_weight
-
+  single_trigger: trg_wgt_single_mu24ormu27
 emb_weights:
-  generator: (emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt) * (gen_match_1==4 && gen_match_2==5)
+  generator: (emb_genweight * emb_idsel_wgt_1 * emb_idsel_wgt_2 * emb_triggersel_wgt)
   lep_id: id_wgt_mu_1
   lep_iso: iso_wgt_mu_1
   single_trigger: trg_wgt_single_mu24ormu27
-  # for ml ffs add this
-  # had_tau_id_vs_jet: ((gen_match_2 == 5) * ((id_tau_vsJet_Tight_2 > 0.5) * id_wgt_tau_vsJet_Tight_2 + (id_tau_vsJet_Tight_2 < 0.5)) + (gen_match_2 != 5))
 
 output_features:
+  - mt_1
+  - dilepton_veto
+  - weight
+  - btag_weight
+  - q_1
+  - pt_2
+  - q_2
+  - gen_match_2
+  - pt_1
+  - extramuon_veto
+  - extraelec_veto
+  - dimuon_veto
+  - tau_decaymode_1
+  - tau_decaymode_2
+  - mass_1
+  - mass_2
+  - iso_1
+  - iso_2
   - beta_1
   - beta_2
   - bphi_1
@@ -112,7 +120,6 @@ output_features:
   - bpt_2
   - btag_value_1
   - btag_value_2
-  - btag_weight
   - deltaEta_12j1
   - deltaEta_12j2
   - deltaEta_12jj
@@ -140,37 +147,18 @@ output_features:
   - deltaR_2j2
   - deltaR_ditaupair
   - deltaR_jj
-  - dilepton_veto
-  - dimuon_veto
-  - dxy_1
-  - dxy_2
-  - dz_1
-  - dz_2
   - eta_1
   - eta_2
-  - eta_fastmtt
-  - event
-  - event_parity
-  - extraelec_veto
-  - extramuon_veto
-  - gen_match_2
-  - iso_1
-  - iso_2
   - jeta_1
   - jeta_2
   - jphi_1
   - jphi_2
   - jpt_1
   - jpt_2
-  - lumi
-  - m_fastmtt
   - m_vis
-  - mass_1
-  - mass_2
   - met
   - metphi
   - mjj
-  - mt_1
   - mt_2
   - mt_tot
   - nbtag
@@ -179,18 +167,11 @@ output_features:
   - pfmetphi
   - phi_1
   - phi_2
-  - phi_fastmtt
-  - pt_1
-  - pt_2
   - pt_dijet
-  - pt_fastmtt
   - pt_tt
   - pt_ttjj
   - pt_vis
-  - pzetamissvis
-  - q_1
-  - q_2
-  - run
-  - tau_decaymode_1
-  - tau_decaymode_2
-  - weight
+  - eta_fastmtt
+  - m_fastmtt
+  - phi_fastmtt
+  - pt_fastmtt

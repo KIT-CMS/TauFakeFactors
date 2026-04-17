@@ -1,0 +1,187 @@
+channel: mt
+target_processes:
+  QCD:
+    split_categories:
+      njets: ["==0", "==1", ">=2"]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 1.5, 22.5]
+    equipopulated_binning_options:
+      variable_config:
+        pt_2:
+          min: 20.0
+          max: 150.0
+          rounding: 2
+      var_dependence_n_bins: [40, 25, 10]
+
+    SRlike_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 < 50)
+      nbtag: (nbtag >= 0)
+      tau_pair_sign: ((q_1*q_2) > 0)
+      lep_iso: ((iso_1 >= 0.05) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    ARlike_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 < 50)
+      nbtag: (nbtag >= 0)
+      tau_pair_sign: ((q_1*q_2) > 0)
+      lep_iso: ((iso_1 >= 0.05) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    var_dependence: pt_2
+    # in case of individual splitting
+    var_bins:
+      "==0": [20.0, 20.38, 20.75, 21.15, 21.56, 21.97, 22.4, 22.81, 23.3, 23.77, 24.25, 24.76, 25.25, 25.75, 26.27, 26.83, 27.41, 27.99, 28.55, 29.16, 29.82, 30.47, 31.18, 31.91, 32.7, 33.59, 34.48, 35.43, 36.48, 37.57, 38.75, 40.09, 41.59, 43.25, 45.15, 47.39, 50.14, 53.81, 59.24, 68.53, 150.0]
+      "==1": [20.0, 20.41, 20.88, 21.37, 21.85, 22.34, 22.93, 23.53, 24.21, 24.93, 25.63, 26.39, 27.25, 28.19, 29.26, 30.37, 31.66, 33.17, 34.89, 37.13, 39.95, 43.21, 47.56, 54.5, 67.18, 150.0]
+      ">=2": [20.0, 21.16, 22.61, 24.18, 26.07, 28.56, 31.56, 35.65, 41.65, 55.1, 150.0]
+    # fit_option: ["poly_0", "poly_1", "poly_2", "poly_3"]
+    fit_option: "smoothed"
+    bandwidth: 10.0
+
+  Wjets:
+    split_categories:
+      njets: ["==0", "==1", ">=2"]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 1.5, 22.5]
+    equipopulated_binning_options:
+      variable_config:
+        pt_2:
+          min: 20.0
+          max: 150.0
+          rounding: 2
+      var_dependence_n_bins: [40, 25, 10]
+
+    SRlike_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 > 70)
+      nbtag: (nbtag == 0)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    ARlike_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 > 70)
+      nbtag: (nbtag == 0)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    var_dependence: pt_2
+    var_bins:
+      "==0": [20.0, 20.27, 20.55, 20.83, 21.12, 21.43, 21.75, 22.08, 22.42, 22.77, 23.13, 23.51, 23.9, 24.31, 24.72, 25.16, 25.61, 26.09, 26.59, 27.11, 27.66, 28.22, 28.83, 29.47, 30.14, 30.86, 31.65, 32.51, 33.44, 34.43, 35.55, 36.82, 38.24, 39.84, 41.76, 44.13, 47.13, 51.12, 57.4, 69.02, 150.0]
+      "==1": [20.0, 20.64, 21.28, 21.97, 22.68, 23.44, 24.22, 25.08, 25.98, 26.89, 27.9, 28.98, 30.14, 31.39, 32.81, 34.31, 36.07, 38.07, 40.3, 42.99, 46.17, 50.32, 55.88, 64.15, 79.28, 150.0]
+      ">=2": [20.0, 22.0, 24.25, 26.89, 29.88, 33.62, 38.21, 44.5, 53.63, 71.34, 150.0]
+    # fit_option: ["poly_0", "poly_1", "poly_2", "poly_3"]
+    fit_option: "smoothed"
+    bandwidth: 10.0
+
+  ttbar:
+    split_categories:
+      njets: ["<=1", ">=2"]
+    split_categories_binedges:
+      njets: [-0.5, 1.5, 22.5]
+    equipopulated_binning_options:
+      variable_config:
+        pt_2:
+          min: 20.0
+          max: 150.0
+          rounding: 2
+      var_dependence_n_bins: [30, 30]
+
+    SR_cuts:
+      had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
+      # -------------------------------------------
+      lep_mt: (mt_1 < 70)
+      nbtag: (nbtag >= 1)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    AR_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 < 70)
+      nbtag: (nbtag >= 1)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    SRlike_cuts:
+      had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
+      # -------------------------------------------
+      lep_mt: (mt_1 < 70)
+      nbtag: (nbtag >= 1)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))'
+
+    ARlike_cuts:
+      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+      # -------------------------------------------
+      lep_mt: (mt_1 < 70)
+      nbtag: (nbtag >= 1)
+      tau_pair_sign: ((q_1*q_2) < 0)
+      lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      # -------------------------------------------
+      no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))'
+
+    var_dependence: pt_2
+    var_bins:
+      "<=1": [20.0, 20.53, 21.16, 21.74, 22.42, 23.08, 23.7, 24.64, 25.2, 26.12, 27.08, 27.94, 28.89, 29.89, 30.96, 31.96, 33.03, 34.21, 36.13, 37.86, 39.68, 41.43, 43.89, 47.0, 50.0, 53.96, 58.69, 65.47, 75.83, 89.14, 150.0]
+      ">=2": [20.0, 20.79, 21.36, 22.16, 22.88, 23.57, 24.58, 25.63, 26.93, 28.24, 29.14, 30.33, 31.47, 32.57, 33.83, 35.25, 36.77, 37.8, 39.87, 41.98, 44.59, 47.26, 50.16, 54.09, 57.54, 63.56, 69.4, 76.34, 87.9, 106.1, 150.0]
+    # fit_option: ["poly_0", "poly_1", "poly_2", "poly_3"]
+    fit_option: "smoothed"
+    bandwidth: 10.0
+
+process_fractions:
+  processes: ["QCD", "Wjets", "ttbar_J"]
+
+  split_categories:
+    njets: ["==0", "==1", ">=2"]
+  split_categories_binedges:
+    njets: [-0.5, 0.5, 1.5, 22.5]
+  equipopulated_binning_options:
+    variable_config:
+      mt_1:
+        min: 0.0
+        max: 70.0
+        rounding: 2
+    var_dependence_n_bins: [40, 25, 10]
+
+  SR_cuts:
+    had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
+    # -------------------------------------------
+    lep_mt: (mt_1 < 70)
+    nbtag: (nbtag >= 0)
+    tau_pair_sign: ((q_1*q_2) < 0)
+    lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+  AR_cuts:
+    had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+    # -------------------------------------------
+    lep_mt: (mt_1 < 70)
+    nbtag: (nbtag >= 0)
+    tau_pair_sign: ((q_1*q_2) < 0)
+    lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+  var_dependence: mt_1
+  var_bins:
+    "==0": [0.0, 1.73, 3.46, 5.2, 6.95, 8.72, 10.5, 12.3, 14.11, 15.93, 17.78, 19.64, 21.51, 23.39, 25.27, 27.18, 29.08, 30.98, 32.88, 34.77, 36.65, 38.51, 40.35, 42.19, 44.02, 45.81, 47.59, 49.34, 51.08, 52.79, 54.46, 56.12, 57.75, 59.36, 60.95, 62.5, 64.04, 65.56, 67.05, 68.53, 70.0]
+    "==1": [0.0, 2.72, 5.46, 8.19, 11.0, 13.85, 16.74, 19.69, 22.7, 25.71, 28.75, 31.81, 34.86, 37.86, 40.84, 43.8, 46.68, 49.51, 52.27, 54.94, 57.56, 60.15, 62.66, 65.12, 67.56, 70.0]
+    ">=2": [0.0, 7.2, 14.53, 21.95, 29.39, 36.74, 43.91, 50.81, 57.45, 63.8, 70.0]

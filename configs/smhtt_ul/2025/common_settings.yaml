@@ -1,0 +1,19 @@
+ntuple_path: "/ceph/sgiappic/CROWN/ntuples/htt_260407_2024-25_v2/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
+output_path: "/ceph/sgiappic/CMS_FF/260410/"
+#friends: 
+file_path: "/ceph/sgiappic/CMS_FF/260410/"
+
+workdir_name: htt_260410
+
+era: '2025'
+tree: ntuple
+nanoAOD_version: "nanoAOD_v15"
+
+tau_vs_jet_wps:
+  - VVVLoose
+  - Medium
+tau_vs_jet_wgt_wps:
+  - Medium
+
+use_embedding: false
+use_center_of_mass_bins: true
