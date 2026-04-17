@@ -334,11 +334,14 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-
-        use_data_str = corr_config["target_processes"][process]["DR_SR"].get("orthogonal_fake_factors", "use_data")
-        if process.startswith("QCD") and use_data_str != "use_data":
-            raise NotImplementedError("orthogonal_fake_factors!='use_data' is not currently implemented for QCD.")
-        ff_config["target_processes"][process]["orthogonal_fake_factors"] = use_data_str
+        if not corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True):
+            log.info(f"DR to SR correction for {process} process is configured to not use orthogonal fake factors. Skipping fake factor calculation for DR to SR correction.")
+            return None
+        
+        use_data_flag = corr_config["target_processes"][process]["DR_SR"].get("compute_orthogonal_fake_factors_using_data", True)
+        if process.startswith("QCD") and not use_data_flag:
+            raise NotImplementedError("compute_orthogonal_fake_factors_using_data=False is not currently implemented for QCD.")
+        ff_config["target_processes"][process]["compute_orthogonal_fake_factors_using_data"] = use_data_flag
 
         log.info(f"Calculating fake factors for the DR to SR correction for the {process} process.")
         log.info("-" * 50)
@@ -472,7 +475,7 @@ def run_correction(
             config=config,
             process=process,
             var_dependences=var_dependences,
-            for_DRtoSR=False if corr_config["target_processes"][process]["DR_SR"].get("orthogonal_fake_factors", None) == None else True,
+            for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True),
             logger=f"ff_corrections.{process}",
         )
 
@@ -666,7 +669,7 @@ if __name__ == "__main__":
 
                     is_valid_cache = all(
                         func.nested_object_comparison(__test_config.get(k), test_config.get(k))
-                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "orthogonal_fake_factors")
+                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "compute_fake_factors_using_data")
                     )
     else:
         is_valid_cache = False
