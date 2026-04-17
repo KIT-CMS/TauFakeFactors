@@ -172,7 +172,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
     SRlike_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SRlike_hists_qcd)
     ARlike_hists["QCD"] = ff_func.QCD_SS_estimate(hists=ARlike_hists_qcd)
 
-    use_data = process_conf.get("compute_different_set_of_fake_factors_using_data", True)
+    use_data = process_conf.get("compute_orthogonal_fake_factors_using_data", True)
 
     if use_data:
         # calculate Wjets enriched data by subtraction all there backgrould sample
