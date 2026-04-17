@@ -415,8 +415,8 @@ target_processes:
 
     DR_SR:
       use_embedding: false
-      compute_different_set_of_fake_factors: true
-      compute_different_set_of_fake_factors_using_data: true
+      use_orthogonal_fake_factors: true
+      compute_orthogonal_fake_factors_using_data: true
       <<: [*mt_1, *3j_split, *correction_variations__with_mc_subtraction_shift]
       equipopulated_binning_options:
         <<: [*mt_1__eq_bin_opt, *QCD_var_dependence_n_bins]
@@ -626,8 +626,8 @@ target_processes:
 
     DR_SR:
       use_embedding: true
-      compute_different_set_of_fake_factors: true
-      compute_different_set_of_fake_factors_using_data: false
+      use_orthogonal_fake_factors: true
+      compute_orthogonal_fake_factors_using_data: false
       <<: [*mt_1, *3j_split, *correction_variations__with_mc_subtraction_shift]
       equipopulated_binning_options:
         <<: [*mt_1__eq_bin_opt, *Wjets_var_dependence_n_bins]

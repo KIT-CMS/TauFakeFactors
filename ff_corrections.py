@@ -334,7 +334,10 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
-
+        if not corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True):
+            log.info(f"DR to SR correction for {process} process is configured to not use orthogonal fake factors. Skipping fake factor calculation for DR to SR correction.")
+            return None
+        
         use_data_flag = corr_config["target_processes"][process]["DR_SR"].get("compute_orthogonal_fake_factors_using_data", True)
         if process.startswith("QCD") and not use_data_flag:
             raise NotImplementedError("compute_orthogonal_fake_factors_using_data=False is not currently implemented for QCD.")
