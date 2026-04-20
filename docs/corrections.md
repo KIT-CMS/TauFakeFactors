@@ -1,6 +1,7 @@
 # Fake Factor corrections
 In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.
 
+### Configuration
 Currently two different correction types are implemented: 
 
 1. non closure correction depending on a specific variable
@@ -39,7 +40,30 @@ Each correction has following specifications:
   `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
   `AR_SR_cuts` | `dict` | event selections for a switch from the determination region to the signal/application region, this is only relevant for `DR_SR` corrections
   `non_closure` | `dict` | this is only relevant for `DR_SR` corrections, since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.
-    
+
+### Statistical check
+As an option it is possible to check using a sliding-window compatibility test whether a computed correction is statistically consistent with 1.0 (i.e., a flat correction, meaning no genuine fake factor bias). The test works as follows:
+
+1. **Error selection**: Per-bin uncertainties are taken either as the fully propagated errors (data + MC statistical, added in quadrature) or as the data-only "MC-suppressed" errors — depending on the parameter `use_suppressed_mc_errors_for_correction_selection`.
+2. **Sliding-window scan**: Pulls $(y_i - 1)/\sigma_i$ are computed for each bin. The test scans all contiguous windows of 1 to $N$ bins and finds the most significant deviation (minimum p-value):
+
+$$z_\text{window} = \frac{\left|\sum_{i} \text{pull}_i\right|}{\sqrt{N_\text{window}}}$$
+
+3. **Look-elsewhere correction**: A Bonferroni-style correction is applied to account for the scan over multiple windows:
+
+$$p_\text{shape} = 1 - (1 - p_\text{min})^{N_\text{bins}}$$
+
+4. **Auto-skipping**: If `p_shape > skip_corrections_p_value` (correction is compatible with 1) **and** `skip_corrections_compatible_to_one` is `true`, the correction is replaced with a flat 1.0. Bandwidth/shape variations are also set to 1.0. Statistical variations are collapsed to a single inclusive uncertainty. MC-shift variations are either fit to a constant or also set to 1.0.
+
+Three parameter can be set to define this check:
+
+  parameter | type | description
+  ---|---|---
+  `skip_corrections_compatible_to_one` | `bool` | Master switch for automatic skipping of corrections compatible with 1.0. If `True` and a correction passes the p-value threshold (see below), it is replaced by a flat 1.0 correction and all shape/bandwidth uncertainties are also flattened. Statistical uncertainties are collapsed into a single inclusive value. Defaults to `false`.
+  `skip_corrections_p_value` | `float` | P-value threshold for the compatibility-with-1 test. A correction is considered compatible with 1.0 (and thus auto-skipped) if its shape p-value is above this threshold. Higher values are more aggressive (skip more corrections). Only has an effect when `skip_corrections_compatible_to_one` is set to `true`. Defaults to `0.05`.
+  `use_suppressed_mc_errors_for_correction_selection` | `bool` | Controls which per-bin uncertainties are used in the compatibility test. If `True`, only the data statistical uncertainties are used — MC statistical errors from the MC subtraction step are ignored ("suppressed"). If `False`, the fully propagated errors (data + MC statistical uncertainties added in quadrature) are used. Using the suppressed errors avoids MC-dominated samples from artificially increasing the uncertainty and causing genuine corrections to be auto-skipped. Defaults to `true`.
+
+### Running calculations
 To run the FF correction step, execute the python script and specify the config file (relative path possible):
 ```bash
 python ff_corrections.py --config-file PATH/CONFIG.yaml 

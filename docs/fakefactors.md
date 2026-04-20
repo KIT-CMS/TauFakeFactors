@@ -1,6 +1,7 @@
 # Fake Factor calculation
 In this step the fake factors are calculated. This should be run after the preselection step.
 
+### Configuration
 All information for the FF calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. The `common_settings.yaml` has to be named like that and is used for all steps of the fake factor estimation (`preselection`, `FF calculation`, `FF corrections`). <br>
 The FF calculation config has the following parameters:
 
@@ -41,7 +42,8 @@ In `process_fractions` specifications for the calculation of the process fractio
   `SR_cuts` | `list` | see `target_processes`, (optional) not needed for the fraction calculation
 
 **Note:** When using split binning for process fraction calculations, the `var_bins` parameter can also be defined in the same manner as for `target_processes`.
-  
+
+### Running calculations
 To run the FF calculation step, execute the python script and specify the config file (relative path possible):
 ```bash
 python ff_calculation.py --config-file PATH/CONFIG.yaml

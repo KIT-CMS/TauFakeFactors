@@ -10,7 +10,7 @@ repo_name: KIT-CMS/TauFakeFactors
 repo_url: https://github.com/KIT-CMS/TauFakeFactors/
 
 # Copyright
-copyright: Copyright &copy; 2025 Nikita Shadskiy, Artur Monsch
+copyright: Copyright &copy; 2026 Nikita Shadskiy, Artur Monsch
 
 # Theme
 theme:
@@ -58,3 +58,5 @@ markdown_extensions:
   - pymdownx.keys
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
