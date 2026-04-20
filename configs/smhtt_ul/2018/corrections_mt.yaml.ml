@@ -44,12 +44,12 @@ templates:
           ">=2": 15
   correction_variations__with_mc_subtraction_shift: &correction_variations__with_mc_subtraction_shift
     correction_variations:
-      - Stat1Sigma
+      - StatShift
       - SystMCShift
       - SystBandAsym
   correction_variations__without_mc_subtraction_shift: &correction_variations__without_mc_subtraction_shift
     correction_variations:
-      - Stat1Sigma
+      - StatShift
       - SystBandAsym
   variables:
     eta_1:
@@ -249,7 +249,7 @@ target_processes:
     non_closure:
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *3j_split]
-        correction_variations: ["Stat1Sigma", "SystMCShift"]
+        correction_variations: ["StatShift", "SystMCShift"]
       deltaEta_ditaupair:
         <<: [*deltaEta_ditaupair, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
@@ -318,7 +318,7 @@ target_processes:
     non_closure:
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *3j_split]
-        correction_variations: ["Stat1Sigma", "SystMCShift"]
+        correction_variations: ["StatShift", "SystMCShift"]
       deltaEta_ditaupair:
         <<: [*deltaEta_ditaupair, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
@@ -380,7 +380,7 @@ target_processes:
     non_closure:
       tau_decaymode_2:
         <<: [*tau_decaymode_2, *2j_split]
-        correction_variations: ["Stat1Sigma"]
+        correction_variations: ["StatShift"]
       deltaEta_ditaupair:
         <<: [*deltaEta_ditaupair, *2j_split, *correction_variations__without_mc_subtraction_shift]
         equipopulated_binning_options:
