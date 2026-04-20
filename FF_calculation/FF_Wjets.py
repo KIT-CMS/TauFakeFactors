@@ -236,9 +236,9 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
             correction_option=splitting.fit_option,
             bandwidth=splitting.bandwidth,
             mc_shifted_hist={
-                "MCShiftUp": FF_hist_up.Clone(),
-                "MCShiftDown": FF_hist_down.Clone(),
-            },
+                "MCShiftUp": ff_hists_to_fit[1].Clone(),
+                "MCShiftDown": ff_hists_to_fit[2].Clone(),
+            } if use_data else None,
             stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
         )
         unc_draw_obj = results["default"]

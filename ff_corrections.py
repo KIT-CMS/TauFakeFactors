@@ -643,6 +643,12 @@ if __name__ == "__main__":
     # setting default systematic variations if not present in the config
     if "correction_variations" not in corr_config:
         corr_config["correction_variations"] = gd.default_correction_variations
+    else:
+        if isinstance(corr_config["correction_variations"], str):
+            corr_config["correction_variations"] = [corr_config["correction_variations"]]
+        for var in corr_config["correction_variations"]:
+            if var not in gd.VARIATIONS:
+                raise ValueError(f"Variation {var} is not defined in the general definitions! Please choose from {gd.VARIATIONS} or add the variation to the general definitions if it is missing.")
 
     # ########## needed precalculations for DR to SR corrections ########## #
 

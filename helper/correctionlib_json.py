@@ -669,6 +669,9 @@ def generate_correction_corrlib(
             binning = correction_conf["var_bins"]
 
             correction_variations = correction_conf.get("correction_variations", gd.default_correction_variations)
+            for var in correction_variations:
+                if var not in gd.VARIATIONS:
+                    raise ValueError(f"Variation {var} is not defined in the general definitions! Please choose from {gd.VARIATIONS} or add the variation to the general definitions if it is missing.")
             correction_variations = ["".join(it) for it in product(correction_variations, ["Up", "Down"])]
 
             if is_2D:

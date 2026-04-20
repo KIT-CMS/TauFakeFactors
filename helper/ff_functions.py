@@ -1424,13 +1424,13 @@ def statistical_check(
                 corr_dict["default"]["variations"][key] = np.full_like(corr_dict["default"]["variations"][key], 1.0 - stat_sigma * stat_unct_inclusive)
 
         if mc_shifted_hist is None:
-            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Up"] = np.ones_like(corr_dict["default"]["nominal"])
-            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Down"] = np.ones_like(corr_dict["default"]["nominal"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = np.ones_like(corr_dict["default"]["nominal"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = np.ones_like(corr_dict["default"]["nominal"])
         else:
             mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
             mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
-            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Up"] = np.full_like(corr_dict["default"]["nominal"], mc_up_val)
-            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC_SHIFT + "Down"] = np.full_like(corr_dict["default"]["nominal"], mc_dn_val)
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = np.full_like(corr_dict["default"]["nominal"], mc_up_val)
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = np.full_like(corr_dict["default"]["nominal"], mc_dn_val)
     else:
         corr_dict["default"]["_auto_skipped"] = False
 
