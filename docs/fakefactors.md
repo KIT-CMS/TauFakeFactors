@@ -10,8 +10,9 @@ General options for the calculation:
   parameter | type | description
   ---|---|---
   `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
-  `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
+  `use_embedding` | `bool` | `true` if embedded sample should be used, `false` if only MC sample should be used
   `use_center_of_mass_bins` | `bool` | Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to `"binwise"` (the x-data values although displayed in plots are not used)
+  `stat_sigma` | `float` | This parameter defines the number of standard deviations to be considered when determining the uncertainties for fit or smoothing parameters, which are then stored in the correctionlib files. Default is `1.0`.
 
 In `target_processes` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. <br>
 Each target process needs some specifications:
