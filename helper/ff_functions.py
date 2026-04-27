@@ -1139,7 +1139,7 @@ def fit_function(
         ff_hist, ff_hist_up, ff_hist_down = ff_hists
         do_mc_subtr_unc = True
     else:
-        ff_hist = ff_hists
+        ff_hist = ff_hists[0]
 
     retrival_function, convert = fitting_helper.get_wrapped_functions_from_fits, True
     if fit_option == "binwise":
