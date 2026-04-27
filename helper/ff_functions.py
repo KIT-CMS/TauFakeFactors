@@ -1097,7 +1097,7 @@ def build_TGraph(
 
 
 def fit_function(
-    ff_hists: Union[List[Any], Any],
+    ff_hists: Union[List[Any]],
     bin_edges: List[int],
     logger: str,
     fit_option: Union[str, List[str]],
@@ -1115,7 +1115,7 @@ def fit_function(
     the fitted function variations are generated which are later used for plotting purposes.
 
     Args:
-        ff_hists: Either a list of nominal and MC varied ratio histograms or only the nominal ratio histogram
+        ff_hists: A list of either nominal and MC varied ratio histograms or only the nominal ratio histogram
         bin_edges: Bins edges of the fitted variable, needed for the graphs for plotting
         logger: Name of the logger that should be used
         fit_option: List[str] correspond to a list of poly_n fits to be performed
@@ -1135,7 +1135,7 @@ def fit_function(
         fit_option = [fit_option]
 
     do_mc_subtr_unc, ff_hist_up, ff_hist_down = False, None, None
-    if isinstance(ff_hists, list):
+    if isinstance(ff_hists, list) and len(ff_hists) == 3:
         ff_hist, ff_hist_up, ff_hist_down = ff_hists
         do_mc_subtr_unc = True
     else:

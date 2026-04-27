@@ -117,7 +117,7 @@ def calculation_ttbar_FFs(
     # performing the fit and calculating the uncertainties
     if isinstance(splitting.fit_option, list):
         nominal_draw_obj, unc_draw_obj, results, used_fit = ff_func.fit_function(
-            ff_hists=FF_hist.Clone(),
+            ff_hists=[FF_hist.Clone()],
             bin_edges=splitting.var_bins,
             logger=logger,
             fit_option=splitting.fit_option,
