@@ -636,7 +636,7 @@ if __name__ == "__main__":
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
-    func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_corrections_compatible_to_one", False)
+    func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_corrections_compatible_to_one", True)
     func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE = corr_config.get("skip_corrections_p_value", 0.05)
     func.RuntimeVariables.USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = corr_config.get("use_suppressed_mc_errors_for_correction_selection", True)
 
@@ -775,8 +775,7 @@ if __name__ == "__main__":
         output_path=workdir_path,
         for_DRtoSR=False,
     )
-
-    ff_func.print_statistical_compatibility_summary(DR_SR_corrections, corrections, logger="ff_corrections")
+    ff_func.print_statistical_compatibility_summary(DR_SR_corrections, corrections, logger="ff_corrections", output_summary_file=f"{save_path}/p_values_summary_{corr_config['channel']}.txt")
 
     with open(os.path.join(save_path, "done"), "w") as done_file:
         done_file.write("")

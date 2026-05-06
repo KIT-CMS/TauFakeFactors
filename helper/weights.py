@@ -123,31 +123,31 @@ def apply_btag_weight(rdf: Any) -> Any:
     """
     rdf = rdf.Define("wgt_with_btag", "weight * btag_weight")
 
-    # measure corr. ratio for N jets (0 to 8); the highest N jet here is an arbitrary choice
-    xbinning = array.array("d", [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5])
-    nbinsx = len(xbinning) - 1
+    # # measure corr. ratio for N jets (0 to 8); the highest N jet here is an arbitrary choice
+    # xbinning = array.array("d", [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5])
+    # nbinsx = len(xbinning) - 1
 
-    # histogram without b-tagging SFs
-    h = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "weight")
-    h = h.GetValue()
-    # histogram with b-tagging SFs
-    h_btag = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "wgt_with_btag")
-    h_btag = h_btag.GetValue()
+    # # histogram without b-tagging SFs
+    # h = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "weight")
+    # h = h.GetValue()
+    # # histogram with b-tagging SFs
+    # h_btag = rdf.Histo1D(("", "", nbinsx, xbinning), "njets", "wgt_with_btag")
+    # h_btag = h_btag.GetValue()
 
-    ratio = h.Clone()
-    ratio.Divide(h_btag)
+    # ratio = h.Clone()
+    # ratio.Divide(h_btag)
 
-    # generating expression for b-tagging weights with the N jets dependent corr. ratio
-    btag_wgt = "btag_weight*("
-    for n in range(nbinsx):
-        if ratio.GetBinContent(n + 1) != 0.0:
-            btag_wgt += "(njets=={})*{}+".format(n, ratio.GetBinContent(n + 1))
-        else:
-            btag_wgt += "(njets=={})*{}+".format(n, 1.0)
-    btag_wgt += "(njets>8)*1.)"
+    # # generating expression for b-tagging weights with the N jets dependent corr. ratio
+    # btag_wgt = "btag_weight*("
+    # for n in range(nbinsx):
+    #     if ratio.GetBinContent(n + 1) != 0.0:
+    #         btag_wgt += "(njets=={})*{}+".format(n, ratio.GetBinContent(n + 1))
+    #     else:
+    #         btag_wgt += "(njets=={})*{}+".format(n, 1.0)
+    # btag_wgt += "(njets>8)*1.)"
 
-    # applying the b-tagging SFs
-    rdf = rdf.Redefine("weight", "weight*{}".format(btag_wgt))
+    # # applying the b-tagging SFs
+    # rdf = rdf.Redefine("weight", "weight*{}".format(btag_wgt))
 
     return rdf
 

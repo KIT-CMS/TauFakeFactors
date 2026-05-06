@@ -418,6 +418,7 @@ class SplitQuantities:
                 raise ValueError(f"Length of {key} list does not match number of split combinations")
             return self.config[key]
         else:
+            print(f"Invalid type for {key}: {type(self.config[key])}")
             raise Exception(f"Invalid type for {key}")
 
     @property
@@ -480,7 +481,7 @@ class SplitQuantities:
             return self._var_bins
 
         key = "var_bins"
-        assert key in self.config, f"{key} must always be defined"
+        assert key in self.config, f"{key} must always be defined: {self.config}"
         binnings = self._fill(
             key=key,
             variable_condition=isinstance(self.config[key], list),
@@ -1710,7 +1711,7 @@ def _smooth_function(
     return nominal_graph, corr_dict
 
 
-def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure_corrections: dict, logger: str) -> None:
+def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure_corrections: dict, logger: str, output_summary_file:str = None) -> None:
     """
     Generates an ASCII table summarizing which corrections were applied vs. set to 1.0
     due to compatibility with 1.0.
@@ -1811,3 +1812,11 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
     for line in string_io.getvalue().splitlines():
         if line.strip():
             log.info(line)
+    output_text = string_io.getvalue()
+    if output_summary_file:
+        with open(output_summary_file, "w") as f:
+            f.write("Summary of corrections applied vs. set to 1.0 due to compatibility with 1.0:\n\n")
+            f.write(f"p-value threshold for auto-skipping: {func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE:.3f}\n")
+            f.write(f"Auto-skipping enabled: {func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE}\n\n")
+            f.write(output_text)
+    log.info(f"Compatibility summary written to {output_summary_file}")

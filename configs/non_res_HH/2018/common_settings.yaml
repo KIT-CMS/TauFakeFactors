@@ -1,0 +1,22 @@
+# ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/jvoss/CROWN/ntuples/non_res_hh_11_12_2025/CROWNRun"
+ntuple_path: "/ceph/jvoss/CROWN/ntuples/sda_v12_16_04_26_v2/CROWNRun"
+# TODO: Include workdir name intp output and file path when doing preselection again!!! At smhtt_ul position !!!
+output_path: /ceph/jvoss/FFmethod/smhtt_ul_v12/
+
+file_path: /ceph/jvoss/FFmethod/smhtt_ul_v12/
+
+workdir_name: ff_v12_2018_sda_v4
+
+era: '2018'
+tree: ntuple
+nanoAOD_version: "nanoAOD_v12"
+tau_vs_jet_wps:
+  - Tight
+  - Medium
+  - VVVLoose
+tau_vs_jet_wgt_wps:
+  - Medium
+  - Tight
+
+use_embedding: false
+use_center_of_mass_bins: true

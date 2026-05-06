@@ -1,0 +1,164 @@
+channel: tt
+processes:
+  DYjets:
+    samples:
+      - DYJetsToLL_LHEFilterPtZ-0To50_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-0To50_1737116378-00000000000000000000000000000000
+      - DYJetsToLL_LHEFilterPtZ-100To250_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-100To250_1729599421-00000000000000000000000000000000
+      - DYJetsToLL_LHEFilterPtZ-250To400_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-250To400_1729599421-00000000000000000000000000000000
+      - DYJetsToLL_LHEFilterPtZ-400To650_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-400To650_1729599421-00000000000000000000000000000000
+      - DYJetsToLL_LHEFilterPtZ-50To100_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-50To100_1737116378-00000000000000000000000000000000
+      - DYJetsToLL_LHEFilterPtZ-650ToInf_MatchEWPDG20_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_dy_DYJetsToLL_LHEFilterPtZ-650ToInf_1729599421-00000000000000000000000000000000
+      # - DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_M-10to50_1734539918-00000000000000000000000000000000                                                                        
+      # - DYJetsToLL_M-50_HT-100to200_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-100to200_1736873492-00000000000000000000000000000000                                                   
+      # - DYJetsToLL_M-50_HT-1200to2500_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-1200to2500_1736873492-00000000000000000000000000000000                                               
+      # - DYJetsToLL_M-50_HT-200to400_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-200to400_1736873492-00000000000000000000000000000000                                                   
+      # - DYJetsToLL_M-50_HT-2500toInf_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-2500toInf_1736873492-00000000000000000000000000000000                                                 
+      # - DYJetsToLL_M-50_HT-400to600_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-400to600_1734539918-00000000000000000000000000000000                                                   
+      # - DYJetsToLL_M-50_HT-600to800_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-600to800_1734539918-00000000000000000000000000000000                                                   
+      # - DYJetsToLL_M-50_HT-70to100_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-70to100_1736873492-00000000000000000000000000000000                                                     
+      # - DYJetsToLL_M-50_HT-800to1200_TuneCP5_PSweights_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_HT-800to1200_1734539918-00000000000000000000000000000000                                                 
+      # - DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_1734539918-00000000000000000000000000000000                                                                                     
+      # - DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_DY_DYJetsToLL_Ext1_1736873492-00000000000000000000000000000000
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ST:
+    samples:
+      - ST_t-channel_antitop_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8_sdaigler-mc_2018UL_ST_ST_t-channel_antitop_1734539918-00000000000000000000000000000000
+      - ST_t-channel_top_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8_sdaigler-mc_2018UL_ST_ST_t-channel_top_1734539918-00000000000000000000000000000000
+      - ST_tW_antitop_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_aakhmets-mc_2018UL_singletop_ST_tW_antitop_5f_inclusiveDecays_1729599421-00000000000000000000000000000000
+      - ST_tW_top_5f_inclusiveDecays_TuneCP5_13TeV-powheg-pythia8_aakhmets-mc_2018UL_singletop_ST_tW_top_5f_inclusiveDecays_1729599421-00000000000000000000000000000000
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  Wjets:
+    samples:
+      # - WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-100To200_1737472169-00000000000000000000000000000000                                                          
+      # # - WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-100To200_Ext1_1734539918-00000000000000000000000000000000                                                     
+      # - WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-1200To2500_1734539918-00000000000000000000000000000000                                                      
+      # # - WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-1200To2500_Ext1_1734539918-00000000000000000000000000000000                                                 
+      # # - WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-1200To2500_Ext2_1734539918-00000000000000000000000000000000                                                 
+      # - WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-200To400_1736873492-00000000000000000000000000000000                                                          
+      # # - WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-200To400_Ext1_1734539918-00000000000000000000000000000000                                                     
+      # - WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-2500ToInf_1736873492-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-2500ToInf_Ext1_1734539918-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-2500ToInf_Ext2_1734539918-00000000000000000000000000000000
+      # - WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-400To600_1736873492-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-400To600_Ext1_1734539918-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-400To600_Ext2_1734539918-00000000000000000000000000000000
+      # - WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-600To800_1736873492-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-600To800_Ext1_1734539918-00000000000000000000000000000000
+      # # - WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-600To800_Ext2_1734539918-00000000000000000000000000000000
+      # - WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-800To1200_1734539918-00000000000000000000000000000000
+      # - WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-800To1200_Ext1_1734539918-00000000000000000000000000000000
+      # - WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_HT-800To1200_Ext2_1734539918-00000000000000000000000000000000
+      - WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_aakhmets-mc_2018UL_wjets_WJetsToLNu_1729599421-00000000000000000000000000000000
+      # - WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8_sdaigler-mc_2018UL_WJetsToLNu_WJetsToLNu_Ext1_1734539918-00000000000000000000000000000000
+    tau_gen_modes:
+      - all
+  data:
+    samples:
+      - Tau_aakhmets-data_2018UL_tau_Tau_Run2018A_1732626664-00000000000000000000000000000000
+      - Tau_aakhmets-data_2018UL_tau_Tau_Run2018B_1732626664-00000000000000000000000000000000
+      - Tau_aakhmets-data_2018UL_tau_Tau_Run2018C_1732626664-00000000000000000000000000000000
+      - Tau_aakhmets-data_2018UL_tau_Tau_Run2018D_1734106865-00000000000000000000000000000000
+    tau_gen_modes:
+      - all
+  diboson:
+    samples:
+      - WWTo1L1Nu2Q_4f_TuneCP5_13TeV-amcatnloFXFX-pythia8_sdaigler-mc_2018UL_WW_WWTo1L1Nu2Q_1736873492-00000000000000000000000000000000
+      - WWTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_sdaigler-mc_2018UL_WW_WWTo2L2Nu_1736873492-00000000000000000000000000000000
+      - WWTo4Q_4f_TuneCP5_13TeV-amcatnloFXFX-pythia8_sdaigler-mc_2018UL_WW_WWTo4Q_1736873492-00000000000000000000000000000000
+      - WZTo1L1Nu2Q_4f_TuneCP5_13TeV-amcatnloFXFX-pythia8_sdaigler-mc_2018UL_WZ_WZTo1L1Nu2Q_1736873492-00000000000000000000000000000000
+      - WZTo1L3Nu_4f_TuneCP5_13TeV-amcatnloFXFX-pythia8_sdaigler-mc_2018UL_WZ_WZTo1L3Nu_1736873492-00000000000000000000000000000000
+      - WZTo2Q2L_mllmin4p0_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_diboson_WZTo2Q2L_1729599421-00000000000000000000000000000000
+      - WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_diboson_WZTo3LNu_1729599421-00000000000000000000000000000000
+      - WZTo4Q_4f_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8_sdaigler-mc_2018UL_WZ_WZTo4Q_1736873492-00000000000000000000000000000000
+      - ZZTo2L2Nu_TuneCP5_13TeV_powheg_pythia8_sdaigler-mc_2018UL_ZZ_ZZTo2L2Nu_1736873492-00000000000000000000000000000000
+      - ZZTo2Q2L_mllmin4p0_TuneCP5_13TeV-amcatnloFXFX-pythia8_aakhmets-mc_2018UL_diboson_ZZTo2Q2L_1729599421-00000000000000000000000000000000
+      - ZZTo2Q2Nu_TuneCP5_13TeV-amcatnloFXFX-pythia8_sdaigler-mc_2018UL_ZZ_ZZTo2Q2Nu_1734539918-00000000000000000000000000000000
+      - ZZTo4L_TuneCP5_13TeV_powheg_pythia8_aakhmets-mc_2018UL_diboson_ZZTo4L_1729599421-00000000000000000000000000000000
+    tau_gen_modes:
+      - J
+      - T
+      - L
+  ttbar:
+    samples:
+      - TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8_aakhmets-mc_2018UL_ttbar_TTTo2L2Nu_1729599001-00000000000000000000000000000000
+      - TTToHadronic_TuneCP5_13TeV-powheg-pythia8_aakhmets-mc_2018UL_ttbar_TTToHadronic_1729599001-00000000000000000000000000000000
+      - TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8_aakhmets-mc_2018UL_ttbar_TTToSemiLeptonic_1729530171-00000000000000000000000000000000
+    tau_gen_modes:
+      - J
+      - T
+      - L
+
+column_definitions:
+    jj_deltaR:
+        expression: ROOT::VecOps::DeltaR(jeta_1, jeta_2, jphi_1, jphi_2)
+
+event_selection:
+  had_tau_decay_mode_1: (tau_decaymode_1 == 0) || (tau_decaymode_1 == 1) || (tau_decaymode_1 == 10) || (tau_decaymode_1 == 11)
+  had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
+  had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
+  had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
+  had_tau_pt: (pt_1 > 32) && (pt_2 > 32)
+  double_trigger: (trg_double_tau35_tightiso_tightid > 0.5) || (trg_double_tau35_mediumiso_hps > 0.5) || (trg_double_tau40_mediumiso_tightid > 0.5) || (trg_double_tau40_tightiso > 0.5)
+mc_weights:
+  Top_pt_reweighting: topPtReweightWeight
+  # Z_pt_reweighting: ZPtMassReweightWeight
+  generator: ""
+    # stitching:
+    #   - DYjets
+    #   - Wjets
+  had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1 + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2 + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
+  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_1 + (id_tau_vsMu_VLoose_1<0.5)) + (gen_match_1!=5)
+  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
+  lumi: ""
+  pileup: puweight
+  # double_trigger: (trg_wgt_double_tau_1 * trg_wgt_double_tau_2)
+
+output_features:
+  - weight
+  - btag_weight
+  - njets
+  - nbtag
+  - q_1
+  - pt_1
+  - pt_2
+  - q_2
+  - gen_match_1
+  - gen_match_2
+  - m_vis
+  - mt_1
+  - mt_2
+  - mt_tot
+  - metphi
+  - met
+  - extramuon_veto
+  - extraelec_veto
+  - tau_decaymode_1
+  - tau_decaymode_2
+  - mass_1
+  - mass_2
+  - iso_1
+  - iso_2
+  - deltaR_ditaupair
+  - dilepton_veto
+  - bpair_pt_1
+  - bpair_pt_2
+  - bpair_pt_dijet
+  - bpair_btag_value_2
+  - bpair_eta_2
+  - pt_tautau
+  - pt_tautaubb
+  - pt_vis
+  - jpt_1
+  - jpt_2
+  - jeta_1
+  - jeta_2
+  - jphi_1
+  - jphi_2
+  - jj_deltaR
