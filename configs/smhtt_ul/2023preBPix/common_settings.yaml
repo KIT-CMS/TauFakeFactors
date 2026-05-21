@@ -1,9 +1,9 @@
-ntuple_path: "/ceph/sgiappic/CROWN/ntuples/htt_260407_2022-23/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
-output_path: "/ceph/sgiappic/CMS_FF/260410/"
+ntuple_path: "/ceph/sgiappic/CROWN/ntuples/htt_260417_2022-23/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
+output_path: "/ceph/sgiappic/CMS_FF/260417/"
 #friends: 
-file_path: "/ceph/sgiappic/CMS_FF/260410/"
+file_path: "/ceph/sgiappic/CMS_FF/260417/"
 
-workdir_name: htt_260410
+workdir_name: htt_260417
 
 era: '2023preBPix'
 tree: ntuple

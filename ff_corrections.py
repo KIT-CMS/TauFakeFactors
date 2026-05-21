@@ -405,6 +405,7 @@ def run_non_closure_correction_for_DRtoSR(
             var_dependences=var_dependences,
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}.DR_SR",
+            load_path=output_path,
         )
 
         corrections.update(
@@ -445,6 +446,7 @@ def run_correction(
             corr_config: Dictionary with information for the correction calculation
             sample_paths: List of file paths where samples are stored
             save_path: Path where generated results are stored
+            corrections_base_path: Base corrections path for sharing DR to SR corrections across iterations
 
     Return:
         Dictionary with the process name as key and a dictionary with the corrections
@@ -455,6 +457,7 @@ def run_correction(
         corr_config,
         sample_paths,
         save_path,
+        corrections_base_path,
     ) = args
 
     log = logging.getLogger(f"ff_corrections.{process}")
@@ -477,6 +480,7 @@ def run_correction(
             var_dependences=var_dependences,
             for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True),
             logger=f"ff_corrections.{process}",
+            load_path=save_path,
         )
 
         corr_evaluators = []
@@ -496,6 +500,7 @@ def run_correction(
                     corr_variable=non_closure_corr_vars_DR_SR,
                     for_DRtoSR=True,
                     logger=f"ff_corrections.{process}",
+                    load_path=save_path,
                 )
             )
 
@@ -614,7 +619,13 @@ if __name__ == "__main__":
 
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
-    save_path = os.path.join(workdir_path, "corrections", config["channel"])
+    # Build save path with optional correction_tag for organizing multiple correction iterations
+    corrections_base_path = os.path.join(workdir_path, "corrections", config["channel"])
+    correction_tag = corr_config.get("correction_tag", None)
+    if correction_tag:
+        save_path = os.path.join(corrections_base_path, correction_tag)
+    else:
+        save_path = corrections_base_path
     func.check_path(path=os.path.join(os.getcwd(), save_path))
 
     with open(save_path + "/config.yaml", "w") as config_file:
@@ -705,6 +716,14 @@ if __name__ == "__main__":
                 output_path=save_path,
                 for_corrections=True,
             )
+            
+            # # Copy final DR to SR fake factors JSON to shared base path
+            # ff_json_filename = f"fake_factors_{config['channel']}_for_corrections.json"
+            # src = os.path.join(save_path, ff_json_filename)
+            # dst = os.path.join(corrections_base_path, ff_json_filename)
+            # if os.path.exists(src) and src != dst:
+            #     import shutil
+            #     shutil.copy2(src, dst)
 
         with open(cached_DR_SR_ffs, "wb") as f:
             pickle.dump(
@@ -754,7 +773,7 @@ if __name__ == "__main__":
     if "target_processes" in corr_config:
         results = func.optional_process_pool(
             args_list=[
-                (process, config, corr_config, sample_paths, save_path)
+                (process, config, corr_config, sample_paths, save_path, corrections_base_path)
                 for process in corr_config["target_processes"]
             ],
             function=run_correction,
@@ -766,7 +785,7 @@ if __name__ == "__main__":
     corrlib.generate_correction_corrlib(
         config=corr_config,
         corrections=func.remove_empty_keys(corrections),
-        output_path=workdir_path,
+        output_path=save_path,
         for_DRtoSR=False,
     )
 

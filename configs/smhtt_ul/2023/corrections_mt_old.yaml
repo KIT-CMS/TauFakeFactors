@@ -1,0 +1,421 @@
+templates:
+  split_schemes:
+    3j:
+      split_categories:
+        njets: ["==0", "==1", ">=2"]
+      split_categories_binedges:
+        njets: [-0.5, 0.5, 1.5, 22.5]
+      correction_option:
+        "==0": "smoothed"
+        "==1": "smoothed"
+        ">=2": "smoothed"
+      bandwidth:
+        "==0": 1.0
+        "==1": 1.0
+        ">=2": 1.0
+    2j_tt: &2j_tt_split
+      split_categories:
+        njets: ["<=1", ">=2"]
+      split_categories_binedges:
+        njets: [-0.5, 1.5, 22.5]
+      correction_option:
+        "<=1": "smoothed"
+        ">=2": "smoothed"
+      bandwidth:
+        "<=1": 1.0
+        ">=2": 1.0
+    2j: &2j_split
+      split_categories:
+        njets: ["==0", ">=1"]
+      split_categories_binedges:
+        njets: [-0.5, 0.5, 22.5]
+      correction_option:
+        "==0": "smoothed"
+        ">=1": "smoothed"
+      bandwidth:
+        "==0": 1.0
+        ">=1": 1.0
+  var_dependence_n_bins:
+    QCD:
+      equipopulated_binning_options: &QCD_var_dependence_n_bins
+        var_dependence_n_bins: [15, 10]
+    Wjets:
+      equipopulated_binning_options: &Wjets_var_dependence_n_bins
+        var_dependence_n_bins: [15, 10]
+    ttbar:
+      equipopulated_binning_options: &ttbar_var_dependence_n_bins
+        var_dependence_n_bins: [15, 20]
+  variables:
+    deltaR_ditaupair: &deltaR_ditaupair
+      var_dependence: deltaR_ditaupair
+      equipopulated_binning_options: &deltaR_ditaupair__eq_bin_opt
+        variable_config:
+          deltaR_ditaupair:
+            min: 0.5
+            max: 5.0
+            rounding: 4
+      correction_option: "smoothed"
+      bandwidth: 1.0
+    pt_tt: &pt_tt
+      var_dependence: pt_tt
+      equipopulated_binning_options: &pt_tt__eq_bin_opt
+        variable_config:
+          pt_tt:
+            min: 0.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    pt_1: &pt_1
+      var_dependence: pt_1
+      equipopulated_binning_options: &pt_1__eq_bin_opt
+        variable_config:
+          pt_1:
+            min: 26.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    eta_2: &eta_2
+      var_dependence: eta_2
+      equipopulated_binning_options: &eta_2__eq_bin_opt
+        variable_config:
+          eta_2:
+            min: -2.5
+            max: 2.5
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 0.2
+    mass_2: &mass_2
+      var_dependence: mass_2
+      equipopulated_binning_options: &mass_2__eq_bin_opt
+        variable_config:
+          mass_2:
+            min: 0.2
+            max: 2.0
+            rounding: 4
+        add_left: [0.0]
+      correction_option: "binwise#[0]+smoothed"
+      bandwidth: 1.0
+    jpt_1:
+      var_dependence: jpt_1
+      equipopulated_binning_options:
+        variable_config:
+          jpt_1:
+            min: 30.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    jpt_2:
+      var_dependence: jpt_2
+      equipopulated_binning_options:
+        variable_config:
+          jpt_2:
+            min: 30.0
+            max: 150.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+    tau_decaymode_2: &tau_decaymode_2
+      var_dependence: tau_decaymode_2
+      correction_option: "binwise"
+      bandwidth: 1.0
+      var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
+    met: &met
+      var_dependence: met
+      equipopulated_binning_options: &met__eq_bin_opt
+        variable_config:
+          met:
+            min: 0.0
+            max: 150.0
+            rounding: 6
+      correction_option: "smoothed"
+      bandwidth: 1.0
+    m_vis: &m_vis
+      var_dependence: m_vis
+      equipopulated_binning_options: &m_vis__eq_bin_opt
+        variable_config:
+          m_vis:
+            min: 8.0
+            max: 250.0
+            rounding: 2
+      correction_option: "smoothed"
+      bandwidth: 30
+
+
+channel: mt
+target_processes:
+  QCD:
+    non_closure:
+      tau_decaymode_2:
+        <<: [*tau_decaymode_2, *2j_split]
+      mass_2:
+        <<: [*mass_2, *2j_split]
+        equipopulated_binning_options:
+          <<: [*mass_2__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 0.3
+        var_bins:
+          "==0": [0.0, 0.2, 0.459, 0.543, 0.6196, 0.6914, 0.7524, 0.8228, 0.8813, 0.9375, 0.9956, 1.0537, 1.1152, 1.1816, 1.2617, 1.3721, 2.0]
+          ">=1": [0.0, 0.2, 0.5049, 0.6021, 0.7012, 0.7954, 0.8843, 0.9658, 1.0596, 1.167, 1.3008, 2.0]
+      eta_2:
+        <<: [*eta_2, *2j_split]
+        equipopulated_binning_options:
+          <<: [*eta_2__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 0.5
+        var_bins:
+          "==0": [-2.5, -1.87, -1.44, -1.16, -0.88, -0.62, -0.34, -0.08, 0.19, 0.45, 0.7, 0.96, 1.22, 1.52, 1.96, 2.5]
+          ">=1": [-2.5, -1.71, -1.23, -0.83, -0.37, 0.05, 0.45, 0.82, 1.22, 1.7, 2.5]
+      pt_1:
+        <<: [*pt_1, *2j_split]
+        equipopulated_binning_options:
+          <<: [*pt_1__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 5.0
+        var_bins:
+          "==0": [26.0, 26.5, 27.02, 27.59, 28.2, 28.83, 29.6, 30.39, 31.34, 32.5, 33.79, 35.5, 37.79, 41.11, 47.32, 150.0]
+          ">=1": [26.0, 27.13, 28.3, 29.76, 31.4, 33.43, 36.15, 39.93, 46.11, 56.44, 150.0]
+      # jpt_1:
+      #   <<: [*jpt_1, *2j_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_1__eq_bin_opt, *QCD_var_dependence_n_bins]
+      #   correction_option: ["skip", "smoothed"]
+      #   bandwidth: [1.0, 5.0]
+      #   var_bins:
+      #     "==0": [30.0, 150.0]
+      #     ">=1": [30.0, 33.35, 37.25, 41.64, 47.45, 53.02, 60.31, 68.6, 80.14, 99.4, 150.0]
+      # jpt_2:
+      #   <<: [*jpt_2, *2j_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_2__eq_bin_opt, *QCD_var_dependence_n_bins]
+      #   correction_option: ["skip", "smoothed"]
+      #   bandwidth: [1.0, 5.0]
+      #   var_bins:
+      #     "==0": [30.0, 150.0]
+      #     ">=1": [30.0, 31.84, 34.41, 37.49, 40.85, 45.07, 50.32, 56.88, 65.7, 82.26, 150.0]
+      deltaR_ditaupair:
+        <<: [*deltaR_ditaupair, *2j_split]
+        equipopulated_binning_options:
+          <<: [*deltaR_ditaupair__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 1.0
+        var_bins:
+          "==0": [0.5, 2.4433, 2.7003, 2.8385, 2.9264, 2.9982, 3.0526, 3.103, 3.1487, 3.2115, 3.2963, 3.4085, 3.5485, 3.7558, 4.062, 5.0]
+          ">=1": [0.5, 1.2143, 1.72, 2.1221, 2.4265, 2.6682, 2.8896, 3.0773, 3.3052, 3.6764, 5.0]
+      met:
+        <<: [*met, *2j_split]
+        equipopulated_binning_options:
+          <<: [*met__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 10.0
+        var_bins:
+          "==0": [0.0, 6.596125, 9.72258, 12.212337, 14.438128, 16.581272, 18.797577, 21.257254, 23.746881, 26.762146, 30.160383, 34.360329, 39.452778, 47.277554, 59.783264, 150.0]
+          ">=1": [0.0, 11.73409, 17.387316, 22.774555, 28.993982, 35.331783, 42.888878, 51.767323, 63.155148, 81.695999, 150.0]
+      m_vis:
+        <<: [*m_vis, *2j_split]
+        equipopulated_binning_options:
+          <<: [*m_vis__eq_bin_opt, *QCD_var_dependence_n_bins]
+        bandwidth: 25.0
+        var_bins:
+          "==0": [8.0, 51.21, 55.25, 58.95, 62.37, 65.79, 69.4, 73.23, 77.63, 82.77, 88.84, 96.7, 106.56, 122.06, 148.92, 250.0]
+          ">=1": [8.0, 37.84, 50.08, 57.39, 64.72, 72.54, 81.49, 93.66, 111.2, 146.05, 250.0]
+
+    DR_SR:
+      use_orthogonal_fake_factors: true
+      compute_orthogonal_fake_factors_using_data: false
+      <<: [*pt_tt, *2j_split]
+      equipopulated_binning_options:
+        <<: [*pt_tt__eq_bin_opt, *QCD_var_dependence_n_bins]
+      bandwidth: 20.0
+      var_bins:
+        "==0": [0.0, 7.59, 11.04, 13.93, 16.46, 18.9, 21.41, 23.98, 26.74, 29.83, 33.1, 36.76, 41.64, 48.47, 60.06, 150.0]
+        ">=1": [0.0, 28.45, 39.16, 47.93, 55.67, 63.65, 72.45, 82.64, 95.71, 114.51, 150.0]
+
+
+      SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        lep_mt: (mt_1 < 50)
+        nbtag: (nbtag >= 0)
+        tau_pair_sign: ((q_1*q_2) > 0)
+        lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
+      ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        lep_mt: (mt_1 < 50)
+        nbtag: (nbtag >= 0)
+        tau_pair_sign: ((q_1*q_2) > 0)
+        lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
+      AR_SR_cuts:
+        lep_mt: (mt_1 < 70)
+        nbtag: (nbtag >= 0)
+        tau_pair_sign: ((q_1*q_2) < 0)
+        lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
+
+      non_closure:
+        tau_decaymode_2:
+          <<: [*tau_decaymode_2, *2j_split]
+
+  Wjets:
+    non_closure:
+      tau_decaymode_2:
+        <<: [*tau_decaymode_2, *2j_split]
+      mass_2:
+        <<: [*mass_2, *2j_split]
+        equipopulated_binning_options:
+          <<: [*mass_2__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 0.3
+        var_bins:
+          "==0": [0.0, 0.2, 0.4546, 0.5337, 0.605, 0.6714, 0.7285, 0.7861, 0.8403, 0.8975, 0.9551, 1.0166, 1.082, 1.1543, 1.2412, 1.3594, 2.0]
+          ">=1": [0.0, 0.2, 0.5005, 0.6089, 0.7056, 0.791, 0.8711, 0.9604, 1.0537, 1.1611, 1.3018, 2.0]
+      eta_2:
+        <<: [*eta_2, *2j_split]
+        equipopulated_binning_options:
+          <<: [*eta_2__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 0.5
+        var_bins:
+          "==0": [-2.5, -1.73, -1.33, -1.04, -0.79, -0.55, -0.31, -0.09, 0.14, 0.36, 0.59, 0.82, 1.07, 1.35, 1.77, 2.5]
+          ">=1": [-2.5, -1.56, -1.09, -0.7, -0.34, 0.02, 0.37, 0.73, 1.11, 1.6, 2.5]
+      pt_1:
+        <<: [*pt_1, *2j_split]
+        equipopulated_binning_options:
+          <<: [*pt_1__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 5.0
+        var_bins:
+          "==0": [26.0, 28.82, 31.26, 33.56, 35.85, 38.21, 40.57, 43.15, 46.0, 49.17, 52.71, 56.57, 61.2, 67.27, 78.06, 150.0]
+          ">=1": [26.0, 31.01, 35.29, 39.5, 43.85, 48.91, 54.92, 62.71, 73.39, 91.55, 150.0]
+      # jpt_1:
+      #   <<: [*jpt_1, *2j_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_1__eq_bin_opt, *Wjets_var_dependence_n_bins]
+      #   correction_option: ["skip", "smoothed"]
+      #   bandwidth: [1.0, 5.0]
+      #   var_bins:
+      #     "==0": [30.0, 150.0]
+      #     ">=1": [30.0, 33.34, 37.37, 42.04, 47.82, 53.73, 60.14, 68.58, 81.08, 101.64, 150.0]
+      # jpt_2:
+      #   <<: [*jpt_2, *2j_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_2__eq_bin_opt, *Wjets_var_dependence_n_bins]
+      #   correction_option: ["skip", "smoothed"]
+      #   bandwidth: [1.0, 5.0]
+      #   var_bins:
+      #     "==0": [30.0, 150.0]
+      #     ">=1": [30.0, 32.21, 34.9, 38.32, 42.1, 47.02, 52.17, 58.57, 67.78, 85.8, 150.0]
+      deltaR_ditaupair:
+        <<: [*deltaR_ditaupair, *2j_split]
+        equipopulated_binning_options:
+          <<: [*deltaR_ditaupair__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 1.0
+        var_bins:
+          "==0": [0.5, 1.1799, 1.5469, 1.8264, 2.0585, 2.2548, 2.4301, 2.5844, 2.7242, 2.8472, 2.9572, 3.0504, 3.1322, 3.2518, 3.5147, 5.0]
+          ">=1": [0.5, 1.169, 1.5739, 1.8911, 2.1768, 2.4269, 2.6527, 2.8691, 3.0709, 3.3403, 5.0]
+      met:
+        <<: [*met, *2j_split]
+        equipopulated_binning_options:
+          <<: [*met__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 10.0
+        var_bins:
+          "==0": [0.0, 28.374365, 33.08886, 36.699585, 39.840012, 42.733715, 45.495487, 48.272011, 51.148655, 54.184212, 57.555096, 61.295506, 65.771957, 71.69603, 81.258934, 150.0]
+          ">=1": [0.0, 32.2686, 39.352859, 45.192383, 50.588093, 56.176197, 62.493649, 70.081261, 80.481262, 96.465462, 150.0]
+      m_vis:
+        <<: [*m_vis, *2j_split]
+        equipopulated_binning_options:
+          <<: [*m_vis__eq_bin_opt, *Wjets_var_dependence_n_bins]
+        bandwidth: 25.0
+        var_bins:
+          "==0": [8.0, 34.76, 46.06, 54.27, 59.84, 64.6, 69.28, 73.94, 79.2, 85.13, 92.22, 100.75, 111.69, 127.46, 154.6, 250.0]
+          ">=1": [8.0, 43.14, 55.58, 64.65, 73.05, 82.22, 93.67, 107.93, 127.77, 160.85, 250.0]
+
+    DR_SR:
+      <<: [*pt_tt, *2j_split]
+      equipopulated_binning_options:
+        <<: [*pt_tt__eq_bin_opt, *Wjets_var_dependence_n_bins]
+      bandwidth: 20.0
+      var_bins:
+        "==0": [0.0, 6.73, 9.75, 12.25, 14.55, 16.78, 19.04, 21.35, 23.81, 26.46, 29.39, 32.85, 37.17, 42.91, 52.37, 150.0]
+        ">=1": [0.0, 25.43, 35.26, 43.34, 50.83, 58.6, 67.31, 77.64, 91.08, 111.14, 150.0]
+
+      SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        lep_mt: (mt_1 > 0)
+        nbtag: (nbtag == 0)
+        tau_pair_sign: ((q_1*q_2) < 0)
+        lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        lep_mt: (mt_1 > 0)
+        nbtag: (nbtag == 0)
+        tau_pair_sign: ((q_1*q_2) < 0)
+        lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+      AR_SR_cuts:
+        lep_mt: (mt_1 < 70)
+        nbtag: (nbtag >= 0)
+        tau_pair_sign: ((q_1*q_2) < 0)
+        lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
+
+      non_closure:
+        tau_decaymode_2:
+          <<: [*tau_decaymode_2, *2j_split]
+
+  ttbar:
+    non_closure:
+      tau_decaymode_2:
+        <<: [*tau_decaymode_2, *2j_tt_split]
+      mass_2:
+        <<: [*mass_2, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*mass_2__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 0.3
+        var_bins:
+          "<=1": [0.0, 0.2, 0.4351, 0.5308, 0.6055, 0.6655, 0.729, 0.769, 0.8369, 0.8984, 0.9492, 0.9956, 1.0674, 1.1504, 1.2549, 1.3584, 2.0]
+          ">=2": [0.0, 0.2, 0.4453, 0.52, 0.584, 0.6328, 0.6836, 0.7261, 0.7603, 0.8047, 0.8418, 0.8804, 0.9336, 0.9819, 1.0303, 1.0791, 1.127, 1.1826, 1.2295, 1.2793, 1.3652, 2.0]
+      eta_2:
+        <<: [*eta_2, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*eta_2__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 0.5
+        var_bins:
+          "<=1": [-2.5, -1.83, -1.45, -1.08, -0.86, -0.58, -0.36, -0.07, 0.19, 0.42, 0.63, 0.91, 1.09, 1.43, 1.85, 2.5]
+          ">=2": [-2.5, -1.88, -1.58, -1.32, -1.13, -0.94, -0.72, -0.52, -0.4, -0.28, -0.09, 0.07, 0.27, 0.4, 0.59, 0.82, 1.05, 1.24, 1.48, 1.81, 2.5]
+      pt_1:
+        <<: [*pt_1, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*pt_1__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 5.0
+        var_bins:
+          "<=1": [26.0, 27.96, 29.59, 31.33, 33.05, 36.21, 38.97, 42.3, 45.69, 49.14, 52.62, 57.01, 62.93, 71.85, 85.15, 150.0]
+          ">=2": [26.0, 27.63, 29.19, 31.38, 32.76, 34.7, 36.36, 38.89, 41.01, 43.05, 46.11, 48.53, 52.21, 55.68, 60.98, 65.8, 71.44, 77.38, 87.79, 104.41, 150.0]
+      # jpt_1:
+      #   <<: [*jpt_1, *2j_tt_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_1__eq_bin_opt, *ttbar_var_dependence_n_bins]
+      #   correction_option: ["smoothed", "smoothed"]
+      #   bandwidth: [5.0, 5.0]
+      #   var_bins:
+      #     "<=1": [30.0, 31.79, 33.33, 36.44, 39.05, 42.29, 44.84, 49.35, 52.56, 57.96, 64.07, 70.48, 78.81, 95.29, 117.76, 150.0]
+      #     ">=2": [30.0, 40.92, 46.21, 51.93, 55.9, 61.24, 64.5, 68.45, 72.56, 75.57, 79.97, 84.31, 89.2, 95.01, 101.19, 105.13, 111.1, 117.12, 125.03, 137.13, 150.0]
+      # jpt_2:
+      #   <<: [*jpt_2, *2j_tt_split]
+      #   equipopulated_binning_options:
+      #     <<: [*jpt_2__eq_bin_opt, *ttbar_var_dependence_n_bins]
+      #   correction_option: ["skip", "smoothed"]
+      #   bandwidth: [1.0, 5.0]
+      #   var_bins:
+      #     "<=1": [30.0, 150.0]
+      #     ">=2": [30.0, 31.7, 33.53, 35.21, 37.3, 39.4, 41.71, 44.24, 47.39, 50.08, 53.58, 56.52, 59.6, 62.97, 67.44, 72.15, 78.38, 85.14, 98.6, 113.72, 150.0]
+      deltaR_ditaupair:
+        <<: [*deltaR_ditaupair, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*deltaR_ditaupair__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 1.0
+        var_bins:
+          "<=1": [0.5, 1.1031, 1.5195, 1.8031, 2.0242, 2.2501, 2.3688, 2.5463, 2.7171, 2.8563, 2.9793, 3.0719, 3.1566, 3.3248, 3.6904, 5.0]
+          ">=2": [0.5, 0.85, 1.1027, 1.2991, 1.4706, 1.6335, 1.7825, 1.9292, 2.0902, 2.2166, 2.3332, 2.448, 2.5841, 2.6891, 2.7977, 2.9311, 3.0446, 3.1577, 3.326, 3.5922, 5.0]
+      met:
+        <<: [*met, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*met__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 10.0
+        var_bins:
+          "<=1": [0.0, 8.554986, 11.500343, 14.40352, 17.741194, 20.416712, 22.875736, 25.468596, 28.527054, 32.024269, 37.233604, 43.101246, 49.412785, 60.55455, 83.626442, 150.0]
+          ">=2": [0.0, 12.425405, 16.815413, 19.981955, 23.201946, 26.607922, 30.146568, 33.634258, 38.151031, 41.65213, 46.179317, 50.151821, 56.567196, 61.007778, 67.741096, 76.347565, 84.552574, 93.274445, 104.930222, 121.638924, 150.0]
+      m_vis:
+        <<: [*m_vis, *2j_tt_split]
+        equipopulated_binning_options:
+          <<: [*m_vis__eq_bin_opt, *ttbar_var_dependence_n_bins]
+        bandwidth: 25.0
+        var_bins:
+          "<=1": [8.0, 39.11, 49.15, 55.76, 59.96, 66.38, 72.31, 78.25, 83.93, 89.4, 97.16, 108.25, 121.98, 142.54, 170.22, 250.0]
+          ">=2": [8.0, 31.4, 40.48, 48.34, 53.59, 58.38, 63.29, 67.6, 72.45, 76.23, 82.08, 87.45, 94.53, 102.16, 110.28, 120.09, 130.67, 150.03, 169.12, 197.68, 250.0]

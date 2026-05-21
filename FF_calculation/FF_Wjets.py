@@ -218,6 +218,8 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         FF_hist = SRlike_hists["Wjets"].Clone()
         FF_hist.Divide(ARlike_hists["Wjets"])
         ff_hists_to_fit = [FF_hist.Clone()]
+        FF_hist_up = None
+        FF_hist_down = None
 
     # performing the fit and calculating the uncertainties
     if isinstance(splitting.fit_option, list):
@@ -230,15 +232,18 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
             stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
         )
     elif isinstance(splitting.fit_option, str):
+        mc_shifted_hist = None
+        if FF_hist_up is not None and FF_hist_down is not None:
+            mc_shifted_hist = {
+                "MCShiftUp": FF_hist_up.Clone(),
+                "MCShiftDown": FF_hist_down.Clone(),
+            }
         nominal_draw_obj, results = ff_func.smooth_function(
             hist=ff_hists_to_fit[0],
             bin_edges=splitting.var_bins,
             correction_option=splitting.fit_option,
             bandwidth=splitting.bandwidth,
-            mc_shifted_hist={
-                "MCShiftUp": FF_hist_up.Clone(),
-                "MCShiftDown": FF_hist_down.Clone(),
-            },
+            mc_shifted_hist=mc_shifted_hist,
             stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
         )
         unc_draw_obj = results["default"]

@@ -1,9 +1,9 @@
-ntuple_path: "/ceph/sgiappic/CROWN/ntuples/htt_260407_2024-25_v2/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
-output_path: "/ceph/sgiappic/CMS_FF/260410/"
+ntuple_path: "/ceph/sgiappic/CROWN/ntuples/htt_260416_2024-25_v3/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
+output_path: "/ceph/sgiappic/CMS_FF/260417/"
 #friends: 
-file_path: "/ceph/sgiappic/CMS_FF/260410/"
+file_path: "/ceph/sgiappic/CMS_FF/260417/"
 
-workdir_name: htt_260410
+workdir_name: htt_260421
 
 era: '2025'
 tree: ntuple
@@ -17,3 +17,7 @@ tau_vs_jet_wgt_wps:
 
 use_embedding: false
 use_center_of_mass_bins: true
+
+skip_corrections_compatible_to_one: true
+skip_corrections_p_value: 0.05
+use_suppressed_mc_errors_for_correction_selection: true
