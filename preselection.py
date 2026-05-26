@@ -306,7 +306,7 @@ if __name__ == "__main__":
     # get needed features for fake factor calculation
     output_features = list(set(config["output_features"]))
 
-    if config["channel"] != "mm":
+    if config["channel"] not in ["mm", "ee", "em"]:
         for wp in config["tau_vs_jet_wps"]:
             output_features.append("id_tau_vsJet_" + wp + "_2")
         for wp in config["tau_vs_jet_wgt_wps"]:
