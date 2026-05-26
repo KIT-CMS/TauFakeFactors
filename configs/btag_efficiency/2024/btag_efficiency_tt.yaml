@@ -5,10 +5,10 @@
 # ------------------------------------------------------------------
 # Jet column names as they appear in the input ROOT trees
 # ------------------------------------------------------------------
-jet_pt_column: "jet_pt_vec"
-jet_eta_column: "jet_eta_vec"
-jet_flavor_column: "jet_hadronflavour_vec"
-jet_btag_column: "jet_btag_value_vec"
+jet_pt_column: "Jet_pt_vec"
+jet_eta_column: "Jet_pt_vec"
+jet_flavor_column: "Jet_hadronflavour_vec"
+jet_btag_column: "Jet_btag_value_vec"
 
 # Optional additional per-jet selection applied before counting
 # (uses C++ syntax; leave empty string "" to apply no extra selection)

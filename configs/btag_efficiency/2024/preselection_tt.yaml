@@ -33,7 +33,7 @@ processes:
       - DYto2Tau-2Jets_Bin-2J-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X
       - DYto2Tau-2Jets_Bin-MLL-10to50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8_RunIII2024Summer24NanoAODv15-150X
     tau_gen_modes:
-      # - J
+       # - J
       - T
       - L
   ST:
@@ -49,7 +49,7 @@ processes:
       - TbarWplusto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
       - TbarWplustoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
     tau_gen_modes:
-      # - J
+       # - J
       - T
       - L
   Wjets:
@@ -72,7 +72,7 @@ processes:
       - ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
       - ZZto4L_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
     tau_gen_modes:
-      # - J
+       # - J
       - T
       - L
   ttbar:
@@ -81,7 +81,7 @@ processes:
       - TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
       - TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X
     tau_gen_modes:
-      # - J
+       # - J
       - T
       - L
 event_selection:
@@ -119,10 +119,10 @@ mc_weights:
 
 output_features:
   - weight
-  - btag_weight
-  - jet_pt_vec
-  - jet_eta_vec
-  - jet_hadronflavour_vec
-  - jet_btag_value_vec
+  # - btag_weight
+  - Jet_pt_vec
+  - Jet_pt_vec
+  - Jet_hadronflavour_vec
+  - Jet_btag_value_vec
   - nbtag
   - njets
