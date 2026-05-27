@@ -194,9 +194,10 @@ templates:
 
 
 channel: tt
+correction_tag: chain_DR_SR
 target_processes:
   QCD:
-    chain_DR_SR_to_non_closure: false
+    chain_DR_SR_to_non_closure: true
 
     non_closure:
       tau_decaymode_1:
@@ -317,7 +318,7 @@ target_processes:
       #     <<: [*tau_decaymode_1, *3j_split]
 
   QCD_subleading:
-    chain_DR_SR_to_non_closure: false
+    chain_DR_SR_to_non_closure: true
 
     non_closure:
       tau_decaymode_2:

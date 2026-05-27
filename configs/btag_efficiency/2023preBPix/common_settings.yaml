@@ -1,9 +1,9 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260526_2022-23_eff2/CROWNRun"
-output_path: "/ceph/sgiappic/btag_efficiency/"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/ntuples/btag_efficiency_measurement_22-23_v6/CROWNRun"
+output_path: "/ceph/nshadskiy/btag_efficiency/05_2026_v2"
 #friends: 
-file_path: "/ceph/sgiappic/btag_efficiency/"
+file_path: "/ceph/nshadskiy/btag_efficiency/05_2026_v2"
 
-workdir_name: "btag_eff"
+workdir_name: "btag_eff_fix_v2"
 
 era: "2023preBPix"
 tree: "ntuple"

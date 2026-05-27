@@ -163,6 +163,7 @@ templates:
 
 
 channel: mt
+correction_tag: chain_DR_SR
 target_processes:
   QCD:
     chain_DR_SR_to_non_closure: false
