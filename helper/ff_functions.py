@@ -833,10 +833,11 @@ def apply_region_filters(
             else:
                 rdf = rdf.Filter(f"({sum_cuts[cut]})", f"cut on {cut}")
     # cut on number of b-tagged jets needs to be the last cut to do an on-the-fly calculation of the b-tagger weight
-    if "nbtag" in sum_cuts.keys():
-        if sample not in ["data", "embedding"]:
-            rdf = weights.apply_btag_weight(rdf=rdf)
-        rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
+    # outdated since now we calculate efficiencies and the btag weight is just a weight to be applied per sample as it is 
+    # if "nbtag" in sum_cuts.keys():
+    #     if sample not in ["data", "embedding"]:
+    #         rdf = weights.apply_btag_weight(rdf=rdf)
+    #     rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
     if "bb_selection" in sum_cuts.keys():
         if sample not in ["data", "embedding"] and "fj_Xbb" in sum_cuts["bb_selection"]:
             rdf = weights.apply_pNet_weight(rdf=rdf)

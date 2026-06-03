@@ -21,10 +21,13 @@ following nested lookup structure:
 Usage
 -----
     python btag_efficiency.py --config-file configs/btag_efficiency/2024/btag_efficiency.yaml
+
+The config may define either a single ``channel`` or a shared ``channels`` list.
 """
 
 import argparse
 import concurrent.futures
+import copy
 import glob
 import logging
 import multiprocessing
@@ -84,9 +87,8 @@ def get_process_files(
     """Return all ROOT files that belong to *process*.
 
     The function searches for files matching
-        {file_path}/{channel}/{process}*.root
-    for every channel listed in the config.  If the config has no ``channels``
-    key, it falls back to looking for ``{file_path}/{process}*.root`` directly.
+        {file_path}/preselection/{era}/{channel}/{process}*.root
+    for every configured channel.
 
     Args:
         config: Loaded configuration dictionary.
@@ -96,22 +98,69 @@ def get_process_files(
         List of matching file paths (may be empty).
     """
     file_path = config["file_path"]
-    channel = config.get("channel", None)
+    channels = get_config_channels(config)
     era = config.get("era", None)
 
     found: List[str] = []
-    if channel is None:
-        raise ValueError(
-            "Config must specify a 'channel' for file discovery."
-        )
     if era is None:
         raise ValueError(
             "Config must specify an 'era' for file discovery."
         )
-    pattern = os.path.join(file_path, "preselection", era, channel, f"{process}*.root")
-    found.extend(glob.glob(pattern))
+    for channel in channels:
+        pattern = os.path.join(
+            file_path,
+            "preselection",
+            era,
+            channel,
+            f"{process}*.root",
+        )
+        found.extend(glob.glob(pattern))
 
     return sorted(set(found))
+
+
+def get_config_channels(config: Dict) -> List[str]:
+    """Return the list of channels configured for this run.
+
+    Supports both the legacy single-channel key ``channel`` and the new
+    multi-channel key ``channels`` for a shared config file.
+    """
+    channels = config.get("channels")
+    if channels is not None:
+        if not isinstance(channels, list) or not channels:
+            raise ValueError("Config key 'channels' must be a non-empty list.")
+        return [str(channel) for channel in channels]
+
+    channel = config.get("channel")
+    if channel is None:
+        raise ValueError("Config must specify either 'channel' or 'channels'.")
+    return [str(channel)]
+
+
+def get_channel_label(config: Dict) -> str:
+    """Return a compact channel label for logging, plots, and output paths."""
+    channels = get_config_channels(config)
+    return channels[0] if len(channels) == 1 else "all_channels"
+
+
+def get_channel_display(config: Dict) -> str:
+    """Return a human-readable channel label."""
+    return ", ".join(get_config_channels(config))
+
+
+def get_channel_configs(config: Dict) -> List[Dict]:
+    """Return single-channel config views for the configured channels.
+
+    A shared config containing ``channels`` is expanded into one config per
+    channel so that each run writes to its own output directory.
+    """
+    channel_configs: List[Dict] = []
+    for channel in get_config_channels(config):
+        channel_config = copy.deepcopy(config)
+        channel_config["channel"] = channel
+        channel_config.pop("channels", None)
+        channel_configs.append(channel_config)
+    return channel_configs
 
 
 # ---------------------------------------------------------------------------
@@ -445,7 +494,7 @@ def plot_histograms_and_efficiencies(
     )
 
     era = config.get("era", "")
-    channel = config.get("channel", "")
+    channel = get_channel_display(config)
 
     plot_dir = os.path.join(output_path, "plots")
     os.makedirs(plot_dir, exist_ok=True)
@@ -741,20 +790,9 @@ def _process_one(
     return sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    args = parser.parse_args()
-
-    if args.workers > 1:
-        # Use 'spawn' so each worker gets a clean ROOT instance (safe on Linux).
-        multiprocessing.set_start_method("spawn")
-
-    logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
-
-    config = func.load_config(args.config_file)
-    channel = config.get("channel", "")
+def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
+    """Execute the full efficiency workflow for one channel-specific config."""
+    channel = get_channel_label(config)
 
     output_path = os.path.join(
         "workdir", config["workdir_name"], config["era"], f"{channel}",
@@ -768,6 +806,7 @@ if __name__ == "__main__":
     )
 
     log.info("Starting b-tag efficiency calculation")
+    log.info(f"Channel: {channel}")
     log.info(f"Output directory: {output_path}")
 
     all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
@@ -860,8 +899,25 @@ if __name__ == "__main__":
         raise SystemExit(1)
 
     log.info("Building correctionlib JSON ...")
-    cset = build_correctionlib_json(all_efficiencies, all_bins, config, output_path)
+    build_correctionlib_json(all_efficiencies, all_bins, config, output_path)
     log.info(
         f"Correctionlib files written to '{output_path}/btag_efficiency.json[.gz]'"
     )
     log.info("B-tag efficiency calculation finished.")
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    if args.workers > 1:
+        # Use 'spawn' so each worker gets a clean ROOT instance (safe on Linux).
+        multiprocessing.set_start_method("spawn")
+
+    logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
+
+    config = func.load_config(args.config_file)
+    for channel_config in get_channel_configs(config):
+        run_for_channel(channel_config, args)

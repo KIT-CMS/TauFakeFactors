@@ -119,7 +119,7 @@ mc_weights:
 
 output_features:
   - weight
-  - btag_weight
+# - btag_weight
   - jet_pt_vec
   - jet_eta_vec
   - jet_hadronflavour_vec

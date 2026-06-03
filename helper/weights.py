@@ -95,17 +95,17 @@ def lumi_weight(rdf: Any, era: str) -> Any:
     elif era == "2018":
         rdf = rdf.Redefine("weight", "weight * 59.56 * 1000.")
     elif era == "2022preEE":
-        rdf = rdf.Redefine("weight", "weight * 7.9804 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 8.086 * 1000.")
     elif era == "2022postEE":
-        rdf = rdf.Redefine("weight", "weight * 26.6717 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 26.6749 * 1000.")
     elif era == "2023preBPix":
-        rdf = rdf.Redefine("weight", "weight * 18.063 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 17.9642 * 1000.")
     elif era == "2023postBPix":
-        rdf = rdf.Redefine("weight", "weight * 9.693 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 9.6767 * 1000.")
     elif era == "2024":
-        rdf = rdf.Redefine("weight", "weight * 109.85 * 2 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 109.81 * 2 * 1000.")
     elif era == "2025":
-        rdf = rdf.Redefine("weight", "weight * 110.47 * 2 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 109.89 * 2 * 1000.")
     else:
         raise ValueError(f"Weight calc: lumi: Era is not defined: {era}")
 

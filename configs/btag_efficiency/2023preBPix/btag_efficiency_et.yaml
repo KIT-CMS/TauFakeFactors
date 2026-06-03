@@ -26,7 +26,7 @@ btag_working_points:
   XXT: 0.9659
 
 # ------------------------------------------------------------------
-# Jet flavour categories (Jet_hadronFlavour values)
+# Jet flavour categories (jet_hadronFlavour values)
 #   b     -> bottom jets (hadronFlavour == 5)
 #   c     -> charm jets  (hadronFlavour == 4)
 #   light -> light/udsg jets (hadronFlavour == 0)

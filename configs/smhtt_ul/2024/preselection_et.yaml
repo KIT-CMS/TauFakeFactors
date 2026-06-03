@@ -92,11 +92,12 @@ event_selection:
   had_tau_id_vs_mu: id_tau_vsMu_VLoose_Tight_2 > 0.5
   had_tau_pt: pt_2 > 20
   lep_pt: ((pt_1 > 32) && (trg_single_ele30 > 0.5))
-  jet_veto: (Jet_vetomap < 0.5)
+  jet_veto: (jet_vetomap < 0.5)
   # met_mask: (met_mask > 0.5)
   # mc_selection: ((EventCut_mask < 0.5) && (is_data < 0.5)) || (is_data > 0.5)
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
+  btag_reweighting: btag_weight
   Z_pt_reweighting: zPtReweightWeight
   generator: ""
     #stitching:
