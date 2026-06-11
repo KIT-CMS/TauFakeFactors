@@ -195,12 +195,12 @@ def generate_ff_corrlib_json(
     return cset
 
 
-def get_ff_content(category: str, variable_info: Tuple[str, List[float]], ff_info: Dict, variation: str) -> cs.Category:
+def get_ff_content(categories: Tuple[str], variable_info: Tuple[str, List[float]], ff_info: Dict, variation: str) -> cs.Category:
     """
     Function which produces a correctionlib Category with Binning as content based on the measured fake factors for a specific category and variation.
     
     Args:
-        category: Name of the category for which the content is produced
+        categories: Tuple with category names for which the content is produced
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_info: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION]
         variation: Name of the variation for which the content is produced
@@ -209,18 +209,18 @@ def get_ff_content(category: str, variable_info: Tuple[str, List[float]], ff_inf
         Category object from correctionlib with Binning as content
     """
     # this is the case if smoothing is used to estimate the fake factor function
-    if "default" in ff_info[category].keys():
-        ff_version = "default" if "downsampled" not in ff_info[category] else "downsampled"
-        unc_list = list(ff_info[category][ff_version]["variations"].keys())
+    if "default" in ff_info[categories[-1]].keys():
+        ff_version = "default" if "downsampled" not in ff_info[categories[-1]] else "downsampled"
+        unc_list = list(ff_info[categories[-1]][ff_version]["variations"].keys())
         if variation not in unc_list and variation != "nominal":
             return cs.Binning(
                 nodetype="binning",
                 input=variable_info[0],
-                edges=list(ff_info[category][ff_version]["nominal"]["edges"]),
-                content=list(ff_info[category][ff_version]["nominal"]["content"]),
+                edges=list(ff_info[categories[-1]][ff_version]["nominal"]["edges"]),
+                content=list(ff_info[categories[-1]][ff_version]["nominal"]["content"]),
                 flow="clamp",
             )
-        ff_bin_info = ff_info[category][ff_version]["variations"][variation] if variation != "nominal" else ff_info[category][ff_version]["nominal"]
+        ff_bin_info = ff_info[categories[-1]][ff_version]["variations"][variation] if variation != "nominal" else ff_info[categories[-1]][ff_version]["nominal"]
         return cs.Binning(
             nodetype="binning",
             input=variable_info[0],
@@ -229,16 +229,16 @@ def get_ff_content(category: str, variable_info: Tuple[str, List[float]], ff_inf
             flow="clamp",
         )
     # this is the case if a polynomial fit is used to estimate the fake factor function
-    elif "nominal" in ff_info[category].keys():
-        unc_list = list(ff_info[category]["variations"].keys())
+    elif "nominal" in ff_info[categories[-1]].keys():
+        unc_list = list(ff_info[categories[-1]]["variations"].keys())
         if variation not in unc_list and variation != "nominal":
             return cs.Binning(
                 nodetype="binning",
                 input=variable_info[0], 
                 **get_edges_and_content(
-                    ff_info[category]["nominal"],
+                    ff_info[categories[-1]]["nominal"],
                     variable_info[0],
-                    variable_info[1][category],
+                    variable_info[1][categories[0]] if len(categories) == 1 else variable_info[1][categories[0]][categories[1]],
                 ),
                 flow="clamp",
             )
@@ -246,14 +246,14 @@ def get_ff_content(category: str, variable_info: Tuple[str, List[float]], ff_inf
             nodetype="binning",
             input=variable_info[0],
             **get_edges_and_content(
-                ff_info[category]["variations"][variation] if variation != "nominal" else ff_info[category]["nominal"],
+                ff_info[categories[-1]]["variations"][variation] if variation != "nominal" else ff_info[categories[-1]]["nominal"],
                 variable_info[0],
-                variable_info[1][category],
+                variable_info[1][categories[0]] if len(categories) == 1 else variable_info[1][categories[0]][categories[1]],
             ),
             flow="clamp",
         )
     else:
-        raise ValueError(f"The provided fake factor information for category {category} is not valid. Please check the ff_functions dictionary.")
+        raise ValueError(f"The provided fake factor information for category {categories} is not valid. Please check the ff_functions dictionary.")
 
 
 def make_1D_ff(
@@ -327,7 +327,7 @@ def make_1D_ff(
                         input=cat_inputs[0],
                         edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                         content=[
-                            get_ff_content(cat1, variable_info, ff_functions, unc_name) for cat1 in ff_functions
+                            get_ff_content((cat1,), variable_info, ff_functions, unc_name) for cat1 in ff_functions
                         ],
                         flow="clamp",
                     ),
@@ -339,7 +339,7 @@ def make_1D_ff(
                 input=cat_inputs[0],
                 edges=process_conf["split_categories_binedges"][cat_inputs[0]],
                 content=[
-                    get_ff_content(cat1, variable_info, ff_functions, "nominal") for cat1 in ff_functions
+                    get_ff_content((cat1,), variable_info, ff_functions, "nominal") for cat1 in ff_functions
                 ],
                 flow="clamp",
             ),
@@ -445,7 +445,7 @@ def make_2D_ff(
                                     else binedges_conf[cat_inputs[1]]
                                 ),
                                 content=[
-                                    get_ff_content(cat2, variable_info, ff_functions[cat1], unc_name) for cat2 in ff_functions[cat1]
+                                    get_ff_content((cat1, cat2), variable_info, ff_functions[cat1], unc_name) for cat2 in ff_functions[cat1]
                                 ],
                                 flow="clamp",
                             )
@@ -470,7 +470,7 @@ def make_2D_ff(
                             else binedges_conf[cat_inputs[1]]
                         ),
                         content=[
-                            get_ff_content(cat2, variable_info, ff_functions[cat1], "nominal") for cat2 in ff_functions[cat1]
+                            get_ff_content((cat1, cat2), variable_info, ff_functions[cat1], "nominal") for cat2 in ff_functions[cat1]
                         ],
                         flow="clamp",
                     )
@@ -669,6 +669,9 @@ def generate_correction_corrlib(
             binning = correction_conf["var_bins"]
 
             correction_variations = correction_conf.get("correction_variations", gd.default_correction_variations)
+            for var in correction_variations:
+                if var not in gd.VARIATIONS:
+                    raise ValueError(f"Variation {var} is not defined in the general definitions! Please choose from {gd.VARIATIONS} or add the variation to the general definitions if it is missing.")
             correction_variations = ["".join(it) for it in product(correction_variations, ["Up", "Down"])]
 
             if is_2D:

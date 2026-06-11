@@ -20,9 +20,10 @@ import helper.correctionlib_json as corrlib
 import helper.ff_functions as ff_func
 import helper.functions as func
 from ff_calculation import FF_calculation
-from helper.ff_evaluators import FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
+from helper.ff_evaluators import get_fake_factor_evaluator, FakeFactorCorrectionEvaluator, FakeFactorEvaluator, DRSRCorrectionEvaluator
 from helper.hooks_and_patches import Histo1DPatchedRDataFrame
 import CustomLogging as logging_helper
+import configs.general_definitions as gd
 
 parser = argparse.ArgumentParser()
 
@@ -309,7 +310,7 @@ def run_ff_calculation_for_DRtoSR(
         str,
         Dict[str, Union[Dict, List, str]],
         Dict[str, Union[Dict, str]],
-        List[str],
+        func.SamplePathList,
         str,
     ]
 ) -> Union[Dict, None]:
@@ -333,11 +334,25 @@ def run_ff_calculation_for_DRtoSR(
             process=process,
             to_AR_SR=False,
         )
+        if not corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True):
+            log.info(f"DR to SR correction for {process} process is configured to not use orthogonal fake factors. Skipping fake factor calculation for DR to SR correction.")
+            return None
+        
+        use_data_flag = corr_config["target_processes"][process]["DR_SR"].get("compute_orthogonal_fake_factors_using_data", True)
+        if process.startswith("QCD") and not use_data_flag:
+            raise NotImplementedError("compute_orthogonal_fake_factors_using_data=False is not currently implemented for QCD.")
+        ff_config["target_processes"][process]["compute_orthogonal_fake_factors_using_data"] = use_data_flag
+
         log.info(f"Calculating fake factors for the DR to SR correction for the {process} process.")
         log.info("-" * 50)
         result = FF_calculation(
             config=ff_config,
-            sample_paths=sample_paths,
+            sample_paths=sample_paths.switch_embedding_state(
+                corr_config["target_processes"][process]["DR_SR"].get(
+                    "use_embedding",
+                    config.get("use_embedding", False)
+                )
+            ),
             output_path=output_path,
             process=process,
             logger=f"ff_corrections.{process}",
@@ -384,12 +399,12 @@ def run_non_closure_correction_for_DRtoSR(
         assert "ttbar" not in process, "ttbar is not supported for DR to SR corrections"
 
         var_dependences = [config["target_processes"][process]["var_dependence"]] + list(config["target_processes"][process]["split_categories"].keys())
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
             for_DRtoSR=True,
-            logger=f"ff_corrections.{process}",
+            logger=f"ff_corrections.{process}.DR_SR",
         )
 
         corrections.update(
@@ -398,11 +413,16 @@ def run_non_closure_correction_for_DRtoSR(
                 corr_config=corr_config,
                 process=process,
                 evaluator=evaluator,
-                sample_paths=sample_paths,
+                sample_paths=sample_paths.switch_embedding_state(
+                    process_config["DR_SR"].get(
+                        "use_embedding",
+                        config.get("use_embedding", False)
+                    )
+                ),
                 output_path=output_path,
                 for_DRtoSR=True,
                 DR_SR_evaluator=None,
-                logger=f"ff_corrections.{process}",
+                logger=f"ff_corrections.{process}.DR_SR",
             )
         )
     else:
@@ -451,18 +471,18 @@ def run_correction(
 
     DR_SR_correction = None
     if "DR_SR" in corr_config["target_processes"][process]:
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
-            for_DRtoSR=True,
+            for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True),
             logger=f"ff_corrections.{process}",
         )
 
         corr_evaluators = []
         DR_SR_config = corr_config["target_processes"][process]["DR_SR"]
 
-        for corr_var in DR_SR_config["non_closure"].keys():
+        for corr_var in DR_SR_config.get("non_closure", {}).keys():
             non_closure_corr_vars_DR_SR = corr_var
             if "split_categories" in DR_SR_config["non_closure"][corr_var]:
                 split_variables = list(DR_SR_config["non_closure"][corr_var]["split_categories"].keys())
@@ -511,10 +531,10 @@ def run_correction(
                 args_list=[
                     (
                         split_collection,
-                        config,
+                        ff_config,
                         DR_SR_config,
                         process,
-                        sample_paths,
+                        sample_paths.switch_embedding_state(DR_SR_config.get("use_embedding", ff_config.get("use_embedding", False))),
                         save_path,
                         f"ff_corrections.{process}",
                         evaluator,
@@ -553,7 +573,7 @@ def run_correction(
         )
 
     if "non_closure" in corr_config["target_processes"][process]:
-        evaluator = FakeFactorEvaluator.loading_from_file(
+        evaluator = get_fake_factor_evaluator(
             config=config,
             process=process,
             var_dependences=var_dependences,
@@ -616,11 +636,21 @@ if __name__ == "__main__":
     if config.get("use_center_of_mass_bins", True):
         func.RuntimeVariables.RDataFrameWrapper = Histo1DPatchedRDataFrame
 
+    func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = corr_config.get("skip_corrections_compatible_to_one", False)
+    func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE = corr_config.get("skip_corrections_p_value", 0.05)
+    func.RuntimeVariables.USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = corr_config.get("use_suppressed_mc_errors_for_correction_selection", True)
+
     # setting default systematic variations if not present in the config
     if "correction_variations" not in corr_config:
-        corr_config["correction_variations"] = ("Stat_1Sigma", "Syst_MCShift", "Syst_BandAsym")
+        corr_config["correction_variations"] = gd.default_correction_variations
+    else:
+        if isinstance(corr_config["correction_variations"], str):
+            corr_config["correction_variations"] = [corr_config["correction_variations"]]
+        for var in corr_config["correction_variations"]:
+            if var not in gd.VARIATIONS:
+                raise ValueError(f"Variation {var} is not defined in the general definitions! Please choose from {gd.VARIATIONS} or add the variation to the general definitions if it is missing.")
 
-    ########### needed precalculations for DR to SR corrections ###########
+    # ########## needed precalculations for DR to SR corrections ########## #
 
     # initializing the fake factor calculation for DR to SR corrections
     ff_for_DRtoSR_file = os.path.join(
@@ -644,8 +674,8 @@ if __name__ == "__main__":
                     test_config = corr_config["target_processes"][proc].get("DR_SR", {})
 
                     is_valid_cache = all(
-                        func.nested_object_comparison(__test_config[k], test_config[k])
-                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts")
+                        func.nested_object_comparison(__test_config.get(k), test_config.get(k))
+                        for k in ("SRlike_cuts", "ARlike_cuts", "AR_SR_cuts", "use_embedding", "compute_fake_factors_using_data")
                     )
     else:
         is_valid_cache = False
@@ -717,7 +747,7 @@ if __name__ == "__main__":
         for_DRtoSR=True,
     )
 
-    ########### real fake factor corrections ###########
+    # ########## non closure fake factor corrections ########## #
 
     corrections = {
         "QCD": {},
@@ -745,6 +775,8 @@ if __name__ == "__main__":
         output_path=workdir_path,
         for_DRtoSR=False,
     )
+
+    ff_func.print_statistical_compatibility_summary(DR_SR_corrections, corrections, logger="ff_corrections")
 
     with open(os.path.join(save_path, "done"), "w") as done_file:
         done_file.write("")

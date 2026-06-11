@@ -11,7 +11,7 @@ random_seed = 19
 default_fit_option = "poly_1"
 default_correction_option = "smoothed"
 
-default_CMS_text = "Own work (Data/Simulation)"
+default_CMS_text = "Private work (Data/Simulation)"
 
 VARIATIONS = namedtuple(
     "Variations", [
@@ -106,19 +106,22 @@ FF_YAxis = AutoGetDict(
 )
 
 # definitions for channels
-channel_dict = AutoGetDict({
-    "et": r"$e\tau_{h}$",
-    "mt": r"$\mu\tau_{h}$",
-    "tt": r"$\tau_{h}\tau_{h}$",
-    "mm": r"$\mu\mu$"})
+channel_dict = AutoGetDict(
+    {
+        "et": r"$e\tau_{h}$",
+        "mt": r"$\mu\tau_{h}$",
+        "tt": r"$\tau_{h}\tau_{h}$",
+        "mm": r"$\mu\mu$",
+    }
+)
 
 # definitions for era and luminosity
 era_dict = AutoGetDict(
     {
-        "2016preVFP": r"$19.5\,fb^{-1}$ (2016preVFP, 13 TeV)",
-        "2016postVFP": r"$16.8\,fb^{-1}$ (2016postVFP, 13 TeV)",
-        "2017": r"$41.5\,fb^{-1}$ (2017, 13 TeV)",
-        "2018": r"$59.8\,fb^{-1}$ (2018, 13 TeV)",
+        "2016preVFP": r"$19.52\,fb^{-1}$ (2016preVFP, 13 TeV)",
+        "2016postVFP": r"$16.81\,fb^{-1}$ (2016postVFP, 13 TeV)",
+        "2017": r"$42.07\,fb^{-1}$ (2017, 13 TeV)",
+        "2018": r"$59.56\,fb^{-1}$ (2018, 13 TeV)",
         "2022preEE": r"$7.98\,fb^{-1}$ (2022preEE, 13.6 TeV)",
         "2022postEE": r"$26.67\,fb^{-1}$ (2022postEE, 13.6 TeV)",
         "2023preBPix": r"$18.06\,fb^{-1}$ (2023preBPix, 13.6 TeV)",
@@ -257,7 +260,6 @@ variable_dict = {
             "phi_2": r"$\phi^{\mu_2}$",
             "mass_2": r"$\mu_2$ mass",
             "deltaR_ditaupair": r"$\Delta R(\mu_1,\mu_2)$",
-            # "tau_decaymode_2": r"$\tau_{h}^{DM}$",
             **channel_indipendent_variable_dict,
         }
     ),

@@ -88,6 +88,7 @@ def poly_n_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
+    sigma: float = 1.0,
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function with degree n and an up and down varied version.
@@ -115,7 +116,7 @@ def poly_n_func(
         x = [_limit(x[0], *limit_x_up)]
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(nom + unc / 2.0, *limit_y_up)
+        return _limit(nom + sigma * unc / 2.0, *limit_y_up)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -128,7 +129,7 @@ def poly_n_func(
         x = [_limit(x[0], *limit_x_down)]
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(nom - unc / 2.0, *limit_y_down)
+        return _limit(nom - sigma * unc / 2.0, *limit_y_down)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -146,6 +147,7 @@ def poly_n_str_func(
     limit_y_nominal: Tuple[float, float] = _no_limit_default,
     limit_y_up: Tuple[float, float] = _no_limit_default,
     limit_y_down: Tuple[float, float] = _no_limit_default,
+    sigma: float = 1.0,
 ) -> Tuple[Callable, Callable, Callable]:
     """
     Definition of a polynomial function as a string with degree n and an up and down varied version.
@@ -173,7 +175,7 @@ def poly_n_str_func(
         x = _limit(x, *limit_x_up, is_string=True)
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(f"(({nom}) + ({unc}) / 2.0)", *limit_y_up, is_string=True)
+        return _limit(f"(({nom}) + ({sigma} * {unc}) / 2.0)", *limit_y_up, is_string=True)
 
     up.__name__ = f"poly_{n}_up"
     up.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -182,7 +184,7 @@ def poly_n_str_func(
         x = _limit(x, *limit_x_down, is_string=True)
         nom = nominal(x, [param[i] for i in range(nominal.__n_param__)])
         unc = str_func_yerr(x, param, nominal.__n_param__, _nominal)
-        return _limit(f"(({nom}) - ({unc}) / 2.0)", *limit_y_down, is_string=True)
+        return _limit(f"(({nom}) - ({sigma} * {unc}) / 2.0)", *limit_y_down, is_string=True)
 
     down.__name__ = f"poly_{n}_down"
     down.__n_param__ = (n + 1) + (n + 1) * (n + 1)
@@ -315,6 +317,7 @@ def get_wrapped_functions_from_fits(
         Tuple[float, float], Dict[str, Tuple[float, float]]
     ] = _no_limit_default,
     #
+    stat_sigma: float = 1.0,
     **kwargs: Dict[str, Any],
 ) -> Tuple[Dict[str, Callable], Dict[str, str]]:
     """
@@ -356,8 +359,8 @@ def get_wrapped_functions_from_fits(
         verbose=verbose,
     )
 
-    poly_n_func_limited = partial(poly_n_func, **limit_kwargs)
-    poly_n_str_func_limited = partial(poly_n_str_func, **limit_kwargs)
+    poly_n_func_limited = partial(poly_n_func, **limit_kwargs, sigma=stat_sigma)
+    poly_n_str_func_limited = partial(poly_n_str_func, **limit_kwargs, sigma=stat_sigma)
 
     _functions, _str_functions = dict(), dict()
     _functions_limited, _str_functions_limited = dict(), dict()
@@ -479,14 +482,15 @@ def get_wrapped_functions_from_fits(
 
 def hist_func(
     hist: ROOT.TH1,
+    sigma: float = 1.0,
     return_callable: bool = True,
 ) -> Tuple[Callable, List[float], List[float]]:
 
     _nominal, _up, _down, _edges = [], [], [], []
     for i in range(1, hist.GetNbinsX() + 1):
         _nominal.append(hist.GetBinContent(i))
-        _up.append(hist.GetBinContent(i) + hist.GetBinErrorUp(i))
-        _down.append(hist.GetBinContent(i) - hist.GetBinErrorLow(i))
+        _up.append(hist.GetBinContent(i) + sigma * hist.GetBinErrorUp(i))
+        _down.append(hist.GetBinContent(i) - sigma * hist.GetBinErrorLow(i))
         _edges.append((hist.GetBinLowEdge(i), hist.GetBinLowEdge(i + 1)))
 
     def nominal(x):
@@ -529,6 +533,7 @@ def get_wrapped_hists(
     do_mc_subtr_unc: bool,
     logger: str,
     verbose: bool = True,
+    sigma: float = 1.0,
     **kwargs: Dict[str, Any],
 ) -> Dict[str, Union[ROOT.TF1, str, Callable]]:
     """
@@ -556,8 +561,8 @@ def get_wrapped_hists(
 
     callable_results, str_results = {"nominal": None, "variations": {}}, {"nominal": None, "variations": {}}
     
-    _nom = hist_func(ff_hist, return_callable=True)
-    _nom_str = hist_func(ff_hist, return_callable=False)
+    _nom = hist_func(ff_hist, sigma=sigma, return_callable=True)
+    _nom_str = hist_func(ff_hist, sigma=sigma, return_callable=False)
     
     callable_results["nominal"] = _nom[0]
     callable_results["variations"][gd.VARIATIONS.STAT + "Up"] = _nom[1]
@@ -571,20 +576,20 @@ def get_wrapped_hists(
         callable_results.update(
             {
                 gd.VARIATIONS.SYST_MC + "Up": hist_func(
-                    ff_hist_up, return_callable=True
+                    ff_hist_up, sigma=sigma, return_callable=True
                 )[0],
                 gd.VARIATIONS.SYST_MC + "Down": hist_func(
-                    ff_hist_down, return_callable=True
+                    ff_hist_down, sigma=sigma, return_callable=True
                 )[0],
             }
         )
         str_results.update(
             {
                 gd.VARIATIONS.SYST_MC + "Up": hist_func(
-                    ff_hist_up, return_callable=False
+                    ff_hist_up, sigma=sigma, return_callable=False
                 )[0],
                 gd.VARIATIONS.SYST_MC + "Down": hist_func(
-                    ff_hist_down, return_callable=False
+                    ff_hist_down, sigma=sigma, return_callable=False
                 )[0],
             }
         )

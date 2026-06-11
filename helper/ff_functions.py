@@ -5,6 +5,7 @@ Collection of helpful functions for the fake factor calculation scripts
 import array
 import functools
 import inspect
+import io
 import itertools as itt
 import logging
 import os
@@ -16,6 +17,9 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Tuple, Union
 
 import numpy as np
 import ROOT
+import scipy.stats
+from rich.console import Console
+from rich.table import Table
 from wurlitzer import STDOUT, pipes
 
 import configs.general_definitions as gd
@@ -93,9 +97,70 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
                 log.warning("Filter resulted in zero events. Creating an empty snapshot with the correct schema.")
                 f = ROOT.TFile(cache_filepath, "RECREATE")
                 tree = ROOT.TTree(tree_name, tree_name)
+                _refs = []  # References needed in memory to prevent GC during branch assignment
                 for c in cols:
-                    arr = ROOT.std.vector("float")()
-                    tree.Branch(c, arr)
+                    col_type = str(filtered_rdf.GetColumnType(c)).replace("ROOT::VecOps::RVec", "std::vector")
+
+                    if col_type.startswith("std::vector"):
+                        inner = col_type[col_type.find("<") + 1: col_type.rfind(">")]
+                        try:
+                            vec = ROOT.std.vector(inner)()
+                        except Exception:
+                            vec = ROOT.std.vector("float")()
+                        tree.Branch(c, vec)
+                        _refs.append(vec)
+                    elif "string" in col_type:
+                        s = ROOT.std.string()
+                        tree.Branch(c, s)
+                        _refs.append(s)
+                    elif "Double" in col_type or "double" in col_type:
+                        arr = array.array("d", [0.0])
+                        tree.Branch(c, arr, f"{c}/D")
+                        _refs.append(arr)
+                    elif "Float" in col_type or "float" in col_type:
+                        arr = array.array("f", [0.0])
+                        tree.Branch(c, arr, f"{c}/F")
+                        _refs.append(arr)
+                    elif "ULong" in col_type or "unsigned long" in col_type:
+                        arr = array.array("Q", [0])
+                        tree.Branch(c, arr, f"{c}/l")
+                        _refs.append(arr)
+                    elif "Long" in col_type or "long" in col_type:
+                        arr = array.array("q", [0])
+                        tree.Branch(c, arr, f"{c}/L")
+                        _refs.append(arr)
+                    elif "UInt" in col_type or "unsigned int" in col_type:
+                        arr = array.array("I", [0])
+                        tree.Branch(c, arr, f"{c}/i")
+                        _refs.append(arr)
+                    elif "Int" in col_type or "int" in col_type:
+                        arr = array.array("i", [0])
+                        tree.Branch(c, arr, f"{c}/I")
+                        _refs.append(arr)
+                    elif "UShort" in col_type or "unsigned short" in col_type:
+                        arr = array.array("H", [0])
+                        tree.Branch(c, arr, f"{c}/s")
+                        _refs.append(arr)
+                    elif "Short" in col_type or "short" in col_type:
+                        arr = array.array("h", [0])
+                        tree.Branch(c, arr, f"{c}/S")
+                        _refs.append(arr)
+                    elif "UChar" in col_type or "unsigned char" in col_type:
+                        arr = array.array("B", [0])
+                        tree.Branch(c, arr, f"{c}/b")
+                        _refs.append(arr)
+                    elif "Char" in col_type or "char" in col_type:
+                        arr = array.array("b", [0])
+                        tree.Branch(c, arr, f"{c}/B")
+                        _refs.append(arr)
+                    elif "Bool" in col_type or "bool" in col_type:
+                        arr = array.array("b", [0])
+                        tree.Branch(c, arr, f"{c}/O")
+                        _refs.append(arr)
+                    else:
+                        arr = array.array("f", [0.0])
+                        tree.Branch(c, arr, f"{c}/F")
+                        _refs.append(arr)
                 tree.Write()
                 f.Close()
             else:
@@ -618,19 +683,20 @@ def rng_seed(seed: int) -> Generator[None, None, None]:
 
 
 def controlplot_samples(
-    use_embedding: bool,
+    sample_paths: List[str],
     add_qcd: bool = True,
 ) -> List[str]:
     """
     Returns the list of samples that should be used for the control plots.
 
     Args:
-        use_embedding: Boolean to use embedding or MC for genuine tau processes
+        sample_paths: List of sample paths to dynamically determine if embedding is used
         add_qcd: Add QCD samples to the collection of samples to be plotted.
 
     Returns:
         List of samples used for controlplots
     """
+    use_embedding = any("embedding" == p.rsplit("/")[-1].rsplit(".")[0] for p in sample_paths)
     samples = [
         "diboson_J",
         "diboson_L",
@@ -944,48 +1010,11 @@ def calc_fraction(hists: Dict[str, Any], target: str, processes: List[str]) -> A
     return frac
 
 
-def add_fraction_variations(
-    hists: Dict[str, Any], processes: List[str]
-) -> Dict[str, Dict[str, Any]]:
-    """
-    Function which calculates variations of fraction histograms. The fraction of each process
-    is once varied up by 7% and all other processes are varied down by 7%. The same is done
-    the other way around to get the down variations.
-
-    Args:
-        hists: Dictionary with fraction histograms for all considered processes
-        processes: List of all cosidered processes for the fraction calculation
-
-    Return:
-        Dictionary with nominal, up and down variations of all considered processes
-    """
-    variations = dict()
-    variations["nominal"] = dict(hists)
-
-    for p in processes:
-        hists_up = dict(hists)
-        hists_down = dict(hists)
-        for hist in hists:
-            hists_up[hist] = hists_up[hist].Clone()
-            hists_down[hist] = hists_down[hist].Clone()
-            if p == hist:
-                hists_up[hist].Scale(1.07)
-                hists_down[hist].Scale(0.93)
-            else:
-                hists_up[hist].Scale(0.93)
-                hists_down[hist].Scale(1.07)
-        proc_name = "TTbar" if p == "ttbar_J" else p
-        variations[f"frac{proc_name}UncUp"] = hists_up
-        variations[f"frac{proc_name}UncDown"] = hists_down
-
-    return variations
-
-
 def get_yields_from_hists(
     hists: Dict[str, Dict[str, Any]], processes: List[str]
 ) -> Dict[str, Dict[str, Dict[str, List[float]]]]:
     """
-    This function transforms fraction histograms (with variations) obtained from calc_fraction() and add_fraction_variations()
+    This function transforms fraction histograms (with variations) obtained from calc_fraction()
     into lists of fraction values which are later used to produce in the production of the correctionlib file.
 
     Args:
@@ -1068,11 +1097,12 @@ def build_TGraph(
 
 
 def fit_function(
-    ff_hists: Union[List[Any], Any],
+    ff_hists: Union[List[Any]],
     bin_edges: List[int],
     logger: str,
     fit_option: Union[str, List[str]],
     limit_kwargs: Dict[str, Any],
+    stat_sigma: float = 1.0,
 ) -> Tuple[
     Union[ROOT.TH1, ROOT.TGraphAsymmErrors],
     Dict[str, Any],
@@ -1085,13 +1115,15 @@ def fit_function(
     the fitted function variations are generated which are later used for plotting purposes.
 
     Args:
-        ff_hists: Either a list of nominal and MC varied ratio histograms or only the nominal ratio histogram
+        ff_hists: A list of either nominal and MC varied ratio histograms or only the nominal ratio histogram
         bin_edges: Bins edges of the fitted variable, needed for the graphs for plotting
         logger: Name of the logger that should be used
         fit_option: List[str] correspond to a list of poly_n fits to be performed
                     with best fit being the one with the lowest chi2/ndf value and nominal and
                     variations being > 0 in fit range.
                     str: "poly_n" or "binwise", where n is the order of the polynomial fit
+        limit_kwargs: Dictionary with the keyword arguments for the fit limits, needs to include "limit_x" which is the upper limit of the fit range in x
+        stat_sigma: Sigma for the statistical uncertainty variation, default is 1.0 which corresponds
 
     Return:
         1. Initial histogram as TGraph or TH1 (if binwise is used)
@@ -1103,11 +1135,11 @@ def fit_function(
         fit_option = [fit_option]
 
     do_mc_subtr_unc, ff_hist_up, ff_hist_down = False, None, None
-    if isinstance(ff_hists, list):
+    if isinstance(ff_hists, list) and len(ff_hists) == 3:
         ff_hist, ff_hist_up, ff_hist_down = ff_hists
         do_mc_subtr_unc = True
     else:
-        ff_hist = ff_hists
+        ff_hist = ff_hists[0]
 
     retrival_function, convert = fitting_helper.get_wrapped_functions_from_fits, True
     if fit_option == "binwise":
@@ -1123,6 +1155,7 @@ def fit_function(
         function_collection=fit_option,
         verbose=True,
         limit_x=limit_kwargs["limit_x"],
+        stat_sigma=stat_sigma,
     )
 
     return (
@@ -1134,7 +1167,7 @@ def fit_function(
 
 
 def calculate_non_closure_correction(
-    SRlike: Dict[str, Any], ARlike: Dict[str, Any]
+    SRlike: Dict[str, Any], ARlike: Dict[str, Any], skip_frac: bool = False,
 ) -> Tuple[Any, Any]:
     """
     Function which calculates non closure corrections based on the histograms from the determination regions.
@@ -1142,12 +1175,13 @@ def calculate_non_closure_correction(
     Args:
         SRlike: Dictionary with histograms from the signal-like determination region for all relevant processes
         ARlike: Dictionary with histograms from the application-like determination region for all relevant processes
+        skip_frac: Skip the fraction scaling if FF * AR-like matches SR-like by FF construction. Set frac to 1.0
 
     Return:
         1. Ratio histogram of data (MC subtracted) in a signal-like region and data (scaled to MC subtracted) with applied fake factors in an application-like region,
         2. Process fraction in the application-like region
     """
-    frac = ARlike["data_subtracted"].GetMaximum() / ARlike["data"].GetMaximum()
+    frac = 1.0 if skip_frac else (ARlike["data_subtracted"].GetMaximum() / ARlike["data"].GetMaximum())
     predicted = ARlike["data_ff"].Clone()
     predicted.Scale(frac)
 
@@ -1289,7 +1323,7 @@ def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> 
     step_size = v_range * threshold
 
     if step_size == 0:  # all values are identical
-        return np.array([edges[0], edges[-1]]), np.array([values[0], values[-1]])
+        return np.array([edges[0], edges[-1]]), np.array([values[0]])
 
     total_variation = cumulative_activity[-1]
 
@@ -1312,6 +1346,97 @@ def sparsify(edges: np.ndarray, values: np.ndarray, threshold: float = 0.01) -> 
     return new_edges, new_values
 
 
+def fit_to_constant(hist: ROOT.TH1) -> Tuple[float, float]:
+    """
+    Fits a histogram to a constant function and returns the fit result and its uncertainty.
+
+    Args:
+        hist: ROOT histogram to be fitted
+    Return:
+        Tuple containing the fit result (constant value) and its uncertainty
+    """
+    fit_res = hist.Fit("pol0", "SQN0")
+    if int(fit_res) == 0:
+        return fit_res.Get().Parameter(0), fit_res.Get().ParError(0)
+    else:
+        return 1.0, 0.0
+
+
+def statistical_check(
+    hist: Any,
+    corr_dict: Dict[str, np.ndarray],
+    mc_shifted_hist: Union[Dict[str, Any], None] = None,
+    stat_sigma: float = 1.0,
+) -> Dict[str, np.ndarray]:
+    """
+    Performs chi2 test checking compatibility of the correction with 1.0 within data uncertainties.
+    If compatible and RuntimeVariables.AUTO_SKIP_COMPATIBLE is True, correction is set to 1.0.
+    Then additionally stat. and bandwidth variations are set to 1.0. For MCShift variations,
+    if histograms are provided, they are fitted to a constant if RuntimeVariables.AUTO_SKIP_UNCERTAINTIES
+    is False, otherwise they are set to 1.0 as well.
+
+    Args:
+        hist: Histogram of the correction to be checked
+        corr_dict: Dictionary with the correction values and variations to be updated if the correction is compatible with 1.0
+        mc_shifted_hist: Dictionary with histograms for the MC shifted variations
+
+    Return:
+        Updated corr_dict with additional keys:
+            "p_value": p-value of the chi2 test,
+            "_auto_skipped": boolean if correction was set to 1.0
+    """
+
+    _, _, y_val, _, _, err_dn, err_up = build_TGraph(hist, return_components=True, add_xerrors_in_graph=True)
+
+    if hasattr(hist, "_extra_base_errors_mc_suppressed"):
+        if func.RuntimeVariables.USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION:
+            err = hist._extra_base_errors_mc_suppressed.clip(min=1e-6)
+        else:
+            err = hist._extra_base_errors_std.clip(min=1e-6)
+    else:  # fallback
+        err = (np.array(err_dn) + np.array(err_up)).clip(min=1e-6) / 2.0
+
+    y, ndf = np.array(y_val), len(y_val)
+
+    p_value_shape_min, pulls = 1.0, (y - 1.0) / err
+    for window in range(1, ndf + 1):
+        for i in range(ndf - window + 1):
+            z_window = np.abs(np.sum(pulls[i: i + window]) / np.sqrt(window))
+            p_window = scipy.stats.norm.sf(z_window) * 2  # two-sided p-value
+            if p_window < p_value_shape_min:
+                p_value_shape_min = p_window
+    p_shape = 1 - (1 - p_value_shape_min) ** len(y)
+
+    corr_dict["default"]["p_value"] = p_shape
+
+    if (corr_dict["default"]["p_value"] > func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE) and func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE:
+        corr_dict["default"]["_auto_skipped"] = True
+        corr_dict["default"]["nominal"] = np.ones_like(corr_dict["default"]["nominal"])
+
+        stat_unct_inclusive = 1.0 / np.sqrt(np.sum(1.0 / err**2))
+
+        for key in list(corr_dict["default"]["variations"].keys()):
+            if key.startswith((gd.VARIATIONS.SYST_BAND_ASYM, gd.VARIATIONS.SYST_BAND_HIGH, gd.VARIATIONS.SYST_BAND_LOW)):  # No bandwidth uncertainty for a flat line
+                corr_dict["default"]["variations"][key] = np.ones_like(corr_dict["default"]["variations"][key])
+            elif key.startswith(gd.VARIATIONS.STAT) and "Up" in key:
+                corr_dict["default"]["variations"][key] = np.full_like(corr_dict["default"]["variations"][key], 1.0 + stat_sigma * stat_unct_inclusive)
+            elif key.startswith(gd.VARIATIONS.STAT) and "Down" in key:
+                corr_dict["default"]["variations"][key] = np.full_like(corr_dict["default"]["variations"][key], 1.0 - stat_sigma * stat_unct_inclusive)
+
+        if mc_shifted_hist is None:
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = np.ones_like(corr_dict["default"]["nominal"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = np.ones_like(corr_dict["default"]["nominal"])
+        else:
+            mc_up_val, _ = fit_to_constant(mc_shifted_hist["MCShiftUp"])
+            mc_dn_val, _ = fit_to_constant(mc_shifted_hist["MCShiftDown"])
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = np.full_like(corr_dict["default"]["nominal"], mc_up_val)
+            corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = np.full_like(corr_dict["default"]["nominal"], mc_dn_val)
+    else:
+        corr_dict["default"]["_auto_skipped"] = False
+
+    return corr_dict
+
+
 def smooth_function(
     hist: Any,
     bin_edges: List[float],
@@ -1319,8 +1444,8 @@ def smooth_function(
     bandwidth: float,
     bandwidth_variations: tuple = (0.5, 1.5),
     mc_shifted_hist: Union[Dict[str, ROOT.TH1D], None] = None,
+    stat_sigma: float = 1.0,
     sparsify_threshold: float = 0.01,
-    for_FF: bool = False,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -1333,7 +1458,6 @@ def smooth_function(
         bandwidth: Bandwidth parameter for the kernel regression estimator
         bandwidth_variations: Tuple with factors to vary the bandwidth up and down if correction_option is not "binwise"
         sparsify_threshold: Threshold for sparsifying the smoothed function
-        for_FF: If True, the function is used for fake factor calculations and returns a different set of keys
     Return:
         1. Initial root TGraph of the histogram,
         2. Dictionary of arrays with information about the smoothed function values to be stored with correctionlib (nominal and variations)
@@ -1346,7 +1470,7 @@ def smooth_function(
         bandwidth=bandwidth,
     )
 
-    nominal_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=1.0)
+    nominal_graph, corr_dict = _smooth_function(**_kwargs, stat_sigma=stat_sigma)
     corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Up"] = corr_dict["default"]["variations"]["StatUp"]
     corr_dict["default"]["variations"][gd.VARIATIONS.STAT + "Down"] = corr_dict["default"]["variations"]["StatDown"]
 
@@ -1357,8 +1481,8 @@ def smooth_function(
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = corr_dict["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = corr_dict["default"]["nominal"]
     else:
-        _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"]})
-        _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"]})
+        _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"], "stat_sigma": stat_sigma})
+        _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"], "stat_sigma": stat_sigma})
 
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = _mc_sub_up["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = _mc_sub_down["default"]["nominal"]
@@ -1386,8 +1510,8 @@ def smooth_function(
                 "content": corr_dict["default"]["variations"][key],
             }
     else:
-        _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1]})
-        _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0]})
+        _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1], "stat_sigma": stat_sigma})
+        _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0], "stat_sigma": stat_sigma})
 
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
@@ -1396,6 +1520,8 @@ def smooth_function(
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_LOW + "Down"] = (corr_dict["default"]["nominal"] - _low["default"]["nominal"]) + corr_dict["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Up"] = _high["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_ASYM + "Down"] = _low["default"]["nominal"]
+
+        corr_dict = statistical_check(hist, corr_dict, mc_shifted_hist, stat_sigma)
 
         # individual downsampling for correctionlib storage, not used for plotting
         corr_dict["downsampled"] = {"nominal": None, "variations": {}}
@@ -1503,8 +1629,8 @@ def _smooth_function(
     if correction_option == "binwise":
         _bins = np.array(bin_edges)
         _nom = np.array(y)
-        _up_stat = _nom + np.array(error_y_up)
-        _down_stat = _nom - np.array(error_y_down)
+        _up_stat = _nom + stat_sigma * np.array(error_y_up)
+        _down_stat = _nom - stat_sigma * np.array(error_y_down)
     elif correction_option == "smoothed":
         _bins = np.array(smooth_x)
         _nom = np.array(smooth_y)
@@ -1531,20 +1657,20 @@ def _smooth_function(
         )
         _up_stat = _nom + np.concatenate(
             (
-                error_y_up[left_slice],
+                stat_sigma * np.array(error_y_up[left_slice]),
                 [smooth_y_up[0]] if start_idx != 0 else [],
                 np.array(smooth_y_up)[overlap_slice],
                 [smooth_y_up[-1]] if end_idx != -1 else [],
-                error_y_up[right_slice],
+                stat_sigma * np.array(error_y_up[right_slice]),
             ),
         )
         _down_stat = _nom - np.concatenate(
             (
-                error_y_down[left_slice],
+                stat_sigma * np.array(error_y_down[left_slice]),
                 [smooth_y_down[0]] if start_idx != 0 else [],
                 np.array(smooth_y_down)[overlap_slice],
                 [smooth_y_down[-1]] if end_idx != -1 else [],
-                error_y_down[right_slice],
+                stat_sigma * np.array(error_y_down[right_slice]),
             ),
         )
     else:
@@ -1582,3 +1708,106 @@ def _smooth_function(
     }
 
     return nominal_graph, corr_dict
+
+
+def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure_corrections: dict, logger: str) -> None:
+    """
+    Generates an ASCII table summarizing which corrections were applied vs. set to 1.0
+    due to compatibility with 1.0.
+
+    Args:
+        DR_SR_corrections: Dictionary with DR/SR corrections
+        non_closure_corrections: Dictionary with non-closure corrections
+    """
+
+    log = logging.getLogger(logger)
+
+    def flatten_categories(node, current_path=""):
+        if isinstance(node, dict) and "nominal" in node:
+            return {current_path if current_path else "Inclusive": node}
+        flattened = {}
+        if isinstance(node, dict):
+            for k, v in node.items():
+                formatted_k = str(k).replace("#", " ")  # i.e. "njets#==0"
+                new_path = f"{current_path} | {formatted_k}" if current_path else formatted_k
+                flattened.update(flatten_categories(v["default"], new_path))
+        return flattened
+
+    # import ipdb;ipdb.set_trace()
+    merged = {}
+    for _dict in [DR_SR_corrections, non_closure_corrections]:
+        for process, correction in _dict.items():
+            if process not in merged:
+                merged[process] = {}
+            for correction_name, correction_categories in correction.items():
+                flat_correction_categories = flatten_categories(correction_categories)
+                if correction_name not in merged[process]:
+                    merged[process][correction_name] = {}
+                merged[process][correction_name].update(flat_correction_categories)
+
+    string_io = io.StringIO()  # headless Console writing to a string buffer without ANSI
+    console = Console(file=string_io, force_terminal=False, color_system=None, width=300)
+
+    log.info("Summary of corrections applied vs. set to 1.0 due to compatibility with 1.0:\n")
+    log.info(f"p-value threshold for auto-skipping: {func.RuntimeVariables.SKIP_CORRECTIONS_P_VALUE:.3f}")
+    log.info(f"Auto-skipping enabled: {func.RuntimeVariables.SKIP_CORRECTIONS_COMPATIBLE_TO_ONE}")
+
+    for process, correction in merged.items():
+        if not correction:
+            continue
+
+        all_categories = set()
+        for correction_categories in correction.values():
+            all_categories.update(correction_categories.keys())
+        all_categories = sorted(list(all_categories), key=lambda x: ("", x) if x == "Inclusive" else (x, x))
+
+        table = Table(title=f"Process: {process}", show_header=True)
+        table.add_column("Correction", no_wrap=True)
+
+        for category in all_categories:
+            table.add_column(f"Status\n{category}", justify="center")
+
+        table.add_column("", justify="center", width=2)
+
+        for category in all_categories:
+            table.add_column(f"p-value\n{category}", justify="center")
+
+        for correction_name, correction_categories in correction.items():
+            row = [correction_name.replace("non_closure_", "(nc) ")]
+
+            for category in all_categories:
+                node = correction_categories.get(category)
+                if node is None:
+                    row.append("—")
+                else:
+                    if node.get("_auto_skipped", False):
+                        row.append("1.0")
+                    elif "p_value" not in node:
+                        if np.all(np.array(node["nominal"]) == 1.0):
+                            row.append("-")
+                        else:
+                            row.append("Binwise")
+                    else:
+                        row.append("Applied")
+
+            row.append("")
+
+            for category in all_categories:
+                node = correction_categories.get(category)
+                if node is None:
+                    row.append("—")
+                else:
+                    if "p_value" in node:
+                        pval = node["p_value"]
+                        row.append(f"{pval:.3f}")
+                    else:
+                        row.append("-")
+
+            table.add_row(*row)
+
+        console.print(table)
+        console.print()
+
+    for line in string_io.getvalue().splitlines():
+        if line.strip():
+            log.info(line)

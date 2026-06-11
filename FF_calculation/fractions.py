@@ -15,6 +15,48 @@ import helper.plotting as plotting
 from helper.functions import RuntimeVariables
 
 
+def get_mc_shifted_fractions(hists: Dict[str, Any], processes: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Function to calculate the fractions of the processes for the fake factor calculation with shifted variations.
+
+    Args:
+        hists: Dictionary containing the histograms of the processes for the fraction calculation
+        processes: List of processes for which the fractions should be calculated
+
+    Returns:
+        Dictionary containing the fractions of the processes for the nominal and shifted variations
+    """
+
+    variations = {}
+    variations["nominal"] = {}
+    for process in processes:
+        variations["nominal"][process] = ff_func.calc_fraction(hists, process, processes)
+
+    for variation_process in processes:
+        hists_up, hists_down = {}, {}
+        for process in processes:
+            hists_up[process] = hists[process].Clone()
+            hists_down[process] = hists[process].Clone()
+            if process == variation_process:
+                hists_up[process] = hists_up[process].AddError(1)
+                hists_down[process] = hists_down[process].AddError(-1)
+
+                for b in range(1, hists_down[process].GetNbinsX() + 1):
+                    if hists_down[process].GetBinContent(b) < 0.0:
+                        hists_down[process].SetBinContent(b, 0.0)
+                    if hists_up[process].GetBinContent(b) < 0.0:
+                        hists_up[process].SetBinContent(b, 0.0)
+
+        variations[f"frac_{variation_process}_up"] = {}
+        variations[f"frac_{variation_process}_down"] = {}
+
+        for process in processes:
+            variations[f"frac_{variation_process}_up"][process] = ff_func.calc_fraction(hists_up, process, processes)
+            variations[f"frac_{variation_process}_down"][process] = ff_func.calc_fraction(hists_down, process, processes)
+
+    return variations
+
+
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
 def fraction_calculation(
     args: Tuple[Any, ...],
@@ -62,10 +104,7 @@ def fraction_calculation(
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        # event filter for application region
-        log.info(
-            "Filtering events for the fraction calculation in the application region."
-        )
+        log.info("Filtering events for the fraction calculation in the application region.")
         region_conf = copy.deepcopy(process_conf["AR_cuts"])
         rdf_AR = ff_func.apply_region_filters(
             rdf=rdf,
@@ -76,7 +115,7 @@ def fraction_calculation(
             logger=logger,
         )
 
-        # event filter for signal region; this is not needed for the FF calculation, just for control plots
+        # this is not needed for the FF calculation, just for control plots
         log.info("Filtering events for the fraction calculation in the signal region.")
         region_conf = copy.deepcopy(process_conf["SR_cuts"])
         rdf_SR = ff_func.apply_region_filters(
@@ -88,54 +127,29 @@ def fraction_calculation(
             logger=logger,
         )
 
-        # get binning of the dependent variable
         xbinning = array.array("d", splitting.var_bins)
         nbinsx = len(splitting.var_bins) - 1
 
-        # making the histograms
-        h = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
+        AR_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_AR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
-        )
-        AR_hists[sample] = h.GetValue()
+        ).GetValue()
 
-        h = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
+        SR_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SR).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
-        )
-        SR_hists[sample] = h.GetValue()
+        ).GetValue()
 
     # calculate QCD estimation; here directly estimated as difference between mc and data without SS/OS
     AR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=AR_hists)
     SR_hists["QCD"] = ff_func.QCD_SS_estimate(hists=SR_hists)
 
-    frac_hists = dict()
+    processes_list = config[process]["processes"]
 
-    for p in config[process]["processes"]:
-        frac_hists[p] = ff_func.calc_fraction(
-            hists=AR_hists,
-            target=p,
-            processes=config[process]["processes"],
-        )
-    frac_hists = ff_func.add_fraction_variations(
-        hists=frac_hists,
-        processes=config[process]["processes"],
-    )
-
-    SR_frac_hists = dict()
-
-    for p in config[process]["processes"]:
-        SR_frac_hists[p] = ff_func.calc_fraction(
-            hists=SR_hists,
-            target=p,
-            processes=config[process]["processes"],
-        )
-    SR_frac_hists = ff_func.add_fraction_variations(
-        hists=SR_frac_hists,
-        processes=config[process]["processes"],
-    )
+    frac_hists = get_mc_shifted_fractions(AR_hists, processes_list)
+    SR_frac_hists = get_mc_shifted_fractions(SR_hists, processes_list)
 
     plotting.plot_fractions(
         variable=process_conf["var_dependence"],
@@ -164,7 +178,7 @@ def fraction_calculation(
         save_data=True,
     )
 
-    # producing some control plots
+    # producing control plots
     for _hist, _region in [
         (SR_hists, "SR"),
         (AR_hists, "AR"),
@@ -178,7 +192,7 @@ def fraction_calculation(
                 process=process,
                 region=_region,
                 data="data",
-                samples=ff_func.controlplot_samples(config["use_embedding"]),
+                samples=ff_func.controlplot_samples(sample_paths),
                 category=splitting.split,
                 output_path=output_path,
                 logger=logger,

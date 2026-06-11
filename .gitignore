@@ -10,6 +10,7 @@ configs.*/
 *.pdf
 *.png
 *.root
+*.feather
 
 # C extensions
 *.so

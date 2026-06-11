@@ -1,6 +1,7 @@
 # Fake Factor calculation
 In this step the fake factors are calculated. This should be run after the preselection step.
 
+### Configuration
 All information for the FF calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. The `common_settings.yaml` has to be named like that and is used for all steps of the fake factor estimation (`preselection`, `FF calculation`, `FF corrections`). <br>
 The FF calculation config has the following parameters:
 
@@ -9,8 +10,9 @@ General options for the calculation:
   parameter | type | description
   ---|---|---
   `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
-  `use_embedding` | `bool` | True if embedded sample should be used, False if only MC sample should be used
+  `use_embedding` | `bool` | `true` if embedded sample should be used, `false` if only MC sample should be used
   `use_center_of_mass_bins` | `bool` | Changes the x-data that is entering FF and correction calculation. If set then a center of mass value is used for the x-data, calculated from events entering the corresponding bin. If not set, the bin centers are used. Default is set to True. <br> <br>This will not affect FF and correction calculation that are set to `"binwise"` (the x-data values although displayed in plots are not used)
+  `stat_sigma` | `float` | This parameter defines the number of standard deviations to be considered when determining the uncertainties for fit or smoothing parameters, which are then stored in the correctionlib files. Default is `1.0`.
 
 In `target_processes` the processes for which FFs should be calculated (normally for QCD, Wjets, ttbar) are defined. <br>
 Each target process needs some specifications:
@@ -41,7 +43,8 @@ In `process_fractions` specifications for the calculation of the process fractio
   `SR_cuts` | `list` | see `target_processes`, (optional) not needed for the fraction calculation
 
 **Note:** When using split binning for process fraction calculations, the `var_bins` parameter can also be defined in the same manner as for `target_processes`.
-  
+
+### Running calculations
 To run the FF calculation step, execute the python script and specify the config file (relative path possible):
 ```bash
 python ff_calculation.py --config-file PATH/CONFIG.yaml

@@ -13,6 +13,7 @@ import re
 import sys
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Tuple, Union
+import pathlib
 
 import numpy as np
 import ROOT
@@ -181,6 +182,10 @@ class RuntimeVariables(object):
     USE_CACHED_INTERMEDIATE_STEPS = False
     RDataFrameWrapper = PassThroughWrapper
 
+    SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
+    SKIP_CORRECTIONS_P_VALUE = 0.05
+    USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = True
+
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
             cls.instance = super(RuntimeVariables, cls).__new__(cls)
@@ -283,6 +288,7 @@ def correction_config_comparison(
 
         is_same &= nested_object_comparison(_test_config["SRlike_cuts"], _config["SRlike_cuts"])
         is_same &= nested_object_comparison(_test_config["ARlike_cuts"], _config["ARlike_cuts"])
+        is_same &= nested_object_comparison(_test_config.get("use_embedding"), _config.get("use_embedding"))
 
     _test_config = _test_config["non_closure"][closure_corr]
     _config = _config["non_closure"][closure_corr]
@@ -527,13 +533,18 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     log = logging.getLogger(f"preselection.{process}")
 
     fsname = "root://cmsdcache-kit-disk.gridka.de/"
-    xrdclient = client.FileSystem(fsname)
-    status, listing = xrdclient.dirlist(path.replace(fsname, ""))
+    if fsname in path:
+        xrdclient = client.FileSystem(fsname)
+        status, listing = xrdclient.dirlist(path.replace(fsname, ""))
 
-    if not status.ok:
-        log.info(f"Error: {status.message}")
-        sys.exit(1)
-
+        if not status.ok:
+            raise FileNotFoundError(f"Could not access path {path} on xrootd server. Status: {status.message}")
+            
+    elif path.startswith("/ceph"):
+        listing = [pathlib.Path(it) for it in os.listdir(path)]
+    else:
+        raise ValueError(f"Unsupported file system for path {path}")
+        
     selected_files = []
     for f in listing:
         if f.name.endswith(".root"):
@@ -680,6 +691,35 @@ def define_columns(rdf: Any, column_definitions: dict, process: str) -> Any:
     return rdf
 
 
+class SamplePathList(list):
+    """
+    A list-like object holding sample paths that can safely toggle between
+    embedding and MC-only states while preserving the full unmodified list in memory.
+    """
+    def __init__(self, all_paths: List[str], use_embedding: bool) -> None:
+        self.all_paths = all_paths
+        self.is_embedded = use_embedding
+
+        filtered_paths = []
+        for f in all_paths:
+            sample = f.rsplit("/")[-1].rsplit(".")[0]
+            if use_embedding and "_T" in sample:
+                continue
+            elif not use_embedding and sample == "embedding":
+                continue
+            filtered_paths.append(f)
+
+        super().__init__(filtered_paths)
+
+    def switch_embedding_state(self, use_embedding: bool) -> "SamplePathList":
+        if use_embedding == self.is_embedded:
+            return self
+        return SamplePathList(self.all_paths, use_embedding)
+
+    def __reduce__(self):
+        return (self.__class__, (self.all_paths, self.is_embedded))
+
+
 def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
     """
     Function to get a list of all sample paths which will be used for the fake factor calculation.
@@ -701,15 +741,7 @@ def get_samples(config: Dict[str, Union[str, Dict, List]]) -> List[str]:
         f"The following files are loaded for era: {config['era']}, channel: {config['channel']} from {general_sample_path}"
     )
     log.info("-" * 50)
-    sample_paths = glob.glob(general_sample_path)
-    tmp_list = glob.glob(general_sample_path)
-
-    for f in tmp_list:
-        sample = f.rsplit("/")[-1].rsplit(".")[0]
-        if config["use_embedding"] and "_T" in sample:
-            sample_paths.remove(f)
-        elif not config["use_embedding"] and sample == "embedding":
-            sample_paths.remove(f)
+    sample_paths = SamplePathList(glob.glob(general_sample_path), config.get("use_embedding", False))
 
     for f in sample_paths:
         log.info(f)

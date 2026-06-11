@@ -1,5 +1,7 @@
 # Event preselection
-This framework is designed for n-tuples (and friend trees) produced with CROWN as input. 
+This framework is designed for n-tuples (and friend trees) produced with CROWN as input.
+
+### Configuration
 All information for the preselection step should be defined in configuration files in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` file and a more specific config file. The `common_settings.yaml` has to be named like that and is used for all steps of the fake factor estimation (`preselection`, `FF calculation`, `FF corrections`).
 
 The preselection config has the following parameters:
@@ -83,6 +85,7 @@ There are two types of weights.
 
 Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. 
 
+### Running preselection
 To run the preselection step, execute the python script and specify the config file (relative path possible):
 ```bash
 python preselection.py --config-file configs/PATH/CONFIG.yaml

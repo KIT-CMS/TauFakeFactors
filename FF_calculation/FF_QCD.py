@@ -18,9 +18,7 @@ from helper.functions import RuntimeVariables
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
-def calculation_QCD_FFs(
-    args: Tuple[Any, ...],
-) -> Dict[str, Union[str, Dict[str, str]]]:
+def calculation_QCD_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[str, Dict[str, str]]]:
     """
     This function calculates fake factors for the QCD process for a specific category (split).
     The function expects as 'args' a Tuple containing all the necessary information for the
@@ -65,10 +63,7 @@ def calculation_QCD_FFs(
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        # event filter for QCD signal-like region
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -79,10 +74,7 @@ def calculation_QCD_FFs(
             logger=logger,
         )
 
-        # event filter for QCD application-like region
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -93,24 +85,20 @@ def calculation_QCD_FFs(
             logger=logger,
         )
 
-        # get binning of the dependent variable
         xbinning = array.array("d", splitting.var_bins)
         nbinsx = len(splitting.var_bins) - 1
 
-        # making the histograms
-        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
+        SRlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
-        )
-        SRlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
-        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+        ARlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
             (process_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             process_conf["var_dependence"],
             "weight",
-        )
-        ARlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
     # calculate QCD enriched data by subtraction all the background samples
     SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
@@ -164,6 +152,7 @@ def calculation_QCD_FFs(
             logger=logger,
             fit_option=splitting.fit_option,
             limit_kwargs=splitting.limit_kwargs(hist=FF_hist),
+            stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
         )
     elif isinstance(splitting.fit_option, str):
         nominal_draw_obj, results = ff_func.smooth_function(
@@ -175,7 +164,7 @@ def calculation_QCD_FFs(
                 "MCShiftUp": FF_hist_up.Clone(),
                 "MCShiftDown": FF_hist_down.Clone(),
             },
-            for_FF=True,
+            stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
         )
         unc_draw_obj = results["default"]
         used_fit = splitting.fit_option
@@ -198,7 +187,7 @@ def calculation_QCD_FFs(
         save_data=True,
     )
 
-    # producing some control plots
+    # producing control plots
     for _hist, _region in [
         (SRlike_hists, "SR_like"),
         (ARlike_hists, "AR_like"),
@@ -212,9 +201,7 @@ def calculation_QCD_FFs(
                 process=process,
                 region=_region,
                 data="data",
-                samples=ff_func.controlplot_samples(
-                    config["use_embedding"], add_qcd=False
-                ),
+                samples=ff_func.controlplot_samples(sample_paths, add_qcd=False),
                 category=splitting.split or {"incl": ""},
                 output_path=output_path,
                 logger=logger,
@@ -232,9 +219,7 @@ def calculation_QCD_FFs(
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[7]}")
-def non_closure_correction(
-    args: Tuple[Any, ...],
-) -> Dict[str, np.ndarray]:
+def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     """
     This function calculates non-closure corrections for fake factors for QCD.
 
@@ -272,9 +257,9 @@ def non_closure_correction(
 
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
+    ARlike_hists_ff = dict()
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
@@ -291,10 +276,7 @@ def non_closure_correction(
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        # event filter for QCD signal-like region
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -305,10 +287,7 @@ def non_closure_correction(
             logger=logger,
         )
 
-        # event filter for QCD application-like region
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -319,65 +298,48 @@ def non_closure_correction(
             logger=logger,
         )
 
-        # evaluate the measured fake factors for the specific processes
-        if sample == "data":
-            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
+        rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
 
-            # additionally evaluate the previous corrections
-            corr_str = ""
-            for corr_evaluator in corr_evaluators:
-                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
-                corr_str += f" * {corr_evaluator.corr_str}"
+        corr_str = ""
+        for corr_evaluator in corr_evaluators:
+            rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
+            corr_str += f" * {corr_evaluator.corr_str}"
 
-            rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff",
-                f"weight * {process}_fake_factor{corr_str}",
-            )
+        rdf_ARlike = rdf_ARlike.Define("weight_ff", f"weight * {process}_fake_factor{corr_str}")
 
-        # get binning of the dependent variable
-        xbinning, nbinsx = (
-            array.array("d", splitting.var_bins),
-            len(splitting.var_bins) - 1,
-        )
+        xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1
 
-        # making the histograms
-        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
+        SRlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
-        )
-        SRlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
-        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        ARlike_hists[sample] = h.GetValue()
+        ARlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+            (correction_conf["var_dependence"], f"{sample}_ar", nbinsx, xbinning),
+            correction_conf["var_dependence"],
+            "weight"
+        ).GetValue()
 
-        if sample == "data":
-            h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
-                (
-                    correction_conf["var_dependence"],
-                    f"{sample}_ff",
-                    nbinsx,
-                    xbinning,
-                ),
-                correction_conf["var_dependence"],
-                "weight_ff",
-            )
-            ARlike_hists["data_ff"] = h.GetValue()
-
-    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
-    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+        ARlike_hists_ff[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+            (correction_conf["var_dependence"], f"{sample}_ff", nbinsx, xbinning),
+            correction_conf["var_dependence"],
+            "weight_ff",
+        ).GetValue()
 
     _pairs = [("data_subtracted", "data"), ("data", "data")]
 
+    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
     SRlike_hists_sub_up = {k1: SRlike_hists[k2].Clone() for k1, k2 in _pairs}
     SRlike_hists_sub_down = deepcopy(SRlike_hists_sub_up)
 
-    ARlike_hists_sub_up = {
-        k1: ARlike_hists[k2].Clone() for k1, k2 in _pairs + [("data_ff", "data_ff")]
-    }
+    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+    ARlike_hists_sub_up = {k1: ARlike_hists[k2].Clone() for k1, k2 in _pairs}
     ARlike_hists_sub_down = deepcopy(ARlike_hists_sub_up)
+
+    data_ff_subtracted = ARlike_hists_ff["data"].Clone()
+    data_ff_subtracted_up = ARlike_hists_ff["data"].Clone()
+    data_ff_subtracted_down = ARlike_hists_ff["data"].Clone()
 
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "QCD"]:
@@ -389,18 +351,24 @@ def non_closure_correction(
                 SRlike_hists[hist].Clone().AddError(-1), -1
             )
     for hist in ARlike_hists:
-        if hist not in ["data", "data_subtracted", "data_ff", "QCD"]:
+        if hist not in ["data", "data_subtracted", "QCD"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
-            ARlike_hists_sub_up["data_subtracted"].Add(
-                ARlike_hists[hist].Clone().AddError(1), -1
-            )
-            ARlike_hists_sub_down["data_subtracted"].Add(
-                ARlike_hists[hist].Clone().AddError(-1), -1
-            )
+            ARlike_hists_sub_up["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists_sub_down["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
+    for hist in ARlike_hists_ff:
+        if hist not in ["data", "QCD"]:
+            data_ff_subtracted.Add(ARlike_hists_ff[hist].Clone(), -1)
+            data_ff_subtracted_up.Add(ARlike_hists_ff[hist].Clone().AddError(1), -1)
+            data_ff_subtracted_down.Add(ARlike_hists_ff[hist].Clone().AddError(-1), -1)
+
+    ARlike_hists["data_ff"] = data_ff_subtracted
+    ARlike_hists_sub_up["data_ff"] = data_ff_subtracted_up
+    ARlike_hists_sub_down["data_ff"] = data_ff_subtracted_down
 
     correction_hist, process_fraction = ff_func.calculate_non_closure_correction(
         SRlike=SRlike_hists,
         ARlike=ARlike_hists,
+        skip_frac=True,
     )
 
     nominal_draw_obj, results = ff_func.smooth_function(
@@ -409,13 +377,10 @@ def non_closure_correction(
         correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
         mc_shifted_hist={
-            "MCShiftUp": ff_func.calculate_non_closure_correction(
-                SRlike_hists_sub_up, ARlike_hists_sub_up
-            )[0].Clone(),
-            "MCShiftDown": ff_func.calculate_non_closure_correction(
-                SRlike_hists_sub_down, ARlike_hists_sub_down
-            )[0].Clone(),
+            "MCShiftUp": ff_func.calculate_non_closure_correction(SRlike_hists_sub_up, ARlike_hists_sub_up, skip_frac=True)[0].Clone(),
+            "MCShiftDown": ff_func.calculate_non_closure_correction(SRlike_hists_sub_down, ARlike_hists_sub_down, skip_frac=True)[0].Clone(),
         },
+        stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
     )
 
     add_str = "_for_DRtoSR" if for_DRtoSR else ""
@@ -457,7 +422,7 @@ def non_closure_correction(
             save_data=save_data,
         )
 
-    # producing some control plots
+    # producing control plots
     for yscale, save_data in zip(["linear", "log"], [True, False]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
@@ -467,7 +432,7 @@ def non_closure_correction(
             process=process,
             region=f"non_closure_{closure_variable}{add_str}_SRlike_hist",
             data="data",
-            samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
+            samples=ff_func.controlplot_samples(sample_paths, add_qcd=False),
             category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
@@ -484,9 +449,7 @@ def non_closure_correction(
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
-def DR_SR_correction(
-    args: Tuple[Any, ...],
-) -> Dict[str, np.ndarray]:
+def DR_SR_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     """
     This function calculates DR to SR correction for fake factors for QCD.
 
@@ -520,9 +483,9 @@ def DR_SR_correction(
 
     log = logging.getLogger(logger)
 
-    # init histogram dict for FF measurement
     SRlike_hists = dict()
     ARlike_hists = dict()
+    ARlike_hists_ff = dict()
 
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
@@ -537,10 +500,7 @@ def DR_SR_correction(
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        # event filter for QCD signal-like region
-        log.info(
-            f"Filtering events for the signal-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -551,10 +511,7 @@ def DR_SR_correction(
             logger=logger,
         )
 
-        # event filter for QCD application-like region
-        log.info(
-            f"Filtering events for the application-like region. Target process: {process}"
-        )
+        log.info(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -565,65 +522,48 @@ def DR_SR_correction(
             logger=logger,
         )
 
-        # evaluate the measured fake factors for the specific processes
-        if sample == "data":
-            rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
+        rdf_ARlike = evaluator.evaluate_fake_factor(rdf=rdf_ARlike)
 
-            # additionally evaluate the previous corrections
-            corr_str = ""
-            for corr_evaluator in corr_evaluators:
-                rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
-                corr_str += f" * {corr_evaluator.corr_str}"
+        corr_str = ""
+        for corr_evaluator in corr_evaluators:
+            rdf_ARlike = corr_evaluator.evaluate_correction(rdf=rdf_ARlike)
+            corr_str += f" * {corr_evaluator.corr_str}"
 
-            rdf_ARlike = rdf_ARlike.Define(
-                "weight_ff",
-                f"weight * {process}_fake_factor{corr_str}",
-            )
+        rdf_ARlike = rdf_ARlike.Define("weight_ff", f"weight * {process}_fake_factor{corr_str}")
 
-        # get binning of the dependent variable
-        xbinning, nbinsx = (
-            array.array("d", splitting.var_bins),
-            len(splitting.var_bins) - 1,
-        )
+        xbinning, nbinsx = array.array("d", splitting.var_bins), len(splitting.var_bins) - 1
 
-        # making the histograms
-        h = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
+        SRlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
             (correction_conf["var_dependence"], f"{sample}", nbinsx, xbinning),
             correction_conf["var_dependence"],
             "weight",
-        )
-        SRlike_hists[sample] = h.GetValue()
+        ).GetValue()
 
-        h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
-        )
-        ARlike_hists[sample] = h.GetValue()
+        ARlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+            (correction_conf["var_dependence"], f"{sample}_ar", nbinsx, xbinning),
+            correction_conf["var_dependence"],
+            "weight"
+        ).GetValue()
 
-        if sample == "data":
-            h = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
-                (
-                    correction_conf["var_dependence"],
-                    f"{sample}_ff",
-                    nbinsx,
-                    xbinning,
-                ),
-                correction_conf["var_dependence"],
-                "weight_ff",
-            )
-            ARlike_hists["data_ff"] = h.GetValue()
-
-    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
-    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+        ARlike_hists_ff[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
+            (correction_conf["var_dependence"], f"{sample}_ff", nbinsx, xbinning),
+            correction_conf["var_dependence"],
+            "weight_ff",
+        ).GetValue()
 
     _pairs = [("data_subtracted", "data"), ("data", "data")]
 
+    SRlike_hists["data_subtracted"] = SRlike_hists["data"].Clone()
     SRlike_hists_sub_up = {k1: SRlike_hists[k2].Clone() for k1, k2 in _pairs}
     SRlike_hists_sub_down = deepcopy(SRlike_hists_sub_up)
 
-    ARlike_hists_sub_up = {
-        k1: ARlike_hists[k2].Clone() for k1, k2 in _pairs + [("data_ff", "data_ff")]
-    }
+    ARlike_hists["data_subtracted"] = ARlike_hists["data"].Clone()
+    ARlike_hists_sub_up = {k1: ARlike_hists[k2].Clone() for k1, k2 in _pairs}
     ARlike_hists_sub_down = deepcopy(ARlike_hists_sub_up)
+
+    data_ff_subtracted = ARlike_hists_ff["data"].Clone()
+    data_ff_subtracted_up = ARlike_hists_ff["data"].Clone()
+    data_ff_subtracted_down = ARlike_hists_ff["data"].Clone()
 
     for hist in SRlike_hists:
         if hist not in ["data", "data_subtracted", "QCD"]:
@@ -635,18 +575,24 @@ def DR_SR_correction(
                 SRlike_hists[hist].Clone().AddError(-1), -1
             )
     for hist in ARlike_hists:
-        if hist not in ["data", "data_subtracted", "data_ff", "QCD"]:
+        if hist not in ["data", "data_subtracted", "QCD"]:
             ARlike_hists["data_subtracted"].Add(ARlike_hists[hist].Clone(), -1)
-            ARlike_hists_sub_up["data_subtracted"].Add(
-                ARlike_hists[hist].Clone().AddError(1), -1
-            )
-            ARlike_hists_sub_down["data_subtracted"].Add(
-                ARlike_hists[hist].Clone().AddError(-1), -1
-            )
+            ARlike_hists_sub_up["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(1), -1)
+            ARlike_hists_sub_down["data_subtracted"].Add(ARlike_hists[hist].Clone().AddError(-1), -1)
+    for hist in ARlike_hists_ff:
+        if hist not in ["data", "QCD"]:
+            data_ff_subtracted.Add(ARlike_hists_ff[hist].Clone(), -1)
+            data_ff_subtracted_up.Add(ARlike_hists_ff[hist].Clone().AddError(1), -1)
+            data_ff_subtracted_down.Add(ARlike_hists_ff[hist].Clone().AddError(-1), -1)
+
+    ARlike_hists["data_ff"] = data_ff_subtracted
+    ARlike_hists_sub_up["data_ff"] = data_ff_subtracted_up
+    ARlike_hists_sub_down["data_ff"] = data_ff_subtracted_down
 
     correction_hist, process_fraction = ff_func.calculate_non_closure_correction(
         SRlike=SRlike_hists,
         ARlike=ARlike_hists,
+        skip_frac=True,
     )
 
     nominal_draw_obj, results = ff_func.smooth_function(
@@ -655,13 +601,10 @@ def DR_SR_correction(
         correction_option=splitting.correction_option,
         bandwidth=splitting.bandwidth,
         mc_shifted_hist={
-            "MCShiftUp": ff_func.calculate_non_closure_correction(
-                SRlike_hists_sub_up, ARlike_hists_sub_up
-            )[0].Clone(),
-            "MCShiftDown": ff_func.calculate_non_closure_correction(
-                SRlike_hists_sub_down, ARlike_hists_sub_down
-            )[0].Clone(),
+            "MCShiftUp": ff_func.calculate_non_closure_correction(SRlike_hists_sub_up, ARlike_hists_sub_up, skip_frac=True)[0].Clone(),
+            "MCShiftDown": ff_func.calculate_non_closure_correction(SRlike_hists_sub_down, ARlike_hists_sub_down, skip_frac=True)[0].Clone(),
         },
+        stat_sigma=config["stat_sigma"] if "stat_sigma" in config else 1.0,
     )
 
     plotting.plot_correction(
@@ -709,7 +652,7 @@ def DR_SR_correction(
             process=process,
             region="DR_SR" + "_SRlike_hist",
             data="data",
-            samples=ff_func.controlplot_samples(config["use_embedding"], add_qcd=False),
+            samples=ff_func.controlplot_samples(sample_paths, add_qcd=False),
             category=splitting.split or {"incl": ""},
             output_path=output_path,
             logger=logger,
