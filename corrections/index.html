@@ -18,7 +18,7 @@
         <link rel="prev" href="../fakefactors/">
       
       
-        <link rel="next" href="../documentation/">
+        <link rel="next" href="../ml_fakefactors/">
       
       
         
@@ -343,6 +343,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fake Factor Corrections
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -360,6 +378,85 @@
 
       </a>
       
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistical-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistical check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-calculations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running calculations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ml_fakefactors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fake Factor with ML (in development)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -411,6 +508,47 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistical-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistical check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-calculations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running calculations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -444,6 +582,7 @@
 
 <h1 id="fake-factor-corrections">Fake Factor corrections<a class="headerlink" href="#fake-factor-corrections" title="Permanent link">&para;</a></h1>
 <p>In this step the corrections for the fake factors are calculated. This should be run after the FF calculation step.</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
 <p>Currently two different correction types are implemented: </p>
 <ol>
 <li>non closure correction depending on a specific variable</li>
@@ -554,6 +693,48 @@ Each target process needs some specifications:</p>
 </tr>
 </tbody>
 </table>
+<h3 id="statistical-check">Statistical check<a class="headerlink" href="#statistical-check" title="Permanent link">&para;</a></h3>
+<p>As an option it is possible to check using a sliding-window compatibility test whether a computed correction is statistically consistent with 1.0 (i.e., a flat correction, meaning no genuine fake factor bias). The test works as follows:</p>
+<ol>
+<li><strong>Error selection</strong>: Per-bin uncertainties are taken either as the fully propagated errors (data + MC statistical, added in quadrature) or as the data-only "MC-suppressed" errors — depending on the parameter <code>use_suppressed_mc_errors_for_correction_selection</code>.</li>
+<li><strong>Sliding-window scan</strong>: Pulls <span class="arithmatex">\((y_i - 1)/\sigma_i\)</span> are computed for each bin. The test scans all contiguous windows of 1 to <span class="arithmatex">\(N\)</span> bins and finds the most significant deviation (minimum p-value):</li>
+</ol>
+<div class="arithmatex">\[z_\text{window} = \frac{\left|\sum_{i} \text{pull}_i\right|}{\sqrt{N_\text{window}}}\]</div>
+<ol>
+<li><strong>Look-elsewhere correction</strong>: A Bonferroni-style correction is applied to account for the scan over multiple windows:</li>
+</ol>
+<div class="arithmatex">\[p_\text{shape} = 1 - (1 - p_\text{min})^{N_\text{bins}}\]</div>
+<ol>
+<li><strong>Auto-skipping</strong>: If <code>p_shape &gt; skip_corrections_p_value</code> (correction is compatible with 1) <strong>and</strong> <code>skip_corrections_compatible_to_one</code> is <code>true</code>, the correction is replaced with a flat 1.0. Bandwidth/shape variations are also set to 1.0. Statistical variations are collapsed to a single inclusive uncertainty. MC-shift variations are either fit to a constant or also set to 1.0.</li>
+</ol>
+<p>Three parameter can be set to define this check:</p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>skip_corrections_compatible_to_one</code></td>
+<td><code>bool</code></td>
+<td>Master switch for automatic skipping of corrections compatible with 1.0. If <code>True</code> and a correction passes the p-value threshold (see below), it is replaced by a flat 1.0 correction and all shape/bandwidth uncertainties are also flattened. Statistical uncertainties are collapsed into a single inclusive value. Defaults to <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>skip_corrections_p_value</code></td>
+<td><code>float</code></td>
+<td>P-value threshold for the compatibility-with-1 test. A correction is considered compatible with 1.0 (and thus auto-skipped) if its shape p-value is above this threshold. Higher values are more aggressive (skip more corrections). Only has an effect when <code>skip_corrections_compatible_to_one</code> is set to <code>true</code>. Defaults to <code>0.05</code>.</td>
+</tr>
+<tr>
+<td><code>use_suppressed_mc_errors_for_correction_selection</code></td>
+<td><code>bool</code></td>
+<td>Controls which per-bin uncertainties are used in the compatibility test. If <code>True</code>, only the data statistical uncertainties are used — MC statistical errors from the MC subtraction step are ignored ("suppressed"). If <code>False</code>, the fully propagated errors (data + MC statistical uncertainties added in quadrature) are used. Using the suppressed errors avoids MC-dominated samples from artificially increasing the uncertainty and causing genuine corrections to be auto-skipped. Defaults to <code>true</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="running-calculations">Running calculations<a class="headerlink" href="#running-calculations" title="Permanent link">&para;</a></h3>
 <p>To run the FF correction step, execute the python script and specify the config file (relative path possible):</p>
 <pre><code class="language-bash">python ff_corrections.py --config-file PATH/CONFIG.yaml 
 </code></pre>
@@ -590,7 +771,7 @@ The last step is to calculate all the specified corrections for the main fake fa
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2025 Nikita Shadskiy, Artur Monsch
+      Copyright &copy; 2026 Nikita Shadskiy, Artur Monsch
     </div>
   
   
@@ -618,6 +799,8 @@ The last step is to calculate all the specified corrections for the main fake fa
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>
