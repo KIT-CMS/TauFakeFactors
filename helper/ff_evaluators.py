@@ -28,6 +28,7 @@ class FakeFactorEvaluator:
         var_dependences: List[str],
         for_DRtoSR: bool,
         logger: str,
+        correction_tag: str = "",
     ) -> "FakeFactorEvaluator":
         log = logging.getLogger(logger)
 
@@ -38,6 +39,7 @@ class FakeFactorEvaluator:
             path = os.path.join(
                 *directories,
                 "corrections",
+                correction_tag,
                 f"{config['channel']}",
                 f"fake_factors_{config['channel']}_for_corrections.json",
             )
@@ -151,6 +153,7 @@ class FakeFactorCorrectionEvaluator:
     def loading_from_file(
         cls,
         config: Dict[str, Union[str, Dict, List]],
+        correction_tag: str,
         process: str,
         corr_variable: Union[str, Tuple[str, ...]],
         for_DRtoSR: bool,
@@ -162,11 +165,12 @@ class FakeFactorCorrectionEvaluator:
         directories = ["workdir", config["workdir_name"], config["era"]]
 
         if not for_DRtoSR:
-            path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
+            path = os.path.join(*directories, f"FF_corrections_{config['channel']}_{correction_tag}.json")
         else:
             path = os.path.join(
                 *directories,
                 "corrections",
+                correction_tag,
                 f"{config['channel']}",
                 f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json",
             )
@@ -293,6 +297,7 @@ class DRSRCorrectionEvaluator:
     def loading_from_file(
         cls,
         config: Dict[str, Union[str, Dict, List]],
+        correction_tag: str,
         process: str,
         corr_variable: Union[str, Tuple[str, ...]],
         logger: str,
@@ -312,7 +317,7 @@ class DRSRCorrectionEvaluator:
         log = logging.getLogger(logger)
 
         directories = ["workdir", config["workdir_name"], config["era"]]
-        path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
+        path = os.path.join(*directories, f"FF_corrections_{config['channel']}_{correction_tag}.json")
 
         log.info(f"Loading DR_SR correction from file {path} for process {process}")
         correctionlib.register_pyroot_binding()
@@ -608,6 +613,7 @@ def get_fake_factor_evaluator(
     var_dependences: List[str],
     for_DRtoSR: bool,
     logger: str,
+    correction_tag: str = "",
 ) -> Union[FakeFactorEvaluator, ONNXFakeFactorEvaluator]:
     """
     Factory function to decide whether to load the traditional correctionlib JSON
@@ -631,4 +637,4 @@ def get_fake_factor_evaluator(
             return ONNXFakeFactorEvaluator.loading_from_config(nn_config, process, logger)
 
     log.info(f"Using classic correctionlib-based FakeFactorEvaluator for process {process}")
-    return FakeFactorEvaluator.loading_from_file(config, process, var_dependences, for_DRtoSR, logger)
+    return FakeFactorEvaluator.loading_from_file(config, process, var_dependences, for_DRtoSR, logger, correction_tag)
