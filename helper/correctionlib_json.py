@@ -748,7 +748,7 @@ def generate_correction_corrlib(
 
     if output_path is not None:
         base_filepath = os.path.join(output_path, f"FF_corrections_{config['channel']}")
-        suffix = "_for_DRtoSR" if for_DRtoSR else ""
+        suffix = "_for_DRtoSR" if for_DRtoSR else f"_{config['correction_tag']}"
         write_json(f"{base_filepath}{suffix}.json", cset)
         write_json(f"{base_filepath}{suffix}.json.gz", cset)
 
