@@ -28,7 +28,7 @@ class FakeFactorEvaluator:
         var_dependences: List[str],
         for_DRtoSR: bool,
         logger: str,
-        correction_tag: str = "",
+        correction_tag: str = "default",
     ) -> "FakeFactorEvaluator":
         log = logging.getLogger(logger)
 
@@ -613,7 +613,7 @@ def get_fake_factor_evaluator(
     var_dependences: List[str],
     for_DRtoSR: bool,
     logger: str,
-    correction_tag: str = "",
+    correction_tag: str = "default",
 ) -> Union[FakeFactorEvaluator, ONNXFakeFactorEvaluator]:
     """
     Factory function to decide whether to load the traditional correctionlib JSON

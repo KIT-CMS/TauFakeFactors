@@ -15,6 +15,7 @@ The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHA
   parameter | type | description
   ---|---|---
   `channel` | `string` | tau pair decay channels ("et", "mt", "tt")
+  `correction_tag` | `string` | this parameter can be set to save a correction calculation run to a separate folder, this allow to have multiple correction calulations for a single fake factor calculation. The default folder is `default`.
 
 In `target_processes` the processes for which FF corrections should be calculated (normally for QCD, Wjets, ttbar) are defined.
 
