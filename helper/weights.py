@@ -102,7 +102,7 @@ def lumi_weight(rdf: Any, era: str) -> Any:
         rdf = rdf.Redefine("weight", "weight * 17.9642 * 1000.")
     elif era == "2023postBPix":
         rdf = rdf.Redefine("weight", "weight * 9.6767 * 1000.")
-    elif era == "2024":
+    elif era == "2024": # factor of 2 added due to MC even/odd split for 24/25
         rdf = rdf.Redefine("weight", "weight * 109.81 * 2 * 1000.")
     elif era == "2025":
         rdf = rdf.Redefine("weight", "weight * 109.89 * 2 * 1000.")
