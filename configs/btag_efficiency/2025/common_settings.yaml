@@ -1,13 +1,13 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260526_2022-23_eff2/CROWNRun"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260526_2024-25_eff2/CROWNRun"
 output_path: "/ceph/sgiappic/CMS_FF/btag/"
 #friends: 
 file_path: "/ceph/sgiappic/CMS_FF/btag/"
 
 workdir_name: "btag_eff"
 
-era: "2023preBPix"
+era: "2025"
 tree: "ntuple"
-nanoAOD_version: "nanoAOD_v12"
+nanoAOD_version: "nanoAOD_v15"
 
 tau_vs_jet_wps:
   - "VVVLoose"
