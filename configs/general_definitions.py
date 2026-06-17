@@ -195,8 +195,8 @@ label_dict = AutoGetDict(
 channel_indipendent_variable_dict = AutoGetDict(
     {
         "njets": r"$N_{jets}$",
-        "metphi": r"$\phi(p_T^{miss})$",
-        "met": r"$p_T^{miss}$ (GeV)",
+        "puppimetphi": r"$\phi(p_T^{miss})$",
+        "puppimet": r"$p_T^{miss}$ (GeV)",
         "m_vis": r"$m_{vis}$ (GeV)",
         "pt_vis": r"$p_{T}^{vis}$ (GeV)",
         "nbtag": r"$N_{b-jets}$",
@@ -309,7 +309,7 @@ variable_description = AutoGetDict(
         "pt_2": "transverse momentum of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
         "pt_1": "transverse momentum of the leading leptonic/hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
         "iso_1": "isolation of the lepton in the tau pair; measured between #var_min and #var_max GeV; for higher/lower isolation values the edge values are used",
-        "mt_1": "transverse mass of the lepton and MET in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
+        "mt_1": "transverse mass of the lepton and puppimet in the tau pair; measured between #var_min and #var_max GeV; for higher/lower mt's the edge values are used",
         "mass_1": "mass of the leading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
         "mass_2": "mass of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
         "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",

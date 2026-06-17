@@ -156,12 +156,12 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         if "btag_weight" not in rdf.GetColumnNames():
             rdf = rdf.Define("btag_weight", "1.")
         for wp in config["tau_vs_jet_wgt_wps"]:
-            weightname = "id_wgt_tau_vsjet_" + wp + "_2"
+            weightname = "id_wgt_tau_vsJet_" + wp + "_2"
             if weightname not in rdf.GetColumnNames():
                 rdf = rdf.Define(weightname, "1.")
         if config["channel"] == "tt":
             for wp in config["tau_vs_jet_wgt_wps"]:
-                weightname = "id_wgt_tau_vsjet_" + wp + "_1"
+                weightname = "id_wgt_tau_vsJet_" + wp + "_1"
                 if weightname not in rdf.GetColumnNames():
                     rdf = rdf.Define(weightname, "1.")
 
@@ -308,15 +308,15 @@ if __name__ == "__main__":
 
     if config["channel"] not in ["mm", "ee", "em"]:
         for wp in config["tau_vs_jet_wps"]:
-            output_features.append("id_tau_vsjet_" + wp + "_2")
+            output_features.append("id_tau_vsJet_" + wp + "_2")
         for wp in config["tau_vs_jet_wgt_wps"]:
-            output_features.append("id_wgt_tau_vsjet_" + wp + "_2")
+            output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
 
     if config["channel"] == "tt":
         for wp in config["tau_vs_jet_wps"]:
-            output_features.append("id_tau_vsjet_" + wp + "_1")
+            output_features.append("id_tau_vsJet_" + wp + "_1")
         for wp in config["tau_vs_jet_wgt_wps"]:
-            output_features.append("id_wgt_tau_vsjet_" + wp + "_1")
+            output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
 
     log.info(f"Used output features: {output_features}")
 

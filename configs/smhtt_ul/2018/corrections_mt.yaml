@@ -129,11 +129,11 @@ templates:
             max: 150.0
             rounding: 2
       correction_option: "smoothed"
-    met: &met
-      var_dependence: met
+    puppimet: &puppimet
+      var_dependence: puppimet
       equipopulated_binning_options: &met__eq_bin_opt
         variable_config:
-          met:
+          puppimet:
             min: 0.0
             max: 150.0
             rounding: 2
@@ -310,8 +310,8 @@ target_processes:
           "==0": [30.0, 150.0]
           "==1": [30.0, 150.0]
           ">=2": [30.0, 32.44, 35.62, 39.5, 45.22, 54.28, 70.0, 150.0]
-      met:
-        <<: [*met, *3j_split, *correction_variations__with_mc_subtraction_shift]
+      puppimet:
+        <<: [*puppimet, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
           <<: [*met__eq_bin_opt, *QCD_var_dependence_n_bins]
         bandwidth: [25.0, 45.0, 60.0]
@@ -530,8 +530,8 @@ target_processes:
           "==0": [30.0, 150.0]
           "==1": [30.0, 150.0]
           ">=2": [30.0, 31.98, 34.44, 37.22, 41.0, 45.97, 52.78, 62.31, 79.88, 150.0]
-      met:
-        <<: [*met, *3j_split, *correction_variations__with_mc_subtraction_shift]
+      puppimet:
+        <<: [*puppimet, *3j_split, *correction_variations__with_mc_subtraction_shift]
         equipopulated_binning_options:
           <<: [*met__eq_bin_opt, *Wjets_var_dependence_n_bins]
         bandwidth: [20.0, 30.0, 60.0]
@@ -726,8 +726,8 @@ target_processes:
         var_bins:
           "<=1": [30.0, 150.0]
           ">=2": [30.0, 34.04, 37.51, 40.9, 44.36, 47.9, 51.37, 55.15, 59.19, 63.62, 68.59, 74.66, 82.46, 93.05, 109.69, 150.0]
-      met:
-        <<: [*met, *2j_split, *correction_variations__without_mc_subtraction_shift]
+      puppimet:
+        <<: [*puppimet, *2j_split, *correction_variations__without_mc_subtraction_shift]
         equipopulated_binning_options:
           <<: [*met__eq_bin_opt, *ttbar_var_dependence_n_bins]
         bandwidth: [40.0, 35.0]

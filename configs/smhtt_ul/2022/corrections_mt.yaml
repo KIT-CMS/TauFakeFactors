@@ -140,11 +140,11 @@ templates:
       correction_option: "binwise"
       bandwidth: 1.0
       var_bins: [-0.5, 0.5, 9.5, 10.5, 11.5]
-    met:
-      var_dependence: met
+    puppimet:
+      var_dependence: puppimet
       equipopulated_binning_options:
         variable_config:
-          met:
+          puppimet:
             min: 0.0
             max: 150.0
             rounding: 6
@@ -163,10 +163,10 @@ templates:
 
 
 channel: mt
-correction_tag: chain_DR_SR
+correction_tag: no_chain_DR_SR
 target_processes:
   QCD:
-    chain_DR_SR_to_non_closure: true
+    chain_DR_SR_to_non_closure: false
 
     non_closure:
       tau_decaymode_2:
@@ -246,8 +246,8 @@ target_processes:
           "==0": [0.0, 150.0]
           "==1": [0.0, 150.0]
           ">=2": [0.0, 12.38, 17.93, 23.01, 28.6, 34.44, 41.34, 49.37, 59.68, 77.44, 150.0]
-      # met:
-      #   <<: [*met, *3j_split]
+      # puppimet:
+      #   <<: [*puppimet, *3j_split]
       #   equipopulated_binning_options:
       #     <<: [*met__eq_bin_opt, *QCD_var_dependence_n_bins]
       #   bandwidth: 10.0
@@ -295,7 +295,7 @@ target_processes:
       #   tau_decaymode_2:
       #     <<: [*tau_decaymode_2, *3j_split]
   Wjets:
-    chain_DR_SR_to_non_closure: true
+    chain_DR_SR_to_non_closure: false
 
     non_closure:
       tau_decaymode_2:
@@ -375,8 +375,8 @@ target_processes:
           "==0": [0.0, 150.0]
           "==1": [0.0, 150.0]
           ">=2": [0.0, 11.61, 17.16, 22.05, 27.04, 32.61, 38.58, 46.37, 56.44, 72.66, 150.0]
-      # met:
-      #   <<: [*met, *3j_split]
+      # puppimet:
+      #   <<: [*puppimet, *3j_split]
       #   equipopulated_binning_options:
       #     <<: [*met__eq_bin_opt, *Wjets_var_dependence_n_bins]
       #   bandwidth: 10.0
@@ -497,8 +497,8 @@ target_processes:
         var_bins:
           "<=1": [0.0, 150.0]
           ">=2": [0.0, 6.3, 9.26, 11.69, 13.84, 15.9, 17.75, 19.74, 21.51, 23.14, 24.95, 26.74, 28.6, 30.25, 32.11, 34.18, 35.84, 37.87, 40.18, 42.18, 44.72, 47.56, 50.6, 53.84, 57.24, 61.76, 67.09, 73.91, 83.07, 99.18, 150.0]
-      # met:
-      #   <<: [*met, *2j_split]
+      # puppimet:
+      #   <<: [*puppimet, *2j_split]
       #   equipopulated_binning_options:
       #     <<: [*met__eq_bin_opt, *ttbar_var_dependence_n_bins]
       #   bandwidth: 10.0

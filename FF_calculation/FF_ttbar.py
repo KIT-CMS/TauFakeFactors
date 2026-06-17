@@ -162,7 +162,7 @@ def calculation_ttbar_FFs(
     ]:
         for yscale, save_data in zip(["linear", "log"], [True, False]):
             plotting.plot_data_mc_ratio(
-                variable="metphi",
+                variable="puppimetphi",
                 hists=_hist,
                 era=config["era"],
                 channel=config["channel"],
@@ -286,20 +286,20 @@ def calculation_FF_data_scaling_factor(
 
         # make yield histograms for FF data correction
         SRlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "puppimetphi", "weight"
         ).GetValue()
 
         ARlike_hists[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "puppimetphi", "weight"
         ).GetValue()
 
         # make yield histograms for QCD estimation
         SRlike_hists_qcd[sample] = RuntimeVariables.RDataFrameWrapper(rdf_SRlike_qcd).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "puppimetphi", "weight"
         ).GetValue()
 
         ARlike_hists_qcd[sample] = RuntimeVariables.RDataFrameWrapper(rdf_ARlike_qcd).Histo1D(
-            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "metphi", "weight"
+            ("#phi(#slash{E}_{T})", f"{sample}", 1, -3.5, 3.5), "puppimetphi", "weight"
         ).GetValue()
 
     # calculate QCD estimation

@@ -177,15 +177,15 @@ output_features:
   - jpt_1
   - jpt_2
   - m_vis
-  - met
-  - metphi
+  - puppimet
+  - puppimetphi
   - mjj
   - mt_2
   - mt_tot
   - nbtag
   - njets
   # - pfmet
-  # - pfmetphi
+  # - pfpuppimetphi
   - phi_1
   - phi_2
   - pt_dijet

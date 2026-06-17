@@ -45,6 +45,7 @@ import helper.functions as func
 from helper.correctionlib_json import write_json
 
 hep.style.use(hep.style.CMS)
+plt.rcParams["axes.linewidth"] = 1.0 # set non bold axes lines
 
 
 # ---------------------------------------------------------------------------
@@ -445,9 +446,30 @@ def _build_wp_category(
     )
 
 
-# ---------------------------------------------------------------------------
-# Plotting
-# ---------------------------------------------------------------------------
+# Modern, professional color palette for eta bins (works well for 4+ bins)
+_ETA_COLORS = [
+    "#2ca02c",  # forest green
+    "#9467bd",  # purple
+    "#bcbd22",  # olive
+    "#e377c2",  # pink
+]
+ 
+_FLAVOR_LABELS = {
+    "b":     r"$b$-jets",
+    "c":     r"$c$-jets",
+    "light": r"light jets",
+    "udsg":  r"light jets",
+    "bc":    r"$b/c$-jets",
+}
+
+_CHANNEL_LABELS = {
+    "em":    r"$e\mu$",
+    "et":    r"$e\tau_h$",
+    "mt":    r"\mu\tau_h",
+    "tt":    r"\tau_h\tau_h",
+    "ee":    r"ee",
+    "mm":    r"$\mu\mu$",
+} 
 
 def plot_histograms_and_efficiencies(
     histograms: Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
@@ -459,68 +481,87 @@ def plot_histograms_and_efficiencies(
     config: Dict,
     output_path: str,
 ) -> None:
-    """Produce one plot per (flavour, working point) combination for *process*.
-
-    Each figure has two stacked panels sharing the x-axis:
-    - Upper: raw jet counts (h_total solid, h_pass dashed) vs jet pT,
-      one colour per |eta| bin.
-    - Lower: b-tag efficiency vs jet pT with statistical error bars,
-      one colour per |eta| bin.
-
-    Args:
-        histograms:    ``histograms[wp][flavor] = (h_pass, h_total)``
-        efficiencies:  ``efficiencies[wp][flavor]`` is the (n_pt x n_eta) grid.
-        uncertainties: ``uncertainties[wp][flavor]`` is the (n_pt x n_eta) grid.
-        pt_bins:       pT bin edges.
-        eta_bins:      |eta| bin edges.
-        process:       Process name (used for titles and file names).
-        config:        Loaded configuration dictionary.
-        output_path:   Directory under which ``plots/`` is created.
+    """Produce one figure per working point for *process*.
+ 
+    Each figure has one column per jet flavour. Within each column there are
+    two stacked panels:
+ 
+    - **Upper (70%)**: raw jet counts (h_total solid, h_pass dashed) vs jet pT,
+      one colour per |η| bin.
+    - **Lower (30%)**: b-tag efficiency ± stat. uncertainty vs jet pT,
+      one colour per |η| bin.
+ 
+    The CMS label is placed at the top of each upper panel. The process/era/channel
+    annotation is placed inside the upper panel as a text box in the top-left corner.
+    Flavour labels are placed in the top-left of each subplot.
     """
     log = logging.getLogger("btag_efficiency")
-
-    wps: Dict[str, float] = config["btag_working_points"]
-    flavors: Dict[str, int] = config["jet_flavor_categories"]
-
+ 
+    wps:     Dict[str, float] = config["btag_working_points"]
+    flavors: Dict[str, int]   = config["jet_flavor_categories"]
+    flavor_list = list(flavors.keys())
+    n_flavors   = len(flavor_list)
+ 
     n_eta = len(eta_bins) - 1
-    n_pt = len(pt_bins) - 1
-
+    n_pt  = len(pt_bins)  - 1
+ 
     eta_labels = [
-        f"{eta_bins[i]:.1f} – {eta_bins[i+1]:.1f}"
+        f"{eta_bins[i]:.1f}–{eta_bins[i+1]:.1f}"
         for i in range(n_eta)
     ]
     pt_centres = np.array(
         [(pt_bins[i] + pt_bins[i + 1]) / 2.0 for i in range(n_pt)]
     )
-
-    era = config.get("era", "")
+ 
+    era     = config.get("era", "")
     channel = get_channel_display(config)
-
+ 
     plot_dir = os.path.join(output_path, "plots")
     os.makedirs(plot_dir, exist_ok=True)
-
-    for flavor in flavors:
-        for wp in wps:
+ 
+    # ================================================================== #
+    #  One figure per working point, one column per flavour             #
+    # ================================================================== #
+    for wp in wps:
+        fig, axes = plt.subplots(
+            2, n_flavors,
+            figsize=(4.5 * n_flavors, 5.0),
+            gridspec_kw={
+                "height_ratios": [7, 3],  # 70% / 30% split
+                "hspace": 0.05,           # minimal vertical spacing
+                "wspace": 0.30,           # horizontal spacing between columns
+            },
+            sharex="col",
+        )
+        # Normalise axes indexing so axes[row][col] always works
+        if n_flavors == 1:
+            axes = np.array(axes).reshape(2, 1)
+ 
+        for i_flav, flavor in enumerate(flavor_list):
+            ax_top = axes[0, i_flav]
+            ax_bot = axes[1, i_flav]
+ 
             h_pass, h_total = histograms[wp][flavor]
             eff_grid = efficiencies[wp][flavor]
             unc_grid = uncertainties[wp][flavor]
-
-            fig, (ax_top, ax_bot) = plt.subplots(
-                2, 1,
-                figsize=(7, 8),
-                gridspec_kw={"height_ratios": [1, 1]},
-                sharex=True,
-            )
-
+            max_count = 0.0
+            eff_y_min = np.inf
+            eff_y_max = -np.inf
+ 
+            # ============================================================ #
+            #  Fill upper and lower panels                                 #
+            # ============================================================ #
             for i_eta in range(n_eta):
-                root_bin = i_eta + 1  # ROOT bins are 1-indexed
+                root_bin = i_eta + 1
                 proj_total = h_total.ProjectionX(
-                    f"_proj_total_{process}_{flavor}_{wp}_{i_eta}", root_bin, root_bin
+                    f"_proj_total_{process}_{flavor}_{wp}_{i_eta}",
+                    root_bin, root_bin,
                 )
                 proj_pass = h_pass.ProjectionX(
-                    f"_proj_pass_{process}_{flavor}_{wp}_{i_eta}", root_bin, root_bin
+                    f"_proj_pass_{process}_{flavor}_{wp}_{i_eta}",
+                    root_bin, root_bin,
                 )
-
+ 
                 total_vals = np.array(
                     [proj_total.GetBinContent(b) for b in range(1, n_pt + 1)]
                 )
@@ -529,188 +570,152 @@ def plot_histograms_and_efficiencies(
                 )
                 eff_vals = np.array([eff_grid[i_pt][i_eta] for i_pt in range(n_pt)])
                 unc_vals = np.array([unc_grid[i_pt][i_eta] for i_pt in range(n_pt)])
+                if total_vals.size:
+                    max_count = max(max_count, float(np.max(total_vals)))
+                if pass_vals.size:
+                    max_count = max(max_count, float(np.max(pass_vals)))
 
-                color = _ETA_COLORS[i_eta % len(_ETA_COLORS)]
-                eta_label = r"$|\eta| \in$ [" + eta_labels[i_eta] + "]"
-
-                # --- upper panel: raw counts ---
+                eff_low = eff_vals - unc_vals
+                eff_high = eff_vals + unc_vals
+                finite_eff = np.isfinite(eff_low) & np.isfinite(eff_high)
+                if np.any(finite_eff):
+                    eff_y_min = min(eff_y_min, float(np.min(eff_low[finite_eff])))
+                    eff_y_max = max(eff_y_max, float(np.max(eff_high[finite_eff])))
+ 
+                color     = _ETA_COLORS[i_eta % len(_ETA_COLORS)]
+                eta_label = (
+                    r"$|\eta| \in ["
+                    + eta_labels[i_eta]
+                    + r"]$"
+                )
+ 
+                # upper panel — counts (solid for total, dashed for pass)
+                step_x = np.append(pt_bins[:-1], pt_bins[-1])
                 ax_top.step(
-                    np.append(pt_bins[:-1], pt_bins[-1]),
-                    np.append(total_vals, total_vals[-1]),
-                    where="post", color=color, linewidth=1.8, linestyle="-",
-                    label=f"total  {eta_label}",
+                    step_x, np.append(total_vals, total_vals[-1]),
+                    where="post", color=color, linewidth=2.0, linestyle="-",
+                    label=rf"total  {eta_label}",
                 )
                 ax_top.step(
-                    np.append(pt_bins[:-1], pt_bins[-1]),
-                    np.append(pass_vals, pass_vals[-1]),
-                    where="post", color=color, linewidth=1.8, linestyle="--",
-                    label=f"pass  {eta_label}",
+                    step_x, np.append(pass_vals, pass_vals[-1]),
+                    where="post", color=color, linewidth=2.0, linestyle="--",
+                    label=rf"pass  {eta_label}",
                 )
-
-                # --- lower panel: efficiency ---
+ 
+                # lower panel — efficiency with error bars
                 ax_bot.step(
-                    np.append(pt_bins[:-1], pt_bins[-1]),
-                    np.append(eff_vals, eff_vals[-1]),
+                    step_x, np.append(eff_vals, eff_vals[-1]),
                     where="post", color=color, linewidth=1.8,
                     label=eta_label,
                 )
                 ax_bot.errorbar(
                     pt_centres, eff_vals, yerr=unc_vals,
-                    fmt="o", color=color, markersize=4, linewidth=1.0, capsize=2,
+                    fmt="o", color=color, markersize=4.0,
+                    linewidth=1.0, capsize=2.5,
                 )
-
+ 
+            # ========================================================== #
+            #  Upper panel (counts) — cosmetics                          #
+            # ========================================================== #
             ax_top.set_xscale("log")
             ax_top.set_xlim(pt_bins[0], pt_bins[-1])
-            ax_top.set_ylabel("jet count", fontsize=11)
-            ax_top.legend(fontsize=8, loc="upper right", ncol=1)
+            ax_top.set_ylim(0.0, max(1.0, 1.23 * max_count))
+            ax_top.tick_params(axis="both", labelsize=9)
+            ax_top.apply_aspect()
             ax_top.xaxis.set_major_formatter(
                 plt.FuncFormatter(lambda v, _: f"{v:g}")
             )
-            hep.cms.label(
-                "Own work", data=False, com=13.6, ax=ax_top, fontsize=10, loc=0,
+            ax_top.xaxis.set_minor_formatter(plt.NullFormatter())
+ 
+            # flavour label centred in the upper panel
+            ax_top.text(
+                0.06, 0.95,
+                r"$\bf{Private\; work}$" + "\nCMS data/simulation",
+                transform=ax_top.transAxes,
+                fontsize=9,
+                va="top", ha="left",
+                fontweight="normal",
             )
-
+ 
+            # CMS label at top of each upper panel
+            ax_top.text(
+                0.00, 1.00,
+                f"{_CHANNEL_LABELS[channel]}: {process}, {_FLAVOR_LABELS.get(flavor.lower(), flavor)}, WP {wp}",
+                transform=ax_top.transAxes,
+                fontsize=9,
+                va="bottom", ha="left",
+            )
+            # Right side: channel and era (on all panels)
+            ax_top.text(
+                1.00, 1.01,
+                f"({era}, 13.6 TeV)",
+                transform=ax_top.transAxes,
+                fontsize=9,
+                va="bottom", ha="right",
+            )
+ 
+            ax_top.set_ylabel("Jet count", fontsize=10)
+ 
+            ax_top.legend(
+                fontsize=8,
+                loc="upper right",
+                bbox_to_anchor=(0.95, 0.95),
+                borderaxespad=0.0,
+                ncol=1,
+                framealpha=0.85,
+                edgecolor="black",
+            )
+ 
+            # ========================================================== #
+            #  Lower panel (efficiency) — cosmetics                      #
+            # ========================================================== #
             ax_bot.set_xlim(pt_bins[0], pt_bins[-1])
-            ax_bot.set_ylim(-0.05, 1.15)
-            ax_bot.set_xlabel(r"jet $p_{\mathrm{T}}$ [GeV]", fontsize=11)
-            ax_bot.set_ylabel("b-tag efficiency", fontsize=11)
-            ax_bot.axhline(1.0, color="grey", linestyle="--", linewidth=0.8)
-            ax_bot.legend(fontsize=9, loc="best")
+            if np.isfinite(eff_y_min) and np.isfinite(eff_y_max):
+                eff_span = eff_y_max - eff_y_min
+                eff_padding = max(0.02, 0.15 * eff_span)
+                if eff_span <= 0.0:
+                    eff_padding = 0.05
+                ax_bot.set_ylim(eff_y_min - eff_padding, eff_y_max + eff_padding + 0.3)
+            else:
+                ax_bot.set_ylim(-0.05, 0.05)
+            ax_bot.tick_params(axis="both", labelsize=9)
             ax_bot.xaxis.set_major_formatter(
                 plt.FuncFormatter(lambda v, _: f"{v:g}")
             )
-
-            fig.suptitle(
-                f"{process} — WP: {wp} | flavour: {flavor} — {channel} — {era}",
-                fontsize=12,
+            ax_bot.xaxis.set_minor_formatter(plt.NullFormatter())
+            ax_bot.set_xlabel(
+                r"Jet $p_{\mathrm{T}}$ [GeV]", fontsize=10,
             )
-            fig.tight_layout()
-
-            for ext in ("png", "pdf"):
-                fname = os.path.join(
-                    plot_dir, f"btag_{process}_{flavor}_{wp}.{ext}"
-                )
-                fig.savefig(fname, bbox_inches="tight")
-                log.info(f"Saved plot: {fname}")
-
-            plt.close(fig)
-
-# Colour cycle that works well for up to ~4 eta bins
-_ETA_COLORS = [
-    "#3f90da", "#f89c20", "#e42536", "#964a8b",
-    "#7d04fb", "#9c9ca1", "#007d5e", "#ffa90e",
-    "#b48a00", "#d55fb5",
-]
-
-
-def build_correctionlib_json(
-    all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]],
-    all_bins: Dict[str, Tuple[List[float], List[float]]],
-    config: Dict,
-    output_path: str,
-) -> cs.CorrectionSet:
-    """Assemble the correctionlib CorrectionSet and write it to disk.
-
-    The lookup hierarchy is::
-
-        Category(sample_type)
-          -> Category(working_point)
-               -> Category(jet_flavor)
-                    -> Binning(jet_eta)
-                         -> Binning(jet_pt)
-                              -> float
-
-    Args:
-        all_efficiencies: ``all_efficiencies[process][wp][flavor]`` is the
-            (n_pt × n_eta) efficiency grid.
-        all_bins:         ``all_bins[sample_type] = (pt_bins, eta_bins)``.
-        config:           Loaded configuration dictionary.
-        output_path:      Directory where the JSON files are written.
-
-    Returns:
-        The assembled :class:`correctionlib.schemav2.CorrectionSet`.
-    """
-    wps: Dict[str, float] = config["btag_working_points"]
-    flavors: Dict[str, int] = config["jet_flavor_categories"]
-
-    sample_items = [
-        cs.CategoryItem(
-            key=process,
-            value=_build_wp_category(
-                wps, flavors, all_bins[process][0], all_bins[process][1], proc_eff
-            ),
-        )
-        for process, proc_eff in all_efficiencies.items()
-    ]
-
-    # Use global bins for the variable range description
-    pt_bins_global: List[float] = config["jet_pt_bins"]
-    eta_bins_global: List[float] = config["jet_eta_bins"]
-
-    correction = cs.Correction(
-        name="btag_efficiency",
-        description=(
-            "B-tagging efficiency as a function of sample type, working point, "
-            "jet flavour, jet pT [GeV] and jet |eta|. "
-            f"Era: {config.get('era', 'unknown')}. "
-            "Efficiency = N(jets passing WP) / N(total jets) per bin. "
-            "Binning may differ per sample type."
-        ),
-        version=1,
-        inputs=[
-            cs.Variable(
-                name="sample_type",
-                type="string",
-                description="MC sample type / process name.",
-            ),
-            cs.Variable(
-                name="working_point",
-                type="string",
-                description="B-tag working point label (e.g. L, M, T, XT, XXT).",
-            ),
-            cs.Variable(
-                name="jet_flavor",
-                type="int",
-                description="Jet hadron flavour value from the dataframe (b=5, c=4, light/udsg=0).",
-            ),
-            cs.Variable(
-                name="jet_eta",
-                type="real",
-                description=f"Jet absolute pseudorapidity |eta|; global default range "
-                            f"({min(eta_bins_global)}, {max(eta_bins_global)}).",
-            ),
-            cs.Variable(
-                name="jet_pt",
-                type="real",
-                description=f"Jet transverse momentum [GeV]; global default range "
-                            f"({min(pt_bins_global)}, {max(pt_bins_global)}) GeV.",
-            ),
-        ],
-        output=cs.Variable(
-            name="efficiency",
-            type="real",
-            description="B-tagging efficiency.",
-        ),
-        data=cs.Category(
-            nodetype="category",
-            input="sample_type",
-            content=sample_items,
-        ),
-    )
-
-    cset = cs.CorrectionSet(
-        schema_version=2,
-        description="B-tagging efficiency corrections",
-        corrections=[correction],
-        compound_corrections=None,
-    )
-
-    os.makedirs(output_path, exist_ok=True)
-    out_base = os.path.join(output_path, "btag_efficiency")
-    write_json(f"{out_base}.json", cset)
-    write_json(f"{out_base}.json.gz", cset)
-
-    return cset
+ 
+            ax_bot.set_ylabel("Efficiency", fontsize=10)
+ 
+            ax_bot.legend(
+                fontsize=9,
+                loc="upper right",
+                bbox_to_anchor=(0.95, 0.95),
+                borderaxespad=0.0,
+                framealpha=0.85,
+                edgecolor="black",
+            )
+            ax_bot.yaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"{v:.2f}")
+            )
+ 
+            # If upper panel y-axis is in scientific notation, move it to the side
+            ax_top_formatter = ax_top.yaxis.get_major_formatter()
+            ax_top.yaxis.set_label_position("left")
+            
+            # Check if we need to adjust y-axis range to prevent overlap with title
+            ax_top.margins(y=0.0)
+ 
+        for ext in ("png", "pdf"):
+            fname = os.path.join(
+                plot_dir, f"btag_{era}_{channel}_wp{wp}_{process}.{ext}"
+            )
+            fig.savefig(fname, bbox_inches="tight", dpi=150)
+            log.info(f"Saved plot: {fname}")
+ 
+        plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -788,6 +793,68 @@ def _process_one(
     )
     log.info(f"  Finished processing '{process}' (sample type key: '{sample_type}')")
     return sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties
+
+def build_correctionlib_json(
+    all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]],
+    all_bins: Dict[str, Tuple[List[float], List[float]]],
+    config: Dict,
+    output_path: str,
+) -> cs.CorrectionSet:
+    """Assemble the correctionlib CorrectionSet and write it to disk."""
+    wps: Dict[str, float] = config["btag_working_points"]
+    flavors: Dict[str, int] = config["jet_flavor_categories"]
+
+    sample_items = [
+        cs.CategoryItem(
+            key=process,
+            value=_build_wp_category(
+                wps, flavors, all_bins[process][0], all_bins[process][1], proc_eff
+            ),
+        )
+        for process, proc_eff in all_efficiencies.items()
+    ]
+
+    pt_bins_global: List[float] = config["jet_pt_bins"]
+    eta_bins_global: List[float] = config["jet_eta_bins"]
+
+    correction = cs.Correction(
+        name="btag_efficiency",
+        description=(
+            "B-tagging efficiency as a function of sample type, working point, "
+            "jet flavour, jet pT [GeV] and jet |eta|. "
+            f"Era: {config.get('era', 'unknown')}. "
+            "Efficiency = N(jets passing WP) / N(total jets) per bin. "
+            "Binning may differ per sample type."
+        ),
+        version=1,
+        inputs=[
+            cs.Variable(name="sample_type",   type="string", description="MC sample type / process name."),
+            cs.Variable(name="working_point", type="string", description="B-tag working point label (e.g. L, M, T, XT, XXT)."),
+            cs.Variable(name="jet_flavor",    type="int",    description="Jet hadron flavour (b=5, c=4, light/udsg=0)."),
+            cs.Variable(name="jet_eta",       type="real",   description=f"Jet |eta|; range ({min(eta_bins_global)}, {max(eta_bins_global)})."),
+            cs.Variable(name="jet_pt",        type="real",   description=f"Jet pT [GeV]; range ({min(pt_bins_global)}, {max(pt_bins_global)}) GeV."),
+        ],
+        output=cs.Variable(name="efficiency", type="real", description="B-tagging efficiency."),
+        data=cs.Category(
+            nodetype="category",
+            input="sample_type",
+            content=sample_items,
+        ),
+    )
+
+    cset = cs.CorrectionSet(
+        schema_version=2,
+        description="B-tagging efficiency corrections",
+        corrections=[correction],
+        compound_corrections=None,
+    )
+
+    os.makedirs(output_path, exist_ok=True)
+    out_base = os.path.join(output_path, "btag_efficiency")
+    write_json(f"{out_base}.json", cset)
+    write_json(f"{out_base}.json.gz", cset)
+
+    return cset
 
 
 def run_for_channel(config: Dict, args: argparse.Namespace) -> None:

@@ -129,11 +129,11 @@ templates:
             max: 150.0
             rounding: 2
       correction_option: "smoothed"
-    met:
-      var_dependence: met
+    puppimet:
+      var_dependence: puppimet
       equipopulated_binning_options:
         variable_config:
-          met:
+          puppimet:
             min: 0.0
             max: 150.0
             rounding: 2

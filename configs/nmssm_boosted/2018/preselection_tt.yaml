@@ -76,10 +76,10 @@ column_definitions:
     nbtag:
         expression: nbtag_boosted
         allow_redefine: True
-    metphi:
-        expression: metphi_boosted
+    puppimetphi:
+        expression: puppimetphi_boosted
         allow_redefine: True
-    met:
+    puppimet:
         expression: met_boosted
         allow_redefine: True
     pt_1:
@@ -159,7 +159,7 @@ column_definitions:
         - data
 
 event_selection:
-    # met: "(met_boosted > 120)"
+    # puppimet: "(met_boosted > 120)"
     had_tau_pt: "(boosted_pt_1 > 40) && (boosted_pt_2 > 40)"
     had_tau_eta: "(abs(boosted_eta_1) < 2.3) && (abs(boosted_eta_2) < 2.3)"
     had_tau_decay_mode_1: "(boosted_tau_decaymode_1 == 0) || (boosted_tau_decaymode_1 == 1) || (boosted_tau_decaymode_1 == 10)"
@@ -207,7 +207,7 @@ output_features:
     - "deltaR_ditaupair"
     - "pt_1"
     - "iso_1"
-    - "metphi"
+    - "puppimetphi"
     - "extramuon_veto"
     - "extraelec_veto"
     - "fj_Xbb_pt"
@@ -217,7 +217,7 @@ output_features:
     - "bpair_pt_2"
     - "bpair_btag_value_2"
     - "bpair_eta_2"
-    - "met"
+    - "puppimet"
     - "mass_1"
     - "tau_decaymode_1"
     - "mass_2"

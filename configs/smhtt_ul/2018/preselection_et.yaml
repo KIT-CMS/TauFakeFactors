@@ -103,7 +103,7 @@ output_features:
   - m_vis
   - mt_1
   - pt_1
-  - metphi
+  - puppimetphi
   - extramuon_veto
   - extraelec_veto
   - tau_decaymode_1
