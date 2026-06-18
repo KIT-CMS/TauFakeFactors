@@ -1,0 +1,143 @@
+channel: tt
+target_processes:
+  QCD:
+    split_categories:
+      njets: ["==0", ">=1"]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 22.5]
+    equipopulated_binning_options:
+      variable_config:
+        pt_1:
+          min: 37.0
+          max: 150.0
+          rounding: 2
+      var_dependence_n_bins: 7
+
+    SRlike_cuts:
+      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
+      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    ARlike_cuts:
+      had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
+      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    var_dependence: pt_1
+    var_bins:
+      "==0": [37.0, 43.33, 46.78, 50.22, 54.22, 59.52, 68.75, 150.0]
+      ">=1": [37.0, 44.73, 49.35, 54.51, 60.53, 69.31, 84.29, 150.0]
+    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3"]
+
+  QCD_subleading:
+    split_categories:
+      njets: ["==0", ">=1"]
+    split_categories_binedges:
+      njets: [-0.5, 0.5, 22.5]
+    equipopulated_binning_options:
+      variable_config:
+        pt_2:
+          min: 37.0
+          max: 150.0
+          rounding: 2
+      var_dependence_n_bins: 7
+
+    SRlike_cuts:
+      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
+      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    ARlike_cuts:
+      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
+      had_tau_id_vs_jet_2: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+      # -------------------------------------------
+      tau_pair_sign: (q_1*q_2) > 0
+      # -------------------------------------------
+      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+    var_dependence: pt_2
+    var_bins:
+      "==0": [37.0, 38.45, 40.01, 41.89, 44.2, 47.47, 53.39, 150.0]
+      ">=1": [37.0, 38.44, 40.09, 42.0, 44.56, 48.2, 55.21, 150.0]
+    fit_option: ["poly_0", "poly_1", "poly_2", "poly_3"]
+
+process_fractions:
+  processes: ["QCD"]
+
+  split_categories:
+    njets: ["==0", ">=1"]
+  split_categories_binedges:
+    njets: [-0.5, 0.5, 22.5]
+  equipopulated_binning_options:
+    variable_config:
+      m_vis:
+        min: 15.0
+        max: 200.0
+        rounding: 2
+    var_dependence_n_bins: 20
+
+  SR_cuts:
+    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
+    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+  AR_cuts:
+    had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
+    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 < 0.5
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+  var_dependence: m_vis
+  var_bins:
+    "==0": [15.0, 83.26, 87.45, 90.88, 93.99, 97.02, 100.06, 103.16, 106.38, 109.75, 113.36, 117.29, 121.58, 126.36, 131.72, 137.89, 145.11, 153.83, 164.65, 178.98, 200.0]
+    ">=1": [15.0, 39.36, 54.13, 67.49, 77.61, 84.21, 89.49, 94.32, 98.98, 103.7, 108.57, 113.6, 118.99, 124.81, 131.17, 138.29, 146.42, 155.95, 167.35, 181.53, 200.0]
+
+process_fractions_subleading:
+  processes: ["QCD"]
+
+  split_categories:
+    njets: ["==0", ">=1"]
+  split_categories_binedges:
+    njets: [-0.5, 0.5, 22.5]
+  equipopulated_binning_options:
+    variable_config:
+      m_vis:
+        min: 15.0
+        max: 200.0
+        rounding: 2
+    var_dependence_n_bins: 20
+
+  SR_cuts:
+    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
+    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+  AR_cuts:
+    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 < 0.5
+    had_tau_id_vs_jet_2: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
+    # -------------------------------------------
+    tau_pair_sign: (q_1*q_2) < 0
+    # -------------------------------------------
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+
+  var_dependence: m_vis
+  var_bins:
+    "==0": [15.0, 83.26, 87.45, 90.88, 93.99, 97.02, 100.06, 103.16, 106.38, 109.75, 113.36, 117.29, 121.58, 126.36, 131.72, 137.89, 145.11, 153.83, 164.65, 178.98, 200.0]
+    ">=1": [15.0, 39.36, 54.13, 67.49, 77.61, 84.21, 89.49, 94.32, 98.98, 103.7, 108.57, 113.6, 118.99, 124.81, 131.17, 138.29, 146.42, 155.95, 167.35, 181.53, 200.0]
