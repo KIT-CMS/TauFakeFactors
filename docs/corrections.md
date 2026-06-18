@@ -40,7 +40,15 @@ Each correction has following specifications:
   `SRlike_cuts` | `dict` | event selections for the signal-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
   `ARlike_cuts` | `dict` | event selections for the application-like region of the target process that should be replaced compared to the selection used in the previous FF calculation step
   `AR_SR_cuts` | `dict` | event selections for a switch from the determination region to the signal/application region, this is only relevant for `DR_SR` corrections
-  `non_closure` | `dict` | this is only relevant for `DR_SR` corrections, since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.
+
+For the DR to SR correction some special parameters can be set. These have to be set as parameters of the `DR_SR` parameter:
+
+  parameter | type | description
+  ---|---|---
+  `non_closure` | `dict` | since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction. This parameter can be set up as discribe for non closure corrections above.
+  `use_embedding` | `bool` | by setting this parameter for the `DR_SR` correction it overwrites the same parameter that is set in `common_settings.yaml`. This can be used to switch between embedding and MC only for this one `DR_SR` correction. e.g. this was historically done for QCD because in the anti isolated region the modeling of embedding is bad.
+  `use_orthogonal_fake_factors` | `bool` | if set to `true` new fake factors are calculated in an separate region and also used to calculate the `DR_SR` correction. If `false` the already calculated fake factors in the previous calculation step are used.
+  `compute_orthogonal_fake_factors_using_data` | `bool` | this parameter defines if the `DR_SR` correction should be calculated on data or on MC only. e.g. this is historically used for W+jets because there is no good additional control region, therefore, the region is extended to the signal region and the `DR_SR` correction is calculated only using W+jets MC.
 
 ### Statistical check
 As an option it is possible to check using a sliding-window compatibility test whether a computed correction is statistically consistent with 1.0 (i.e., a flat correction, meaning no genuine fake factor bias). The test works as follows:
