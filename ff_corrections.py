@@ -405,6 +405,7 @@ def run_non_closure_correction_for_DRtoSR(
             var_dependences=var_dependences,
             for_DRtoSR=True,
             logger=f"ff_corrections.{process}.DR_SR",
+            correction_tag=corr_config.get("correction_tag", "default"),
         )
 
         corrections.update(
@@ -477,6 +478,7 @@ def run_correction(
             var_dependences=var_dependences,
             for_DRtoSR=corr_config["target_processes"][process]["DR_SR"].get("use_orthogonal_fake_factors", True),
             logger=f"ff_corrections.{process}",
+            correction_tag=corr_config.get("correction_tag", "default"),
         )
 
         corr_evaluators = []
@@ -492,6 +494,7 @@ def run_correction(
             corr_evaluators.append(
                 FakeFactorCorrectionEvaluator.loading_from_file(
                     config=config,
+                    correction_tag=corr_config.get("correction_tag", "default"),
                     process=process,
                     corr_variable=non_closure_corr_vars_DR_SR,
                     for_DRtoSR=True,
@@ -579,6 +582,7 @@ def run_correction(
             var_dependences=var_dependences,
             for_DRtoSR=False,
             logger=f"ff_corrections.{process}",
+            correction_tag=corr_config.get("correction_tag", "default"),
         )
 
         corrections[process].update(
@@ -614,7 +618,7 @@ if __name__ == "__main__":
 
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
-    save_path = os.path.join(workdir_path, "corrections", config["channel"])
+    save_path = os.path.join(workdir_path, "corrections", corr_config.get("correction_tag", "default"), config["channel"])
     func.check_path(path=os.path.join(os.getcwd(), save_path))
 
     with open(save_path + "/config.yaml", "w") as config_file:
