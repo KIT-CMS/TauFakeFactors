@@ -33,6 +33,7 @@ import logging
 import multiprocessing
 import os
 from typing import Dict, List, Tuple
+import re
 
 import ROOT
 import matplotlib.pyplot as plt
@@ -465,11 +466,30 @@ _FLAVOR_LABELS = {
 _CHANNEL_LABELS = {
     "em":    r"$e\mu$",
     "et":    r"$e\tau_h$",
-    "mt":    r"\mu\tau_h",
-    "tt":    r"\tau_h\tau_h",
+    "mt":    r"$\mu\tau_h$",
+    "tt":    r"$\tau_h\tau_h$",
     "ee":    r"ee",
     "mm":    r"$\mu\mu$",
 } 
+
+def _fold_offset_into_ylabel(ax: plt.Axes, base_label: str, fontsize: float = 10) -> None:
+    """If matplotlib puts the y-axis in scientific notation, it normally shows
+    a floating '1eN' label in the top-left corner of the axes — which collides
+    with the CMS/process annotations placed there. This folds that multiplier
+    into the ylabel itself instead (e.g. 'Jet count [x10^6]'), at the same
+    fontsize as the rest of the axis labels, and hides the floating one.
+    """
+    ax.figure.canvas.draw()  # force matplotlib to compute the offset text
+    offset_text = ax.yaxis.get_offset_text()
+    raw = offset_text.get_text()
+    offset_text.set_visible(False)
+
+    label = base_label
+    match = re.match(r"1e(-?\d+)$", raw.replace("\u2212", "-"))
+    if match:
+        exponent = int(match.group(1))
+        label = rf"{base_label} [$\times 10^{{{exponent}}}$]"
+    ax.set_ylabel(label, fontsize=fontsize)
 
 def plot_histograms_and_efficiencies(
     histograms: Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
@@ -525,7 +545,7 @@ def plot_histograms_and_efficiencies(
     for wp in wps:
         fig, axes = plt.subplots(
             2, n_flavors,
-            figsize=(4.5 * n_flavors, 5.0),
+            figsize=(5 * n_flavors, 5.0),
             gridspec_kw={
                 "height_ratios": [7, 3],  # 70% / 30% split
                 "hspace": 0.05,           # minimal vertical spacing
@@ -654,7 +674,7 @@ def plot_histograms_and_efficiencies(
                 va="bottom", ha="right",
             )
  
-            ax_top.set_ylabel("Jet count", fontsize=10)
+            _fold_offset_into_ylabel(ax_top, "Jet count", fontsize=10)
  
             ax_top.legend(
                 fontsize=8,
@@ -700,11 +720,7 @@ def plot_histograms_and_efficiencies(
             ax_bot.yaxis.set_major_formatter(
                 plt.FuncFormatter(lambda v, _: f"{v:.2f}")
             )
- 
-            # If upper panel y-axis is in scientific notation, move it to the side
-            ax_top_formatter = ax_top.yaxis.get_major_formatter()
-            ax_top.yaxis.set_label_position("left")
-            
+
             # Check if we need to adjust y-axis range to prevent overlap with title
             ax_top.margins(y=0.0)
  

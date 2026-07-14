@@ -199,6 +199,7 @@ channel_indipendent_variable_dict = AutoGetDict(
         "puppimet": r"$p_T^{miss}$ (GeV)",
         "m_vis": r"$m_{vis}$ (GeV)",
         "pt_vis": r"$p_{T}^{vis}$ (GeV)",
+        "pt_tt": r"$p_{T}$ $(\tau\tau)$ (GeV)",
         "nbtag": r"$N_{b-jets}$",
     }
 )
