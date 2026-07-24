@@ -10,6 +10,11 @@ jet_eta_column: "jet_eta_vec"
 jet_flavor_column: "jet_hadronflavour_vec"
 jet_btag_column: "jet_btag_value_vec"
 
+# Per-event weight column snapshotted by preselection.py (gen sign x
+# normalization x pileup/trigger/SF products, no b-tag term). The weighted
+# sumw/sumw2 efficiency uses it as the production value. Default: "weight".
+weight_column: "weight"
+
 # Optional additional per-jet selection applied before counting
 # (uses C++ syntax; leave empty string "" to apply no extra selection)
 # jet_selection: "Jet_pt > 20 && abs(jet_eta) < 2.4"

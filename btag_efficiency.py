@@ -29,9 +29,11 @@ import argparse
 import concurrent.futures
 import copy
 import glob
+import json
 import logging
 import multiprocessing
 import os
+import shutil
 from typing import Dict, List, Tuple
 
 import ROOT
@@ -42,10 +44,21 @@ import correctionlib.schemav2 as cs
 
 import CustomLogging as logging_helper
 import helper.functions as func
+from helper.btag_accumulators import (
+    WeightedEfficiency,
+    effective_population,
+    unweighted_efficiency,
+    weighted_efficiency,
+)
+from helper import btag_validation as bval
 from helper.correctionlib_json import write_json
 
 hep.style.use(hep.style.CMS)
 plt.rcParams["axes.linewidth"] = 1.0 # set non bold axes lines
+
+# Track per-bin sum of squared weights on every histogram so that
+# GetBinError()**2 == sumw2 for the weighted efficiency accumulators below.
+ROOT.TH1.SetDefaultSumw2(True)
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +217,51 @@ def get_process_bins(
 
 
 # ---------------------------------------------------------------------------
+# Input-branch validation
+# ---------------------------------------------------------------------------
+def required_input_columns(config: Dict) -> List[str]:
+    """Return the configured columns that must be present in every input tree.
+
+    The four probe jet columns plus the per-event weight column (the weighted
+    efficiency is the production value, so the weight column is mandatory).
+    """
+    return [
+        config["jet_pt_column"],
+        config["jet_eta_column"],
+        config["jet_flavor_column"],
+        config["jet_btag_column"],
+        config.get("weight_column", "weight"),
+    ]
+
+
+def _tree_columns(file_path: str, tree_name: str) -> List[str]:
+    """Return the branch names of ``tree_name`` in ``file_path`` (no event loop)."""
+    fin = ROOT.TFile.Open(file_path)
+    if not fin or fin.IsZombie():
+        raise RuntimeError(f"Could not open input file '{file_path}'.")
+    try:
+        tree = fin.Get(tree_name)
+        if not tree:
+            raise RuntimeError(
+                f"Tree '{tree_name}' not found in input file '{file_path}'."
+            )
+        return [str(branch.GetName()) for branch in tree.GetListOfBranches()]
+    finally:
+        fin.Close()
+
+
+def validate_process_branches(files: List[str], config: Dict) -> None:
+    """Validate that every configured column is present in *every* input file.
+
+    Wired into the per-process file loop before any RDataFrame graph is built;
+    raises :class:`RuntimeError` listing the missing names per file.
+    """
+    tree_name = config["tree"]
+    columns_by_file = {f: _tree_columns(f, tree_name) for f in files}
+    bval.validate_input_branches(columns_by_file, required_input_columns(config))
+
+
+# ---------------------------------------------------------------------------
 # Efficiency calculation
 # ---------------------------------------------------------------------------
 def calculate_efficiency_histograms(
@@ -212,13 +270,26 @@ def calculate_efficiency_histograms(
     process: str,
     pt_bins: List[float],
     eta_bins: List[float],
-) -> Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]]:
+) -> Tuple[
+    Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
+    Dict[str, Dict[str, WeightedEfficiency]],
+]:
     """Fill 2-D (pT, |eta|) histograms for every (WP, flavour) combination.
 
-    For each combination the function returns a pair of histograms:
-    ``(h_pass, h_total)`` where *h_pass* counts jets that pass the btag
-    discriminator threshold and *h_total* counts all jets of the given
-    flavour.
+    For each combination two flavours of histogram are filled from the same
+    masked jet columns:
+
+    - *unweighted* ``(h_pass, h_total)`` -- plain jet counts, kept for the count
+      panels of the plots and for the unweighted diagnostic;
+    - *weighted* ``(h_pass_w, h_total_w)`` -- filled with the per-event weight
+      (broadcast onto every jet of the event), tracking ``sumw`` in the bin
+      content and ``sumw2`` in ``GetBinError()**2`` (``TH1::SetDefaultSumw2`` is
+      enabled at import).
+
+    The weighted sums, together with the raw counts, are packed into a
+    :class:`WeightedEfficiency` accumulator per (WP, flavour). The weighted
+    efficiency is the production value; the unweighted counts drive the
+    diagnostic.
 
     Args:
         chain:   ROOT TChain with all files for this process already attached.
@@ -226,7 +297,15 @@ def calculate_efficiency_histograms(
         process: Process name (used only for histogram titles / logging).
 
     Returns:
-        ``results[wp_name][flavor_name] = (h_pass, h_total)``
+        Tuple ``(histograms, accumulators)`` where
+        ``histograms[wp][flavor] = (h_pass, h_total)`` are the *unweighted*
+        count histograms and ``accumulators[wp][flavor]`` is a
+        :class:`WeightedEfficiency`.
+
+    Raises:
+        RuntimeError: The RDataFrame is empty, or the configured weight column
+            is missing from the input tree (the weighted path never silently
+            falls back to unweighted).
     """
     log = logging.getLogger("btag_efficiency")
 
@@ -234,6 +313,7 @@ def calculate_efficiency_histograms(
     jet_eta_col = config["jet_eta_column"]
     jet_flavor_col = config["jet_flavor_column"]
     jet_btag_col = config["jet_btag_column"]
+    weight_col = config.get("weight_column", "weight")
     jet_sel = config.get("jet_selection", "").strip()
 
     wps: Dict[str, float] = config["btag_working_points"]
@@ -248,6 +328,33 @@ def calculate_efficiency_histograms(
 
     if func.rdf_is_empty(rdf):
         raise RuntimeError(f"Empty RDataFrame for process '{process}'.")
+
+    # The weighted efficiency is the production value, so a missing weight
+    # column is a hard error rather than a silent fall-back to unweighted
+    # counts. (Task 18 adds full branch validation; until then this is the
+    # guard.)
+    column_names = {str(name) for name in rdf.GetColumnNames()}
+    if weight_col not in column_names:
+        raise RuntimeError(
+            f"Weight column '{weight_col}' not found in the input tree for "
+            f"process '{process}'. The weighted b-tag efficiency requires this "
+            f"per-event weight column (snapshotted by preselection.py); refusing "
+            f"to fall back to unweighted counts."
+        )
+
+    # Compile an equal-length + finiteness assertion into the graph: the first
+    # event with unequal-length probe vectors or a non-finite weight/jet value
+    # aborts the event loop rather than silently corrupting the accumulators.
+    rdf = bval.validate_probe_vectors(
+        rdf,
+        {
+            "pt": jet_pt_col,
+            "eta": jet_eta_col,
+            "flavor": jet_flavor_col,
+            "btag": jet_btag_col,
+            "weight": weight_col,
+        },
+    )
 
     # Optionally apply a per-jet pre-selection mask so that only jets within
     # the configured pT / eta acceptance are counted.
@@ -276,10 +383,12 @@ def calculate_efficiency_histograms(
         jet_flavor_col_use = jet_flavor_col
         jet_btag_col_use = jet_btag_col
 
-    results: Dict[str, Dict[str, Tuple]] = {}
+    histograms: Dict[str, Dict[str, Tuple]] = {}
+    accumulators: Dict[str, Dict[str, WeightedEfficiency]] = {}
 
     for wp_name, wp_cut in wps.items():
-        results[wp_name] = {}
+        histograms[wp_name] = {}
+        accumulators[wp_name] = {}
         for flavor_name, flavor_id in flavors.items():
             log.debug(
                 f"  Filling histograms: process={process}, WP={wp_name}, "
@@ -293,12 +402,24 @@ def calculate_efficiency_histograms(
             col_eta_all = f"_eta_{flavor_name}_all"
             col_pt_pass = f"_pt_{flavor_name}_pass_{wp_name}"
             col_eta_pass = f"_eta_{flavor_name}_pass_{wp_name}"
+            # Per-jet weight RVecs: broadcast the scalar event weight onto every
+            # selected jet so Histo2D fills each jet with the event weight.
+            col_w_all = f"_w_{flavor_name}_all"
+            col_w_pass = f"_w_{flavor_name}_pass_{wp_name}"
 
             rdf_loc = (
                 rdf.Define(col_pt_all, f"{jet_pt_col_use}[{flavor_mask}]")
                    .Define(col_eta_all, f"abs({jet_eta_col_use}[{flavor_mask}])")
                    .Define(col_pt_pass, f"{jet_pt_col_use}[{pass_mask}]")
                    .Define(col_eta_pass, f"abs({jet_eta_col_use}[{pass_mask}])")
+                   .Define(
+                       col_w_all,
+                       f"ROOT::VecOps::RVec<double>({col_pt_all}.size(), (double){weight_col})",
+                   )
+                   .Define(
+                       col_w_pass,
+                       f"ROOT::VecOps::RVec<double>({col_pt_pass}.size(), (double){weight_col})",
+                   )
             )
 
             h_total = rdf_loc.Histo2D(
@@ -319,72 +440,127 @@ def calculate_efficiency_histograms(
                 col_pt_pass,
                 col_eta_pass,
             )
-
-            # Trigger the event loop and clone the histograms so they outlive
-            # the lazy RDataFrame action.
-            results[wp_name][flavor_name] = (
-                h_pass.GetValue().Clone(),
-                h_total.GetValue().Clone(),
+            h_total_w = rdf_loc.Histo2D(
+                ROOT.RDF.TH2DModel(
+                    f"h_total_w_{process}_{flavor_name}_{wp_name}",
+                    f"{process}: all {flavor_name} jets (weighted); jet p_{{T}} [GeV]; jet |#eta|",
+                    n_pt, pt_arr, n_eta, eta_arr,
+                ),
+                col_pt_all,
+                col_eta_all,
+                col_w_all,
+            )
+            h_pass_w = rdf_loc.Histo2D(
+                ROOT.RDF.TH2DModel(
+                    f"h_pass_w_{process}_{flavor_name}_{wp_name}",
+                    f"{process}: {flavor_name} jets passing {wp_name} (weighted); jet p_{{T}} [GeV]; jet |#eta|",
+                    n_pt, pt_arr, n_eta, eta_arr,
+                ),
+                col_pt_pass,
+                col_eta_pass,
+                col_w_pass,
             )
 
-    return results
+            # Trigger the event loop and clone the count histograms so they
+            # outlive the lazy RDataFrame action (used by the plot count panels).
+            h_pass_v = h_pass.GetValue().Clone()
+            h_total_v = h_total.GetValue().Clone()
+            h_pass_w_v = h_pass_w.GetValue()
+            h_total_w_v = h_total_w.GetValue()
+
+            histograms[wp_name][flavor_name] = (h_pass_v, h_total_v)
+            accumulators[wp_name][flavor_name] = _accumulator_from_histograms(
+                h_pass_w_v, h_total_w_v, h_pass_v, h_total_v, n_pt, n_eta
+            )
+
+    return histograms, accumulators
 
 
-def histograms_to_efficiencies(
-    histograms: Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
-    pt_bins: List[float],
-    eta_bins: List[float],
-) -> Tuple[Dict[str, Dict[str, List[List[float]]]], Dict[str, Dict[str, List[List[float]]]]]:
-    """Convert (h_pass, h_total) histogram pairs to efficiency grids.
+def _accumulator_from_histograms(
+    h_pass_w: ROOT.TH2D,
+    h_total_w: ROOT.TH2D,
+    h_pass_raw: ROOT.TH2D,
+    h_total_raw: ROOT.TH2D,
+    n_pt: int,
+    n_eta: int,
+) -> WeightedEfficiency:
+    """Pack weighted (sumw/sumw2) and raw counts into a WeightedEfficiency.
 
-    Args:
-        histograms: ``histograms[wp][flavor] = (h_pass, h_total)``
-        pt_bins:    pT bin edges.
-        eta_bins:   |eta| bin edges.
+    ``sumw`` is the weighted bin content and ``sumw2`` is ``GetBinError()**2``
+    (valid because ``TH1::SetDefaultSumw2`` is enabled). Arrays are laid out as
+    ``[i_pt][i_eta]`` to match the efficiency-grid convention.
+
+    ``raw_pt_overflow`` is read from ROOT's pt-*overflow* bin (index
+    ``n_pt + 1``) of the raw/unweighted total histogram, summed over every
+    in-range eta row (``1..n_eta``). ``Histo2D`` always tracks the overflow
+    bin for entries above the top edge even though it is not displayed or
+    included in ``raw_total`` -- this is the only way to see real jets above
+    the top pt edge (e.g. pt > 1000 GeV for the usual binnings).
+    """
+    sumw_total = np.zeros((n_pt, n_eta))
+    sumw2_total = np.zeros((n_pt, n_eta))
+    sumw_pass = np.zeros((n_pt, n_eta))
+    sumw2_pass = np.zeros((n_pt, n_eta))
+    raw_total = np.zeros((n_pt, n_eta))
+    raw_pass = np.zeros((n_pt, n_eta))
+
+    for i_pt in range(1, n_pt + 1):
+        for i_eta in range(1, n_eta + 1):
+            sumw_total[i_pt - 1][i_eta - 1] = h_total_w.GetBinContent(i_pt, i_eta)
+            sumw2_total[i_pt - 1][i_eta - 1] = h_total_w.GetBinError(i_pt, i_eta) ** 2
+            sumw_pass[i_pt - 1][i_eta - 1] = h_pass_w.GetBinContent(i_pt, i_eta)
+            sumw2_pass[i_pt - 1][i_eta - 1] = h_pass_w.GetBinError(i_pt, i_eta) ** 2
+            raw_total[i_pt - 1][i_eta - 1] = h_total_raw.GetBinContent(i_pt, i_eta)
+            raw_pass[i_pt - 1][i_eta - 1] = h_pass_raw.GetBinContent(i_pt, i_eta)
+
+    raw_pt_overflow = sum(
+        h_total_raw.GetBinContent(n_pt + 1, i_eta) for i_eta in range(1, n_eta + 1)
+    )
+
+    return WeightedEfficiency(
+        sumw_total=sumw_total,
+        sumw2_total=sumw2_total,
+        sumw_pass=sumw_pass,
+        sumw2_pass=sumw2_pass,
+        raw_total=raw_total,
+        raw_pass=raw_pass,
+        raw_pt_overflow=raw_pt_overflow,
+    )
+
+
+def accumulators_to_efficiencies(
+    accumulators: Dict[str, Dict[str, WeightedEfficiency]],
+) -> Tuple[
+    Dict[str, Dict[str, List[List[float]]]],
+    Dict[str, Dict[str, List[List[float]]]],
+]:
+    """Convert accumulators to production (weighted) efficiency + uncertainty grids.
+
+    The production efficiency is the weighted value ``sumw_pass / sumw_total`` and
+    the displayed uncertainty is ``sqrt(var)`` from :func:`weighted_efficiency`.
+    Empty bins (``nan``) are serialised as ``0.0`` here so the correctionlib JSON
+    and plots stay finite -- matching the previous empty-bin behaviour. The raw
+    ``nan``-carrying arrays are preserved in the diagnostic sidecar. No clamping
+    of out-of-``[0, 1]`` values is applied (that is Task 18's gating).
 
     Returns:
-        Tuple of two dicts with identical structure ``[wp][flavor]``:
-        - efficiencies: efficiency value per (pT, |eta|) bin.
-        - stat_uncertainties: binomial statistical uncertainty per bin
-          (sigma = sqrt(eff * (1 - eff) / total)); zero when total == 0.
+        Tuple of two dicts ``[wp][flavor] -> [i_pt][i_eta]`` for efficiencies and
+        their (weighted) uncertainties.
     """
-    log = logging.getLogger("btag_efficiency")
-
-    n_pt = len(pt_bins) - 1
-    n_eta = len(eta_bins) - 1
-
     efficiencies: Dict[str, Dict[str, List[List[float]]]] = {}
-    stat_uncertainties: Dict[str, Dict[str, List[List[float]]]] = {}
-    for wp_name, flavor_hists in histograms.items():
+    uncertainties: Dict[str, Dict[str, List[List[float]]]] = {}
+    for wp_name, flavor_accs in accumulators.items():
         efficiencies[wp_name] = {}
-        stat_uncertainties[wp_name] = {}
-        for flavor_name, (h_pass, h_total) in flavor_hists.items():
-            eff_grid: List[List[float]] = []
-            unc_grid: List[List[float]] = []
-            for i_pt in range(1, n_pt + 1):
-                eta_row: List[float] = []
-                unc_row: List[float] = []
-                for i_eta in range(1, n_eta + 1):
-                    total = h_total.GetBinContent(i_pt, i_eta)
-                    passed = h_pass.GetBinContent(i_pt, i_eta)
-                    if total > 0.0:
-                        eff = min(passed / total, 1.0)
-                        unc = float(np.sqrt(eff * (1.0 - eff) / total))
-                    else:
-                        log.warning(
-                            f"Zero denominator in bin (pT bin {i_pt}, eta bin {i_eta}) "
-                            f"for WP={wp_name}, flavor={flavor_name}. Setting eff=0."
-                        )
-                        eff = 0.0
-                        unc = 0.0
-                    eta_row.append(float(eff))
-                    unc_row.append(unc)
-                eff_grid.append(eta_row)
-                unc_grid.append(unc_row)
-            efficiencies[wp_name][flavor_name] = eff_grid
-            stat_uncertainties[wp_name][flavor_name] = unc_grid
+        uncertainties[wp_name] = {}
+        for flavor_name, acc in flavor_accs.items():
+            eff, var = weighted_efficiency(acc)
+            unc = np.sqrt(var)
+            eff = np.where(np.isfinite(eff), eff, 0.0)
+            unc = np.where(np.isfinite(unc), unc, 0.0)
+            efficiencies[wp_name][flavor_name] = eff.tolist()
+            uncertainties[wp_name][flavor_name] = unc.tolist()
 
-    return efficiencies, stat_uncertainties
+    return efficiencies, uncertainties
 
 
 # ---------------------------------------------------------------------------
@@ -420,24 +596,32 @@ def _build_eta_binning(
             _build_pt_binning(pt_bins, [eff_grid[i_pt][i_eta] for i_pt in range(n_pt)])
             for i_eta in range(n_eta)
         ],
-        flow="clamp",
+        flow="error",
     )
 
 
 def _build_flavor_category(
     flavors: Dict[str, int],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
     wp_efficiencies: Dict[str, List[List[float]]],
 ) -> cs.Category:
-    """Category node over jet flavour labels."""
+    """Category node over jet flavour labels.
+
+    Each flavour carries its own ``(pt_bins, eta_bins)`` (from
+    ``flavor_bins[flavor]``): after Task-18 bin merging the binning is frozen
+    per ``(sample_type, flavor)`` and may differ between flavours.
+    """
     return cs.Category(
         nodetype="category",
         input="jet_flavor",
         content=[
             cs.CategoryItem(
                 key=flavors[flavor_name],
-                value=_build_eta_binning(eta_bins, pt_bins, wp_efficiencies[flavor_name]),
+                value=_build_eta_binning(
+                    flavor_bins[flavor_name][1],
+                    flavor_bins[flavor_name][0],
+                    wp_efficiencies[flavor_name],
+                ),
             )
             for flavor_name in flavors
         ],
@@ -447,11 +631,14 @@ def _build_flavor_category(
 def _build_wp_category(
     wps: Dict[str, float],
     flavors: Dict[str, int],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
     sample_efficiencies: Dict[str, Dict[str, List[List[float]]]],
 ) -> cs.Category:
-    """Category node over b-tag working points."""
+    """Category node over b-tag working points.
+
+    All working points of a ``(sample_type, flavor)`` share the same binning
+    (``flavor_bins[flavor]``) so working-point comparability is preserved.
+    """
     return cs.Category(
         nodetype="category",
         input="working_point",
@@ -459,7 +646,7 @@ def _build_wp_category(
             cs.CategoryItem(
                 key=wp_name,
                 value=_build_flavor_category(
-                    flavors, pt_bins, eta_bins, sample_efficiencies[wp_name]
+                    flavors, flavor_bins, sample_efficiencies[wp_name]
                 ),
             )
             for wp_name in wps
@@ -745,22 +932,24 @@ def plot_histograms_and_efficiencies(
 
 def _process_one(
     task: Tuple,
-) -> Tuple[str, List[float], List[float], Dict, Dict]:
+) -> Tuple[str, List[float], List[float], Dict, Dict, Dict]:
     """Process one MC sample; designed to run in a subprocess.
 
     Handles file discovery, RDataFrame histogram filling, efficiency
     conversion, and plotting, then returns plain-Python results that can
-    be pickled back to the parent process.
+    be pickled back to the parent process. The :class:`WeightedEfficiency`
+    accumulators are plain numpy, so they pickle back cleanly across the spawn.
 
     Args:
         task: ``(process, proc_conf, config, output_path, n_threads, log_level)``
 
     Returns:
-        ``(sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties)``
+        ``(sample_type, pt_bins, eta_bins, efficiencies, uncertainties, accumulators)``
 
     Raises:
-        FileNotFoundError: No ROOT files found for the process.
-        RuntimeError:      The RDataFrame for the process is empty.
+        RuntimeError: No ROOT files found for the process, a required input
+                      branch is missing, the RDataFrame is empty, or the weight
+                      column is missing. All are fatal (no partial payload).
     """
     process, proc_conf, config, output_path, n_threads, log_level = task
 
@@ -792,36 +981,47 @@ def _process_one(
 
     files = get_process_files(config, process)
     if not files:
-        raise FileNotFoundError(
+        raise RuntimeError(
             f"No ROOT files found for process '{process}' under "
-            f"'{config['file_path']}'."
+            f"'{config['file_path']}'. A partial payload must never be produced, "
+            f"so a missing process is fatal."
         )
     log.info(f"  Found {len(files)} file(s):")
     for f in files:
         log.info(f"    {f}")
 
+    # Fail-fast branch validation before any graph is built.
+    validate_process_branches(files, config)
+
     chain = ROOT.TChain(config["tree"])
     for f in files:
         chain.Add(f)
 
-    histograms = calculate_efficiency_histograms(chain, config, process, pt_bins, eta_bins)
-    efficiencies, stat_uncertainties = histograms_to_efficiencies(histograms, pt_bins, eta_bins)
+    histograms, accumulators = calculate_efficiency_histograms(
+        chain, config, process, pt_bins, eta_bins
+    )
+    efficiencies, uncertainties = accumulators_to_efficiencies(accumulators)
 
     log.info(f"  Plotting histograms and efficiencies for '{process}' ...")
     plot_histograms_and_efficiencies(
-        histograms, efficiencies, stat_uncertainties,
+        histograms, efficiencies, uncertainties,
         pt_bins, eta_bins, process, config, output_path,
     )
     log.info(f"  Finished processing '{process}' (sample type key: '{sample_type}')")
-    return sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties
+    return sample_type, pt_bins, eta_bins, efficiencies, uncertainties, accumulators
 
 def build_correctionlib_json(
     all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]],
-    all_bins: Dict[str, Tuple[List[float], List[float]]],
+    all_flavor_bins: Dict[str, Dict[str, Tuple[List[float], List[float]]]],
     config: Dict,
     output_path: str,
 ) -> cs.CorrectionSet:
-    """Assemble the correctionlib CorrectionSet and write it to disk."""
+    """Assemble the correctionlib CorrectionSet and write it to disk.
+
+    ``all_flavor_bins[sample_type][flavor] = (pt_bins, eta_bins)`` carries the
+    post-merge binning frozen per ``(sample_type, flavor)`` (all working points
+    of a flavour share it).
+    """
     wps: Dict[str, float] = config["btag_working_points"]
     flavors: Dict[str, int] = config["jet_flavor_categories"]
 
@@ -829,7 +1029,7 @@ def build_correctionlib_json(
         cs.CategoryItem(
             key=process,
             value=_build_wp_category(
-                wps, flavors, all_bins[process][0], all_bins[process][1], proc_eff
+                wps, flavors, all_flavor_bins[process], proc_eff
             ),
         )
         for process, proc_eff in all_efficiencies.items()
@@ -878,6 +1078,85 @@ def build_correctionlib_json(
     return cset
 
 
+def _json_safe(array: np.ndarray) -> List:
+    """Return ``array.tolist()`` with non-finite entries replaced by ``None``.
+
+    Empty bins carry ``nan`` in the derived (efficiency/variance/effective-
+    population) arrays; JSON has no ``NaN`` literal, so those become ``null``.
+    """
+    return np.where(np.isfinite(array), array, None).tolist()
+
+
+def write_accumulators_sidecar(
+    all_accumulators: Dict[str, Dict[str, Dict[str, WeightedEfficiency]]],
+    all_bins: Dict[str, Tuple[List[float], List[float]]],
+    config: Dict,
+    output_path: str,
+) -> str:
+    """Write the diagnostic accumulator sidecar next to the correctionlib JSON.
+
+    The sidecar (``btag_efficiency_accumulators.json``) carries, per
+    ``sample_type -> working_point -> jet_flavor``: the six raw accumulator
+    arrays (``sumw_total``/``sumw2_total``/``sumw_pass``/``sumw2_pass``/
+    ``raw_total``/``raw_pass``) plus the derived diagnostics -- weighted
+    ``efficiency`` (the production value), its ``variance`` and
+    ``uncertainty`` (``sqrt(var)``), the ``effective_population``, and the
+    ``unweighted_efficiency`` / ``unweighted_uncertainty`` binomial diagnostic.
+    All arrays are ``[i_pt][i_eta]`` plain lists; ``nan`` becomes ``null``.
+    """
+    payload: Dict = {
+        "description": (
+            "Diagnostic sidecar for btag_efficiency.json. Per sample_type / "
+            "working_point / jet_flavor: weighted sumw/sumw2 accumulators, raw "
+            "counts, and derived quantities. The 'efficiency' field is the "
+            "weighted production value written to btag_efficiency.json; "
+            "'unweighted_efficiency' is the binomial diagnostic. Arrays are "
+            "indexed [pt_bin][eta_bin]."
+        ),
+        "era": config.get("era", "unknown"),
+        "channel": get_channel_display(config),
+        "working_points": dict(config["btag_working_points"]),
+        "jet_flavor_categories": dict(config["jet_flavor_categories"]),
+        "processes": {},
+    }
+
+    for sample_type, wp_accs in all_accumulators.items():
+        pt_bins, eta_bins = all_bins[sample_type]
+        proc_entry: Dict = {
+            "pt_bins": list(pt_bins),
+            "eta_bins": list(eta_bins),
+            "working_points": {},
+        }
+        for wp_name, flavor_accs in wp_accs.items():
+            proc_entry["working_points"][wp_name] = {}
+            for flavor_name, acc in flavor_accs.items():
+                eff, var = weighted_efficiency(acc)
+                unc = np.sqrt(var)
+                n_eff = effective_population(acc)
+                unw_eff, unw_unc = unweighted_efficiency(acc)
+
+                entry = acc.to_dict()
+                entry.update(
+                    {
+                        "efficiency": _json_safe(eff),
+                        "variance": _json_safe(var),
+                        "uncertainty": _json_safe(unc),
+                        "effective_population": _json_safe(n_eff),
+                        "unweighted_efficiency": _json_safe(unw_eff),
+                        "unweighted_uncertainty": _json_safe(unw_unc),
+                    }
+                )
+                proc_entry["working_points"][wp_name][flavor_name] = entry
+        payload["processes"][sample_type] = proc_entry
+
+    os.makedirs(output_path, exist_ok=True)
+    sidecar_path = os.path.join(output_path, "btag_efficiency_accumulators.json")
+    with open(sidecar_path, "w") as fout:
+        json.dump(payload, fout, indent=4, allow_nan=False)
+
+    return sidecar_path
+
+
 def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
     """Execute the full efficiency workflow for one channel-specific config."""
     channel = get_channel_label(config)
@@ -899,6 +1178,7 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
 
     all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
     all_uncertainties: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
+    all_accumulators: Dict[str, Dict[str, Dict[str, WeightedEfficiency]]] = {}
     all_bins: Dict[str, Tuple[List[float], List[float]]] = {}
 
     if args.workers == 1:
@@ -920,38 +1200,38 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
 
             files = get_process_files(config, process)
             if not files:
-                log.warning(
+                raise RuntimeError(
                     f"No ROOT files found for process '{process}' under "
-                    f"'{config['file_path']}'. Skipping."
+                    f"'{config['file_path']}'. A partial payload must never be "
+                    f"produced, so a missing process is fatal."
                 )
-                continue
 
             log.info(f"  Found {len(files)} file(s):")
             for f in files:
                 log.info(f"    {f}")
 
+            # Fail-fast branch validation before any graph is built.
+            validate_process_branches(files, config)
+
             chain = ROOT.TChain(config["tree"])
             for f in files:
                 chain.Add(f)
 
-            try:
-                histograms = calculate_efficiency_histograms(chain, config, process, pt_bins, eta_bins)
-            except RuntimeError as exc:
-                log.warning(f"Skipping process '{process}': {exc}")
-                continue
-
-            efficiencies, stat_uncertainties = histograms_to_efficiencies(
-                histograms,
-                pt_bins,
-                eta_bins,
+            # A RuntimeError here (empty frame, missing weight column, probe
+            # vector violation) is fatal -- no silent skip.
+            histograms, accumulators = calculate_efficiency_histograms(
+                chain, config, process, pt_bins, eta_bins
             )
+
+            efficiencies, uncertainties = accumulators_to_efficiencies(accumulators)
             log.info(f"  Plotting histograms and efficiencies for '{process}' ...")
             plot_histograms_and_efficiencies(
-                histograms, efficiencies, stat_uncertainties,
+                histograms, efficiencies, uncertainties,
                 pt_bins, eta_bins, process, config, output_path,
             )
             all_efficiencies[sample_type] = efficiencies
-            all_uncertainties[sample_type] = stat_uncertainties
+            all_uncertainties[sample_type] = uncertainties
+            all_accumulators[sample_type] = accumulators
             all_bins[sample_type] = (pt_bins, eta_bins)
             log.info(f"  Finished processing '{process}' (sample type key: '{sample_type}')")
 
@@ -972,26 +1252,257 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
             futures = {executor.submit(_process_one, task): task[0] for task in tasks}
             for future in concurrent.futures.as_completed(futures):
                 process = futures[future]
-                try:
-                    sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties = future.result()
-                except (FileNotFoundError, RuntimeError) as exc:
-                    log.warning(f"Skipping process '{process}': {exc}")
-                    continue
+                # A worker failure is fatal: re-raise so the whole run aborts
+                # rather than silently dropping a process (no partial payload).
+                (
+                    sample_type,
+                    pt_bins,
+                    eta_bins,
+                    efficiencies,
+                    uncertainties,
+                    accumulators,
+                ) = future.result()
                 log.info(f"Finished '{process}' (sample type: '{sample_type}')")
                 all_efficiencies[sample_type] = efficiencies
-                all_uncertainties[sample_type] = stat_uncertainties
+                all_uncertainties[sample_type] = uncertainties
+                all_accumulators[sample_type] = accumulators
                 all_bins[sample_type] = (pt_bins, eta_bins)
 
-    if not all_efficiencies:
-        log.error("No processes were successfully processed. Aborting.")
-        raise SystemExit(1)
+    if not all_accumulators:
+        # No processes were configured at all; a run that produces nothing is a
+        # configuration error, not a success.
+        raise RuntimeError(
+            "No processes were configured for this channel; refusing to write an "
+            "empty payload."
+        )
+
+    # -----------------------------------------------------------------------
+    # Diagnostic accumulator sidecar (pre-merge, finest binning).
+    # -----------------------------------------------------------------------
+    log.info("Writing diagnostic accumulator sidecar ...")
+    sidecar_path = write_accumulators_sidecar(
+        all_accumulators, all_bins, config, output_path
+    )
+    log.info(f"Accumulator sidecar written to '{sidecar_path}'")
+
+    # -----------------------------------------------------------------------
+    # Strict validation: raw nesting (fatal), deterministic per-(process,
+    # flavor) bin merging, and correctionlib round-trip. Produces the merged
+    # payload plus the machine-readable validation report.
+    # -----------------------------------------------------------------------
+    provenance = validate_and_build_payload(
+        all_accumulators, all_bins, config, output_path, channel, log
+    )
+
+    log.info("B-tag efficiency calculation finished.")
+    return provenance
+
+
+def validate_and_build_payload(
+    all_accumulators: Dict[str, Dict[str, Dict[str, WeightedEfficiency]]],
+    all_bins: Dict[str, Tuple[List[float], List[float]]],
+    config: Dict,
+    output_path: str,
+    channel: str,
+    log: logging.Logger,
+) -> Dict:
+    """Run the strict gates, merge bins, build the payload and the report.
+
+    Raw pass-set nesting violations are fatal (:func:`bval.check_wp_nesting`).
+    Weighted quality-gate violations are resolved by deterministic per-(process,
+    flavor) bin merging (:func:`bval.merge_bins`), applied to all working points
+    of the category together. The produced correctionlib JSON is round-tripped
+    against the accumulator-derived efficiencies before the report is finalized;
+    any mismatch fails the run. Returns a per-channel provenance dict.
+    """
+    wps: Dict[str, float] = config["btag_working_points"]
+    flavors: Dict[str, int] = config["jet_flavor_categories"]
+    thresholds = bval.get_validation_thresholds(config)
+    log.info(f"Validation thresholds: {thresholds}")
+
+    merged_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
+    all_flavor_bins: Dict[str, Dict[str, Tuple[List[float], List[float]]]] = {}
+    categories: Dict[str, Dict[str, Dict]] = {}
+
+    for sample_type, wp_accs in all_accumulators.items():
+        pt_bins, eta_bins = all_bins[sample_type]
+        merged_efficiencies[sample_type] = {wp: {} for wp in wps}
+        all_flavor_bins[sample_type] = {}
+        categories[sample_type] = {}
+
+        for flavor_name in flavors:
+            acc_by_wp = {wp: wp_accs[wp][flavor_name] for wp in wps}
+
+            # Raw exact-subset nesting: any violation is immediately fatal.
+            nesting = bval.check_wp_nesting(acc_by_wp)
+            if not nesting.raw_ok:
+                raise RuntimeError(
+                    f"Raw pass-set nesting violated for sample_type "
+                    f"'{sample_type}', flavor '{flavor_name}' "
+                    f"(L>=M>=T>=XT>=XXT must hold per bin); this indicates a "
+                    f"selection/discriminator bug. Violations: "
+                    f"{nesting.raw_violations}"
+                )
+
+            pre = bval.BinnedAccumulators(
+                accumulators=acc_by_wp, pt_bins=pt_bins, eta_bins=eta_bins
+            )
+            merged, history = bval.merge_bins(pre, thresholds)
+            if history:
+                log.info(
+                    f"  Merged bins for '{sample_type}'/'{flavor_name}': "
+                    f"{len(history)} op(s); pt {pre.pt_bins} -> {merged.pt_bins}, "
+                    f"eta {pre.eta_bins} -> {merged.eta_bins}"
+                )
+
+            all_flavor_bins[sample_type][flavor_name] = (
+                list(merged.pt_bins),
+                list(merged.eta_bins),
+            )
+            for wp in wps:
+                eff, _var = weighted_efficiency(merged.accumulators[wp])
+                eff = np.where(np.isfinite(eff), eff, 0.0)
+                merged_efficiencies[sample_type][wp][flavor_name] = eff.tolist()
+
+            categories[sample_type][flavor_name] = bval.summarize_category(
+                pre, merged, history, thresholds, nesting
+            )
 
     log.info("Building correctionlib JSON ...")
-    build_correctionlib_json(all_efficiencies, all_bins, config, output_path)
-    log.info(
-        f"Correctionlib files written to '{output_path}/btag_efficiency.json[.gz]'"
+    build_correctionlib_json(merged_efficiencies, all_flavor_bins, config, output_path)
+    out_base = os.path.join(output_path, "btag_efficiency")
+    log.info(f"Correctionlib files written to '{out_base}.json[.gz]'")
+
+    # Round-trip gate: the produced JSON must reproduce the stored efficiencies
+    # exactly at every bin centre and (in-range) boundary.
+    log.info("Running correctionlib round-trip gate ...")
+    rt_ok, rt_n, rt_mismatches = bval.roundtrip_check(
+        f"{out_base}.json", merged_efficiencies, all_flavor_bins, wps, flavors
     )
-    log.info("B-tag efficiency calculation finished.")
+    log.info(f"  Round-trip evaluated {rt_n} lookup(s); ok={rt_ok}")
+
+    status = "passed" if rt_ok else "failed"
+    report_path = os.path.join(output_path, "btag_validation_report.json")
+    bval.write_validation_report(
+        report_path,
+        status=status,
+        thresholds=thresholds,
+        merge_version=bval.MERGE_VERSION,
+        categories=categories,
+        roundtrip={
+            "ok": rt_ok,
+            "n_checked": rt_n,
+            "mismatches": rt_mismatches[:50],
+        },
+        era=config.get("era", ""),
+        channel=get_channel_display(config),
+        channels_present=[channel],
+        required_channels=_required_channels(config),
+    )
+    log.info(f"Validation report written to '{report_path}' (status: {status})")
+
+    if not rt_ok:
+        raise RuntimeError(
+            f"correctionlib round-trip gate failed with {len(rt_mismatches)} "
+            f"mismatch(es); refusing to publish. See '{report_path}'."
+        )
+
+    payload_files = [
+        f"{out_base}.json",
+        f"{out_base}.json.gz",
+        sidecar_or_none(output_path),
+        report_path,
+    ]
+    payload_files = [p for p in payload_files if p and os.path.isfile(p)]
+    checksums = {
+        os.path.basename(p): bval._sha256(p) for p in payload_files
+    }
+
+    return {
+        "channel": channel,
+        "status": status,
+        "output_path": output_path,
+        "report_path": report_path,
+        "payload_files": payload_files,
+        "checksums": checksums,
+        "required_channels": _required_channels(config),
+    }
+
+
+def sidecar_or_none(output_path: str) -> str:
+    """Return the accumulator sidecar path if it exists, else empty string."""
+    path = os.path.join(output_path, "btag_efficiency_accumulators.json")
+    return path if os.path.isfile(path) else ""
+
+
+def _required_channels(config: Dict) -> List[str]:
+    """Channels that must all be present before a payload may be published.
+
+    Configurable via the ``required_channels`` key; defaults to the three
+    fake-factor analysis channels ``et``, ``mt``, ``tt``.
+    """
+    required = config.get("required_channels")
+    if required:
+        return [str(c) for c in required]
+    return ["et", "mt", "tt"]
+
+
+def publish_all_channels(provenances: List[Dict], config: Dict) -> None:
+    """Two-phase, all-or-nothing atomic install of every channel's payload.
+
+    A partial multi-channel publish must never happen: every channel's
+    payload is staged and checksum-verified into a tmp dir (``bval.stage_
+    payload``) *before* any ``target_dir`` is touched. Only once every single
+    channel has staged cleanly are the ``os.replace`` swaps performed
+    (``bval.commit_staged``) for all of them.
+
+    If any channel fails to stage (e.g. a checksum mismatch), every tmp dir
+    staged so far -- including channels that staged fine before the failing
+    one -- is cleaned up, nothing is published, and the exception is
+    re-raised (aborting the whole run with a non-zero exit code under
+    ``__main__``). This replaces a previous channel-by-channel loop that
+    caught and merely logged a ``RuntimeError`` per channel, which could
+    leave earlier channels published while a later one silently failed to
+    install, and still exit 0.
+    """
+    log = logging.getLogger("btag_efficiency")
+    channels_present = sorted({prov["channel"] for prov in provenances})
+    required = _required_channels(config)
+
+    staged: List[Tuple[str, str, str]] = []  # (tmp_dir, target_dir, channel)
+    try:
+        for prov in provenances:
+            install_provenance = dict(prov)
+            install_provenance["channels_present"] = channels_present
+            install_provenance["required_channels"] = required
+            target_dir = os.path.join(
+                config["output_base"],
+                config["workdir_name"],
+                config["era"],
+                "published",
+                prov["channel"],
+            )
+            tmp_dir = bval.stage_payload(
+                prov["payload_files"], install_provenance, target_dir
+            )
+            staged.append((tmp_dir, target_dir, prov["channel"]))
+            log.info(f"Staged payload for channel '{prov['channel']}' -> '{tmp_dir}'")
+    except Exception as exc:
+        # Any channel failing to stage aborts the ENTIRE publish: clean up
+        # every tmp dir staged so far and leave every target_dir untouched.
+        for tmp_dir, _target_dir, channel in staged:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            log.warning(f"Discarded staged payload for channel '{channel}'.")
+        log.error(
+            f"Not publishing any channel: at least one channel failed to "
+            f"stage ({exc}). Nothing was published this run."
+        )
+        raise
+
+    # Every channel staged and checksum-verified cleanly -- commit all of them.
+    for tmp_dir, target_dir, channel in staged:
+        bval.commit_staged(tmp_dir, target_dir)
+        log.info(f"Published payload for channel '{channel}' to '{target_dir}'")
 
 
 # ---------------------------------------------------------------------------
@@ -1025,5 +1536,16 @@ if __name__ == "__main__":
         default="workdir",
     )
 
-    for channel_config in get_channel_configs(config):
+    # Run every channel first (any fatal gate aborts the whole run before
+    # anything is published -- a partial payload must never be produced).
+    provenances = [
         run_for_channel(channel_config, args)
+        for channel_config in get_channel_configs(config)
+    ]
+
+    # Publish atomically only once every channel has passed and all required
+    # channels are present. channels_present is the union across channel runs.
+    # This is two-phase and all-or-nothing across channels: a mid-loop
+    # failure (e.g. a corrupted checksum on a later channel) must never leave
+    # only some channels published (see publish_all_channels docstring).
+    publish_all_channels(provenances, config)

@@ -17,3 +17,15 @@ tau_vs_jet_wgt_wps:
 
 use_embedding: false
 use_center_of_mass_bins: true
+
+# ------------------------------------------------------------------
+# Strict validation gates for the b-tag efficiency payload (Task 18).
+# Bins failing either threshold are deterministically merged; the
+# values used are recorded verbatim in btag_validation_report.json.
+# ------------------------------------------------------------------
+validation:
+  # Minimum effective (unweighted-equivalent) population per bin:
+  #   n_eff = sumw_total^2 / sumw2_total
+  min_effective_denominator: 100
+  # Maximum allowed statistical uncertainty on the weighted efficiency.
+  max_stat_uncertainty: 0.25
