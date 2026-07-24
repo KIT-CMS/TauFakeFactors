@@ -341,6 +341,52 @@ class TestRoundTrip(unittest.TestCase):
         self.assertFalse(ok)
         self.assertTrue(mismatches)
 
+    def test_roundtrip_tolerates_ulp_serialization_roundoff(self):
+        """A ~1-ULP difference between the stored efficiency and the value
+        correctionlib returns after JSON (de)serialization must NOT be flagged.
+
+        This reproduces the real failure seen in the Task-24 integration run:
+        efficiencies such as 0.9210030090094377 come back from correctionlib as
+        0.9210030090094375 (last-bit round-off), which an exact ``==`` compare
+        wrongly rejected. Here we perturb every expected efficiency by one ULP
+        and require the round-trip gate to still pass.
+        """
+        import copy
+        import math
+
+        perturbed = copy.deepcopy(self.all_efficiencies)
+        for wp in perturbed["ttbar"]:
+            for flav in perturbed["ttbar"][wp]:
+                grid = perturbed["ttbar"][wp][flav]
+                for r in range(len(grid)):
+                    for c in range(len(grid[r])):
+                        grid[r][c] = math.nextafter(grid[r][c], math.inf)
+        ok, _n, mismatches = roundtrip_check(
+            self.json_path,
+            perturbed,
+            self.all_flavor_bins,
+            self.wps,
+            self.flavors,
+        )
+        self.assertTrue(ok, msg=f"ULP round-off must not fail: {mismatches[:3]}")
+
+    def test_roundtrip_still_rejects_physically_meaningful_difference(self):
+        """The tolerance must not be so loose that a real (0.05) efficiency
+        error slips through -- the gate still has teeth."""
+        import copy
+
+        perturbed = copy.deepcopy(self.all_efficiencies)
+        perturbed["ttbar"]["L"]["b"][0][0] += 0.05
+        ok, _n, mismatches = roundtrip_check(
+            self.json_path,
+            perturbed,
+            self.all_flavor_bins,
+            self.wps,
+            self.flavors,
+        )
+        self.assertFalse(ok)
+        self.assertTrue(mismatches)
+
     def _bump_first_float(self, node):
         # Walk the correctionlib content tree and mutate the first leaf float.
         corr = node["corrections"][0]["data"]

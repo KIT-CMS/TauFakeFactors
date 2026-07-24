@@ -13,6 +13,7 @@ Covers two things:
    are explicitly exempted via ``LEGACY_USER_PATH_ERAS``.
 """
 
+import os
 import re
 from pathlib import Path
 from typing import List, Tuple
@@ -329,3 +330,83 @@ def test_rule_passes_for_hypothetical_2018_config_without_user_paths(tmp_path: P
 
     violations = _user_path_violations(_iter_yaml_files(clean_era_dir))
     assert not violations, f"unexpected violations for a portable-paths config: {violations}"
+
+
+# ---------------------------------------------------------------------------
+# check_inputfiles: local filesystem discovery
+# ---------------------------------------------------------------------------
+# get_ntuples -> check_inputfiles is the only preselection input-discovery
+# step that used to route directory listing exclusively through the dCache
+# xrootd redirector. That made a LOCAL --ntuple-path / TFF_NTUPLE_PATH override
+# (a documented Task-16 override) impossible to use: the redirector answered
+# "Path not found" for any local directory and check_inputfiles then
+# sys.exit(1)'d. These tests pin the local-listing branch AND that the xrootd
+# branch is preserved byte-for-byte for genuine remote (root://) paths.
+
+
+def test_check_inputfiles_discovers_local_directory(tmp_path, monkeypatch):
+    # Empty-tree filtering is exercised separately; here we only assert the
+    # local .root discovery path, so stub check_for_empty_tree to "not empty".
+    monkeypatch.setattr(func, "check_for_empty_tree", lambda file_path, tree: False)
+    sample_dir = tmp_path / "2018" / "SOME_NICK" / "mt"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "a.root").write_bytes(b"")
+    (sample_dir / "b.root").write_bytes(b"")
+    (sample_dir / "notes.txt").write_text("not a root file")
+
+    files = func.check_inputfiles(path=str(sample_dir), process="ttbar", tree="ntuple")
+
+    assert sorted(os.path.basename(f) for f in files) == ["a.root", "b.root"]
+    for f in files:
+        assert f.startswith(str(sample_dir)), f
+        assert os.path.isabs(f)
+
+
+def test_check_inputfiles_skips_empty_local_files(tmp_path, monkeypatch):
+    # A file whose tree is empty must be skipped even on the local branch.
+    def fake_empty(file_path, tree):
+        return file_path.endswith("empty.root")
+
+    monkeypatch.setattr(func, "check_for_empty_tree", fake_empty)
+    sample_dir = tmp_path / "2018" / "NICK" / "et"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "good.root").write_bytes(b"")
+    (sample_dir / "empty.root").write_bytes(b"")
+
+    files = func.check_inputfiles(path=str(sample_dir), process="dyjets", tree="ntuple")
+
+    assert [os.path.basename(f) for f in files] == ["good.root"]
+
+
+def test_check_inputfiles_uses_xrootd_branch_for_remote_paths(monkeypatch):
+    """A genuine root:// dCache path must NOT be treated as local: it goes
+    through client.FileSystem(...).dirlist with the fsname prefix stripped,
+    exactly as before (production behavior preserved)."""
+    recorded = {}
+
+    class _FakeStatus:
+        ok = True
+        message = ""
+
+    class _FakeEntry:
+        def __init__(self, name):
+            self.name = name
+
+    class _FakeFileSystem:
+        def __init__(self, url):
+            recorded["url"] = url
+
+        def dirlist(self, listed_path):
+            recorded["listed"] = listed_path
+            return _FakeStatus(), [_FakeEntry("r.root"), _FakeEntry("skip.txt")]
+
+    monkeypatch.setattr(func.client, "FileSystem", _FakeFileSystem)
+    monkeypatch.setattr(func, "check_for_empty_tree", lambda file_path, tree: False)
+
+    fsname = "root://cmsdcache-kit-disk.gridka.de/"
+    remote = fsname + "/store/user/someone/ntuples/2018/NICK/mt"
+    files = func.check_inputfiles(path=remote, process="ttbar", tree="ntuple")
+
+    assert recorded["url"] == fsname
+    assert recorded["listed"] == "/store/user/someone/ntuples/2018/NICK/mt"
+    assert files == [os.path.join(remote, "r.root")]

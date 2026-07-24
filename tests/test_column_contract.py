@@ -242,3 +242,45 @@ def test_2018_calculator_uses_btag_probe_jet_columns_once_added() -> None:
             assert actual == expected, (
                 f"{calc_cfg_path}: expected {key}={expected!r}, got {actual!r}"
             )
+
+
+def test_2018_tt_double_trigger_weight_matches_crown_ditau_sf_naming() -> None:
+    """The 2018 tt preselection di-tau trigger SF weight must reference the
+    CROWN per-leg column names for the SAME trigger the selection requires.
+
+    The tt event selection requires the ``trg_double_tau35_mediumiso`` HLT flag
+    (see ``event_selection.had_tau_pt`` and the exported
+    ``selection_contract_2018_v1.yaml``). CROWN's ``sm_btag_efficiency_config``
+    writes the matching di-tau trigger scale-factor weights as two per-leg
+    columns, ``trg_wgtdouble_tau35_mediumiso_leg1`` /
+    ``trg_wgtdouble_tau35_mediumiso_leg2`` -- NOT the ``trg_wgt_double_tau_1`` /
+    ``trg_wgt_double_tau_2`` names an earlier config-derived draft used, which
+    do not exist in the CROWN ntuple and made ``preselection.py`` abort with an
+    RDataFrame "use of undeclared identifier" error (Task 24 integration run).
+    This regression test pins the weight to the real, selection-consistent
+    columns.
+    """
+    tt_cfg_path = BTAG_EFFICIENCY_DIR / "2018" / "preselection_tt.yaml"
+    if not tt_cfg_path.is_file():
+        pytest.skip("configs/btag_efficiency/2018/preselection_tt.yaml not present")
+
+    cfg = _load_yaml(tt_cfg_path)
+    weight_expr = cfg["mc_weights"]["double_trigger"]
+    selection_expr = " ".join(str(v) for v in cfg["event_selection"].values())
+
+    # SF legs must match the required trigger flag.
+    assert "trg_double_tau35_mediumiso" in selection_expr, (
+        "expected the tt selection to require the trg_double_tau35_mediumiso flag"
+    )
+    for leg in ("trg_wgtdouble_tau35_mediumiso_leg1",
+                "trg_wgtdouble_tau35_mediumiso_leg2"):
+        assert leg in weight_expr, (
+            f"tt double_trigger weight must reference {leg} (CROWN naming), "
+            f"got: {weight_expr!r}"
+        )
+    # The phantom, never-produced draft names must be gone.
+    for phantom in ("trg_wgt_double_tau_1", "trg_wgt_double_tau_2"):
+        assert phantom not in weight_expr, (
+            f"tt double_trigger weight still references non-existent CROWN "
+            f"column {phantom!r}: {weight_expr!r}"
+        )

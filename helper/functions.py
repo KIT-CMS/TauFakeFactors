@@ -591,8 +591,32 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
     log = logging.getLogger(f"preselection.{process}")
 
     fsname = "root://cmsdcache-kit-disk.gridka.de/"
+    local_path = path.replace(fsname, "")
+
+    # Local filesystem discovery. When the resolved ntuple directory exists on
+    # the local filesystem -- e.g. a local/ceph ntuple tree, or an ntuple_path
+    # supplied via the --ntuple-path / TFF_NTUPLE_PATH override pointing at
+    # local files -- list it directly with os.listdir instead of routing the
+    # directory listing through the dCache xrootd redirector. Production dCache
+    # paths ("root://..." URLs, or /store/... paths that live only on dCache)
+    # are never local directories, so they fall through to the unchanged
+    # xrootd branch below; the file paths this function returns are still read
+    # by ROOT.TFile.Open downstream, which handles local paths and xrootd URLs
+    # transparently.
+    if not path.startswith("root://") and os.path.isdir(local_path):
+        selected_files = []
+        for name in sorted(os.listdir(local_path)):
+            if name.endswith(".root"):
+                file_path = os.path.join(local_path, name)
+                # check if file is empty
+                if check_for_empty_tree(file_path=file_path, tree=tree):
+                    log.info(f"File {name} is empty. Skipping.")
+                    continue
+                selected_files.append(file_path)
+        return selected_files
+
     xrdclient = client.FileSystem(fsname)
-    status, listing = xrdclient.dirlist(path.replace(fsname, ""))
+    status, listing = xrdclient.dirlist(local_path)
 
     if not status.ok:
         log.info(f"Error: {status.message}")

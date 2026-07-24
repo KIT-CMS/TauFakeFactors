@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Common settings for the 2018 UL (NanoAOD v15, UParT) b-tag efficiency
+# measurement. Loaded automatically by helper.functions.load_config for every
+# preselection_<channel>.yaml / btag_efficiency*.yaml in this directory.
+#
+# PORTABLE paths only: ntuple_path / output_path / file_path are RELATIVE
+# placeholders. The real runtime locations are supplied via the Task-16
+# CLI / environment overrides (--ntuple-path / --output-path / --file-path or
+# TFF_NTUPLE_PATH / TFF_OUTPUT_PATH / TFF_FILE_PATH). No literal /ceph/<user>
+# or /store/user/<user> paths are allowed here (enforced by the no-user-paths
+# test); every era from 2018 onward must stay user-path free.
+# ---------------------------------------------------------------------------
+ntuple_path: "ntuples"
+output_path: "output"
+file_path: "output"
+
+workdir_name: "btag_eff"
+
+era: "2018"
+tree: "ntuple"
+nanoAOD_version: "nanoAOD_v15"
+
+# Hadronic-tau-vs-jet working points snapshotted through preselection so the
+# downstream fake-factor / efficiency steps can re-derive the vsJet weights.
+tau_vs_jet_wps:
+  - "VVVLoose"
+  - "Medium"
+tau_vs_jet_wgt_wps:
+  - "Medium"
+
+use_embedding: false
+use_center_of_mass_bins: true
+
+# Center-of-mass energy [TeV] used for the plot labels. Run 2 (2018) is 13 TeV
+# (Run 3 is 13.6 TeV); btag_efficiency.py reads this instead of hardcoding it.
+center_of_mass: 13
+
+# ---------------------------------------------------------------------------
+# Pinned BTV UParTAK4 working-point payload (2018 UL NanoAOD v15). When set,
+# btag_efficiency.py reads UParTAK4_wp_values from this gzipped correctionlib
+# file and REQUIRES it to agree with the btag_working_points block in the
+# calculator config (both present + agree, else fatal). This is the same
+# dated CAT-metadata snapshot the bbtautau CROWN config pins.
+# ---------------------------------------------------------------------------
+btag_working_points_source: "/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run2-2018-UL-NanoAODv15/2026-06-18/btagging.json.gz"
+
+# ---------------------------------------------------------------------------
+# Strict validation gates for the b-tag efficiency payload (Task 18).
+# Bins failing either threshold are deterministically merged; the values used
+# are recorded verbatim in btag_validation_report.json.
+# ---------------------------------------------------------------------------
+validation:
+  # Minimum effective (unweighted-equivalent) population per bin:
+  #   n_eff = sumw_total^2 / sumw2_total
+  min_effective_denominator: 100
+  # Maximum allowed statistical uncertainty on the weighted efficiency.
+  max_stat_uncertainty: 0.25

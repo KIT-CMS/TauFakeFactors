@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 from dataclasses import dataclass, field
@@ -670,8 +671,16 @@ def roundtrip_check(
 
     Every ``(sample_type, working_point, flavor)`` leaf is probed at each bin
     centre and at each (in-range) lower bin edge in both pt and eta, and the
-    value returned by ``correctionlib`` is required to be *exactly* equal to the
-    efficiency stored in ``all_efficiencies``. Returns
+    value returned by ``correctionlib`` is required to match the efficiency
+    stored in ``all_efficiencies`` to within floating-point serialization
+    tolerance (``math.isclose`` with ``rel_tol=1e-9``, ``abs_tol=1e-12``).
+
+    An exact ``==`` comparison is wrong here: correctionlib serializes the
+    efficiency to JSON text and re-parses it on lookup, so a value can come back
+    differing in its last unit-in-the-last-place (~1e-16 for a float64 in
+    ``[0, 1]``). The tolerance is far tighter than any physically meaningful
+    efficiency difference, so genuine build errors (wrong bin, transposed axis,
+    stale value) still fail the gate, while pure round-off does not. Returns
     ``(ok, n_checked, mismatches)``.
     """
     import correctionlib
@@ -710,7 +719,13 @@ def roundtrip_check(
                                     float(pt_probe),
                                 )
                                 n_checked += 1
-                                if got != expected:
+                                if expected is None or got is None:
+                                    is_match = (expected is None and got is None)
+                                else:
+                                    is_match = math.isclose(
+                                        got, expected, rel_tol=1e-9, abs_tol=1e-12
+                                    )
+                                if not is_match:
                                     mismatches.append(
                                         {
                                             "sample_type": sample_type,

@@ -29,12 +29,14 @@ import argparse
 import concurrent.futures
 import copy
 import glob
+import gzip
 import json
 import logging
 import multiprocessing
 import os
 import shutil
-from typing import Dict, List, Tuple
+import subprocess
+from typing import Dict, List, Optional, Tuple
 
 import ROOT
 import matplotlib.pyplot as plt
@@ -110,6 +112,110 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 parser = build_arg_parser()
+
+
+# ---------------------------------------------------------------------------
+# B-tag working-point resolution (pinned BTV payload validation)
+# ---------------------------------------------------------------------------
+# Tolerance for comparing the payload working points against the config block.
+_WP_TOL = 1e-9
+
+# Name of the UParTAK4 working-point correction inside the BTV payload.
+WP_VALUES_CORRECTION = "UParTAK4_wp_values"
+
+
+def load_working_points_from_source(source_path: str) -> Dict[str, float]:
+    """Read ``UParTAK4_wp_values`` from a gzipped BTV correctionlib payload.
+
+    Uses only the standard library (``gzip`` + ``json``); ``correctionlib`` is
+    intentionally not needed just to read the frozen working-point cut values.
+    Walks ``corrections[name == "UParTAK4_wp_values"].data.content`` collecting
+    the ``key`` -> ``value`` pairs (e.g. ``{"L": 0.0308, "M": 0.161, ...}``).
+
+    Raises:
+        RuntimeError: The payload is missing, unreadable, or contains no
+            ``UParTAK4_wp_values`` correction.
+    """
+    try:
+        with gzip.open(source_path, "rt") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError as error:
+        raise RuntimeError(
+            f"btag_working_points_source '{source_path}' not found; cannot "
+            f"validate the configured working points against the pinned BTV payload."
+        ) from error
+    except OSError as error:
+        raise RuntimeError(
+            f"btag_working_points_source '{source_path}' could not be read as a "
+            f"gzipped correctionlib payload: {error}"
+        ) from error
+
+    for correction in payload.get("corrections", []):
+        if correction.get("name") == WP_VALUES_CORRECTION:
+            return {
+                item["key"]: float(item["value"])
+                for item in correction["data"]["content"]
+            }
+    found = [c.get("name") for c in payload.get("corrections", [])]
+    raise RuntimeError(
+        f"correction '{WP_VALUES_CORRECTION}' not found in "
+        f"btag_working_points_source '{source_path}'; found {found}."
+    )
+
+
+def resolve_working_points(config: Dict) -> Dict[str, float]:
+    """Return the validated b-tag working points for the run.
+
+    When ``btag_working_points_source`` is set in the config, the
+    ``UParTAK4_wp_values`` read from that pinned BTV payload are REQUIRED to
+    agree with the ``btag_working_points`` config block: both must be present
+    and every working point must match within :data:`_WP_TOL`, else the run is
+    aborted fatally (a silent upstream re-derivation of the discriminator cut
+    values must never slip into the efficiency payload). Without a source the
+    configured ``btag_working_points`` are returned unchanged (Run-3 behaviour).
+
+    Returns the configured working-point dict (unchanged) on success.
+
+    Raises:
+        RuntimeError: A source is set but ``btag_working_points`` is missing, or
+            the working-point sets/values disagree with the pinned payload.
+    """
+    configured = config.get("btag_working_points")
+    source = config.get("btag_working_points_source")
+    if not source:
+        return configured
+
+    if not configured:
+        raise RuntimeError(
+            "btag_working_points_source is set but no 'btag_working_points' block "
+            "is present in the config; both must be present so the configured cut "
+            "values can be validated against the pinned BTV payload."
+        )
+
+    payload_wps = load_working_points_from_source(source)
+
+    configured_keys = set(configured)
+    payload_keys = set(payload_wps)
+    if configured_keys != payload_keys:
+        raise RuntimeError(
+            f"b-tag working-point sets disagree with the pinned BTV payload "
+            f"'{source}': config has {sorted(configured_keys)}, payload has "
+            f"{sorted(payload_keys)}. Revalidate the working points before use."
+        )
+
+    mismatches = {
+        wp: (float(configured[wp]), payload_wps[wp])
+        for wp in configured
+        if abs(float(configured[wp]) - payload_wps[wp]) > _WP_TOL
+    }
+    if mismatches:
+        raise RuntimeError(
+            f"b-tag working points disagree with the pinned BTV payload '{source}' "
+            f"(config vs payload): {mismatches}. Revalidate the working points and "
+            f"update the config block before use."
+        )
+
+    return configured
 
 
 # ---------------------------------------------------------------------------
@@ -723,7 +829,8 @@ def plot_histograms_and_efficiencies(
  
     era     = config.get("era", "")
     channel = get_channel_display(config)
- 
+    center_of_mass = config.get("center_of_mass", 13.6)
+
     plot_dir = os.path.join(output_path, "plots")
     os.makedirs(plot_dir, exist_ok=True)
  
@@ -856,7 +963,7 @@ def plot_histograms_and_efficiencies(
             # Right side: channel and era (on all panels)
             ax_top.text(
                 1.00, 1.01,
-                f"({era}, 13.6 TeV)",
+                f"({era}, {center_of_mass} TeV)",
                 transform=ax_top.transAxes,
                 fontsize=9,
                 va="bottom", ha="right",
@@ -1506,6 +1613,293 @@ def publish_all_channels(provenances: List[Dict], config: Dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Provenance manifest writer
+# ---------------------------------------------------------------------------
+# Marker string every consumer of the installed payload recognises as the
+# validated production chain that produced it.
+PRODUCED_BY = "sm_btag_efficiency_config -> TauFakeFactors -> install"
+
+
+def _git_commit(repo_path: Optional[str]) -> Optional[str]:
+    """Return the ``git rev-parse HEAD`` of ``repo_path`` or ``None``.
+
+    Never raises: a missing path, a non-git directory, or a missing ``git``
+    binary all yield ``None`` so provenance writing degrades gracefully.
+    """
+    if not repo_path or not os.path.isdir(repo_path):
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", repo_path, "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return None
+    commit = result.stdout.strip()
+    return commit or None
+
+
+def _read_digest_file(path: Optional[str]) -> Optional[Dict]:
+    """Read the Task-14 ``--emit-digest`` JSON (nicks + per-sample filelist digests).
+
+    Returns the parsed digest dict, or ``None`` if no ``digest_file`` is
+    configured or the file is missing/unreadable.
+    """
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r") as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return None
+
+
+def _read_selection_contract(config_dir: Optional[str]) -> Optional[Dict]:
+    """Return ``{path, sha256}`` for the selection contract, or ``None``.
+
+    Reads ``selection_contract_2018_v1.yaml`` from the calculator config's
+    directory and returns its stored ``contract_sha256`` (the value the bbtautau
+    export script wrote); the parity test independently checks the preselection
+    matches the contract.
+    """
+    if not config_dir:
+        return None
+    contract_path = os.path.join(config_dir, "selection_contract_2018_v1.yaml")
+    if not os.path.isfile(contract_path):
+        return None
+    try:
+        with open(contract_path, "r") as handle:
+            contract = func.configured_yaml.load(handle)
+    except Exception:
+        return None
+    return {
+        "path": contract_path,
+        "contract_version": contract.get("contract_version"),
+        "sha256": contract.get("contract_sha256"),
+    }
+
+
+def _composite_weight_expression(mc_weights: Dict) -> str:
+    """Build a human-readable composite weight expression from an mc_weights block.
+
+    Mirrors preselection.py: the per-event ``weight`` is the product of every
+    mc_weights term. Terms whose value is an empty string are computed
+    internally (gen normalization, lumi) and are represented by their key name.
+    """
+    terms: List[str] = []
+    for key, value in mc_weights.items():
+        text = str(value).strip()
+        if text == "":
+            terms.append(f"<{key}>")
+        else:
+            terms.append(f"({text})")
+    return " * ".join(terms)
+
+
+def _channel_weight_expressions(config_dir: Optional[str], channels: List[str]) -> Dict[str, str]:
+    """Return ``{channel: composite weight expression}`` from the preselection configs."""
+    expressions: Dict[str, str] = {}
+    if not config_dir:
+        return expressions
+    for channel in channels:
+        presel_path = os.path.join(config_dir, f"preselection_{channel}.yaml")
+        if not os.path.isfile(presel_path):
+            continue
+        try:
+            with open(presel_path, "r") as handle:
+                presel = func.configured_yaml.load(handle)
+        except Exception:
+            continue
+        mc_weights = presel.get("mc_weights") or {}
+        expressions[channel] = _composite_weight_expression(mc_weights)
+    return expressions
+
+
+def _merge_history_from_provenances(channel_provenances: List[Dict]) -> Dict[str, Dict]:
+    """Extract binning + merge history per channel from the validation reports."""
+    history: Dict[str, Dict] = {}
+    for prov in channel_provenances or []:
+        report_path = prov.get("report_path")
+        channel = prov.get("channel")
+        if not report_path or not os.path.isfile(report_path):
+            continue
+        try:
+            with open(report_path, "r") as handle:
+                report = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        per_category: Dict[str, Dict] = {}
+        for sample_type, cats in (report.get("categories") or {}).items():
+            per_category[sample_type] = {
+                flavor: {
+                    "pt_bins_pre": entry.get("pt_bins_pre"),
+                    "pt_bins_post": entry.get("pt_bins_post"),
+                    "eta_bins_pre": entry.get("eta_bins_pre"),
+                    "eta_bins_post": entry.get("eta_bins_post"),
+                    "merge_history": entry.get("merge_history"),
+                }
+                for flavor, entry in cats.items()
+            }
+        history[channel] = per_category
+    return history
+
+
+def build_provenance_meta(
+    config: Dict,
+    *,
+    config_dir: Optional[str] = None,
+    validation_status: str = "passed",
+    channels: Optional[List[str]] = None,
+    channel_provenances: Optional[List[Dict]] = None,
+    working_points: Optional[Dict[str, float]] = None,
+    bbtautau_repo: Optional[str] = None,
+) -> Dict:
+    """Assemble the provenance metadata dict (everything except the manifest).
+
+    The returned dict carries the fields the bbtautau validated-payload gate
+    (``btag_payloads.require_validated_payload``) reads -- ``validation_status``
+    and ``produced_by`` -- plus the full production provenance: repo commits
+    (TauFakeFactors / bbtautau / sample database), production tag, sample nick +
+    filelist digests (Task-14 digest file), selection-contract checksum, the
+    per-channel composite weight expression, the binning + merge history, the
+    pinned BTV working-point payload path + sha256 and the resolved working
+    points. ``install_provenance_payload`` fills in the ``manifest`` (per-scope
+    payload sha256s) from the actually-installed files so it cannot drift.
+    """
+    if channels is None:
+        channels = get_config_channels(config)
+
+    btv_source = config.get("btag_working_points_source")
+    btv_payload = None
+    if btv_source:
+        btv_payload = {
+            "path": btv_source,
+            "sha256": bval._sha256(btv_source) if os.path.isfile(btv_source) else None,
+        }
+
+    return {
+        # -- fields the bbtautau require_validated_payload gate reads ----------
+        "validation_status": validation_status,
+        "produced_by": PRODUCED_BY,
+        # -- full production provenance ---------------------------------------
+        "era": config.get("era"),
+        "production_tag": config.get("production_tag"),
+        "repo_commits": {
+            "TauFakeFactors": _git_commit(func.TAU_FAKE_FACTORS_DIR),
+            "bbtautau": _git_commit(bbtautau_repo or config.get("bbtautau_repo")),
+            "sample_database": _git_commit(config.get("sample_database")),
+        },
+        "selection_contract": _read_selection_contract(config_dir),
+        "sample_digest": _read_digest_file(config.get("digest_file")),
+        "weight_expression": _channel_weight_expressions(config_dir, channels),
+        "binning": {
+            "jet_pt_bins": list(config.get("jet_pt_bins", [])),
+            "jet_eta_bins": list(config.get("jet_eta_bins", [])),
+        },
+        "merge_history": _merge_history_from_provenances(channel_provenances or []),
+        "btv_working_points_payload": btv_payload,
+        "working_points": dict(
+            working_points or config.get("btag_working_points") or {}
+        ),
+    }
+
+
+def install_provenance_payload(
+    scope_payload_files: Dict[str, str],
+    provenance_meta: Dict,
+    target_dir: str,
+) -> str:
+    """Atomically install per-scope payloads + ``provenance.json`` into ``target_dir``.
+
+    ``scope_payload_files`` maps each channel/scope to the correctionlib
+    ``.json.gz`` produced for it. Each is copied into a fresh staging directory
+    as ``btag_efficiency_<scope>.json.gz`` (the exact name the bbtautau gate
+    globs), its SHA256 is recorded into the ``manifest`` of a copy of
+    ``provenance_meta``, and once every file is staged the whole directory is
+    ``os.replace``-d onto ``target_dir`` (via :func:`bval._atomic_replace_dir`).
+    The manifest is computed from the staged files themselves, so a
+    ``provenance.json`` written by this function always matches the payloads it
+    ships next to -- exactly what ``require_validated_payload`` re-checks.
+
+    Returns ``target_dir`` on success; on any failure the staging directory is
+    removed and the exception propagates (no partial install).
+    """
+    tmp_dir = f"{target_dir}.tmp-{os.getpid()}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    os.makedirs(tmp_dir)
+    try:
+        manifest: Dict[str, Dict[str, str]] = {}
+        for scope, src in sorted(scope_payload_files.items()):
+            file_name = f"btag_efficiency_{scope}.json.gz"
+            dst = os.path.join(tmp_dir, file_name)
+            shutil.copy2(src, dst)
+            manifest[file_name] = {"sha256": bval._sha256(dst)}
+
+        provenance = dict(provenance_meta)
+        provenance["manifest"] = manifest
+
+        with open(os.path.join(tmp_dir, "provenance.json"), "w") as handle:
+            json.dump(provenance, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+
+        bval._atomic_replace_dir(tmp_dir, target_dir)
+    except Exception:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
+    return target_dir
+
+
+def _scope_payload_files(channel_provenances: List[Dict]) -> Dict[str, str]:
+    """Map each channel to its correctionlib ``btag_efficiency.json.gz`` output."""
+    scope_files: Dict[str, str] = {}
+    for prov in channel_provenances:
+        channel = prov["channel"]
+        for payload_file in prov.get("payload_files", []):
+            if os.path.basename(payload_file) == "btag_efficiency.json.gz":
+                scope_files[channel] = payload_file
+                break
+    return scope_files
+
+
+def write_provenance_payload(
+    provenances: List[Dict],
+    config: Dict,
+    *,
+    config_dir: Optional[str] = None,
+    working_points: Optional[Dict[str, float]] = None,
+) -> Optional[str]:
+    """Assemble + install the validated-payload provenance directory.
+
+    Gathers each channel's ``btag_efficiency.json.gz``, builds the provenance
+    metadata (:func:`build_provenance_meta`) and installs the gate-compatible
+    payload directory (per-scope ``btag_efficiency_<scope>.json.gz`` +
+    ``provenance.json``) under ``<output_base>/<workdir_name>/<era>/payload``.
+    Returns the installed directory, or ``None`` if no per-scope payloads were
+    found.
+    """
+    channels = sorted({prov["channel"] for prov in provenances})
+    scope_files = _scope_payload_files(provenances)
+    if not scope_files:
+        return None
+
+    all_passed = all(prov.get("status") == "passed" for prov in provenances)
+    meta = build_provenance_meta(
+        config,
+        config_dir=config_dir,
+        validation_status="passed" if all_passed else "failed",
+        channels=channels,
+        channel_provenances=provenances,
+        working_points=working_points,
+    )
+    target_dir = os.path.join(
+        config["output_base"], config["workdir_name"], config["era"], "payload"
+    )
+    return install_provenance_payload(scope_files, meta, target_dir)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -1536,6 +1930,15 @@ if __name__ == "__main__":
         default="workdir",
     )
 
+    # Validate the configured b-tag working points against the pinned BTV
+    # payload (fatal on any disagreement) and write the validated set back into
+    # the config so every channel run uses exactly the pinned cut values.
+    resolved_working_points = resolve_working_points(config)
+    if resolved_working_points is not None:
+        config["btag_working_points"] = resolved_working_points
+
+    config_dir = os.path.dirname(os.path.abspath(args.config_file))
+
     # Run every channel first (any fatal gate aborts the whole run before
     # anything is published -- a partial payload must never be produced).
     provenances = [
@@ -1549,3 +1952,17 @@ if __name__ == "__main__":
     # failure (e.g. a corrupted checksum on a later channel) must never leave
     # only some channels published (see publish_all_channels docstring).
     publish_all_channels(provenances, config)
+
+    # Assemble + install the validated-payload provenance directory (per-scope
+    # btag_efficiency_<scope>.json.gz + provenance.json) consumed by the
+    # bbtautau require_validated_payload gate.
+    payload_dir = write_provenance_payload(
+        provenances,
+        config,
+        config_dir=config_dir,
+        working_points=config.get("btag_working_points"),
+    )
+    if payload_dir:
+        logging.getLogger("btag_efficiency").info(
+            f"Installed validated b-tag efficiency payload + provenance to '{payload_dir}'"
+        )
