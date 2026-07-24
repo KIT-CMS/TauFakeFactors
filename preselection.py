@@ -17,33 +17,52 @@ import helper.functions as func
 import CustomLogging as logging_helper
 import helper.weights as weights
 
-parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "--config-file",
-    default=None,
-    help="Path to the config file which contains information for the preselection step.",
-)
-parser.add_argument(
-    "--nthreads",
-    default=8,
-    help="Number of threads to use for the multiprocessing pool in the preselection step. (default: 8)",
-)
-parser.add_argument(
-    "--ncores",
-    default=2,
-    help="Number of cores to use for each pool the preselection step. (default: 2)",
-)
-parser.add_argument(
-    "--disable-multiprocessing",
-    action="store_true",
-    help="Flag to disable multiprocessing for debugging purposes.",
-)
-parser.add_argument(
-    "--log-level",
-    default="INFO",
-    help="Logging level to use. (default: INFO)",
-)
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Build the command line argument parser for the preselection step."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--config-file",
+        default=None,
+        help="Path to the config file which contains information for the preselection step.",
+    )
+    parser.add_argument(
+        "--ntuple-path",
+        default=None,
+        help="Override the 'ntuple_path' config setting. Also settable via the TFF_NTUPLE_PATH "
+        "environment variable. Precedence: this CLI argument > TFF_NTUPLE_PATH > config file.",
+    )
+    parser.add_argument(
+        "--output-path",
+        default=None,
+        help="Override the 'output_path' config setting. Also settable via the TFF_OUTPUT_PATH "
+        "environment variable. Precedence: this CLI argument > TFF_OUTPUT_PATH > config file.",
+    )
+    parser.add_argument(
+        "--nthreads",
+        default=8,
+        help="Number of threads to use for the multiprocessing pool in the preselection step. (default: 8)",
+    )
+    parser.add_argument(
+        "--ncores",
+        default=2,
+        help="Number of cores to use for each pool the preselection step. (default: 2)",
+    )
+    parser.add_argument(
+        "--disable-multiprocessing",
+        action="store_true",
+        help="Flag to disable multiprocessing for debugging purposes.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Logging level to use. (default: INFO)",
+    )
+    return parser
+
+
+parser = build_arg_parser()
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"preselection.{args[0]}")
@@ -288,6 +307,17 @@ if __name__ == "__main__":
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)
+
+    # resolve path-like settings with CLI > env > config precedence, once,
+    # right after loading the config, and write them back into the config
+    # dict so that all downstream code (incl. helper.functions.get_ntuples)
+    # keeps reading config["ntuple_path"] / config["output_path"] unchanged.
+    config["ntuple_path"] = func.resolve_path_setting(
+        config=config, key="ntuple_path", cli_value=args.ntuple_path, env_var="TFF_NTUPLE_PATH"
+    )
+    config["output_path"] = func.resolve_path_setting(
+        config=config, key="output_path", cli_value=args.output_path, env_var="TFF_OUTPUT_PATH"
+    )
 
     # define output path for the preselected samples
     output_path = os.path.join(

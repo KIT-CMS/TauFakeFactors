@@ -51,31 +51,52 @@ plt.rcParams["axes.linewidth"] = 1.0 # set non bold axes lines
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
-parser = argparse.ArgumentParser(
-    description="Calculate b-tagging efficiency and write a correctionlib JSON."
-)
-parser.add_argument(
-    "--config-file",
-    required=True,
-    help="Path to the btag efficiency config YAML file.",
-)
-parser.add_argument(
-    "--log-level",
-    default="INFO",
-    help="Logging level (default: INFO).",
-)
-parser.add_argument(
-    "--workers",
-    type=int,
-    default=4,
-    help="Number of parallel worker processes for inter-sample parallelization (default: 1).",
-)
-parser.add_argument(
-    "--threads",
-    type=int,
-    default=4,
-    help="ROOT threads per worker for RDataFrame implicit MT (0 = all cores, default: 0).",
-)
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Build the command line argument parser for the btag efficiency calculator."""
+    parser = argparse.ArgumentParser(
+        description="Calculate b-tagging efficiency and write a correctionlib JSON."
+    )
+    parser.add_argument(
+        "--config-file",
+        required=True,
+        help="Path to the btag efficiency config YAML file.",
+    )
+    parser.add_argument(
+        "--file-path",
+        default=None,
+        help="Override the 'file_path' config setting (input preselection directory). Also "
+        "settable via the TFF_FILE_PATH environment variable. Precedence: this CLI argument "
+        "> TFF_FILE_PATH > config file.",
+    )
+    parser.add_argument(
+        "--output-path",
+        default=None,
+        help="Override the 'output_base' config setting (base directory for calculator "
+        "outputs, replacing the literal 'workdir'; default: 'workdir'). Also settable via "
+        "the TFF_OUTPUT_PATH environment variable. Precedence: this CLI argument > "
+        "TFF_OUTPUT_PATH > config file > default.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Logging level (default: INFO).",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of parallel worker processes for inter-sample parallelization (default: 1).",
+    )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=4,
+        help="ROOT threads per worker for RDataFrame implicit MT (0 = all cores, default: 0).",
+    )
+    return parser
+
+
+parser = build_arg_parser()
 
 
 # ---------------------------------------------------------------------------
@@ -862,7 +883,7 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
     channel = get_channel_label(config)
 
     output_path = os.path.join(
-        "workdir", config["workdir_name"], config["era"], f"{channel}",
+        config["output_base"], config["workdir_name"], config["era"], f"{channel}",
     )
     func.check_path(output_path)
 
@@ -986,5 +1007,23 @@ if __name__ == "__main__":
     logging_helper.LOG_LEVEL = getattr(logging, args.log_level.upper(), logging.INFO)
 
     config = func.load_config(args.config_file)
+
+    # resolve path-like settings with CLI > env > config (> default)
+    # precedence, once, right after loading the config, and write them back
+    # into the config dict so that all downstream code (get_process_files(),
+    # run_for_channel(), etc.) keeps reading config["file_path"] /
+    # config["output_base"] unchanged. get_channel_configs() deep-copies this
+    # config per channel, so the resolved values propagate to every channel.
+    config["file_path"] = func.resolve_path_setting(
+        config=config, key="file_path", cli_value=args.file_path, env_var="TFF_FILE_PATH"
+    )
+    config["output_base"] = func.resolve_path_setting(
+        config=config,
+        key="output_base",
+        cli_value=args.output_path,
+        env_var="TFF_OUTPUT_PATH",
+        default="workdir",
+    )
+
     for channel_config in get_channel_configs(config):
         run_for_channel(channel_config, args)

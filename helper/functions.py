@@ -466,6 +466,70 @@ def load_config(config_file: str) -> Dict:
     return config
 
 
+class MissingPathSettingError(KeyError):
+    """
+    Raised by resolve_path_setting() when a path-like setting is not provided
+    by the CLI argument, the environment variable, the config file, or a
+    default value.
+    """
+
+
+def resolve_path_setting(
+    config: Dict,
+    key: str,
+    cli_value: Union[str, None],
+    env_var: str,
+    default: Union[str, None] = None,
+) -> str:
+    """
+    Resolve a path-like configuration setting from multiple sources.
+
+    The precedence, from highest to lowest, is:
+        1. cli_value: an explicit CLI argument (e.g. --ntuple-path)
+        2. the environment variable named by env_var (e.g. TFF_NTUPLE_PATH)
+        3. config[key]: the value loaded from the YAML config file
+        4. default, if one is given
+
+    This is a pure function: it neither reads nor modifies the environment
+    or the config dict. Callers are expected to write the resolved value
+    back into the config dict themselves (e.g. right after load_config()),
+    so that all downstream code can keep reading config[key] unchanged.
+
+    Args:
+        config: Loaded configuration dictionary (only read, never modified).
+        key: Config key the setting corresponds to, e.g. "ntuple_path".
+        cli_value: Value of the corresponding CLI argument, or None/empty if not given.
+        env_var: Name of the environment variable to check, e.g. "TFF_NTUPLE_PATH".
+        default: Value to fall back to if none of the above are set (default: None).
+
+    Return:
+        The resolved setting as a string.
+
+    Raises:
+        MissingPathSettingError: If no value is set via the CLI argument, the
+            environment variable, the config file, or a default.
+    """
+    if cli_value:
+        return cli_value
+
+    env_value = os.environ.get(env_var)
+    if env_value:
+        return env_value
+
+    config_value = config.get(key)
+    if config_value:
+        return config_value
+
+    if default is not None:
+        return default
+
+    raise MissingPathSettingError(
+        f"No value set for path setting '{key}'. Set one of: the corresponding "
+        f"command line argument, the environment variable '{env_var}', or the "
+        f"'{key}' key in the config file."
+    )
+
+
 def check_path(path: str) -> None:
     """
     This function checks if a given path exist. If not, this path is created.
