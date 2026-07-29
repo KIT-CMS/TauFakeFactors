@@ -24,9 +24,16 @@ processes:
             - "T"
             - "L"
         samples:
-            - WW_TuneCP5_13p6TeV_pythia8_Run3Summer22NanoAODv12-130X
-            - WZ_TuneCP5_13p6TeV_pythia8_Run3Summer22NanoAODv12-130X
-            - ZZ_TuneCP5_13p6TeV_pythia8_Run3Summer22NanoAODv12-130X
+            - WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - WWto4Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - WZtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - ZZto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
+            - ZZto4L_TuneCP5_13p6TeV_powheg-pythia8_Run3Summer22NanoAODv12-130X
 
     ttbar:
         tau_gen_modes:
@@ -81,7 +88,7 @@ column_definitions:
     njets:
         expression: n_jets
     btag_weight:
-        expression: id_wgt_bjet_pnet_shape
+        expression: id_wgt_bjet
         exclude_processes:
             - data
     jj_deltaR:

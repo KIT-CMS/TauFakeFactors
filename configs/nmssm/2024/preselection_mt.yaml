@@ -28,9 +28,16 @@ processes:
             - "T"
             - "L"
         samples:
-            - "WW_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
-            - "WZ_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
-            - "ZZ_TuneCP5_13p6TeV_pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WWto4Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "WZtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "ZZto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
+            - "ZZto4L_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15-150X"
 
     ttbar:
         tau_gen_modes:
@@ -128,7 +135,7 @@ mc_weights:
     lumi: ""
     Z_pt_reweighting: "ZPtMassReweightWeight"
     Top_pt_reweighting: "topPtReweightWeight"
-    ttbar_norm_weight: "1.0"  # TODO update
+    ttbar_norm_weight: "0.90"
 
 output_features:
     - "weight" # this is always needed
