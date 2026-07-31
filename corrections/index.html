@@ -691,10 +691,37 @@ Each target process needs some specifications:</p>
 <td><code>dict</code></td>
 <td>event selections for a switch from the determination region to the signal/application region, this is only relevant for <code>DR_SR</code> corrections</td>
 </tr>
+</tbody>
+</table>
+<p>For the DR to SR correction some special parameters can be set. These have to be set as parameters of the <code>DR_SR</code> parameter:</p>
+<table>
+<thead>
+<tr>
+<th>parameter</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td><code>non_closure</code></td>
 <td><code>dict</code></td>
-<td>this is only relevant for <code>DR_SR</code> corrections, since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction.</td>
+<td>since for this corrections additional fake factors are calculated. It's possible to calculated and apply non closure corrections to these fake factors before calculating the actual DR to SR correction. This parameter can be set up as discribe for non closure corrections above.</td>
+</tr>
+<tr>
+<td><code>use_embedding</code></td>
+<td><code>bool</code></td>
+<td>by setting this parameter for the <code>DR_SR</code> correction it overwrites the same parameter that is set in <code>common_settings.yaml</code>. This can be used to switch between embedding and MC only for this one <code>DR_SR</code> correction. e.g. this was historically done for QCD because in the anti isolated region the modeling of embedding is bad.</td>
+</tr>
+<tr>
+<td><code>use_orthogonal_fake_factors</code></td>
+<td><code>bool</code></td>
+<td>if set to <code>true</code> new fake factors are calculated in an separate region and also used to calculate the <code>DR_SR</code> correction. If <code>false</code> the already calculated fake factors in the previous calculation step are used.</td>
+</tr>
+<tr>
+<td><code>compute_orthogonal_fake_factors_using_data</code></td>
+<td><code>bool</code></td>
+<td>this parameter defines if the <code>DR_SR</code> correction should be calculated on data or on MC only. e.g. this is historically used for W+jets because there is no good additional control region, therefore, the region is extended to the signal region and the <code>DR_SR</code> correction is calculated only using W+jets MC.</td>
 </tr>
 </tbody>
 </table>
