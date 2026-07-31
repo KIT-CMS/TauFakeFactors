@@ -14,6 +14,7 @@ target_processes:
       var_dependence_n_bins: [15, 10]
 
     SRlike_cuts:
+      region_mask: ff_qcd_SRlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 50)
@@ -24,6 +25,7 @@ target_processes:
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5)
 
     ARlike_cuts:
+      region_mask: ff_qcd_ARlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 50)
@@ -53,6 +55,7 @@ target_processes:
       var_dependence_n_bins: [30, 25]
 
     SRlike_cuts:
+      region_mask: ff_wjets_SRlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 >= 70)
@@ -62,6 +65,7 @@ target_processes:
       # -------------------------------------------
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5)
     ARlike_cuts:
+      region_mask: ff_wjets_ARlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 >= 70)
@@ -91,6 +95,7 @@ target_processes:
       var_dependence_n_bins: 10
 
     SR_cuts:
+      region_mask: ff_ttbar_SR  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
@@ -101,6 +106,7 @@ target_processes:
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5)
 
     AR_cuts:
+      region_mask: ff_ttbar_AR  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
@@ -111,6 +117,7 @@ target_processes:
       no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5)
 
     SRlike_cuts:
+      region_mask: ff_ttbar_SRlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
@@ -121,6 +128,7 @@ target_processes:
       no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5))"
 
     ARlike_cuts:
+      region_mask: ff_ttbar_ARlike  # CROWN selection mask branch
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
@@ -151,6 +159,7 @@ process_fractions:
     var_dependence_n_bins: [30, 25, 20]
 
   SR_cuts:
+    region_mask: ff_fraction_SR  # CROWN selection mask branch
     had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
     # -------------------------------------------
     lep_mt: (mt_1 < 70)
@@ -160,6 +169,7 @@ process_fractions:
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto< 0.5)
   AR_cuts:
+    region_mask: ff_fraction_AR  # CROWN selection mask branch
     had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
     # -------------------------------------------
     lep_mt: (mt_1 < 70)
