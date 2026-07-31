@@ -764,6 +764,67 @@ def fill_corrlib_expression(
     return results
 
 
+def apply_selection_dependent_weights(
+    rdf: Any,
+    channel: str,
+    sample: str,
+    cuts: Dict[str, str],
+    logger: Union[str, None] = None,
+) -> Any:
+    """
+    Applies the event weights which depend on the applied event selection, namely the tau ID
+    vs jet scale factors and (for boosted tau analyses) the boosted tau isolation scale factors.
+    Which weight is applied is deduced from the names and cut strings of the region cuts, so
+    this has to run regardless of whether the events are afterwards selected with the legacy
+    cut strings or with a precomputed CROWN selection mask.
+
+    Args:
+        rdf: root DataFrame object
+        channel: Analysis channel of the tau analysis e.g. "et", "mt" or "tt"
+        sample: Name of the sample/process of the "rdf", needed to prevent weight application to data
+        cuts: Dictionary of all cuts of the region (region cuts and category splitting cuts)
+        logger: Logger name for logging purposes
+
+    Return:
+        root DataFrame with the selection dependent weights applied
+    """
+    log = logging.getLogger(logger) if logger is not None else logging.getLogger(__name__)
+
+    for cut, cut_string in func.cut_items(cuts):
+        if cut in ["nbtag", "bb_selection"]:
+            continue
+
+        if "had_tau_id_vs_jet" in cut:
+            wps = get_wps(cut_string=cut_string)
+            try:
+                idx = cut.rsplit("_")[5]
+            except Exception:
+                idx = None
+            if sample not in ["data"]:
+                log.debug(f"Applying tau id vs jet weight for '{cut}' (wps: {wps}, idx: {idx})")
+                rdf = weights.apply_tau_id_vsJet_weight(
+                    rdf=rdf, channel=channel, wps=wps, idx=idx
+                )
+
+        elif "had_boostedtau_id_iso" in cut:  # only relevant for an analysis with boosted tau pairs
+            wp = get_wps(cut_string=cut_string)
+            try:
+                idx = cut.rsplit("_")[4]
+            except Exception:
+                idx = None
+            if sample not in ["data"]:
+                log.debug(f"Applying boosted tau id iso weight for '{cut}' (wp: {wp}, idx: {idx})")
+                rdf = weights.apply_boostedtau_id_iso_weight(
+                    rdf=rdf,
+                    channel=channel,
+                    cut_string=cut_string,
+                    wp=wp,
+                    idx=idx,
+                )
+
+    return rdf
+
+
 @cache_rdf_snapshot(cache_dir=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".RDF_CACHE"))
 def apply_region_filters(
     rdf: Any,
@@ -798,40 +859,15 @@ def apply_region_filters(
                 tmp[cut] = f"(({cut} {a}) {op} ({cut} {b}))"
     sum_cuts = {**tmp, **region_cuts}
 
-    for cut in sum_cuts:
+    # weights depending on the full event selection; must run independently of how the events
+    # are selected afterwards (legacy cut strings or CROWN selection mask)
+    rdf = apply_selection_dependent_weights(
+        rdf=rdf, channel=channel, sample=sample, cuts=sum_cuts, logger=logger
+    )
+
+    for cut, cut_string in func.cut_items(sum_cuts):
         if cut not in ["nbtag", "bb_selection"]:
-            if "had_tau_id_vs_jet" in cut:
-                wps = get_wps(cut_string=sum_cuts[cut])
-                try:
-                    idx = cut.rsplit("_")[5]
-                except:
-                    idx = None
-                if sample not in ["data"]:
-                    rdf = weights.apply_tau_id_vsJet_weight(
-                        rdf=rdf, channel=channel, wps=wps, idx=idx
-                    )
-                rdf = rdf.Filter(f"({sum_cuts[cut]})", f"cut on {cut}")
-
-            elif (
-                "had_boostedtau_id_iso" in cut
-            ):  # this is only relevant for an analysis with boosted tau pairs
-                wp = get_wps(cut_string=sum_cuts[cut])
-                try:
-                    idx = cut.rsplit("_")[4]
-                except:
-                    idx = None
-                if sample not in ["data"]:
-                    rdf = weights.apply_boostedtau_id_iso_weight(
-                        rdf=rdf,
-                        channel=channel,
-                        cut_string=sum_cuts[cut],
-                        wp=wp,
-                        idx=idx,
-                    )
-                rdf = rdf.Filter(f"({sum_cuts[cut]})", f"cut on {cut}")
-
-            else:
-                rdf = rdf.Filter(f"({sum_cuts[cut]})", f"cut on {cut}")
+            rdf = rdf.Filter(f"({cut_string})", f"cut on {cut}")
     # cut on number of b-tagged jets needs to be the last cut to do an on-the-fly calculation of the b-tagger weight
     # outdated since now we calculate efficiencies and the btag weight is just a weight to be applied per sample as it is 
     # if "nbtag" in sum_cuts.keys():

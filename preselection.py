@@ -282,6 +282,8 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
+    func.RuntimeVariables.USE_REGION_MASKS = config.get("use_region_masks", True)
+
     # define output path for the preselected samples
     output_path = os.path.join(
         config["output_path"], "preselection", config["era"], config["channel"]

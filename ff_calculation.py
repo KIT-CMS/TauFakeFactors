@@ -180,6 +180,8 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
+    func.RuntimeVariables.USE_REGION_MASKS = config.get("use_region_masks", True)
+
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
     save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])

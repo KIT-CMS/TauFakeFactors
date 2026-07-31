@@ -12,7 +12,7 @@ import os
 import re
 import sys
 from decimal import Decimal
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Tuple, Union
 import pathlib
 
 import numpy as np
@@ -167,6 +167,44 @@ class ConfiguredYAML(YAML):
 configured_yaml = ConfiguredYAML()
 
 
+# ---------------------------------------------------------------------------------------
+# CROWN selection masks
+#
+# Region definitions are duplicated between CROWN (boolean mask branches on the ntuples)
+# and the cut dictionaries of the fake factor / correction configs. If a region cut dict
+# carries a 'region_mask' key naming a CROWN mask branch, and that branch is present on the
+# input ntuple, the whole region is selected with a single filter on the mask instead of
+# re-applying the individual cut strings.
+#
+# The key deliberately lives INSIDE the region cut dictionary (as opposed to a sibling key
+# next to it) so that it travels with the dict through copy.deepcopy, modify_config and the
+# @cache_rdf_snapshot cache key without touching any of the ~28 apply_region_filters call
+# sites. Every consumer that iterates over cut dictionaries must skip NON_CUT_KEYS.
+# ---------------------------------------------------------------------------------------
+REGION_MASK_KEY = "region_mask"
+REGION_MASK_SRLIKE_KEY = "region_mask_SRlike"
+REGION_MASK_ARLIKE_KEY = "region_mask_ARlike"
+NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY})
+
+PRESELECTION_MASK = "presel_mask"
+
+
+def cut_items(cuts: Dict[str, str]) -> Iterator[Tuple[str, str]]:
+    """
+    Iterate over the actual cut entries of a cut dictionary, skipping bookkeeping keys
+    such as 'region_mask'.
+
+    Args:
+        cuts: Dictionary of cut name to cut string
+
+    Yields:
+        (cut name, cut string) tuples of real cuts
+    """
+    for name, expression in cuts.items():
+        if name not in NON_CUT_KEYS:
+            yield name, expression
+
+
 class RuntimeVariables(object):
     """
     A singleton-like container class holding variables that can be adjusted at runtime.
@@ -181,6 +219,11 @@ class RuntimeVariables(object):
     USE_MULTIPROCESSING = True
     USE_CACHED_INTERMEDIATE_STEPS = False
     RDataFrameWrapper = PassThroughWrapper
+
+    # Global opt-out for the CROWN selection masks ('use_region_masks: false' in
+    # common_settings.yaml). If False, regions are always selected with the legacy cut
+    # strings, even when the mask branches are available. Used for A/B validation.
+    USE_REGION_MASKS = True
 
     SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
     SKIP_CORRECTIONS_P_VALUE = 0.05
@@ -841,9 +884,29 @@ def modify_config(
             ][mod]
     if "AR_SR_cuts" in corr_config and to_AR_SR:
         for mod in corr_config["AR_SR_cuts"]:
+            # the variant specific selection mask keys are resolved separately below
+            if mod in (REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY):
+                continue
             config["target_processes"][process]["ARlike_cuts"][mod] = corr_config[
                 "AR_SR_cuts"
             ][mod]
             config["target_processes"][process]["SRlike_cuts"][mod] = corr_config[
                 "AR_SR_cuts"
             ][mod]
+
+        # AR_SR_cuts replaces both the SRlike and the ARlike variant of a region, but each
+        # variant needs its own CROWN mask branch. Therefore the correction config carries
+        # 'region_mask_SRlike'/'region_mask_ARlike' (a plain 'region_mask' is applied to both).
+        for variant, variant_key in (
+            ("SRlike_cuts", REGION_MASK_SRLIKE_KEY),
+            ("ARlike_cuts", REGION_MASK_ARLIKE_KEY),
+        ):
+            mask = corr_config["AR_SR_cuts"].get(
+                variant_key, corr_config["AR_SR_cuts"].get(REGION_MASK_KEY, None)
+            )
+            if mask is not None:
+                config["target_processes"][process][variant][REGION_MASK_KEY] = mask
+            else:
+                # no AR_SR mask defined -> drop any inherited mask so that the (correct)
+                # legacy cut string path is used for this region
+                config["target_processes"][process][variant].pop(REGION_MASK_KEY, None)
