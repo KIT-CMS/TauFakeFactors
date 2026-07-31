@@ -268,10 +268,14 @@ target_processes:
 
 
       SRlike_cuts:
+        region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
         lep_iso: "(iso_1 >= 0.15)"
       ARlike_cuts:
+        region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
         lep_iso: "(iso_1 >= 0.15)"
       AR_SR_cuts:
+        region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
@@ -393,10 +397,14 @@ target_processes:
         ">=2": [0.0, 21.6, 31.37, 39.43, 46.76, 53.64, 60.49, 67.3, 74.4, 81.78, 89.58, 97.88, 107.43, 118.48, 132.16, 150.0]
 
       SRlike_cuts:
+        region_mask: ff_wjets_DR_SR_SRlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
       ARlike_cuts:
+        region_mask: ff_wjets_DR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
       AR_SR_cuts:
+        region_mask_SRlike: ff_wjets_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_wjets_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
 

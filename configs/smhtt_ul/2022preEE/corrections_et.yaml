@@ -144,16 +144,20 @@ target_processes:
 
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 50)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.02) && (iso_1 <= 0.15)))"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 50)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.02) && (iso_1 <= 0.15)))"
       AR_SR_cuts:
+        region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
@@ -200,16 +204,20 @@ target_processes:
         ">=1": [0.0, 14.46, 20.47, 24.8, 28.73, 32.07, 35.35, 38.45, 41.16, 44.35, 47.19, 50.29, 53.12, 56.43, 59.76, 63.09, 66.7, 71.11, 75.68, 80.26, 85.94, 92.99, 100.21, 110.7, 126.6, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_wjets_DR_SR_SRlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: (iso_1 >= 0.02) && (iso_1 <= 0.15)
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_wjets_DR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: (iso_1 >= 0.02) && (iso_1 <= 0.15)
       AR_SR_cuts:
+        region_mask_SRlike: ff_wjets_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_wjets_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)

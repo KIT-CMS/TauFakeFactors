@@ -144,16 +144,20 @@ target_processes:
         ">=1": [0.0, 27.0, 36.58, 44.52, 51.87, 59.79, 68.14, 78.89, 91.93, 111.0, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 50)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 50)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
       AR_SR_cuts:
+        region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
@@ -200,16 +204,20 @@ target_processes:
         ">=1": [0.0, 15.94, 22.11, 26.82, 30.69, 34.16, 37.22, 40.22, 43.1, 46.08, 48.93, 51.82, 55.01, 58.09, 61.29, 64.94, 68.56, 72.8, 77.22, 82.43, 88.49, 95.84, 104.59, 115.72, 129.56, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_wjets_DR_SR_SRlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+        region_mask: ff_wjets_DR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: ((iso_1 >= 0.0) && (iso_1 <= 0.15))
       AR_SR_cuts:
+        region_mask_SRlike: ff_wjets_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_wjets_AR_SR_ARlike  # CROWN selection mask branch
         lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
