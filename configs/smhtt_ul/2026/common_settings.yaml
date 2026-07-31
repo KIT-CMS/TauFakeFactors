@@ -1,13 +1,13 @@
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260602_2022-23_v5/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260602_2024-25_v5/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
 output_path: "/ceph/sgiappic/CMS_FF/260602/"
 #friends: 
 file_path: "/ceph/sgiappic/CMS_FF/260602/"
 
 workdir_name: htt_260602
 
-era: '2022'
+era: '2026'
 tree: ntuple
-nanoAOD_version: "nanoAOD_v12"
+nanoAOD_version: "nanoAOD_v15"
 sample_database: "/work/sgiappic/TauKITFlow/datasets"
 
 tau_vs_jet_wps:

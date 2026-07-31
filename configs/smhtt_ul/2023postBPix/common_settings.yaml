@@ -8,6 +8,7 @@ workdir_name: htt_260602
 era: '2023postBPix'
 tree: ntuple
 nanoAOD_version: "nanoAOD_v12"
+sample_database: "/work/sgiappic/TauKITFlow/datasets"
 
 tau_vs_jet_wps:
   - VVVLoose

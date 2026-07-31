@@ -2,6 +2,7 @@ ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/nshadskiy/CROWN/nt
 tree: "ntuple"
 era: "2018"
 nanoAOD_version: "nanoAOD_v9"
+sample_database: "/work/sgiappic/TauKITFlow/datasets"
 
 tau_iso_wps: 
     - "Loose"

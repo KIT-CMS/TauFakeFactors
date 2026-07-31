@@ -3,6 +3,7 @@ friends: ["fastmtt_v2"]
 tree: "ntuple"
 era: "2018"
 nanoAOD_version: "nanoAOD_v9"
+sample_database: "/work/sgiappic/TauKITFlow/datasets"
 
 tau_vs_jet_wps: 
     - "VVVLoose"

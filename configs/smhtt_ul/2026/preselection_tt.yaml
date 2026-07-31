@@ -43,13 +43,9 @@ processes:
     - all
   data:
     samples:
-    - Tau_Run2025C-PromptReco-v1
-    - Tau_Run2025C-PromptReco-v2
-    - Tau_Run2025D-PromptReco-v1
-    - Tau_Run2025E-PromptReco-v1
-    - Tau_Run2025F-PromptReco-v1
-    - Tau_Run2025F-PromptReco-v2
-    - Tau_Run2025G-PromptReco-v1
+    - Tau_Run2026B-PromptReco-v1
+    - Tau_Run2026C-PromptReco-v1
+    - Tau_Run2026D-PromptReco-v1
     tau_gen_modes:
     - all
   diboson:

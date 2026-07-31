@@ -8,6 +8,7 @@ workdir_name: test_v1
 era: '2018'
 tree: ntuple
 nanoAOD_version: "nanoAOD_v9"
+sample_database: "/work/sgiappic/TauKITFlow/datasets"
 
 tau_vs_jet_wps:
   - VVLoose
