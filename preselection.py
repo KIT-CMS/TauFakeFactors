@@ -46,6 +46,43 @@ parser.add_argument(
 )
 
 
+def resolve_output_features(
+    rdf: "ROOT.RDataFrame",
+    output_features: List[str],
+    log: logging.Logger,
+) -> List[str]:
+    """
+    Checks the requested output features against the columns actually available on a data frame.
+
+    Missing physics columns are a hard error, as before. Missing CROWN selection mask columns
+    (presel_mask, sel_os/sel_ss, ff_*) are only warned about and dropped, so that configs which
+    already request the masks can still be run on older n-tuples which do not contain them.
+
+    Args:
+        rdf: root DataFrame that is going to be snapshotted
+        output_features: Requested output columns
+        log: Logger to report dropped columns
+
+    Return:
+        The list of output features that are actually available
+    """
+    available = {str(x).replace("ntuple.", "") for x in rdf.GetColumnNames()}
+    missing = [x for x in output_features if x not in available]
+
+    droppable = [x for x in missing if func.is_selection_mask_column(x)]
+    required = [x for x in missing if x not in droppable]
+
+    if required:
+        raise ValueError(f"Missing columns: {required}")
+    if droppable:
+        log.warning(
+            f"The following CROWN selection mask columns are not available on the input "
+            f"n-tuple and are dropped from the output: {droppable}"
+        )
+
+    return [x for x in output_features if x not in droppable]
+
+
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"preselection.{args[0]}")
 def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], int, str, str]) -> Tuple[str, str]:
     """
@@ -92,10 +129,25 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if column_definitions:
         rdf = func.define_columns(rdf, column_definitions, process)
 
-    # apply analysis specific event filters
+    # apply analysis specific event filters, either via the precomputed CROWN preselection
+    # mask branch or, if that is not available, via the individual cut strings
     selection_conf = config["event_selection"]
-    for cut in selection_conf:
-        rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
+    available_columns = {str(x).replace("ntuple.", "") for x in rdf.GetColumnNames()}
+
+    if not func.RuntimeVariables.USE_REGION_MASKS:
+        use_presel_mask, reason = False, "selection masks disabled via 'use_region_masks: false'"
+    elif func.PRESELECTION_MASK not in available_columns:
+        use_presel_mask, reason = False, f"'{func.PRESELECTION_MASK}' branch not available on the input n-tuple"
+    else:
+        use_presel_mask, reason = True, f"'{func.PRESELECTION_MASK}' branch available"
+
+    if use_presel_mask:
+        log.info(f"Applying the event selection with the CROWN preselection mask ({reason}).")
+        rdf = rdf.Filter(f"({func.PRESELECTION_MASK}) > 0.5", "cut on presel_mask")
+    else:
+        log.info(f"Applying the event selection with cut strings ({reason}).")
+        for cut in selection_conf:
+            rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
 
     if process == "embedding":
         rdf = filters.emb_tau_gen_match(rdf=rdf, channel=config["channel"])
@@ -191,13 +243,11 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     # check for empty data frame -> only save/calculate if event number is not zero
     if tmp_rdf.Count().GetValue() != 0:
         log.info(f"The current data frame will be saved to {tmp_file_name}")
-        cols = tmp_rdf.GetColumnNames()
-        cols_with_friends = [str(x).replace("ntuple.", "") for x in cols]
-        missing_cols = [x for x in output_features if x not in cols_with_friends]
-        if len(missing_cols) != 0:
-            raise ValueError(f"Missing columns: {missing_cols}")
+        features = resolve_output_features(
+            rdf=tmp_rdf, output_features=output_features, log=log
+        )
 
-        tmp_rdf.Snapshot(config["tree"], tmp_file_name, output_features)
+        tmp_rdf.Snapshot(config["tree"], tmp_file_name, features)
         log.info("-" * 50)
     else:
         log.info("No events left after filters. Data frame will not be saved.")
@@ -255,7 +305,11 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
             log.info(
                 f"The processed files for the {process} process are concatenated. The data frame will be saved to {out_file_name}"
             )
-            sum_rdf.Snapshot(config["tree"], out_file_name, output_features)
+            sum_rdf.Snapshot(
+                config["tree"],
+                out_file_name,
+                resolve_output_features(rdf=sum_rdf, output_features=output_features, log=log),
+            )
             log.info("-" * 50)
         else:
             log.info(

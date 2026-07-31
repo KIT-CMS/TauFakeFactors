@@ -187,6 +187,23 @@ REGION_MASK_ARLIKE_KEY = "region_mask_ARlike"
 NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY})
 
 PRESELECTION_MASK = "presel_mask"
+SELECTION_MASK_NAMES = frozenset({PRESELECTION_MASK, "sel_os", "sel_ss"})
+SELECTION_MASK_PREFIXES = ("ff_",)
+
+
+def is_selection_mask_column(name: str) -> bool:
+    """
+    Checks whether a column name refers to a CROWN selection mask branch. Such columns are
+    optional: they are only present on n-tuples produced after the selection masks were
+    introduced, and requesting them on older n-tuples must not be a hard error.
+
+    Args:
+        name: Column/branch name
+
+    Return:
+        True if the name refers to a selection mask branch
+    """
+    return name in SELECTION_MASK_NAMES or name.startswith(SELECTION_MASK_PREFIXES)
 
 
 def cut_items(cuts: Dict[str, str]) -> Iterator[Tuple[str, str]]:
