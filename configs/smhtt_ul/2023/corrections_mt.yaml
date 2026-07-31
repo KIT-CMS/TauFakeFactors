@@ -277,17 +277,14 @@ target_processes:
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         lep_mt: (mt_1 < 70)
-        nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(iso_1 >= 0.15)"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         lep_mt: (mt_1 < 70)
-        nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(iso_1 >= 0.15)"
       AR_SR_cuts:
         lep_mt: (mt_1 < 70)
-        nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: "(iso_1 >= 0.15)"
 
@@ -407,17 +404,20 @@ target_processes:
         ">=2": [0.0, 21.3, 31.43, 39.7, 47.43, 54.59, 61.68, 68.63, 75.75, 83.17, 90.79, 99.31, 108.97, 120.07, 132.94, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: (iso_1 < 0.15)
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
+      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
         lep_mt: (mt_1 > 0)
         nbtag: (nbtag == 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: (iso_1 < 0.15)
       AR_SR_cuts:
         lep_mt: (mt_1 < 70)
+      # NOT vacuous: overrides the base Wjets (nbtag == 0), i.e. removes the b-veto
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: (iso_1 < 0.15)

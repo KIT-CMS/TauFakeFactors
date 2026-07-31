@@ -273,7 +273,6 @@ target_processes:
         lep_iso: "(iso_1 >= 0.15)"
       AR_SR_cuts:
         lep_mt: (mt_1 < 70)
-        nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) < 0)
         lep_iso: "(iso_1 >= 0.15)"
       # non_closure:
@@ -393,11 +392,14 @@ target_processes:
         ">=2": [0.0, 22.64, 32.72, 41.41, 49.38, 56.77, 64.07, 71.23, 78.54, 85.97, 93.86, 102.29, 111.61, 122.6, 135.03, 150.0]
 
       SRlike_cuts:
+      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
         lep_mt: (mt_1 > 0)
       ARlike_cuts:
+      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
         lep_mt: (mt_1 > 0)
       AR_SR_cuts:
         lep_mt: (mt_1 < 70)
+      # NOT vacuous: overrides the base Wjets (nbtag == 0), i.e. removes the b-veto
         nbtag: (nbtag >= 0)
 
       # non_closure:
