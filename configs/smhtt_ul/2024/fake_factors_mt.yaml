@@ -107,7 +107,7 @@ target_processes:
       had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 0)
+      nbtag: (nbtag >= 1)
       tau_pair_sign: ((q_1*q_2) < 0)
       lep_iso: (iso_1 < 0.15)
       # -------------------------------------------
@@ -118,7 +118,7 @@ target_processes:
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 0)
+      nbtag: (nbtag >= 1)
       tau_pair_sign: ((q_1*q_2) < 0)
       lep_iso: (iso_1 < 0.15)
       # -------------------------------------------
@@ -129,7 +129,7 @@ target_processes:
       had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 0)
+      nbtag: (nbtag >= 1)
       tau_pair_sign: ((q_1*q_2) < 0)
       lep_iso: (iso_1 < 0.15)
       # -------------------------------------------
@@ -140,7 +140,7 @@ target_processes:
       had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
       # -------------------------------------------
       lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 0)
+      nbtag: (nbtag >= 1)
       tau_pair_sign: ((q_1*q_2) < 0)
       lep_iso: (iso_1 < 0.15)
       # -------------------------------------------
