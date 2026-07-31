@@ -375,7 +375,7 @@ if __name__ == "__main__":
         # Apply local cuts
         merged_cuts.update(var_config.get(f"{args.cut_region}_cuts", {}))
 
-        return " & ".join(f"({c})" for c in merged_cuts.values())
+        return " & ".join(f"({c})" for _, c in func.cut_items(merged_cuts))
 
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
@@ -385,12 +385,12 @@ if __name__ == "__main__":
                 console.print(f"[red]Block {process} not found in config. Skipping.[/red]")
                 continue
             process_config = config[process]
-            cuts = " & ".join(f"({c})" for c in process_config["AR_cuts"].values())
+            cuts = " & ".join(f"({c})" for _, c in func.cut_items(process_config["AR_cuts"]))
             console.print(f"Using AR cuts for {process}.")
         elif process in config.get("target_processes", {}):
             process_config = config["target_processes"][process]
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
-            cuts = " & ".join(f"({c})" for c in cuts_source[f"{args.cut_region}_cuts"].values())
+            cuts = " & ".join(f"({c})" for _, c in func.cut_items(cuts_source[f"{args.cut_region}_cuts"]))
         else:
             console.print(f"[red]Process '{process}' not found in config. Skipping.[/red]")
             continue
