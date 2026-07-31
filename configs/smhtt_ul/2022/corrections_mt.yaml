@@ -276,12 +276,12 @@ target_processes:
         ">=2": [0.0, 20.91, 29.69, 37.27, 44.86, 49.7, 55.08, 61.79, 67.77, 74.16, 79.78, 86.93, 95.55, 105.27, 118.33, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-        lep_mt: (mt_1 < 50)
+        lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(iso_1 >= 0.15)"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-        lep_mt: (mt_1 < 50)
+        lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(iso_1 >= 0.15)"

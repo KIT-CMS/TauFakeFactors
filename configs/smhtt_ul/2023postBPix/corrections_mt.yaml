@@ -136,13 +136,13 @@ target_processes:
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 50)
+        lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 50)
+        lep_mt: (mt_1 < 70)
         nbtag: (nbtag >= 0)
         tau_pair_sign: ((q_1*q_2) > 0)
         lep_iso: "(!((iso_1 >= 0.05) && (iso_1 <= 0.15)))"

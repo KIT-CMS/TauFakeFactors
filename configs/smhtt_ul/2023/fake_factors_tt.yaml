@@ -134,7 +134,7 @@ process_fractions_subleading:
     # -------------------------------------------
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
 
   AR_cuts:
     had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 < 0.5
@@ -142,7 +142,7 @@ process_fractions_subleading:
     # -------------------------------------------
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
 
   var_dependence: m_vis
   var_bins:

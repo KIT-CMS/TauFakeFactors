@@ -135,7 +135,7 @@ process_fractions_subleading:
     # -------------------------------------------
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
 
   AR_cuts:
     region_mask: ff_fraction_sub_AR  # CROWN selection mask branch
@@ -144,7 +144,7 @@ process_fractions_subleading:
     # -------------------------------------------
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
 
   var_dependence: m_vis
   var_bins:
