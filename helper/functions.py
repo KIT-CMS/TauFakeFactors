@@ -205,6 +205,28 @@ def cut_items(cuts: Dict[str, str]) -> Iterator[Tuple[str, str]]:
             yield name, expression
 
 
+def switch_to_same_sign_mask(cuts: Dict[str, str]) -> Dict[str, str]:
+    """
+    Switches the selection mask of a region cut dictionary to its same-sign variant, to be used
+    together with the in-code flip of the 'tau_pair_sign' cut for the QCD estimation.
+
+    If no mask is defined nothing happens. If the '_ss' variant of the mask does not exist on
+    the input n-tuple (e.g. for the merged DR_SR/AR_SR correction regions, for which no
+    same-sign masks are produced), resolve_region_mask simply falls back to the legacy cut
+    strings, which carry the flipped sign cut.
+
+    Args:
+        cuts: Dictionary of cuts for a fake factor calculation region (modified in place)
+
+    Return:
+        The same dictionary, for convenience
+    """
+    mask = cuts.get(REGION_MASK_KEY, None)
+    if mask is not None and not str(mask).endswith("_ss"):
+        cuts[REGION_MASK_KEY] = f"{mask}_ss"
+    return cuts
+
+
 class RuntimeVariables(object):
     """
     A singleton-like container class holding variables that can be adjusted at runtime.
