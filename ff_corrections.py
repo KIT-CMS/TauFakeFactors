@@ -617,6 +617,8 @@ if __name__ == "__main__":
     with open(os.path.join(workdir_path, "fake_factors", corr_config["channel"], "config.yaml"), "r") as file:
         config = func.configured_yaml.load(file)
 
+    func.RuntimeVariables.USE_REGION_MASKS = corr_config.get("use_region_masks", config.get("use_region_masks", True))
+
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
     # Build save path with optional correction_tag for organizing multiple correction iterations

@@ -16,6 +16,12 @@ tau_vs_jet_wps:
 tau_vs_jet_wgt_wps:
   - Medium
 
+# Use the precomputed CROWN selection mask branches (presel_mask, ff_*) instead of
+# re-applying the cut strings of the preselection/fake factor configs. Falls back to the
+# cut strings automatically if the branches are not present on the input n-tuples.
+# Set to false to force the legacy cut string selection (A/B validation).
+use_region_masks: true
+
 use_embedding: false
 use_center_of_mass_bins: true
 

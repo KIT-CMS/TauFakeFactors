@@ -14,7 +14,7 @@ import ROOT
 import helper.ff_functions as ff_func
 import CustomLogging as logging_helper
 import helper.plotting as plotting
-from helper.functions import RuntimeVariables
+from helper.functions import RuntimeVariables, switch_to_same_sign_mask
 
 
 @logging_helper.LogDecorator().grouped_logs(extractor=lambda args: f"{args[6]}")
@@ -83,6 +83,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         # QCD estimation from same sign in signal-like region
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
+            switch_to_same_sign_mask(region_conf)  # and the matching same-sign selection mask
         else:
             raise ValueError(
                 f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
@@ -117,6 +118,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         # QCD estimation from same sign in application-like region
         if "tau_pair_sign" in region_conf:
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
+            switch_to_same_sign_mask(region_conf)  # and the matching same-sign selection mask
         else:
             raise ValueError(
                 f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
@@ -375,6 +377,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
 
         if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in signal-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
+            switch_to_same_sign_mask(region_conf)  # and the matching same-sign selection mask
         else:
             raise ValueError(
                 f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
@@ -405,6 +408,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
 
         if "tau_pair_sign" in region_conf:  # QCD estimation from same sign in application-like region
             region_conf["tau_pair_sign"] = "(q_1*q_2) > 0"  # same sign
+            switch_to_same_sign_mask(region_conf)  # and the matching same-sign selection mask
         else:
             raise ValueError(
                 f"No tau pair sign cut defined in the {process} config. Is needed for the QCD estimation."
