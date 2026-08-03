@@ -1,0 +1,110 @@
+# ---------------------------------------------------------------------------
+# Shared b-tag efficiency calculator config for 2018 UL (NanoAOD v15, UParT).
+# Settings in common_settings.yaml (same directory) are loaded automatically
+# and can be overridden here. Run with:
+#   python btag_efficiency.py --config-file configs/btag_efficiency/2018/btag_efficiency.yaml
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# HARD CONSTRAINT -- era 2018 only. This payload is consumed by the STRICT
+# path, KingMaker/CROWN/.../cpp_addons/src/btag_sf_strict.cxx
+# (multi_wp_event_weight), which THROWS and aborts the production job unless,
+# for every bin it evaluates:
+#   isfinite(eff) && eff > 0.0 && eff <= 1.0        (btag_sf_strict.cxx:165)
+#   eff(looser) - eff(tighter) > 0.0, strictly      (:204)  -- no ties
+#   1.0 - eff(loosest) > 0.0                        (:221)
+# btag_efficiency.py writes eff = 0.0 for a zero-denominator bin, so thin
+# categories (vbf_hbb, rem_higgs, electroweak_boson) can produce exactly the
+# values that crash it. Run /work/sdaigler/bbtautau/check_btag_payload.py on
+# every channel's btag_efficiency.json BEFORE shipping. On a violation,
+# coarsen that process's jet_pt_bins / jet_eta_bins via the per-process
+# override (btag_efficiency.py:170-182), as the Run-3 configs already do.
+# Run-3 eras use the lenient consumer, which is why they tolerate 0.0 bins.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Probe-jet column contract. The probe-jet vectors are produced fully selected
+# (pt / eta / ID / overlap) directly by the CROWN sm_btag_efficiency_config and
+# passed through preselection.py unchanged, so the calculator reads them as-is.
+# ---------------------------------------------------------------------------
+jet_pt_column: "btag_probe_jet_pt"
+jet_eta_column: "btag_probe_jet_eta"
+jet_flavor_column: "btag_probe_jet_hadron_flavour"
+jet_btag_column: "btag_probe_jet_upart"
+
+# The probe jets are already fully selected in CROWN (pt >= 20, |eta| < 2.4,
+# jet ID, lepton overlap removal), so no additional per-jet selection is
+# applied here (empty string = pass-through).
+jet_selection: ""
+
+# ---------------------------------------------------------------------------
+# B-tagging working points: UParTAK4 discriminator cut values (2018 UL v15).
+# https://btv-wiki.docs.cern.ch/ (Run2-2018-UL-NanoAODv15)
+# ---------------------------------------------------------------------------
+btag_working_points:
+  L: 0.0308
+  M: 0.161
+  T: 0.5405
+  XT: 0.6992
+  XXT: 0.9655
+
+# ---------------------------------------------------------------------------
+# Jet flavour categories (btag_probe_jet_hadron_flavour values)
+#   b     -> bottom jets (hadronFlavour == 5)
+#   c     -> charm jets  (hadronFlavour == 4)
+#   light -> light/udsg jets (hadronFlavour == 0)
+# ---------------------------------------------------------------------------
+jet_flavor_categories:
+  b: 5
+  c: 4
+  light: 0
+
+# ---------------------------------------------------------------------------
+# General binning for the efficiency measurement.
+# ---------------------------------------------------------------------------
+# Jet pT bins [GeV]
+jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000]
+# Jet |eta| bins
+jet_eta_bins: [0.0, 1.4, 2.4]
+
+# ---------------------------------------------------------------------------
+# All three fake-factor analysis channels share this config; each channel is
+# expanded into its own single-channel run writing to its own output dir.
+# ---------------------------------------------------------------------------
+channels: [et, mt, tt]
+
+# ---------------------------------------------------------------------------
+# The 13 SM sample-type categories the efficiency payload must carry on its
+# correctionlib sample_type axis (fixed by the physics program; matches
+# btag_payloads.SM_BTAG_EFFICIENCY_CATEGORIES in the bbtautau CROWN config).
+# Each key is used both for file discovery
+#   {file_path}/preselection/{era}/{channel}/{process}*.root
+# and as the sample_type key written to the correctionlib output.
+# ---------------------------------------------------------------------------
+processes:
+  hh2b2tau:
+    sample_type: "hh2b2tau"
+  dyjets:
+    sample_type: "dyjets"
+  wjets:
+    sample_type: "wjets"
+  ttbar:
+    sample_type: "ttbar"
+  singletop:
+    sample_type: "singletop"
+  diboson:
+    sample_type: "diboson"
+  electroweak_boson:
+    sample_type: "electroweak_boson"
+  ggh_htautau:
+    sample_type: "ggh_htautau"
+  vbf_htautau:
+    sample_type: "vbf_htautau"
+  vbf_hbb:
+    sample_type: "vbf_hbb"
+  rem_hbb:
+    sample_type: "rem_hbb"
+  rem_higgs:
+    sample_type: "rem_higgs"
+  rem_ttbar:
+    sample_type: "rem_ttbar"
