@@ -147,7 +147,7 @@ process_fractions:
     lep_mt: (mt_1 < 70)
     nbtag: (nbtag >= 0)
     tau_pair_sign: ((q_1*q_2) < 0)
-    lep_iso: ((iso_1 > 0.0) && (iso_1 < 0.15))
+    lep_iso: ((iso_1 >= 0.0) && (iso_1 < 0.15))
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
 
