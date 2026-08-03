@@ -465,8 +465,8 @@ _FLAVOR_LABELS = {
 _CHANNEL_LABELS = {
     "em":    r"$e\mu$",
     "et":    r"$e\tau_h$",
-    "mt":    r"\mu\tau_h",
-    "tt":    r"\tau_h\tau_h",
+    "mt":    r"$\mu\tau_h$",
+    "tt":    r"$\tau_h\tau_h$",
     "ee":    r"ee",
     "mm":    r"$\mu\mu$",
 } 
@@ -514,6 +514,7 @@ def plot_histograms_and_efficiencies(
     )
  
     era     = config.get("era", "")
+    center_of_mass = config.get("center_of_mass", 13.6)
     channel = get_channel_display(config)
  
     plot_dir = os.path.join(output_path, "plots")
@@ -648,7 +649,7 @@ def plot_histograms_and_efficiencies(
             # Right side: channel and era (on all panels)
             ax_top.text(
                 1.00, 1.01,
-                f"({era}, 13.6 TeV)",
+                f"({era}, {center_of_mass} TeV)",
                 transform=ax_top.transAxes,
                 fontsize=9,
                 va="bottom", ha="right",
