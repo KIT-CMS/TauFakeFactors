@@ -21,9 +21,9 @@
 #   file_path   -- where btag_efficiency.py looks for them; it appends
 #     preselection/{era}/{channel}/ itself, so this MUST equal output_path.
 # ---------------------------------------------------------------------------
-ntuple_path: "TODO_SET_AFTER_2018_PRODUCTION"
-output_path: "TODO_SET_AFTER_2018_PRODUCTION"
-file_path: "TODO_SET_AFTER_2018_PRODUCTION"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v1/CROWNRun"
+output_path: "/ceph/sdaigler/CMS_FF/btag_eff"
+file_path:   "/ceph/sdaigler/CMS_FF/btag_eff"
 
 workdir_name: "btag_eff"
 
@@ -45,4 +45,4 @@ use_center_of_mass_bins: true
 # Centre-of-mass energy [TeV] for the plot labels. Run 2 (2018) is 13 TeV,
 # Run 3 is 13.6 TeV. btag_efficiency.py reads this instead of hardcoding it;
 # when the key is absent it defaults to 13.6, so Run-3 output is unchanged.
-center_of_mass: 13
+center_of_mass: 13.0
