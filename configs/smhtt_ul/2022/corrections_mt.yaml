@@ -276,21 +276,12 @@ target_processes:
         ">=2": [0.0, 20.91, 29.69, 37.27, 44.86, 49.7, 55.08, 61.79, 67.77, 74.16, 79.78, 86.93, 95.55, 105.27, 118.33, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) > 0)
-        lep_iso: "(iso_1 >= 0.15)"
+        region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) > 0)
-        lep_iso: "(iso_1 >= 0.15)"
+        region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
       AR_SR_cuts:
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: "(iso_1 >= 0.15)"
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]
+        region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
   Wjets:
     chain_DR_SR_to_non_closure: false
 
@@ -404,27 +395,12 @@ target_processes:
         ">=2": [0.0, 21.83, 31.78, 40.08, 47.97, 55.64, 62.7, 70.0, 77.6, 85.06, 92.86, 101.36, 110.91, 121.69, 134.39, 150.0]
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
-        lep_mt: (mt_1 > 0)
-        nbtag: (nbtag == 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
+        region_mask: ff_wjets_DR_SR_SRlike  # CROWN selection mask branch
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
-      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
-        lep_mt: (mt_1 > 0)
-        nbtag: (nbtag == 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
+        region_mask: ff_wjets_DR_SR_ARlike  # CROWN selection mask branch
       AR_SR_cuts:
-        lep_mt: (mt_1 < 70)
-      # NOT vacuous: overrides the base Wjets (nbtag == 0), i.e. removes the b-veto
-        nbtag: (nbtag >= 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]
+        region_mask_SRlike: ff_wjets_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_wjets_AR_SR_ARlike  # CROWN selection mask branch
 
   ttbar:
     non_closure:

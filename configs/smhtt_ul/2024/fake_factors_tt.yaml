@@ -15,21 +15,11 @@ target_processes:
 
     SRlike_cuts:
       region_mask: ff_qcd_SRlike  # CROWN selection mask branch
-      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
-      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      # -------------------------------------------
-      tau_pair_sign: (q_1*q_2) > 0
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: {1: SRlike, 2: SRlike}
 
     ARlike_cuts:
       region_mask: ff_qcd_ARlike  # CROWN selection mask branch
-      had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
-      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      # -------------------------------------------
-      tau_pair_sign: (q_1*q_2) > 0
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: {1: ARlike, 2: SRlike}
 
     var_dependence: pt_1
     var_bins:
@@ -55,21 +45,11 @@ target_processes:
 
     SRlike_cuts:
       region_mask: ff_qcd_sub_SRlike  # CROWN selection mask branch
-      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
-      had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      # -------------------------------------------
-      tau_pair_sign: (q_1*q_2) > 0
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: {1: SRlike, 2: SRlike}
 
     ARlike_cuts:
       region_mask: ff_qcd_sub_ARlike  # CROWN selection mask branch
-      had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
-      had_tau_id_vs_jet_2: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      # -------------------------------------------
-      tau_pair_sign: (q_1*q_2) > 0
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: {1: SRlike, 2: ARlike}
 
     var_dependence: pt_2
     var_bins:
@@ -97,21 +77,11 @@ process_fractions:
 
   SR_cuts:
     region_mask: ff_fraction_SR  # CROWN selection mask branch
-    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
-    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-    # -------------------------------------------
-    tau_pair_sign: (q_1*q_2) < 0
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: {1: SRlike, 2: SRlike}
 
   AR_cuts:
     region_mask: ff_fraction_AR  # CROWN selection mask branch
-    had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
-    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 < 0.5
-    # -------------------------------------------
-    tau_pair_sign: (q_1*q_2) < 0
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: {1: ARlike, 2: SRlike}
 
   var_dependence: m_vis
   var_bins:
@@ -136,21 +106,11 @@ process_fractions_subleading:
 
   SR_cuts:
     region_mask: ff_fraction_sub_SR  # CROWN selection mask branch
-    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
-    had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-    # -------------------------------------------
-    tau_pair_sign: (q_1*q_2) < 0
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: {1: SRlike, 2: SRlike}
 
   AR_cuts:
     region_mask: ff_fraction_sub_AR  # CROWN selection mask branch
-    had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 < 0.5
-    had_tau_id_vs_jet_2: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-    # -------------------------------------------
-    tau_pair_sign: (q_1*q_2) < 0
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: {1: SRlike, 2: ARlike}
 
   var_dependence: m_vis
   var_bins:

@@ -76,14 +76,6 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             key_args["_caller_"] = caller_info
             key_args["_input_file_directory_"] = func.RuntimeVariables.INPUT_FILE_PATH
 
-            # The same region configuration can be evaluated either with the CROWN selection
-            # mask or with the legacy cut strings (mask branch missing on old n-tuples, or
-            # 'use_region_masks: false'), which are not guaranteed to give identical results
-            # (e.g. the nbtag cut is skipped on the legacy path). The resolved decision
-            # therefore has to be part of the cache key.
-            _mask, _ = resolve_region_mask(rdf=base_rdf, cuts=key_args.get("region_cuts", None))
-            key_args["_region_mask_applied_"] = _mask
-
             if "logger" in key_args:
                 del key_args["logger"]
 
@@ -792,42 +784,28 @@ def rdf_column_names(rdf: Any) -> set:
     return columns
 
 
-def resolve_region_mask(
-    rdf: Any,
-    cuts: Union[Dict[str, str], None],
-) -> Tuple[Union[str, None], str]:
-    """
-    Decides whether a region can be selected with a precomputed CROWN selection mask branch
-    instead of re-applying the individual cut strings of the region.
 
-    The mask is used if
-        1. the region cut dictionary carries a 'region_mask' key,
-        2. the masks are not globally disabled ('use_region_masks: false' in common_settings),
-        3. and the named branch is actually present on the input n-tuple (old n-tuples
-           produced before the CROWN selection masks existed simply fall back).
+def resolve_id_sf_wps(role: str) -> Union[str, List[str]]:
+    """
+    Resolves an 'id_sf' role to the tau-ID-vs-jet working point(s) to apply the scale factor
+    for, using common_settings.yaml's named 'tau_vs_jet_id_sf_wps' ({"SRlike": ..., "ARlike":
+    ...}), declared once at startup into func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS, instead of
+    parsing a cut string. 'ARlike's value is the loose end of the anti-tag range; the tight end
+    is always 'SRlike's value.
 
     Args:
-        rdf: root DataFrame object the mask would be applied to
-        cuts: Dictionary of cuts for a fake factor calculation region (or None)
+        role: 'SRlike' (the single tight/signal-like WP) or 'ARlike' (the [loose, tight)
+            anti-tag range)
 
     Return:
-        Tuple of the mask branch name (or None if the legacy cut strings have to be used) and
-        a human readable reason for the decision
+        A single WP name for 'SRlike', or a [loose, tight] pair for 'ARlike'
     """
-    if not isinstance(cuts, dict):
-        return None, "no region cuts given"
-
-    mask = cuts.get(func.REGION_MASK_KEY, None)
-    if mask is None:
-        return None, "no 'region_mask' defined in the config"
-
-    if not func.RuntimeVariables.USE_REGION_MASKS:
-        return None, "selection masks disabled via 'use_region_masks: false'"
-
-    if str(mask) not in rdf_column_names(rdf):
-        return None, f"selection mask branch '{mask}' not available on the input n-tuple"
-
-    return str(mask), f"selection mask branch '{mask}' available"
+    named_wps = func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS
+    if role == "SRlike":
+        return named_wps["SRlike"]
+    if role == "ARlike":
+        return [named_wps["ARlike"], named_wps["SRlike"]]
+    raise ValueError(f"Unknown id_sf role: {role!r}")
 
 
 def apply_selection_dependent_weights(
@@ -840,9 +818,9 @@ def apply_selection_dependent_weights(
     """
     Applies the event weights which depend on the applied event selection, namely the tau ID
     vs jet scale factors and (for boosted tau analyses) the boosted tau isolation scale factors.
-    Which weight is applied is deduced from the names and cut strings of the region cuts, so
-    this has to run regardless of whether the events are afterwards selected with the legacy
-    cut strings or with a precomputed CROWN selection mask.
+    The tau ID vs jet weight is deduced from the region's 'id_sf' role declaration (see
+    resolve_id_sf_wps); this has to run regardless of whether the events are afterwards
+    selected with the legacy cut strings or with a precomputed CROWN selection mask.
 
     Args:
         rdf: root DataFrame object
@@ -856,23 +834,24 @@ def apply_selection_dependent_weights(
     """
     log = logging.getLogger(logger) if logger is not None else logging.getLogger(__name__)
 
+    id_sf = cuts.get(func.ID_SF_KEY)
+    if id_sf is not None and sample not in ["data"]:
+        # et/mt: a bare role for the one tau leg (idx=None -> hardcoded "_2" downstream).
+        # tt: a {tau_index: role} dict, one entry per leg.
+        per_leg = id_sf.items() if isinstance(id_sf, dict) else [(None, id_sf)]
+        for idx, role in per_leg:
+            wps = resolve_id_sf_wps(role)
+            idx = str(idx) if idx is not None else None
+            log.debug(f"Applying tau id vs jet weight for role '{role}' (wps: {wps}, idx: {idx})")
+            rdf = weights.apply_tau_id_vsJet_weight(
+                rdf=rdf, channel=channel, wps=wps, idx=idx
+            )
+
     for cut, cut_string in func.cut_items(cuts):
         if cut in ["nbtag", "bb_selection"]:
             continue
 
-        if "had_tau_id_vs_jet" in cut:
-            wps = get_wps(cut_string=cut_string)
-            try:
-                idx = cut.rsplit("_")[5]
-            except Exception:
-                idx = None
-            if sample not in ["data"]:
-                log.debug(f"Applying tau id vs jet weight for '{cut}' (wps: {wps}, idx: {idx})")
-                rdf = weights.apply_tau_id_vsJet_weight(
-                    rdf=rdf, channel=channel, wps=wps, idx=idx
-                )
-
-        elif "had_boostedtau_id_iso" in cut:  # only relevant for an analysis with boosted tau pairs
+        if "had_boostedtau_id_iso" in cut:  # only relevant for an analysis with boosted tau pairs
             wp = get_wps(cut_string=cut_string)
             try:
                 idx = cut.rsplit("_")[4]
@@ -904,10 +883,9 @@ def apply_region_filters(
     Function which applies filters to a root DataFrame for the fake factor calculation. This includes the region cuts and the category splitting.
     Additionally some weights are applied in this step because they depend on the full event selection.
 
-    If the region cut dictionary defines a 'region_mask' and the corresponding CROWN mask
-    branch is present on the input n-tuple, the region is selected with a single filter on
-    that branch instead of re-applying the individual cut strings (see resolve_region_mask).
-    The selection dependent weights are applied on both paths.
+    region_mask is just one more cut among category_cuts/region_cuts's other entries, applied
+    unconditionally when the region cut dictionary defines one -- there is no legacy cut-string
+    fallback (raises if the named branch is missing from the input n-tuple).
 
     Args:
         rdf: root DataFrame object
@@ -937,21 +915,23 @@ def apply_region_filters(
     )
 
     log = logging.getLogger(logger)
-    region_mask, reason = resolve_region_mask(rdf=rdf, cuts=region_cuts)
 
-    if region_mask is not None:
-        # the mask encodes the complete region definition (including the nbtag cut, which the
-        # legacy path skips, see the disabled block below) -> only the category splitting cuts
-        # have to be applied in addition
-        log.info(f"Selecting region with CROWN selection mask '{region_mask}'.")
-        for cut, cut_string in tmp.items():
+    # 'region_mask' is just one more cut, like any entry in cut_items(sum_cuts) -- it is
+    # excluded from that loop (NON_CUT_KEYS) only because its comparison ('> 0.5') is fixed
+    # rather than spelled out in the config, and applied here explicitly instead.
+    for cut, cut_string in func.cut_items(sum_cuts):
+        if cut not in ["nbtag", "bb_selection"]:
             rdf = rdf.Filter(f"({cut_string})", f"cut on {cut}")
-        rdf = rdf.Filter(f"({region_mask}) > 0.5", f"region mask {region_mask}")
-    else:
-        log.info(f"Selecting region with cut strings ({reason}).")
-        for cut, cut_string in func.cut_items(sum_cuts):
-            if cut not in ["nbtag", "bb_selection"]:
-                rdf = rdf.Filter(f"({cut_string})", f"cut on {cut}")
+
+    mask = region_cuts.get(func.REGION_MASK_KEY)
+    if mask is not None:
+        if str(mask) not in rdf_column_names(rdf):
+            raise ValueError(
+                f"region_mask '{mask}' is declared for this region but not present on the "
+                f"input n-tuple -- there is no legacy cut-string fallback."
+            )
+        log.info(f"Selecting region with CROWN selection mask '{mask}'.")
+        rdf = rdf.Filter(f"({mask}) > 0.5", f"region mask {mask}")
     # cut on number of b-tagged jets needs to be the last cut to do an on-the-fly calculation of the b-tagger weight
     # outdated since now we calculate efficiencies and the btag weight is just a weight to be applied per sample as it is 
     # if "nbtag" in sum_cuts.keys():

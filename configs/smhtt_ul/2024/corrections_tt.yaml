@@ -315,11 +315,6 @@ target_processes:
       AR_SR_cuts:
         region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
         region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
-        tau_pair_sign: (q_1*q_2) < 0
-
-      # non_closure:
-      #   tau_decaymode_1:
-      #     <<: [*tau_decaymode_1, *3j_split]
 
   QCD_subleading:
     chain_DR_SR_to_non_closure: false
@@ -440,8 +435,3 @@ target_processes:
       AR_SR_cuts:
         region_mask_SRlike: ff_qcd_sub_AR_SR_SRlike  # CROWN selection mask branch
         region_mask_ARlike: ff_qcd_sub_AR_SR_ARlike  # CROWN selection mask branch
-        tau_pair_sign: (q_1*q_2) < 0
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]

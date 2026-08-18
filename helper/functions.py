@@ -184,7 +184,14 @@ configured_yaml = ConfiguredYAML()
 REGION_MASK_KEY = "region_mask"
 REGION_MASK_SRLIKE_KEY = "region_mask_SRlike"
 REGION_MASK_ARLIKE_KEY = "region_mask_ARlike"
-NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY})
+
+# Declares which tau-ID-vs-jet scale factor(s) a region needs, by role ('SRlike': the single
+# tight/signal-like WP; 'ARlike': the [loose, tight] anti-tag range) instead of a cut string --
+# see helper.ff_functions.resolve_id_sf_wps. A bare string for et/mt (one tau leg); a
+# {tau_index: role} dict for tt (two legs, e.g. {1: "SRlike", 2: "ARlike"}).
+ID_SF_KEY = "id_sf"
+
+NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY, ID_SF_KEY})
 
 PRESELECTION_MASK = "presel_mask"
 SELECTION_MASK_NAMES = frozenset({PRESELECTION_MASK, "sel_os", "sel_ss"})
@@ -224,13 +231,14 @@ def cut_items(cuts: Dict[str, str]) -> Iterator[Tuple[str, str]]:
 
 def switch_to_same_sign_mask(cuts: Dict[str, str]) -> Dict[str, str]:
     """
-    Switches the selection mask of a region cut dictionary to its same-sign variant, to be used
-    together with the in-code flip of the 'tau_pair_sign' cut for the QCD estimation.
+    Switches the selection mask of a region cut dictionary to its same-sign variant, for the
+    QCD same-sign estimation. region_mask is the sole region selector now (no cut strings, no
+    'tau_pair_sign' key, survive in the config to flip alongside it) -- callers only ever use
+    this on regions whose CROWN mask has a matching '_ss' branch (fake-factor SRlike/ARlike
+    regions); apply_region_filters raises if that branch turns out not to exist, there is no
+    silent fallback.
 
-    If no mask is defined nothing happens. If the '_ss' variant of the mask does not exist on
-    the input n-tuple (e.g. for the merged DR_SR/AR_SR correction regions, for which no
-    same-sign masks are produced), resolve_region_mask simply falls back to the legacy cut
-    strings, which carry the flipped sign cut.
+    If no mask is defined nothing happens.
 
     Args:
         cuts: Dictionary of cuts for a fake factor calculation region (modified in place)
@@ -259,14 +267,13 @@ class RuntimeVariables(object):
     USE_CACHED_INTERMEDIATE_STEPS = False
     RDataFrameWrapper = PassThroughWrapper
 
-    # Global opt-out for the CROWN selection masks ('use_region_masks: false' in
-    # common_settings.yaml). If False, regions are always selected with the legacy cut
-    # strings, even when the mask branches are available. Used for A/B validation.
-    USE_REGION_MASKS = True
-
     SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
     SKIP_CORRECTIONS_P_VALUE = 0.05
     USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = True
+
+    # common_settings.yaml's 'tau_vs_jet_id_sf_wps' ({"SRlike": <tight WP>, "ARlike": <loose
+    # WP>}), backing 'id_sf' role resolution -- see helper.ff_functions.resolve_id_sf_wps.
+    TAU_VS_JET_ID_SF_WPS = None
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
@@ -554,6 +561,33 @@ def load_config(config_file: str) -> Dict:
     return config
 
 
+def load_output_features(config: Dict) -> List[str]:
+    """
+    Loads the branch whitelist for the preselected ntuple: TauKITFlow's config/variables.yaml
+    'output_features:' (the single source of truth for analysis variables, see that file's
+    header) plus its 'selection_masks:' block's 'common' and per-channel entries (presel_mask,
+    sel_os/sel_ss, ff_* -- these are bookkeeping branches, deliberately not part of
+    'output_features:' itself, but still have to survive the preselection Snapshot for
+    TauFakeFactors' own region-mask-based selection downstream to see them).
+
+    Args:
+        config: Preselection configuration (needs 'variables_yaml', 'channel')
+
+    Return:
+        Deduplicated list of branch names to keep in the preselected ntuple
+    """
+    with open(config["variables_yaml"], "r") as file:
+        variables = configured_yaml.load(file)
+
+    masks = variables.get("selection_masks", {})
+    names = list(variables["output_features"])
+    names += list(masks.get("common", []))
+    names += list(masks.get(config["channel"], []) or [])
+
+    seen = set()
+    return [n for n in names if not (n in seen or seen.add(n))]
+
+
 def check_path(path: str) -> None:
     """
     This function checks if a given path exist. If not, this path is created.
@@ -566,6 +600,51 @@ def check_path(path: str) -> None:
     """
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
+
+
+def resolve_process_samples(config: Dict, process: str) -> List[str]:
+    """
+    Returns the full sample list for `process`: its 'samples' list plus any 'era_overrides'
+    keys not already in it. A sample that needs an era_overrides entry does not also have to
+    be repeated in 'samples' -- the override dict's keys are enough by themselves. Order:
+    'samples' first (as written), then override-only samples in the order they appear in
+    'era_overrides'.
+
+    Args:
+        config: Preselection configuration (needs 'processes')
+        process: General name of a process, e.g. "data"
+
+    Return:
+        List of sample names, deduplicated
+    """
+    proc_conf = config["processes"][process]
+    samples = list(proc_conf.get("samples", []))
+    seen = set(samples)
+    for sample in proc_conf.get("era_overrides", {}):
+        if sample not in seen:
+            samples.append(sample)
+            seen.add(sample)
+    return samples
+
+
+def resolve_sample_era(config: Dict, process: str, sample: str) -> str:
+    """
+    Returns the CROWN ntuple era-subdirectory to read `sample` from: config['era'], unless the
+    process declares an 'era_overrides' mapping (sample name -> era) for it. This covers eras
+    that bundle data from more than one CROWN production directory without CROWN itself having
+    merged them on disk -- e.g. a 'era: 2025' config whose 'data' process also lists 2026 runs
+    that still live under .../2026/, not .../2025/.
+
+    Args:
+        config: Preselection configuration (needs 'era', 'processes')
+        process: General name of a process, e.g. "data"
+        sample: Exact name of the sample folder
+
+    Return:
+        The era-subdirectory to use for this sample
+    """
+    overrides = config["processes"].get(process, {}).get("era_overrides", {})
+    return overrides.get(sample, config["era"])
 
 
 def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:
@@ -581,11 +660,12 @@ def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:
         List of file paths
     """
     log = logging.getLogger(f"preselection.{process}")
+    era = resolve_sample_era(config=config, process=process, sample=sample)
     sample_path = os.path.join(
-        config["ntuple_path"], config["era"], sample, config["channel"]
+        config["ntuple_path"], era, sample, config["channel"]
     )
     log.info(
-        f"The following files are loaded for era: {config['era']}, channel: {config['channel']}, sample {sample}"
+        f"The following files are loaded for era: {era}, channel: {config['channel']}, sample {sample}"
     )
     # now check, if the files exist
     selected_files = check_inputfiles(
@@ -598,6 +678,129 @@ def get_ntuples(config: Dict, process: str, sample: str) -> List[str]:
     log.debug("-" * 50)
 
     return selected_files
+
+
+# Directory names CROWN writes friend trees under, sibling to "CROWNRun" -- probed in order so
+# one 'tag' in common_settings.yaml works regardless of which producer wrote it.
+CROWN_FRIEND_TREE_MARKERS = ("CROWNFriend", "CROWNFriends", "CROWNMultiFriends")
+
+
+def _replace_crownrun_segment(path: str, replacement: str) -> str:
+    """
+    Replaces the exact "CROWNRun" path segment of `path` with `replacement`, matching on the
+    full segment (not a substring) so a production tag or sample name that merely contains
+    "CROWNRun" cannot be mangled.
+
+    Args:
+        path: A path (local or xrootd URL) containing a "CROWNRun" directory segment
+        replacement: String to substitute for that segment, e.g. "CROWNFriend/selection_v3"
+
+    Return:
+        The path with the "CROWNRun" segment replaced
+
+    Raises:
+        ValueError: if `path` has no "CROWNRun" segment
+    """
+    segments = path.split("/")
+    try:
+        idx = len(segments) - 1 - segments[::-1].index("CROWNRun")
+    except ValueError:
+        raise ValueError(
+            f"Path does not contain a 'CROWNRun' path segment, cannot locate a friend tree "
+            f"relative to it: {path!r}"
+        )
+    return "/".join([*segments[:idx], replacement, *segments[idx + 1:]])
+
+
+def _path_has_root_files(path: str) -> bool:
+    """
+    Lightweight existence probe: True if `path` is a directory (local or xrootd) that
+    contains at least one .root file. Unlike check_inputfiles(), this does not open any file
+    to check for emptiness -- it is only used to pick which of CROWN_FRIEND_TREE_MARKERS
+    applies, not to build the actual file list (that must mirror the main ntuple's file list
+    exactly, see get_friend_ntuples()).
+
+    Args:
+        path: Directory path (local "/ceph/..." or "root://.../...") to probe
+
+    Return:
+        True if the directory exists and contains at least one .root file
+    """
+    fsname = "root://cmsdcache-kit-disk.gridka.de/"
+    try:
+        if fsname in path:
+            xrdclient = client.FileSystem(fsname)
+            status, listing = xrdclient.dirlist(path.replace(fsname, ""))
+            if not status.ok:
+                return False
+        elif path.startswith("/ceph"):
+            if not os.path.isdir(path):
+                return False
+            listing = [pathlib.Path(it) for it in os.listdir(path)]
+        else:
+            return False
+    except Exception:
+        return False
+    return any(str(f.name if hasattr(f, "name") else f).endswith(".root") for f in listing)
+
+
+def resolve_friend_marker(config: Dict, process: str, sample: str, tag: str) -> str:
+    """
+    Determines which of CROWN_FRIEND_TREE_MARKERS the friend tree tagged `tag` was written
+    under, by probing each in turn for the sample's <era>/<sample>/<channel> subdirectory.
+
+    Args:
+        config: Preselection configuration (needs 'ntuple_path', 'era', 'channel')
+        process: General name of a process, for logging
+        sample: Exact name of the sample folder, e.g. "SingleMuon_Run2018A-UL2018"
+        tag: The friend tree's tag, i.e. the directory name under CROWNFriend(s)/
+
+    Return:
+        The matching marker, e.g. "CROWNFriend"
+
+    Raises:
+        FileNotFoundError: if `tag` is not found under any marker
+    """
+    log = logging.getLogger(f"preselection.{process}")
+    era = resolve_sample_era(config=config, process=process, sample=sample)
+    for marker in CROWN_FRIEND_TREE_MARKERS:
+        friend_base = _replace_crownrun_segment(
+            config["ntuple_path"].rstrip("/"), f"{marker}/{tag}"
+        )
+        sample_path = os.path.join(friend_base, era, sample, config["channel"])
+        if _path_has_root_files(sample_path):
+            log.debug(f"Friend tag {tag!r} resolved to marker {marker!r} at {sample_path!r}")
+            return marker
+    raise FileNotFoundError(
+        f"Friend tag {tag!r} not found under any of {CROWN_FRIEND_TREE_MARKERS} "
+        f"(looked next to {config['ntuple_path']!r} for era {era!r}, "
+        f"sample {sample!r}, channel {config['channel']!r})"
+    )
+
+
+def get_friend_ntuples(
+    config: Dict, process: str, sample: str, ntuple_list: List[str], tag: str
+) -> List[str]:
+    """
+    Builds the friend-tree file list for a CROWN friend tagged `tag` (e.g. a
+    selection_friends.py output), mirroring `ntuple_list` file-for-file so the friend chain
+    lines up with the main chain when added with TChain.AddFriend (which matches by entry
+    index, not by name -- the file lists must be in the same order and cover the same events).
+
+    Args:
+        config: Preselection configuration (needs 'ntuple_path', 'era', 'channel')
+        process: General name of a process, for logging
+        sample: Exact name of the sample folder, e.g. "SingleMuon_Run2018A-UL2018"
+        ntuple_list: The already-selected main ntuple file list, from get_ntuples()
+        tag: The friend tree's tag, i.e. the directory name under CROWNFriend(s)/
+
+    Return:
+        List of friend file paths, same length and order as `ntuple_list`
+    """
+    marker = resolve_friend_marker(config=config, process=process, sample=sample, tag=tag)
+    return [
+        _replace_crownrun_segment(ntuple, f"{marker}/{tag}") for ntuple in ntuple_list
+    ]
 
 
 def check_inputfiles(path: str, process: str, tree: str) -> List[str]:

@@ -15,23 +15,11 @@ target_processes:
 
     SRlike_cuts:
       region_mask: ff_qcd_SRlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      tau_pair_sign: ((q_1*q_2) > 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: SRlike
 
     ARlike_cuts:
       region_mask: ff_qcd_ARlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      tau_pair_sign: ((q_1*q_2) > 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: ARlike
 
     var_dependence: pt_2
     # in case of individual splitting
@@ -58,25 +46,11 @@ target_processes:
 
     SRlike_cuts:
       region_mask: ff_wjets_SRlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 >= 70)
-      nbtag: (nbtag == 0)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: SRlike
 
     ARlike_cuts:
       region_mask: ff_wjets_ARlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 >= 70)
-      nbtag: (nbtag == 0)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: ARlike
 
     var_dependence: pt_2
     var_bins:
@@ -102,47 +76,19 @@ target_processes:
 
     SR_cuts:
       region_mask: ff_ttbar_SR  # CROWN selection mask branch
-      had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 1)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: SRlike
 
     AR_cuts:
       region_mask: ff_ttbar_AR  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 1)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+      id_sf: ARlike
 
     SRlike_cuts:
       region_mask: ff_ttbar_SRlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: id_tau_vsJet_Medium_2 > 0.5
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 1)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))'
+      id_sf: SRlike
 
     ARlike_cuts:
       region_mask: ff_ttbar_ARlike  # CROWN selection mask branch
-      had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      # -------------------------------------------
-      lep_mt: (mt_1 < 70)
-      nbtag: (nbtag >= 1)
-      tau_pair_sign: ((q_1*q_2) < 0)
-      lep_iso: (iso_1 < 0.15)
-      # -------------------------------------------
-      no_extra_lep: '!((extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5))'
+      id_sf: ARlike
 
     var_dependence: pt_2
     var_bins:
@@ -169,22 +115,10 @@ process_fractions:
 
   SR_cuts:
     region_mask: ff_fraction_SR  # CROWN selection mask branch
-    had_tau_id_vs_jet: (id_tau_vsJet_Medium_2 > 0.5)
-    # -------------------------------------------
-    lep_mt: (mt_1 < 70)
-    tau_pair_sign: ((q_1*q_2) < 0)
-    lep_iso: (iso_1 < 0.15)
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: SRlike
   AR_cuts:
     region_mask: ff_fraction_AR  # CROWN selection mask branch
-    had_tau_id_vs_jet: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-    # -------------------------------------------
-    lep_mt: (mt_1 < 70)
-    tau_pair_sign: ((q_1*q_2) < 0)
-    lep_iso: (iso_1 < 0.15)
-    # -------------------------------------------
-    no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
+    id_sf: ARlike
 
   var_dependence: mt_1
   var_bins:

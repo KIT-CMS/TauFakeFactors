@@ -1,6 +1,8 @@
 ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sgiappic/CROWN/ntuples/htt_260602_2022-23_v5/CROWNRun/" #root://cmsdcache-kit-disk.gridka.de//store/user
 output_path: "/ceph/sgiappic/CMS_FF/260602/"
-#friends: 
+# CROWN friend tags to attach (needed for region_mask/presel_mask branches); no production exists yet.
+#friends:
+#  - selection_<version>
 file_path: "/ceph/sgiappic/CMS_FF/260602/"
 
 workdir_name: htt_260602
@@ -9,12 +11,20 @@ era: '2022'
 tree: ntuple
 nanoAOD_version: "nanoAOD_v12"
 sample_database: "/work/sgiappic/TauKITFlow/datasets"
+variables_yaml: "/work/sgiappic/TauKITFlow/config/variables.yaml"
 
 tau_vs_jet_wps:
   - VVVLoose
   - Medium
 tau_vs_jet_wgt_wps:
   - Medium
+
+# Named WPs for the fake-factor region id_sf roles (helper.ff_functions.resolve_id_sf_wps)
+# -- SRlike is the tight/signal-like cut, ARlike is the loose-to-tight anti-tag range.
+tau_vs_jet_id_sf_wps:
+  SRlike: Medium
+  ARlike: VVVLoose
+
 
 use_embedding: false
 use_center_of_mass_bins: true

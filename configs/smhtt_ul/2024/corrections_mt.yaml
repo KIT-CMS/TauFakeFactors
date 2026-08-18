@@ -277,24 +277,11 @@ target_processes:
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) > 0)
-        lep_iso: "(iso_1 >= 0.15)"
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) > 0)
-        lep_iso: "(iso_1 >= 0.15)"
       AR_SR_cuts:
         region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
         region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 70)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: "(iso_1 >= 0.15)"
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]
   Wjets:
     chain_DR_SR_to_non_closure: false
 
@@ -409,30 +396,11 @@ target_processes:
 
       SRlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_wjets_DR_SR_SRlike  # CROWN selection mask branch
-      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
-        lep_mt: (mt_1 > 0)
-        nbtag: (nbtag == 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
       ARlike_cuts: # Try for yet perpendicular to the fake_factors_mt.yaml definition!
         region_mask: ff_wjets_DR_SR_ARlike  # CROWN selection mask branch
-      # NOT vacuous: overrides the base Wjets (mt_1 >= 70), i.e. removes the mt cut
-        lep_mt: (mt_1 > 0)
-        nbtag: (nbtag == 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
       AR_SR_cuts:
         region_mask_SRlike: ff_wjets_AR_SR_SRlike  # CROWN selection mask branch
         region_mask_ARlike: ff_wjets_AR_SR_ARlike  # CROWN selection mask branch
-        lep_mt: (mt_1 < 70)
-      # NOT vacuous: overrides the base Wjets (nbtag == 0), i.e. removes the b-veto
-        nbtag: (nbtag >= 0)
-        tau_pair_sign: ((q_1*q_2) < 0)
-        lep_iso: (iso_1 < 0.15)
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]
 
   ttbar:
     non_closure:

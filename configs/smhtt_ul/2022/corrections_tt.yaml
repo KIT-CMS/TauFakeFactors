@@ -308,15 +308,14 @@ target_processes:
         ">=2": [0.0, 12.77, 18.14, 22.56, 26.45, 29.81, 33.36, 36.63, 39.99, 43.26, 46.44, 49.65, 52.73, 56.03, 59.24, 62.35, 65.63, 69.1, 72.66, 76.29, 80.39, 84.53, 88.79, 93.02, 97.52, 102.91, 108.72, 115.75, 124.53, 134.85, 150.0]
 
       SRlike_cuts:
+        region_mask: ff_qcd_DR_SR_SRlike  # CROWN selection mask branch
         had_tau_id_vs_jet_2: (id_tau_vsJet_Medium_2 < 0.5)
       ARlike_cuts:
+        region_mask: ff_qcd_DR_SR_ARlike  # CROWN selection mask branch
         had_tau_id_vs_jet_2: (id_tau_vsJet_Medium_2 < 0.5)
       AR_SR_cuts:
-        tau_pair_sign: (q_1*q_2) < 0
-
-      # non_closure:
-      #   tau_decaymode_1:
-      #     <<: [*tau_decaymode_1, *3j_split]
+        region_mask_SRlike: ff_qcd_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_AR_SR_ARlike  # CROWN selection mask branch
 
   QCD_subleading:
     chain_DR_SR_to_non_closure: false
@@ -429,12 +428,11 @@ target_processes:
         ">=2": [0.0, 12.46, 18.21, 22.69, 26.58, 30.28, 33.64, 36.95, 40.19, 43.46, 46.78, 50.08, 53.19, 56.31, 59.61, 62.68, 66.23, 69.66, 73.05, 76.32, 80.29, 84.04, 88.47, 93.03, 97.83, 103.46, 109.35, 116.29, 124.38, 135.06, 150.0]
 
       SRlike_cuts:
+        region_mask: ff_qcd_sub_DR_SR_SRlike  # CROWN selection mask branch
         had_tau_id_vs_jet_1: (id_tau_vsJet_Medium_1 < 0.5)
       ARlike_cuts:
+        region_mask: ff_qcd_sub_DR_SR_ARlike  # CROWN selection mask branch
         had_tau_id_vs_jet_1: (id_tau_vsJet_Medium_1 < 0.5)
       AR_SR_cuts:
-        tau_pair_sign: (q_1*q_2) < 0
-
-      # non_closure:
-      #   tau_decaymode_2:
-      #     <<: [*tau_decaymode_2, *3j_split]
+        region_mask_SRlike: ff_qcd_sub_AR_SR_SRlike  # CROWN selection mask branch
+        region_mask_ARlike: ff_qcd_sub_AR_SR_ARlike  # CROWN selection mask branch

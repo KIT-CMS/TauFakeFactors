@@ -87,13 +87,7 @@ processes:
     - T
     - L
 event_selection:
-  had_tau_decay_mode: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2==
-    10) || (tau_decaymode_2 == 11)
-  had_tau_id_vs_ele: id_tau_vsEle_Tight_2 > 0.5
-  had_tau_id_vs_mu: id_tau_vsMu_VLoose_Tight_2 > 0.5
-  had_tau_pt: pt_2 > 20
-  lep_pt: ((pt_1 > 32) && (trg_single_ele30 > 0.5))
-  jet_veto: (jet_vetomap < 0.5)
+  presel_mask: (presel_mask > 0.5)
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
   Z_pt_reweighting: zPtReweightWeight
@@ -107,57 +101,3 @@ mc_weights:
   lep_id: id_wgt_ele_wp90iso_1
   lep_iso: 1
   single_trigger: trg_wgt_single_ele30
-output_features:
-- weight
-- btag_weight
-- dimuon_veto
-- extramuon_veto
-- extraelec_veto
-- dilepton_veto
-- gen_match_2
-- q_1
-- q_2
-- pt_1
-- pt_2
-- mass_1
-- mass_2
-- eta_1
-- eta_2
-- iso_1
-- iso_2
-- mt_1
-- mt_2
-- tau_decaymode_1
-- tau_decaymode_2
-- deltaEta_ditaupair
-- deltaR_ditaupair
-- jpt_1
-- jpt_2
-- jeta_1
-- jeta_2
-- deltaEta_jj
-- deltaR_jj
-- deltaEta_12j1
-- deltaEta_12j2
-- deltaEta_12jj
-- deltaR_12j1
-- deltaR_12j2
-- deltaR_12jj
-- deltaEta_1j1
-- deltaEta_1j2
-- deltaEta_2j1
-- deltaEta_2j2
-- deltaR_1j1
-- deltaR_1j2
-- deltaR_2j1
-- deltaR_2j2
-- m_vis
-- pt_vis
-- mjj
-- pt_dijet
-- mt_tot
-- pt_tt
-- pt_ttjj
-- puppimet
-- nbtag
-- njets

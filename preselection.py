@@ -106,17 +106,23 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     for ntuple in ntuple_list:
         chain.Add(ntuple)
 
-    if "friends" in config:
-        for friend in config["friends"]:
-            friend_list = []
-            for ntuple in ntuple_list:
-                friend_list.append(
-                    ntuple.replace("CROWNRun", "CROWNFriends/" + friend)
-                )
-            fchain = ROOT.TChain(config["tree"])
-            for friend in friend_list:
-                fchain.Add(friend)
-            chain.AddFriend(fchain)
+    for friend_tag in config.get("friends", []) or []:
+        try:
+            friend_list = func.get_friend_ntuples(
+                config=config, process=process, sample=sample,
+                ntuple_list=ntuple_list, tag=friend_tag,
+            )
+        except FileNotFoundError as e:
+            log.warning(
+                f"Friend tree {friend_tag!r} not found, skipping it for sample {sample!r} "
+                f"(falling back to cut strings wherever it would have carried a mask): {e}"
+            )
+            continue
+        fchain = ROOT.TChain(config["tree"])
+        for friend_file in friend_list:
+            fchain.Add(friend_file)
+        chain.AddFriend(fchain)
+        log.info(f"Attached friend tree {friend_tag!r} ({len(friend_list)} files).")
 
     rdf = ROOT.RDataFrame(chain)
 
@@ -129,25 +135,16 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if column_definitions:
         rdf = func.define_columns(rdf, column_definitions, process)
 
-    # apply analysis specific event filters, either via the precomputed CROWN preselection
-    # mask branch or, if that is not available, via the individual cut strings
+    # apply analysis specific event filters. Configs whose input ntuples carry CROWN's
+    # presel_mask branch declare a single 'presel_mask: (presel_mask > 0.5)' entry here instead
+    # of the individual cut strings -- there is no runtime mask-vs-cut-strings choice, it is a
+    # config-authoring decision, same as fake-factor regions' 'region_mask'.
+    # Nominal only: this Filter fixes one row count for the whole tree, so it can't carry a
+    # per-shift decision even though CROWN's presel_mask itself is shift-varied
+    # (presel_mask__<shift> branches).
     selection_conf = config["event_selection"]
-    available_columns = {str(x).replace("ntuple.", "") for x in rdf.GetColumnNames()}
-
-    if not func.RuntimeVariables.USE_REGION_MASKS:
-        use_presel_mask, reason = False, "selection masks disabled via 'use_region_masks: false'"
-    elif func.PRESELECTION_MASK not in available_columns:
-        use_presel_mask, reason = False, f"'{func.PRESELECTION_MASK}' branch not available on the input n-tuple"
-    else:
-        use_presel_mask, reason = True, f"'{func.PRESELECTION_MASK}' branch available"
-
-    if use_presel_mask:
-        log.info(f"Applying the event selection with the CROWN preselection mask ({reason}).")
-        rdf = rdf.Filter(f"({func.PRESELECTION_MASK}) > 0.5", "cut on presel_mask")
-    else:
-        log.info(f"Applying the event selection with cut strings ({reason}).")
-        for cut in selection_conf:
-            rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
+    for cut in selection_conf:
+        rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
 
     if process == "embedding":
         rdf = filters.emb_tau_gen_match(rdf=rdf, channel=config["channel"])
@@ -277,13 +274,12 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
     process_file_dict = dict()
     for tau_gen_mode in config["processes"][process]["tau_gen_modes"]:
         process_file_dict[tau_gen_mode] = list()
-    log.info(
-        f"Considered samples for process {process}: {config['processes'][process]['samples']}"
-    )
+    process_samples = func.resolve_process_samples(config=config, process=process)
+    log.info(f"Considered samples for process {process}: {process_samples}")
 
     # going through all contributing samples for the process
     args_list = [
-        (process, config, output_path, ncores, sample, tau_gen_mode) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in config["processes"][process]["samples"]
+        (process, config, output_path, ncores, sample, tau_gen_mode) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in process_samples
     ]
 
     results = func.optional_process_pool(
@@ -336,8 +332,6 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-    func.RuntimeVariables.USE_REGION_MASKS = config.get("use_region_masks", True)
-
     # define output path for the preselected samples
     output_path = os.path.join(
         config["output_path"], "preselection", config["era"], config["channel"]
@@ -359,8 +353,9 @@ if __name__ == "__main__":
         datasets = json.load(file)
     log.info(f"Loading sample database from {datasets_file}")
 
-    # get needed features for fake factor calculation
-    output_features = list(set(config["output_features"]))
+    # get needed features for fake factor calculation, from TauKITFlow's config/variables.yaml
+    # (single source of truth, see func.load_output_features) rather than a per-config copy
+    output_features = func.load_output_features(config)
 
     if config["channel"] not in ["mm", "ee", "em"]:
         for wp in config["tau_vs_jet_wps"]:

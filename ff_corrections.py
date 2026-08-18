@@ -617,7 +617,7 @@ if __name__ == "__main__":
     with open(os.path.join(workdir_path, "fake_factors", corr_config["channel"], "config.yaml"), "r") as file:
         config = func.configured_yaml.load(file)
 
-    func.RuntimeVariables.USE_REGION_MASKS = corr_config.get("use_region_masks", config.get("use_region_masks", True))
+    func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS = corr_config.get("tau_vs_jet_id_sf_wps", config.get("tau_vs_jet_id_sf_wps"))
 
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
