@@ -48,6 +48,7 @@ import correctionlib.schemav2 as cs
 import CustomLogging as logging_helper
 import helper.functions as func
 from helper.correctionlib_json import write_json
+import helper.btag_payload_validation as payload_validation
 
 hep.style.use(hep.style.CMS)
 plt.rcParams["axes.linewidth"] = 1.0 # set non bold axes lines
@@ -74,6 +75,18 @@ parser.add_argument(
     type=int,
     default=4,
     help="Number of parallel worker processes for inter-sample parallelization (default: 1).",
+)
+parser.add_argument(
+    "--validate-payload",
+    choices=["off", "warn", "error"],
+    default=None,
+    help=(
+        "Check the finished efficiency map against the strict-consumer "
+        "invariants (0 < eff <= 1, strictly decreasing over working points, "
+        "1 - eff(loosest) > 0) before writing it. 'error' refuses to write a "
+        "violating payload. Overrides the config key 'validate_payload', "
+        "whose own default is 'off'."
+    ),
 )
 parser.add_argument(
     "--threads",
@@ -962,12 +975,17 @@ def build_correctionlib_json(
     wps: Dict[str, float] = config["btag_working_points"]
     flavors: Dict[str, int] = config["jet_flavor_categories"]
 
+    # Sorted, not insertion-ordered: the multiprocessing path fills
+    # all_efficiencies in worker-completion order, so an unsorted payload has a
+    # run-dependent byte layout even when every number is identical. Sorting
+    # makes the payload reproducible from its config, which is what lets a hash
+    # establish provenance.
     sample_items = [
         cs.CategoryItem(
             key=process,
             value=_build_wp_category(wps, flavors, all_bins[process], proc_eff),
         )
-        for process, proc_eff in all_efficiencies.items()
+        for process, proc_eff in sorted(all_efficiencies.items())
     ]
 
     # Report the actual covered range rather than the global config bins: with
@@ -1134,6 +1152,43 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
     if not all_efficiencies:
         log.error("No processes were successfully processed. Aborting.")
         raise SystemExit(1)
+
+    # Validate before writing: a payload that violates the strict-consumer
+    # invariants is not a partial result, it is one that aborts every
+    # production job that touches an affected bin. Writing it anyway is how the
+    # broken sm2018_binned_v1 payload reached dCache.
+    mode = payload_validation.resolve_mode(config, args.validate_payload)
+    if mode == "off":
+        log.info(
+            "Payload validation disabled (validate_payload: off); "
+            "run check_btag_payload.py by hand before shipping."
+        )
+    else:
+        problems = payload_validation.validate_efficiencies(
+            all_efficiencies, all_bins, config
+        )
+        if not problems:
+            log.info(
+                f"Payload validation passed ({mode}): efficiencies are finite, "
+                f"in (0, 1], strictly decreasing over working points, and "
+                f"leave a positive untagged probability."
+            )
+        else:
+            emit = log.error if mode == "error" else log.warning
+            emit(f"Payload validation found {len(problems)} violation(s):")
+            for problem in problems:
+                emit(f"  {problem}")
+            emit(
+                "Remedy: coarsen jet_pt_bins / jet_eta_bins for the affected "
+                "process and flavour (per-process 'flavor_bins'), or pool the "
+                "process with a physically similar one via 'input_processes'."
+            )
+            if mode == "error":
+                log.error(
+                    "Refusing to write a payload the strict consumer would "
+                    "throw on. Set validate_payload: warn to write it anyway."
+                )
+                raise SystemExit(1)
 
     log.info("Building correctionlib JSON ...")
     build_correctionlib_json(all_efficiencies, all_bins, config, output_path)

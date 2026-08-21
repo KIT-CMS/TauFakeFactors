@@ -50,14 +50,7 @@ jet_eta_bins: [0.0, 1.4, 2.4]
 # Single fake-factor analysis channel for this config.
 # ---------------------------------------------------------------------------
 channel: et
-
-# ---------------------------------------------------------------------------
-# The 13 SM sample-type categories the efficiency payload must carry on its
-# correctionlib sample_type axis. Every one of them must be present: the SM
-# profile resolves bjet_eff_sample_type to the sample's OWN name (identity --
-# common_config.py:2054-2064, _resolve_legacy_btag_efficiency_alias returns {}
-# for SM), so the consumer looks each process up under its own key.
-# ---------------------------------------------------------------------------
+validate_payload: error
 required_sample_types:
   [hh2b2tau, dyjets, wjets, ttbar, singletop, diboson, electroweak_boson,
    ggh_htautau, vbf_htautau, vbf_hbb, rem_hbb, rem_higgs, rem_ttbar]

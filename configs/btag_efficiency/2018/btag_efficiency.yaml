@@ -74,6 +74,18 @@ jet_eta_bins: [0.0, 1.4, 2.4]
 channels: [et, mt, tt]
 
 # ---------------------------------------------------------------------------
+# Refuse to write a payload the strict consumer would throw on. 2018 is the
+# era consumed by btag_sf_strict.cxx, which aborts the job rather than
+# substitute a value, so a violating payload must not leave the generator.
+# 'warn' logs and writes anyway; 'off' (the default elsewhere) skips the check
+# entirely, which is what the Run-3 eras need -- their lenient consumer
+# tolerates the zero bins their payloads still contain.
+# The scale-factor-weighted jet-weight check needs the BTV payload and stays in
+# check_btag_payload.py --sf-check; passing here is necessary, not sufficient.
+# ---------------------------------------------------------------------------
+validate_payload: error
+
+# ---------------------------------------------------------------------------
 # The 13 SM sample-type categories the efficiency payload must carry on its
 # correctionlib sample_type axis. Every one of them must be present: the SM
 # profile resolves bjet_eff_sample_type to the sample's OWN name (identity --
