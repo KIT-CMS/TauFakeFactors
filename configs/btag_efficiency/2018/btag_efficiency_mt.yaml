@@ -6,11 +6,6 @@
 # and the 13 sample-type categories are repeated verbatim below.
 # ---------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-# Probe-jet column contract. The probe-jet vectors are produced fully selected
-# (pt / eta / ID / overlap) directly by the CROWN sm_btag_efficiency_config and
-# passed through preselection.py unchanged, so the calculator reads them as-is.
-# ---------------------------------------------------------------------------
 jet_pt_column: "btag_probe_jet_pt"
 jet_eta_column: "btag_probe_jet_eta"
 jet_flavor_column: "btag_probe_jet_hadron_flavour"
@@ -58,36 +53,65 @@ channel: mt
 
 # ---------------------------------------------------------------------------
 # The 13 SM sample-type categories the efficiency payload must carry on its
-# correctionlib sample_type axis (fixed by the physics program; matches
-# btag_payloads.SM_BTAG_EFFICIENCY_CATEGORIES in the bbtautau CROWN config).
-# Each key is used both for file discovery
-#   {file_path}/preselection/{era}/{channel}/{process}*.root
-# and as the sample_type key written to the correctionlib output.
+# correctionlib sample_type axis. Every one of them must be present: the SM
+# profile resolves bjet_eff_sample_type to the sample's OWN name (identity --
+# common_config.py:2054-2064, _resolve_legacy_btag_efficiency_alias returns {}
+# for SM), so the consumer looks each process up under its own key.
 # ---------------------------------------------------------------------------
+required_sample_types:
+  [hh2b2tau, dyjets, wjets, ttbar, singletop, diboson, electroweak_boson,
+   ggh_htautau, vbf_htautau, vbf_hbb, rem_hbb, rem_higgs, rem_ttbar]
+
 processes:
-  hh2b2tau:
-    sample_type: "hh2b2tau"
-  dyjets:
-    sample_type: "dyjets"
-  wjets:
-    sample_type: "wjets"
-  ttbar:
-    sample_type: "ttbar"
-  singletop:
-    sample_type: "singletop"
+  # dyjets + wjets + electroweak_boson: Z/W(+jets) and EWK V production.
+  vjets:
+    input_processes: [dyjets, wjets, electroweak_boson]
+    sample_types:    [dyjets, wjets, electroweak_boson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 25
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 21
+      light: {jet_pt_bins: [20, 50, 1000],                             jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 10
+
+  # ttbar + singletop + rem_ttbar + rem_higgs. rem_higgs is ttH(non-bb): its
+  # b jets come from the top decays, so it belongs with top, not with Higgs.
+  top:
+    input_processes: [ttbar, singletop, rem_ttbar, rem_higgs]
+    sample_types:    [ttbar, singletop, rem_ttbar, rem_higgs]
+    flavor_bins:
+      # b: top pT bins merged at 140 -- see the SF CEILING note above. With
+      # [300,1000) the tt-channel value is eff(L)=0.96149 > 1/SF_up=0.95897 and
+      # the consumer throws; merged it is 0.95481.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 9
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+
+  # Diboson stands alone: no other process shares its jet composition.
   diboson:
-    sample_type: "diboson"
-  electroweak_boson:
-    sample_type: "electroweak_boson"
-  ggh_htautau:
-    sample_type: "ggh_htautau"
-  vbf_htautau:
-    sample_type: "vbf_htautau"
-  vbf_hbb:
-    sample_type: "vbf_hbb"
-  rem_hbb:
-    sample_type: "rem_hbb"
-  rem_higgs:
-    sample_type: "rem_higgs"
-  rem_ttbar:
-    sample_type: "rem_ttbar"
+    input_processes: [diboson]
+    sample_types:    [diboson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 100, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 17
+      c:     {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 2.4]}        # margin 10
+      light: {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7
+
+  # H -> bb: the signal plus the other b-associated Higgs modes. Kept apart
+  # from H -> tautau, whose b-efficiency differs by ~4.6% at L; merging the two
+  # would raise the thinnest margin from 3 to 6 but at that physics cost.
+  higgs_bb:
+    input_processes: [hh2b2tau, vbf_hbb, rem_hbb]
+    sample_types:    [hh2b2tau, vbf_hbb, rem_hbb]
+    flavor_bins:
+      # b: merged at 140 for the same reason as the top pool; with [300,1000)
+      # the tt value is 0.96275 and even et sits at 0.95883, margin 1.4e-4.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 6
+
+  # H -> tautau: jets are recoil/ISR rather than Higgs decay products.
+  higgs_tautau:
+    input_processes: [ggh_htautau, vbf_htautau]
+    sample_types:    [ggh_htautau, vbf_htautau]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 50, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 13
+      c:     {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 5
