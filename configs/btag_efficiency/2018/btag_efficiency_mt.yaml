@@ -1,0 +1,110 @@
+# ---------------------------------------------------------------------------
+# Single-channel (mt) b-tag efficiency calculator config for 2018 UL
+# (NanoAOD v15, UParT). Settings in common_settings.yaml are loaded first.
+# Self-contained (load_config only auto-merges common_settings.yaml, not the
+# shared btag_efficiency.yaml), so the probe-jet contract, working points, binning
+# and the 13 sample-type categories are repeated verbatim below.
+# ---------------------------------------------------------------------------
+
+jet_pt_column: "btag_probe_jet_pt"
+jet_eta_column: "btag_probe_jet_eta"
+jet_flavor_column: "btag_probe_jet_hadron_flavour"
+jet_btag_column: "btag_probe_jet_upart"
+
+# The probe jets are already fully selected in CROWN (pt >= 20, |eta| < 2.4,
+# jet ID, lepton overlap removal), so no additional per-jet selection is
+# applied here (empty string = pass-through).
+jet_selection: ""
+
+# ---------------------------------------------------------------------------
+# B-tagging working points: UParTAK4 discriminator cut values (2018 UL v15).
+# https://btv-wiki.docs.cern.ch/ (Run2-2018-UL-NanoAODv15)
+# ---------------------------------------------------------------------------
+btag_working_points:
+  L: 0.0308
+  M: 0.161
+  T: 0.5405
+  XT: 0.6992
+  XXT: 0.9655
+
+# ---------------------------------------------------------------------------
+# Jet flavour categories (btag_probe_jet_hadron_flavour values)
+#   b     -> bottom jets (hadronFlavour == 5)
+#   c     -> charm jets  (hadronFlavour == 4)
+#   light -> light/udsg jets (hadronFlavour == 0)
+# ---------------------------------------------------------------------------
+jet_flavor_categories:
+  b: 5
+  c: 4
+  light: 0
+
+# ---------------------------------------------------------------------------
+# General binning for the efficiency measurement.
+# ---------------------------------------------------------------------------
+# Jet pT bins [GeV]
+jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000]
+# Jet |eta| bins
+jet_eta_bins: [0.0, 1.4, 2.4]
+
+# ---------------------------------------------------------------------------
+# Single fake-factor analysis channel for this config.
+# ---------------------------------------------------------------------------
+channel: mt
+validate_payload: error
+required_sample_types:
+  [hh2b2tau, dyjets, wjets, ttbar, singletop, diboson, electroweak_boson,
+   ggh_htautau, vbf_htautau, vbf_hbb, rem_hbb, rem_higgs, rem_ttbar]
+
+processes:
+  # dyjets + wjets + electroweak_boson: Z/W(+jets) and EWK V production.
+  vjets:
+    input_processes: [dyjets, wjets, electroweak_boson]
+    sample_types:    [dyjets, wjets, electroweak_boson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 25
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 21
+      light: {jet_pt_bins: [20, 50, 1000],                             jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 10
+
+  # ttbar + singletop + rem_ttbar + rem_higgs. rem_higgs is ttH(non-bb): its
+  # b jets come from the top decays, so it belongs with top, not with Higgs.
+  top:
+    input_processes: [ttbar, singletop, rem_ttbar, rem_higgs]
+    sample_types:    [ttbar, singletop, rem_ttbar, rem_higgs]
+    flavor_bins:
+      # b: top pT bins merged at 140 -- see the SF CEILING note above. With
+      # [300,1000) the tt-channel value is eff(L)=0.96149 > 1/SF_up=0.95897 and
+      # the consumer throws; merged it is 0.95481.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 9
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+
+  # Diboson stands alone: no other process shares its jet composition.
+  diboson:
+    input_processes: [diboson]
+    sample_types:    [diboson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 100, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 17
+      c:     {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 2.4]}        # margin 10
+      light: {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7
+
+  # H -> bb: the signal plus the other b-associated Higgs modes. Kept apart
+  # from H -> tautau, whose b-efficiency differs by ~4.6% at L; merging the two
+  # would raise the thinnest margin from 3 to 6 but at that physics cost.
+  higgs_bb:
+    input_processes: [hh2b2tau, vbf_hbb, rem_hbb]
+    sample_types:    [hh2b2tau, vbf_hbb, rem_hbb]
+    flavor_bins:
+      # b: merged at 140 for the same reason as the top pool; with [300,1000)
+      # the tt value is 0.96275 and even et sits at 0.95883, margin 1.4e-4.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 6
+
+  # H -> tautau: jets are recoil/ISR rather than Higgs decay products.
+  higgs_tautau:
+    input_processes: [ggh_htautau, vbf_htautau]
+    sample_types:    [ggh_htautau, vbf_htautau]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 50, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 13
+      c:     {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 5

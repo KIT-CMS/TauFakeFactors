@@ -1,0 +1,199 @@
+# ---------------------------------------------------------------------------
+# Shared b-tag efficiency calculator config for 2018 UL (NanoAOD v15, UParT).
+# Settings in common_settings.yaml (same directory) are loaded automatically
+# and can be overridden here. Run with:
+#   python btag_efficiency.py --config-file configs/btag_efficiency/2018/btag_efficiency.yaml
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# HARD CONSTRAINT -- era 2018 only. This payload is consumed by the STRICT
+# path, KingMaker/CROWN/.../cpp_addons/src/btag_sf_strict.cxx
+# (multi_wp_event_weight), which THROWS and aborts the production job unless,
+# for every bin it evaluates:
+#   isfinite(eff) && eff > 0.0 && eff <= 1.0        (btag_sf_strict.cxx:165)
+#   eff(looser) - eff(tighter) > 0.0, strictly      (:204)  -- no ties
+#   1.0 - eff(loosest) > 0.0                        (:221)
+# btag_efficiency.py writes eff = 0.0 for a zero-denominator bin, so thin
+# categories (vbf_hbb, rem_higgs, electroweak_boson) can produce exactly the
+# values that crash it. Run /work/sdaigler/bbtautau/check_btag_payload.py on
+# every channel's btag_efficiency.json BEFORE shipping. On a violation,
+# coarsen that process's jet_pt_bins / jet_eta_bins via the per-process
+# override (btag_efficiency.py:170-182), as the Run-3 configs already do.
+# Run-3 eras use the lenient consumer, which is why they tolerate 0.0 bins.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Probe-jet column contract. The probe-jet vectors are produced fully selected
+# (pt / eta / ID / overlap) directly by the CROWN sm_btag_efficiency_config and
+# passed through preselection.py unchanged, so the calculator reads them as-is.
+# ---------------------------------------------------------------------------
+jet_pt_column: "btag_probe_jet_pt"
+jet_eta_column: "btag_probe_jet_eta"
+jet_flavor_column: "btag_probe_jet_hadron_flavour"
+jet_btag_column: "btag_probe_jet_upart"
+
+# The probe jets are already fully selected in CROWN (pt >= 20, |eta| < 2.4,
+# jet ID, lepton overlap removal), so no additional per-jet selection is
+# applied here (empty string = pass-through).
+jet_selection: ""
+
+# ---------------------------------------------------------------------------
+# B-tagging working points: UParTAK4 discriminator cut values (2018 UL v15).
+# https://btv-wiki.docs.cern.ch/ (Run2-2018-UL-NanoAODv15)
+# ---------------------------------------------------------------------------
+btag_working_points:
+  L: 0.0308
+  M: 0.161
+  T: 0.5405
+  XT: 0.6992
+  XXT: 0.9655
+
+# ---------------------------------------------------------------------------
+# Jet flavour categories (btag_probe_jet_hadron_flavour values)
+#   b     -> bottom jets (hadronFlavour == 5)
+#   c     -> charm jets  (hadronFlavour == 4)
+#   light -> light/udsg jets (hadronFlavour == 0)
+# ---------------------------------------------------------------------------
+jet_flavor_categories:
+  b: 5
+  c: 4
+  light: 0
+
+# ---------------------------------------------------------------------------
+# General binning for the efficiency measurement.
+# ---------------------------------------------------------------------------
+# Jet pT bins [GeV]
+jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000]
+# Jet |eta| bins
+jet_eta_bins: [0.0, 1.4, 2.4]
+
+# ---------------------------------------------------------------------------
+# All three fake-factor analysis channels share this config; each channel is
+# expanded into its own single-channel run writing to its own output dir.
+# ---------------------------------------------------------------------------
+channels: [et, mt, tt]
+
+# ---------------------------------------------------------------------------
+# Refuse to write a payload the strict consumer would throw on. 2018 is the
+# era consumed by btag_sf_strict.cxx, which aborts the job rather than
+# substitute a value, so a violating payload must not leave the generator.
+# 'warn' logs and writes anyway; 'off' (the default elsewhere) skips the check
+# entirely, which is what the Run-3 eras need -- their lenient consumer
+# tolerates the zero bins their payloads still contain.
+# The scale-factor-weighted jet-weight check needs the BTV payload and stays in
+# check_btag_payload.py --sf-check; passing here is necessary, not sufficient.
+# ---------------------------------------------------------------------------
+validate_payload: error
+
+# ---------------------------------------------------------------------------
+# The 13 SM sample-type categories the efficiency payload must carry on its
+# correctionlib sample_type axis. Every one of them must be present: the SM
+# profile resolves bjet_eff_sample_type to the sample's OWN name (identity --
+# common_config.py:2054-2064, _resolve_legacy_btag_efficiency_alias returns {}
+# for SM), so the consumer looks each process up under its own key.
+# ---------------------------------------------------------------------------
+required_sample_types:
+  [hh2b2tau, dyjets, wjets, ttbar, singletop, diboson, electroweak_boson,
+   ggh_htautau, vbf_htautau, vbf_hbb, rem_hbb, rem_higgs, rem_ttbar]
+
+# ---------------------------------------------------------------------------
+# Measurement pools.
+#
+# WHY POOLING. Measured per process, the 2018 probe-jet sample cannot fill the
+# grid: vbf_hbb has 5/6/7 probe jets in et/mt/tt (and ZERO c jets in tt), and
+# empty bins are written as eff = 0.0 (btag_efficiency.py, zero-denominator
+# branch), which the strict consumer rejects. The per-process payload shipped
+# with sm2018_binned_v1 carried 1357/1117/1625 violations (et/mt/tt) and
+# aborted 4073 of 4531 production jobs. Pooling physically similar processes
+# into one measurement, written back out under each member's own key, removes
+# all of them.
+#
+# WHY THESE POOLS. Members share a b-jet production mechanism, so one detector
+# response is a defensible description of all of them. Measured integrated
+# b-efficiency spread inside each pool is small (higgs_bb: hh2b2tau 0.9443 vs
+# rem_hbb 0.9442 at L, i.e. the signal is unaffected by pooling); the largest
+# residual is W+jets light jets, whose mistag rate differs from DY by ~25% at
+# map level -- W+jets is nonetheless pooled because with 1236 light jets in tt
+# it cannot support a standalone measurement at any binning, and the effect on
+# the propagated event weight is <1%.
+#
+# WHY PER-FLAVOUR BINNING. The binding constraint is always the pass-XXT
+# region for light/c jets (~1e-4 of jets), never b jets (~50%). With one grid
+# per pool the light jets dictate it and the b-jet efficiency loses its pT
+# dependence entirely. Grids below were chosen by scanning candidate binnings
+# against the actual probe jets and keeping the finest grid whose thinnest of
+# the six disjoint UParT score regions still holds >= 5 jets (>= 3 where that
+# is the statistical floor). Margins quoted per line are the worst case over
+# et/mt/tt.
+#
+# SF CEILING (a second, independent constraint). Beyond the three efficiency
+# invariants the consumer also requires its jet weight to stay positive
+# (btag_sf_strict.cxx:231-238). For a b jet failing even the loosest WP that
+# weight is (1 - SF(L)*eff(L)) / (1 - eff(L)), so the payload must satisfy
+#     eff(L) < 1 / SF_up(L)
+# which for |eta| < 2.4 above 300 GeV is 1/1.0428 = 0.95897. SF_up*eff > 1
+# means "more than 100% of b jets tagged" -- an inconsistency between the
+# measured MC efficiency and the BTV scale factor, not a binning artefact, and
+# the consumer is right to refuse it. It binds only in the highest pT bin,
+# where the b efficiency plateaus near 0.96; merging the top pT bins pulls the
+# bin average back under the ceiling. This is invisible to a check that only
+# looks at the efficiency payload -- use --sf-check.
+#
+# RE-VALIDATE AFTER ANY CHANGE to preselection, sample list or statistics:
+#   python3 /work/sdaigler/bbtautau/check_btag_payload.py <btag_efficiency.json>
+# Three cells sit at margin 3; this is not a grid with room to spare.
+# ---------------------------------------------------------------------------
+processes:
+
+  # dyjets + wjets + electroweak_boson: Z/W(+jets) and EWK V production.
+  vjets:
+    input_processes: [dyjets, wjets, electroweak_boson]
+    sample_types:    [dyjets, wjets, electroweak_boson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 25
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 21
+      light: {jet_pt_bins: [20, 50, 1000],                             jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 10
+
+  # ttbar + singletop + rem_ttbar + rem_higgs. rem_higgs is ttH(non-bb): its
+  # b jets come from the top decays, so it belongs with top, not with Higgs.
+  top:
+    input_processes: [ttbar, singletop, rem_ttbar, rem_higgs]
+    sample_types:    [ttbar, singletop, rem_ttbar, rem_higgs]
+    flavor_bins:
+      # b: top pT bins merged at 140 -- see the SF CEILING note above. With
+      # [300,1000) the tt-channel value is eff(L)=0.96149 > 1/SF_up=0.95897 and
+      # the consumer throws; merged it is 0.95481.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 9
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+
+  # Diboson stands alone: no other process shares its jet composition.
+  diboson:
+    input_processes: [diboson]
+    sample_types:    [diboson]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 100, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 17
+      c:     {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 2.4]}        # margin 10
+      light: {jet_pt_bins: [20, 1000],              jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7
+
+  # H -> bb: the signal plus the other b-associated Higgs modes. Kept apart
+  # from H -> tautau, whose b-efficiency differs by ~4.6% at L; merging the two
+  # would raise the thinnest margin from 3 to 6 but at that physics cost.
+  higgs_bb:
+    input_processes: [hh2b2tau, vbf_hbb, rem_hbb]
+    sample_types:    [hh2b2tau, vbf_hbb, rem_hbb]
+    flavor_bins:
+      # b: merged at 140 for the same reason as the top pool; with [300,1000)
+      # the tt value is 0.96275 and even et sits at 0.95883, margin 1.4e-4.
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 2.4]}        # margin 6
+
+  # H -> tautau: jets are recoil/ISR rather than Higgs decay products.
+  higgs_tautau:
+    input_processes: [ggh_htautau, vbf_htautau]
+    sample_types:    [ggh_htautau, vbf_htautau]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 50, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 13
+      c:     {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 3 (floor)
+      light: {jet_pt_bins: [20, 1000],     jet_eta_bins: [0.0, 2.4]}        # margin 5
