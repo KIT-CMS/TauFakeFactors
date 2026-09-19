@@ -68,10 +68,13 @@ jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000]
 jet_eta_bins: [0.0, 1.4, 2.4]
 
 # ---------------------------------------------------------------------------
-# All three fake-factor analysis channels share this config; each channel is
-# expanded into its own single-channel run writing to its own output dir.
+# All six channels share this config; btag_efficiency_<channel>.yaml inherits
+# it via base_config_file and pins one channel. Channel overrides go there as
+# a local `processes:` block: a pool is replaced wholesale by name, `<pool>:
+# null` removes it (pools must be disjoint). Current overrides: em (higgs_bb
+# b bins, SF ceiling), ee/mm (higgs_tautau folded into vjets).
 # ---------------------------------------------------------------------------
-channels: [et, mt, tt]
+channels: [et, mt, tt, ee, em, mm]
 
 # ---------------------------------------------------------------------------
 # Refuse to write a payload the strict consumer would throw on. 2018 is the

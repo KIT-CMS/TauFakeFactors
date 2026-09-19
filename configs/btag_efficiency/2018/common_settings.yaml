@@ -1,38 +1,22 @@
-# ---------------------------------------------------------------------------
-# Common settings for the 2018 UL (NanoAOD v15, UParT) b-tag efficiency
-# measurement. Loaded automatically by helper.functions.load_config for every
-# preselection_<channel>.yaml / btag_efficiency*.yaml in this directory.
-# ---------------------------------------------------------------------------
+# Common settings, 2018 UL (NanoAOD v15, UParT) b-tag efficiency. Loaded
+# automatically for every config in this directory; single source for the
+# CROWN production and the outputs of all six channels.
+#   ntuple_path  -- CROWNRun dir of production sm2018_binned_btag_eff_v2
+#                   (must be an xrootd URL, see helper/functions.py:check_inputfiles)
+#   output_path  -- preselection.py writes {output_path}/preselection/2018/{channel}/
+#   file_path    -- btag_efficiency.py reads the same layout; must equal output_path
+#   workdir_name -- payloads go to workdir/{workdir_name}/2018/{channel}/
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v2/CROWNRun"
+output_path: "/ceph/sdaigler/CMS_FF/btag_eff_v2"
+file_path:   "/ceph/sdaigler/CMS_FF/btag_eff_v2"
 
-# ---------------------------------------------------------------------------
-# TODO(2018-production): no 2018 UL v15 probe-jet production exists yet, so
-# these three paths are placeholders and every step will fail loudly until they
-# are filled in. Replace them with the real locations, in the same style as the
-# Run-3 eras (see e.g. ../2022postEE/common_settings.yaml):
-#
-#   ntuple_path -- the CROWNRun directory reported by
-#     law run ProduceNtuples --analysis bbtautau \
-#         --config sm_btag_efficiency_config --era 2018 \
-#         --nanoAOD-version v15 --scopes et,mt,tt --shifts None
-#     NOTE: it must be an xrootd URL. helper/functions.py:530-535 always goes
-#     through the KIT dCache redirector; a plain local or /ceph path exits 1.
-#   output_path -- where preselection.py writes its selected trees, as
-#     {output_path}/preselection/2018/{channel}/
-#   file_path   -- where btag_efficiency.py looks for them; it appends
-#     preselection/{era}/{channel}/ itself, so this MUST equal output_path.
-# ---------------------------------------------------------------------------
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v1/CROWNRun"
-output_path: "/ceph/sdaigler/CMS_FF/btag_eff"
-file_path:   "/ceph/sdaigler/CMS_FF/btag_eff"
-
-workdir_name: "btag_eff"
+workdir_name: "btag_eff_v2"
 
 era: "2018"
 tree: "ntuple"
 nanoAOD_version: "nanoAOD_v15"
 
-# Hadronic-tau-vs-jet working points snapshotted through preselection so the
-# downstream steps can re-derive the vsJet weights.
+# vsJet working points snapshotted through preselection (tau channels only).
 tau_vs_jet_wps:
   - "VVVLoose"
   - "Medium"
