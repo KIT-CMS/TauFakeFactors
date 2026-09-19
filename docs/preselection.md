@@ -16,12 +16,13 @@ The preselection config has the following parameters:
 
 In `processes` all the processes are defined that should be preprocessed. <br>
 The names are also used for the output file naming after the processing. <br>
-Each process needs two specifications:
+Each process needs two specifications, `sample_cuts` is optional:
 
   subparameter | type | description
   ---|---|---
   `tau_gen_modes` | `list` | split of the events corresponding to the origin of the hadronic tau
   `samples` | `list` | list of all sample tags corresponding to the specific process
+  `sample_cuts` | `dict` | (optional) cuts applied only to single samples of the process. <br>The key is a sample tag from `samples`, the value is the cut as a string like in `event_selection` e.g. `"npartons == 0"` to take only the zero-parton events of an inclusive sample next to binned samples. The cut does not change the event weights, e.g. without stitching the generator weight keeps the cross section and event number of the full sample.
   
 The `tau_gen_modes` have following modes:
 

@@ -1,0 +1,20 @@
+# 2018 UL preselection, e-mu channel: single-muon trigger, opposite sign, >= 2 analysis jets (ttbar-enriched).
+# Inherits preselection.yaml (processes, output columns) and common_settings.yaml (paths).
+base_config_file: preselection.yaml
+channel: em
+event_selection:
+  lep_pt_and_trigger: (pt_1 > 15) && (pt_2 > 26) && (trg_single_mu24 > 0.5)
+  two_analysis_jets: n_jets >= 2
+  opposite_sign: (q_1 * q_2) < 0
+  lepton_isolation: (iso_1 >= 0.0) && (iso_1 < 0.15) && (iso_2 >= 0.0) && (iso_2 < 0.15)
+  no_extra_lepton: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+mc_weights:
+  Top_pt_reweighting: topPtReweightWeight
+  generator: ""
+  lep_id: id_wgt_ele_1 * id_wgt_mu_2
+  lep_reco: reco_wgt_ele_1
+  lep_iso: iso_wgt_mu_2
+  lumi: ""
+  pileup: puweight
+  single_trigger: trg_wgt_single_mu24

@@ -1,0 +1,18 @@
+# 2018 UL b-tag efficiency, mumu channel. Inherits btag_efficiency.yaml; paths from common_settings.yaml.
+base_config_file: btag_efficiency.yaml
+channel: mm
+
+# Override: higgs_tautau (ggH + VBF H->tautau, ~10k probe jets here) has no
+# light jet above XXT at any binning -> eff = 0, rejected by the strict consumer.
+# Its two keys are measured on vjets instead: recoil/ISR jets in both cases,
+# light mistag differs ~25% at L (like W+jets vs DY already inside vjets).
+# 'null' removes the inherited pool; pools must be disjoint.
+processes:
+  higgs_tautau: null
+  vjets:
+    input_processes: [dyjets, wjets, electroweak_boson, ggh_htautau, vbf_htautau]
+    sample_types:    [dyjets, wjets, electroweak_boson, ggh_htautau, vbf_htautau]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}
+      c:     {jet_pt_bins: [20, 1000],                                 jet_eta_bins: [0.0, 1.4, 2.4]}
+      light: {jet_pt_bins: [20, 50, 1000],                             jet_eta_bins: [0.0, 1.4, 2.4]}
