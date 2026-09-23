@@ -86,12 +86,9 @@ mc_weights:
   generator: ''
   lumi: ''
   pileup: puweight
-  had_tau_id_vs_ele_1: (gen_match_1==5) * ((id_tau_vsEle_VVLoose_1>0.5)*id_wgt_tau_vsEle_VVLoose_1
-    + (id_tau_vsEle_VVLoose_1<0.5)) + (gen_match_1!=5)
-  had_tau_id_vs_ele_2: (gen_match_2==5) * ((id_tau_vsEle_VVLoose_2>0.5)*id_wgt_tau_vsEle_VVLoose_2
-    + (id_tau_vsEle_VVLoose_2<0.5)) + (gen_match_2!=5)
-  had_tau_id_vs_mu_1: (gen_match_1==5) * ((id_tau_vsMu_VLoose_VVLoose_1>0.5)*id_wgt_tau_vsMu_VLoose_VVLoose_1
-    + (id_tau_vsMu_VLoose_VVLoose_1<0.5)) + (gen_match_1!=5)
-  had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_VVLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_VVLoose_2
-    + (id_tau_vsMu_VLoose_VVLoose_2<0.5)) + (gen_match_2!=5)
+  btag_reweighting: btag_weight
+  had_tau_id_vs_ele_1: id_wgt_tau_vsEle_VVLoose_1
+  had_tau_id_vs_ele_2: id_wgt_tau_vsEle_VVLoose_2
+  had_tau_id_vs_mu_1: id_wgt_tau_vsMu_VLoose_VVLoose_1
+  had_tau_id_vs_mu_2: id_wgt_tau_vsMu_VLoose_VVLoose_2
   double_trigger: (trg_wgt_doubletau30_leg1 * trg_wgt_doubletau30_leg2)
