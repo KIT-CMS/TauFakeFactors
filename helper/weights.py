@@ -95,17 +95,20 @@ def lumi_weight(rdf: Any, era: str) -> Any:
     elif era == "2018":
         rdf = rdf.Redefine("weight", "weight * 59.56 * 1000.")
     elif era == "2022":
-        rdf = rdf.Redefine("weight", "weight * 34.65 * 1000.")
+        # 8.086069205 (2022preEE) + 26.674924045 (2022postEE), matching config/samples.yaml
+        rdf = rdf.Redefine("weight", "weight * 34.76099325 * 1000.")
     elif era == "2023":
-        rdf = rdf.Redefine("weight", "weight * 27.75 * 1000.")
+        # 17.964217998 (2023preBPix) + 9.676737966 (2023postBPix), matching config/samples.yaml
+        rdf = rdf.Redefine("weight", "weight * 27.640955964 * 1000.")
     elif era == "2024":
-        rdf = rdf.Redefine("weight", "weight * 109.81 * 2 * 1000.")
+        rdf = rdf.Redefine("weight", "weight * 109.816515335 * 2 * 1000.")
     elif era == "2025":
-        # 109.898 (2025) + 27.42 (2026, merged into the 2025 config -- see
+        # 109.898115287 (2025) + 25.148977841 (2026, merged into the 2025 config -- see
         # configs/smhtt_ul/2025/preselection_*.yaml's data era_overrides), per TauKITFlow's
-        # config/samples.yaml:luminosity. *2 because the MC (one campaign) now stands in for
-        # both data-taking halves instead of just one, same as 2024's pattern.
-        rdf = rdf.Redefine("weight", "weight * 137.318 * 2 * 1000.")
+        # config/samples.yaml:luminosity. *2 because the MC (one campaign, exclusively from
+        # 2025) now stands in for both data-taking halves instead of just one, same as 2024's
+        # pattern.
+        rdf = rdf.Redefine("weight", "weight * 135.047093128 * 2 * 1000.")
     else:
         raise ValueError(f"Weight calc: lumi: Era is not defined: {era}")
 
