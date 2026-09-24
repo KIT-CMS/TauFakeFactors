@@ -121,7 +121,12 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
                             rdf=rdf, sample_info=datasets[sample]
                         )
                 else:
-                    rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
+                    try:
+                        rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
+                    except:
+                        log.warning(f"""WARNING: Could not calculate generator weight for sample {sample}.\n
+                                    Also dataset is doing what?:{datasets.keys()}\n\n\n\nDATASETS:{datasets}""")
+                        exit(1)
             elif weight == "lumi":
                 rdf = weights.lumi_weight(rdf=rdf, era=config["era"])
             elif weight == "Z_pt_reweighting":
@@ -153,8 +158,8 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
 
     # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
     if process in ["data", "embedding"]:
-        if "btag_weight" not in rdf.GetColumnNames():
-            rdf = rdf.Define("btag_weight", "1.")
+        if "btag_weight_upart" not in rdf.GetColumnNames():
+            rdf = rdf.Define("btag_weight_upart", "1.")
         for wp in config["tau_vs_jet_wgt_wps"]:
             weightname = "id_wgt_tau_vsJet_" + wp + "_2"
             if weightname not in rdf.GetColumnNames():
@@ -195,6 +200,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         cols_with_friends = [str(x).replace("ntuple.", "") for x in cols]
         missing_cols = [x for x in output_features if x not in cols_with_friends]
         if len(missing_cols) != 0:
+            log.warning(f"\nOutput features: {sample} {tau_gen_mode}\n")
             raise ValueError(f"Missing columns: {missing_cols}")
 
         tmp_rdf.Snapshot(config["tree"], tmp_file_name, output_features)

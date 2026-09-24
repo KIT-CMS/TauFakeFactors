@@ -269,7 +269,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         (SRlike_hists, "SR_like", "data_subtracted", ["Wjets"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["Wjets"]),
     ]:
-        for yscale, save_data in zip(["linear", "log"], [True, False]):
+        for yscale, save_data in zip(["linear"], [True]):
             plotting.plot_data_mc_ratio(
                 variable=process_conf["var_dependence"],
                 hists=_hist,
@@ -543,7 +543,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     plot_hists["data_ff"] = ARlike_hists["data_ff"].Clone()
     plot_hists["data_ff"].Scale(process_fraction)
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
@@ -560,7 +560,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             save_data=save_data,
         )
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,
@@ -718,7 +718,7 @@ def DR_SR_correction(
     plot_hists["data_subtracted"] = SRlike_hists["Wjets"].Clone()
     plot_hists["data_ff"] = ARlike_hists["Wjets_ff"].Clone()
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,

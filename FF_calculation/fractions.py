@@ -183,7 +183,7 @@ def fraction_calculation(
         (SR_hists, "SR"),
         (AR_hists, "AR"),
     ]:
-        for yscale, save_data in zip(["linear", "log"], [True, False]):
+        for yscale, save_data in zip(["linear"], [True]):
             plotting.plot_data_mc_ratio(
                 variable=process_conf["var_dependence"],
                 hists=_hist,

@@ -206,6 +206,7 @@ class SplitQuantitiesContainer:
     _correction_option: Union[str, None] = None  # set or from general_definitions
     _fit_option: Union[list, None] = None  # set or from general_definitions
     _bandwidth: Union[float, int, None] = None  # derived from var_bins
+    # _skip_correction: Union[bool, None] = None
     _limit_kwargs: Union[dict, None] = None  # derived from var_bins and optional hist
 
     def limit_kwargs(self, hist: Union[None, ROOT.TH1] = None) -> dict:
@@ -281,7 +282,9 @@ class SplitQuantitiesContainer:
         Returns:
             Union[str, None]: The correction option.
         """
-
+        # if self._skip_correction:
+        #     return "skip"
+        
         if self._correction_option is not None:
             return self._correction_option
 
@@ -537,6 +540,60 @@ class SplitQuantities:
 
         return self._limit_kwargs
 
+    # @property
+    # def skip_correction(self) -> Union[bool, None]:
+    #     """
+    #     Retrieves the skip_correction flag from the configuration. If True, the
+    #     correction_option is overridden with "skip" so that the correction is
+    #     always written out as 1.0.
+
+    #     Supports a scalar bool (applies to all split combinations), a dict with
+    #     per-category values (categories not listed default to False) or a list
+    #     with one entry per split combination.
+
+    #     Returns:
+    #         Union[bool, None]: The flag value(s) or None (if not set).
+    #     """
+
+    #     if hasattr(self, "_skip_correction") and self._skip_correction is not None:
+    #         return self._skip_correction
+
+    #     key = "skip_correction"
+    #     if key not in self.config:
+    #         self._skip_correction = itt.cycle([None])
+    #     elif isinstance(self.config[key], bool):
+    #         self._skip_correction = itt.cycle([self.config[key]])
+    #     elif isinstance(self.config[key], dict):
+    #         # per-category definition, categories which are not listed default to False
+    #         collection = []
+    #         for split_combination in self.split:
+    #             if split_combination is None:
+    #                 collection.append(bool(self.config[key]))
+    #                 continue
+
+    #             temp_config = self.config[key]
+    #             for variable_name in self.split_variables:  # transverse the split variables
+    #                 category_value = split_combination[variable_name]
+    #                 if isinstance(temp_config, dict) and category_value in temp_config:
+    #                     temp_config = temp_config[category_value]
+    #                 else:  # category not listed -> no skipping
+    #                     temp_config = False
+    #                     break
+
+    #             collection.append(bool(temp_config))
+
+    #         assert len(self) == len(collection), f"Length of split combinations and {key} do not match"
+    #         self._skip_correction = collection
+    #     elif isinstance(self.config[key], list):
+    #         if len(self.config[key]) != len(self):
+    #             raise ValueError(f"Length of {key} list does not match number of split combinations")
+    #         self._skip_correction = [bool(it) for it in self.config[key]]
+    #     else:
+    #         print(f"Invalid type for {key}: {type(self.config[key])}")
+    #         raise Exception(f"Invalid type for {key}")
+
+    #     return self._skip_correction
+
     @property
     def bandwidth(self) -> Union[float, int, None]:
         """
@@ -592,7 +649,8 @@ class SplitQuantities:
             - var_bins,
             - fit_option,
             - limit_kwargs,
-            - bandwidth, and
+            - bandwidth,
+            - skip_correction,
             - correction_option,
         a new SplitQuantitiesContainer is constructed and yielded.
 
@@ -606,6 +664,7 @@ class SplitQuantities:
             fit_option,
             limit_kwargs,
             bandwidth,
+            # skip_correction,
             correction_option,
         ) in zip(
             self.split,
@@ -613,6 +672,7 @@ class SplitQuantities:
             self.fit_option,
             self.limit_kwargs,
             self.bandwidth,
+            # self.skip_correction,
             self.correction_option,
         ):
             yield SplitQuantitiesContainer(
@@ -623,6 +683,7 @@ class SplitQuantities:
                 _fit_option=fit_option,
                 _limit_kwargs=limit_kwargs,
                 _bandwidth=bandwidth,
+                # _skip_correction=skip_correction,
                 _correction_option=correction_option,
             )
 
@@ -800,7 +861,7 @@ def apply_region_filters(
     sum_cuts = {**tmp, **region_cuts}
 
     for cut in sum_cuts:
-        if cut not in ["nbtag", "bb_selection"]:
+        if cut not in ["n_bjets", "bb_selection"]:
             if "had_tau_id_vs_jet" in cut:
                 wps = get_wps(cut_string=sum_cuts[cut])
                 try:
@@ -834,14 +895,14 @@ def apply_region_filters(
             else:
                 rdf = rdf.Filter(f"({sum_cuts[cut]})", f"cut on {cut}")
     # cut on number of b-tagged jets needs to be the last cut to do an on-the-fly calculation of the b-tagger weight
-    if "nbtag" in sum_cuts.keys():
+    if "n_bjets" in sum_cuts.keys():
         if sample not in ["data", "embedding"]:
             rdf = weights.apply_btag_weight(rdf=rdf)
-        rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
+        rdf = rdf.Filter(f"({sum_cuts['n_bjets']})", "cut on n_bjets")
     if "bb_selection" in sum_cuts.keys():
         if sample not in ["data", "embedding"] and "fj_Xbb" in sum_cuts["bb_selection"]:
             rdf = weights.apply_pNet_weight(rdf=rdf)
-        if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
+        if sample not in ["data", "embedding"] and "n_bjets" not in sum_cuts.keys():
             rdf = weights.apply_btag_weight(rdf=rdf)
         rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
 
@@ -1729,7 +1790,7 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
         flattened = {}
         if isinstance(node, dict):
             for k, v in node.items():
-                formatted_k = str(k).replace("#", " ")  # i.e. "njets#==0"
+                formatted_k = str(k).replace("#", " ")  # i.e. "n_jets#==0"
                 new_path = f"{current_path} | {formatted_k}" if current_path else formatted_k
                 flattened.update(flatten_categories(v["default"], new_path))
         return flattened

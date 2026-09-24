@@ -182,7 +182,7 @@ def calc_center_of_mass(
     for m1, m2, w1, w2, (bin_low, bin_high) in zip(*means, *weights, nwise(bin_edges, n=2)):
         _counts.append(weights_combination_operation(w1, w2))
         if (tot := w1 + factor * w2) != 0:
-            _means.append((max(min((w1 * m1 + factor * w2 * m2) / tot, bin_high), bin_low)))
+            _means.append((max(min((w1 * m1 + factor * w2 * m2) / tot, np.nextafter(bin_high, bin_low)), np.nextafter(bin_low, bin_high))))
         else:
             _means.append((bin_low + bin_high) / 2)  # Default to bin center if no counts
     return _counts, _means

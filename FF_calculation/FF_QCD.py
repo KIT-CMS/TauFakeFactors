@@ -192,7 +192,7 @@ def calculation_QCD_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[str, Dict[str,
         (SRlike_hists, "SR_like"),
         (ARlike_hists, "AR_like"),
     ]:
-        for yscale, save_data in zip(["linear", "log"], [True, False]):
+        for yscale, save_data in zip(["linear"], [True]):
             plotting.plot_data_mc_ratio(
                 variable=process_conf["var_dependence"],
                 hists=_hist,
@@ -405,7 +405,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
     plot_hists["data_ff"] = ARlike_hists["data_ff"].Clone()
     plot_hists["data_ff"].Scale(process_fraction)
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,
@@ -423,7 +423,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         )
 
     # producing control plots
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,
@@ -643,7 +643,7 @@ def DR_SR_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             yscale=yscale,
         )
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=SRlike_hists,

@@ -191,12 +191,12 @@ label_dict = AutoGetDict(
 # definitions to translate variable to readable language, channel dependent
 channel_indipendent_variable_dict = AutoGetDict(
     {
-        "njets": r"$N_{jets}$",
+        "n_jets": r"$N_{jets}$",
         "metphi": r"$\phi(p_T^{miss})$",
         "met": r"$p_T^{miss}$ (GeV)",
         "m_vis": r"$m_{vis}$ (GeV)",
         "pt_vis": r"$p_{T}^{vis}$ (GeV)",
-        "nbtag": r"$N_{b-jets}$",
+        "n_bjets": r"$N_{b-jets}$",
     }
 )
 variable_dict = {
@@ -269,8 +269,8 @@ variable_dict = {
 category_dict = AutoGetDict(
     {
         "incl": r"incl.",
-        "njets": r"$N_{jets}$",
-        "nbtag": r"$N_{b-jets}$",
+        "n_jets": r"$N_{jets}$",
+        "n_bjets": r"$N_{b-jets}$",
         "deltaR_ditaupair": r"$\Delta R(\ell,\tau_{h})$",
         "tau_decaymode_1": r"$\tau_{h,1}^{DM}$",
         "tau_decaymode_2": r"$\tau_{h,2}^{DM}$",
@@ -293,8 +293,8 @@ variable_type = defaultdict(
         "iso_1": "real",
         "m_vis": "real",
         "bpt_1": "real",
-        "njets": "real",
-        "nbtag": "real",
+        "n_jets": "real",
+        "n_bjets": "real",
         "deltaR_ditaupair": "real",
         "tau_decaymode_1": "real",
         "tau_decaymode_2": "real",
@@ -311,8 +311,8 @@ variable_description = AutoGetDict(
         "mass_2": "mass of the subleading hadronic tau in the tau pair; measured between #var_min and #var_max GeV; for higher/lower masses the edge values are used",
         "m_vis": "invariant mass of the visible di-tau decay products; measured between #var_min and #var_max GeV; for higher/lower m_vis's the edge values are used",
         "bpair_pt_1": "transverse momentum of the hardest b-tagged jet; measured between #var_min and #var_max GeV; for higher/lower pt's the edge values are used",
-        "njets": "number of jets in an event; the defined categories are ",
-        "nbtag": "number of b-tagged jets in an event; the defined categories are ",
+        "n_jets": "number of jets in an event; the defined categories are ",
+        "n_bjets": "number of b-tagged jets in an event; the defined categories are ",
         "deltaR_ditaupair": "spatial distance between the tau pair with deltaR ",
         "tau_decaymode_1": "decay mode of the leading tau in the tau pair; the defined categories are ",
         "tau_decaymode_2": "decay mode of the subleading tau in the tau pair; the defined categories are ",

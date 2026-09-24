@@ -2,9 +2,9 @@ channel: tt
 target_processes:
   QCD:
     split_categories:
-      njets: [">=2"]
+      n_jets: [">=2"]
     split_categories_binedges:
-      njets: [1.5, 22.5]
+      n_jets: [1.5, 22.5]
     equipopulated_binning_options:
       variable_config:
         pt_1:
@@ -16,7 +16,7 @@ target_processes:
     SRlike_cuts:
       had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
       had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
+      jj_selection: "n_jets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
       # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
       # -------------------------------------------
@@ -25,7 +25,7 @@ target_processes:
     ARlike_cuts:
       had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
       had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
+      jj_selection: "n_jets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
       # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
       # -------------------------------------------
@@ -41,9 +41,9 @@ target_processes:
 
   QCD_subleading:
     split_categories:
-      njets: [">=2"]
+      n_jets: [">=2"]
     split_categories_binedges:
-      njets: [1.5, 22.5]
+      n_jets: [1.5, 22.5]
     equipopulated_binning_options:
       variable_config:
         pt_2:
@@ -55,7 +55,7 @@ target_processes:
     SRlike_cuts:
       had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
       had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
-      jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
+      jj_selection: "n_jets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
       # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
       # -------------------------------------------
@@ -64,7 +64,7 @@ target_processes:
     ARlike_cuts:
       had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
       had_tau_id_vs_jet_2: (id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)
-      jj_selection: "njets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
+      jj_selection: "n_jets >= 2 && jpt_1>=20 && jpt_2>=20 && jj_deltaR >= 0.4"
       # -------------------------------------------
       tau_pair_sign: (q_1*q_2) > 0
       # -------------------------------------------
@@ -80,9 +80,9 @@ target_processes:
 
   ttbar:
     split_categories:
-      njets: ["==2", ">=3"]
+      n_jets: ["==2", ">=3"]
     split_categories_binedges:
-      njets: [1.5, 2.5, 23.5]
+      n_jets: [1.5, 2.5, 23.5]
     equipopulated_binning_options:
       variable_config:
         pt_1:
@@ -98,28 +98,28 @@ target_processes:
       no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     AR_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
       had_tau_id_vs_jet_1: "(id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     SRlike_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     ARlike_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
       had_tau_id_vs_jet_1: "(id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     var_dependence: "pt_1"
     var_bins:
@@ -134,9 +134,9 @@ target_processes:
 
   ttbar_subleading:
     split_categories:
-      njets: ["==2", ">=3"]
+      n_jets: ["==2", ">=3"]
     split_categories_binedges:
-      njets: [1.5, 2.5, 23.5]
+      n_jets: [1.5, 2.5, 23.5]
     equipopulated_binning_options:
       variable_config:
         pt_2:
@@ -152,28 +152,28 @@ target_processes:
       no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     AR_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "(extramuon_veto < 0.5) && (extraelec_veto < 0.5)"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     SRlike_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "id_tau_vsJet_Medium_2 > 0.5"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
     ARlike_cuts:
       tau_pair_sign: "(q_1*q_2) < 0"
       no_extra_lep: "!((extramuon_veto < 0.5) && (extraelec_veto < 0.5))"
       had_tau_id_vs_jet_1: "id_tau_vsJet_Medium_1 > 0.5"
       had_tau_id_vs_jet_2: "(id_tau_vsJet_VVVLoose_2 > 0.5) && (id_tau_vsJet_Medium_2 < 0.5)"
-      bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+      bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
     var_dependence: "pt_2"
     var_bins:
       "==2": [40.0, 45.09, 53.97, 150.0]
@@ -189,9 +189,9 @@ process_fractions:
   processes: ["QCD", "ttbar_J"]
 
   split_categories:
-    njets: ["<=1", ">=2"]
+    n_jets: ["<=2", ">=3"]
   split_categories_binedges:
-    njets: [-0.5, 1.5, 22.5]
+    n_jets: [-0.5, 2.5, 22.5]
   equipopulated_binning_options:
     variable_config:
       m_vis:
@@ -199,8 +199,8 @@ process_fractions:
         max: 200.0
         rounding: 2
     var_dependence_n_bins:
-      "<=1": 9
-      ">=2": 20
+      "<=2": 3
+      ">=3": 3
 
   SR_cuts:
     had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
@@ -209,7 +209,7 @@ process_fractions:
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
-    bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+    bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
   AR_cuts:
     had_tau_id_vs_jet_1: (id_tau_vsJet_VVVLoose_1 > 0.5) && (id_tau_vsJet_Medium_1 < 0.5)
@@ -218,20 +218,20 @@ process_fractions:
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5) && (dilepton_veto < 0.5)
-    bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+    bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
   var_dependence: m_vis
   var_bins:
-    "<=1": [15.0, 68.4, 89.87, 100.37, 110.48, 121.43, 134.31, 149.49, 169.25, 200.0]
-    ">=2": [15.0, 37.9, 48.59, 59.28, 68.85, 78.34, 85.98, 92.23, 97.84, 103.03, 108.23, 113.95, 119.79, 126.3, 133.01, 140.36, 148.63, 157.94, 169.26, 183.57, 200.0]
+    "<=2": [15.0, 94.56, 130.51, 200.0]
+    ">=3": [15.0, 87.21, 127.26, 200.0]
 
 process_fractions_subleading:
   processes: ["QCD", "ttbar_J"]
 
   split_categories:
-    njets: ["<=1", ">=2"]
+    n_jets: ["<=2", ">=3"]
   split_categories_binedges:
-    njets: [-0.5, 1.5, 22.5]
+    n_jets: [-0.5, 2.5, 22.5]
   equipopulated_binning_options:
     variable_config:
       m_vis:
@@ -239,8 +239,8 @@ process_fractions_subleading:
         max: 200.0
         rounding: 2
     var_dependence_n_bins:
-      "<=1": 9
-      ">=2": 20
+      "<=2": 3
+      ">=3": 3
 
   SR_cuts:
     had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
@@ -249,7 +249,7 @@ process_fractions_subleading:
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
-    bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+    bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
   AR_cuts:
     had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 < 0.5
@@ -258,9 +258,9 @@ process_fractions_subleading:
     tau_pair_sign: (q_1*q_2) < 0
     # -------------------------------------------
     no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
-    bb_selection: "nbtag >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
+    bb_selection: "n_bjets >= 1 && bpair_pt_1>=20 && bpair_pt_2>=20"
 
   var_dependence: m_vis
   var_bins:
-    "<=1": [15.0, 68.4, 89.87, 100.37, 110.48, 121.43, 134.31, 149.49, 169.25, 200.0]
-    ">=2": [15.0, 37.91, 48.59, 59.29, 68.86, 78.34, 85.98, 92.24, 97.84, 103.03, 108.23, 113.95, 119.8, 126.31, 133.01, 140.36, 148.63, 157.94, 169.26, 183.57, 200.0]
+    "<=2": [15.0, 94.56, 130.51, 200.0]
+    ">=3": [15.0, 87.24, 127.28, 200.0]

@@ -160,7 +160,7 @@ def calculation_ttbar_FFs(
         (SRlike_hists, "SR_like", "data_subtracted", ["ttbar_J"]),
         (ARlike_hists, "AR_like", "data_subtracted", ["ttbar_J"]),
     ]:
-        for yscale, save_data in zip(["linear", "log"], [True, False]):
+        for yscale, save_data in zip(["linear"], [True]):
             plotting.plot_data_mc_ratio(
                 variable="metphi",
                 hists=_hist,
@@ -464,7 +464,7 @@ def non_closure_correction(
     plot_hists["data_subtracted"] = SR_hists["ttbar_J"].Clone()
     plot_hists["data_ff"] = AR_hists["ttbar_ff"].Clone()
 
-    for yscale, save_data in zip(["linear", "log"], [True, False]):
+    for yscale, save_data in zip(["linear"], [True]):
         plotting.plot_data_mc_ratio(
             variable=correction_conf["var_dependence"],
             hists=plot_hists,

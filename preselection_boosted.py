@@ -138,8 +138,8 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
 
     # default values for some output variables which are not defined in data, embedding; will not be used in FF calculation
     if process in ["data", "embedding"]:
-        if "btag_weight" not in rdf.GetColumnNames():
-            rdf = rdf.Define("btag_weight", "1.")
+        if "btag_weight_upart" not in rdf.GetColumnNames():
+            rdf = rdf.Define("btag_weight_upart", "1.")
         for wp in config["tau_iso_wgt_wps"]:
             weightname = "id_wgt_boostedtau_iso_" + wp + "_2"
             if weightname not in rdf.GetColumnNames():
