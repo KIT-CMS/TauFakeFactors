@@ -2,15 +2,17 @@
 # automatically for every config in this directory; single source for the
 # CROWN production and the outputs of all six channels.
 #   ntuple_path  -- CROWNRun dir of production sm2018_binned_btag_eff_v2
-#                   (must be an xrootd URL, see helper/functions.py:check_inputfiles)
-#   output_path  -- preselection.py writes {output_path}/preselection/2018/{channel}/
+#                   (must be an xrootd URL, see helper/functions.py:check_inputfiles);
+#                   v2 lacks the inclusive DY M-50 sample, move to a production with it
+#   output_path  -- preselection.py writes {output_path}/preselection/2018/{channel}/;
+#                   v3 = dyjets with the inclusive DY M-50 sample, keeps the v2 outputs
 #   file_path    -- btag_efficiency.py reads the same layout; must equal output_path
 #   workdir_name -- payloads go to workdir/{workdir_name}/2018/{channel}/
 ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v2/CROWNRun"
-output_path: "/ceph/sdaigler/CMS_FF/btag_eff_v2"
-file_path:   "/ceph/sdaigler/CMS_FF/btag_eff_v2"
+output_path: "/ceph/sdaigler/CMS_FF/btag_eff_v3"
+file_path:   "/ceph/sdaigler/CMS_FF/btag_eff_v3"
 
-workdir_name: "btag_eff_v2"
+workdir_name: "btag_eff_v3"
 
 era: "2018"
 tree: "ntuple"
