@@ -1,0 +1,19 @@
+# 2018 UL preselection, dimuon channel: single-muon trigger, opposite sign, 70 < m_vis < 110 GeV.
+# Inherits preselection.yaml (processes, output columns) and common_settings.yaml (paths).
+base_config_file: preselection.yaml
+channel: mm
+event_selection:
+  lep_pt_and_trigger: (pt_1 > 26) && (pt_2 > 15) && (trg_single_mu24 > 0.5)
+  z_mass_window: (m_vis > 70) && (m_vis < 110)
+  opposite_sign: (q_1 * q_2) < 0
+  lepton_isolation: (iso_1 >= 0.0) && (iso_1 < 0.15) && (iso_2 >= 0.0) && (iso_2 < 0.15)
+  no_extra_lepton: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+mc_weights:
+  Top_pt_reweighting: topPtReweightWeight
+  generator: ""
+  lep_id: id_wgt_mu_1 * id_wgt_mu_2
+  lep_iso: iso_wgt_mu_1 * iso_wgt_mu_2
+  lumi: ""
+  pileup: puweight
+  single_trigger: trg_wgt_single_mu24

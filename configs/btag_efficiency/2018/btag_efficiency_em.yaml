@@ -1,0 +1,15 @@
+# 2018 UL b-tag efficiency, e-mu channel. Inherits btag_efficiency.yaml; paths from common_settings.yaml.
+base_config_file: btag_efficiency.yaml
+channel: em
+
+# Override: higgs_bb b bins merged from 100 GeV. With [140,1000) the pooled
+# eff(L) at |eta|<1.4 is 0.9597, above the SF ceiling 1/SF_up = 0.95897
+# (negative jet weights in --sf-check); merged from 100 GeV it is 0.9575.
+processes:
+  higgs_bb:
+    input_processes: [hh2b2tau, vbf_hbb, rem_hbb]
+    sample_types:    [hh2b2tau, vbf_hbb, rem_hbb]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}
+      c:     {jet_pt_bins: [20, 1000],                  jet_eta_bins: [0.0, 2.4]}
+      light: {jet_pt_bins: [20, 1000],                  jet_eta_bins: [0.0, 2.4]}
