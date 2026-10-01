@@ -8,7 +8,7 @@
 #                   v3 = dyjets with the inclusive DY M-50 sample, keeps the v2 outputs
 #   file_path    -- btag_efficiency.py reads the same layout; must equal output_path
 #   workdir_name -- payloads go to workdir/{workdir_name}/2018/{channel}/
-ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v2/CROWNRun"
+ntuple_path: "root://cmsdcache-kit-disk.gridka.de//store/user/sdaigler/CROWN/ntuples/sm2018_binned_btag_eff_v3/CROWNRun"
 output_path: "/ceph/sdaigler/CMS_FF/btag_eff_v3"
 file_path:   "/ceph/sdaigler/CMS_FF/btag_eff_v3"
 
