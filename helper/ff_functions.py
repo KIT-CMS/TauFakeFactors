@@ -1730,7 +1730,7 @@ def print_statistical_compatibility_summary(DR_SR_corrections: dict, non_closure
             for k, v in node.items():
                 formatted_k = str(k).replace("#", " ")  # i.e. "njets#==0"
                 new_path = f"{current_path} | {formatted_k}" if current_path else formatted_k
-                flattened.update(flatten_categories(v["default"], new_path))
+                flattened.update(flatten_categories(v, new_path))
         return flattened
 
     # import ipdb;ipdb.set_trace()
