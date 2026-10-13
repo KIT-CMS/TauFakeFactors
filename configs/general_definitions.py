@@ -11,7 +11,7 @@ random_seed = 19
 default_fit_option = "poly_1"
 default_correction_option = "smoothed"
 
-default_CMS_text = "Private work (Data/Simulation)"
+default_CMS_text = "Private work (CMS data)"
 
 VARIATIONS = namedtuple(
     "Variations", [
@@ -122,14 +122,14 @@ era_dict = AutoGetDict(
         "2016postVFP": r"$16.81\,fb^{-1}$ (2016postVFP, 13 TeV)",
         "2017": r"$42.07\,fb^{-1}$ (2017, 13 TeV)",
         "2018": r"$59.56\,fb^{-1}$ (2018, 13 TeV)",
-        "2022": r"$34.76\,fb^{-1}$ (2022, 13.6 TeV)",
-        "2022preEE": r"$8.09\,fb^{-1}$ (2022preEE, 13.6 TeV)",
+        "2022": r"$34.65\,fb^{-1}$ (2022, 13.6 TeV)",
+        "2022preEE": r"$7.98\,fb^{-1}$ (2022preEE, 13.6 TeV)",
         "2022postEE": r"$26.67\,fb^{-1}$ (2022postEE, 13.6 TeV)",
-        "2023": r"$27.64\,fb^{-1}$ (2023, 13.6 TeV)",
-        "2023preBPix": r"$17.96\,fb^{-1}$ (2023preBPix, 13.6 TeV)",
-        "2023postBPix": r"$9.68\,fb^{-1}$ (2023postBPix, 13.6 TeV)",
-        "2024": r"$109.82\,fb^{-1}$ (2024, 13.6 TeV)",
-        "2025": r"$135.05\,fb^{-1}$ (2025+2026, 13.6 TeV)",
+        "2023": r"$27.641\,fb^{-1}$ (2023, 13.6 TeV)",
+        "2023preBPix": r"$18.06\,fb^{-1}$ (2023preBPix, 13.6 TeV)",
+        "2023postBPix": r"$9.69\,fb^{-1}$ (2023postBPix, 13.6 TeV)",
+        "2024": r"$109.85\,fb^{-1}$ (2024, 13.6 TeV)",
+        "2025": r"$135.04\,fb^{-1}$ (2025+2026, 13.6 TeV)",
     }
 )
 

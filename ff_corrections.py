@@ -446,7 +446,6 @@ def run_correction(
             corr_config: Dictionary with information for the correction calculation
             sample_paths: List of file paths where samples are stored
             save_path: Path where generated results are stored
-            corrections_base_path: Base corrections path for sharing DR to SR corrections across iterations
 
     Return:
         Dictionary with the process name as key and a dictionary with the corrections
@@ -457,7 +456,6 @@ def run_correction(
         corr_config,
         sample_paths,
         save_path,
-        corrections_base_path,
     ) = args
 
     log = logging.getLogger(f"ff_corrections.{process}")
@@ -611,24 +609,22 @@ if __name__ == "__main__":
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)
-    workdir_path = os.path.join("workdir", corr_config["workdir_name"], corr_config["era"])
-    func.check_path(path=os.path.join(os.getcwd(), workdir_path))
+    ff_workdir_path = func.get_workdir_path(
+        step="fake_factors", era=corr_config["era"], ntupletag=corr_config["workdir_name"],
+        channel=corr_config["channel"],
+    )
 
-    with open(os.path.join(workdir_path, "fake_factors", corr_config["channel"], "config.yaml"), "r") as file:
+    with open(os.path.join(ff_workdir_path, "config.yaml"), "r") as file:
         config = func.configured_yaml.load(file)
-
-    func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS = corr_config.get("tau_vs_jet_id_sf_wps", config.get("tau_vs_jet_id_sf_wps"))
 
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
-    # Build save path with optional correction_tag for organizing multiple correction iterations
-    corrections_base_path = os.path.join(workdir_path, "corrections", config["channel"])
-    correction_tag = corr_config.get("correction_tag", None)
-    if correction_tag:
-        save_path = os.path.join(corrections_base_path, correction_tag)
-    else:
-        save_path = corrections_base_path
-    func.check_path(path=os.path.join(os.getcwd(), save_path))
+    # correction_tag (optional) nests a per-iteration level under corrections/
+    save_path = func.get_workdir_path(
+        step="corrections", era=corr_config["era"], ntupletag=corr_config["workdir_name"],
+        tag=corr_config.get("correction_tag"), channel=config["channel"],
+    )
+    func.check_path(path=save_path)
 
     with open(save_path + "/config.yaml", "w") as config_file:
         func.configured_yaml.dump(corr_config, config_file)
@@ -660,13 +656,6 @@ if __name__ == "__main__":
     # ########## needed precalculations for DR to SR corrections ########## #
 
     # initializing the fake factor calculation for DR to SR corrections
-    ff_for_DRtoSR_file = os.path.join(
-        workdir_path,
-        "corrections",
-        config["channel"],
-        f"fake_factors_{config['channel']}_for_corrections.json",
-    )
-
     is_valid_cache = True
     cached_DR_SR_ffs = func.get_cached_file_path(
         output_path=save_path,
@@ -718,14 +707,6 @@ if __name__ == "__main__":
                 output_path=save_path,
                 for_corrections=True,
             )
-            
-            # # Copy final DR to SR fake factors JSON to shared base path
-            # ff_json_filename = f"fake_factors_{config['channel']}_for_corrections.json"
-            # src = os.path.join(save_path, ff_json_filename)
-            # dst = os.path.join(corrections_base_path, ff_json_filename)
-            # if os.path.exists(src) and src != dst:
-            #     import shutil
-            #     shutil.copy2(src, dst)
 
         with open(cached_DR_SR_ffs, "wb") as f:
             pickle.dump(
@@ -775,7 +756,7 @@ if __name__ == "__main__":
     if "target_processes" in corr_config:
         results = func.optional_process_pool(
             args_list=[
-                (process, config, corr_config, sample_paths, save_path, corrections_base_path)
+                (process, config, corr_config, sample_paths, save_path)
                 for process in corr_config["target_processes"]
             ],
             function=run_correction,

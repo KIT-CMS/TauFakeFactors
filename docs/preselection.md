@@ -10,7 +10,7 @@ The preselection config has the following parameters:
   `processes` | `dict` | process parameters are explained below
   `column_definitions` | `dict` | in this section, new columns can be defined based on a given `ROOT` expression. <br>The keys of the dictionary correspond to the name of the defined column. The values are dictionaries itself, with the `expression` key defining the `ROOT` expression for defining the column. Optional entries `processes` and `exclude_processes` allow to target specific processes, the entry `allow_redefine` can be used to enable the use of the `ROOT.RDataFrame.Redefine` function for overwriting already existing columns. For a more detailed description, see below.
   `event_selection` | `dict` | with this parameter all selections that should be applied are defined. <br>This is basically a dictionary of cuts where the key is the name of a cut and the value is the cut itself as a string e.g. `had_tau_pt: "pt_2 > 30"`. The name of a cut is not really important, it is only used as an output information in the terminal. A cut can only use variables which are in the ntuples.
-  `mc_weights` | `dict` | weight parameter are defined below
+  `friend_weight` | `string` | optional name of the CROWN friend column used as the event weight, default `weight` (all MC weights come from CROWN's selection friend)
   `emb_weights` | `dict` | all weights that should be applied for embedded samples are defined. <br>Like for `event_selection` a weight can directly be specified and is then applied to all samples the same way e.g. `single_trigger: "trg_wgt_single_mu24ormu27"`
   `output_features` | `list` | the to be saved/needed features for the later calculations are listed, this also includes features from friend trees if `friends` were specified in `common_settings.yaml`
 
@@ -68,20 +68,7 @@ function is used if a column with the same name has been found in the
 `RDataFrame`. The values in this column are then overwritten by the expression
 given for the new column.
 
-In `mc_weights` all weights that should be applied for simulated samples are defined. <br>
-There are two types of weights.
-
-1. Similar to `event_selection`, a weight can directly be specified and is then applied to all samples in the same way e.g. `lep_id: "id_wgt_mu_1"`
-2. But some weights are either sample specific or need additional information. Currently implemented options are:
-
-    subparameter | type | description
-    ---|---|---
-    `generator` | `string` | The normal generator weight is applied to all samples, if they aren't specified in the `"stitching"` sub-group. Stitching weights might be needed for DY+jets or W+jets, depending on which samples are used for them. 
-    `lumi` | `string` | luminosity scaling, this depends on the era and uses the `era` parameter of the config to get the correct weight, so basically it's not relevant what is in the string
-    `Z_pt_reweight` | `string` | reweighting of the Z boson pt, the weight in the ntuple is used and only applied to DY+jets
-    `Top_pt_reweight` | `string` | reweighting of the top quark pt, the weight in the ntuple is used and only applied to ttbar
-
-Scale factors for b-tagging and tau ID vs jet are applied on the fly during the FF calculation step. 
+The event weight is CROWN's friend column `weight` (or the one named in `friend_weight`); no weight is built in the preselection.
 
 To run the preselection step, execute the python script and specify the config file (relative path possible):
 ```bash

@@ -1,4 +1,5 @@
 import argparse
+import re
 from collections import OrderedDict
 from itertools import pairwise
 from pathlib import Path
@@ -125,6 +126,28 @@ def get_n_bins(
     return value if isinstance(value, int) else None
 
 
+def join_cuts(cuts: dict) -> str:
+    """
+    Builds a pandas-query-compatible cut string from a region/category cut dict, same semantics
+    as helper.ff_functions.apply_region_filters (RDataFrame side): func.cut_items()'s real cuts
+    joined with '&', plus an explicit '(mask) > 0.5' clause for a 'region_mask' entry -- which
+    cut_items() itself skips (it is a NON_CUT_KEY). Without this, a region defined purely via
+    region_mask (no legacy cut strings left, e.g. QCD/ttbar's SRlike_cuts) joins to an empty
+    string, and the region selection silently never gets applied to the binning at all.
+
+    Args:
+        cuts: Cut dict (e.g. a process's SRlike_cuts/ARlike_cuts/AR_cuts)
+
+    Return:
+        ' & '-joined cut string, possibly empty if there are no real cuts and no region_mask
+    """
+    parts = [f"({c})" for _, c in func.cut_items(cuts)]
+    mask = cuts.get(func.REGION_MASK_KEY)
+    if mask is not None:
+        parts.append(f"({mask} > 0.5)")
+    return " & ".join(parts)
+
+
 def get_binning(
     df: pd.DataFrame,
     binning_config: dict,
@@ -173,7 +196,7 @@ def get_binning(
     elif (current_split_var in binning_config.get("n_bins", {}) and isinstance(binning_config["n_bins"][current_split_var], int)):
         n_split_bins = binning_config["n_bins"][current_split_var]
         var_conf = binning_config["variable_config"][current_split_var]
-        current_df = df.query(process_cuts)
+        current_df = df.query(process_cuts) if process_cuts else df
         split_edges = _equipopulated_binned_variable(current_df[current_split_var], n_split_bins, current_df.weight)
 
         if split_edges.size > 1:
@@ -226,7 +249,7 @@ def get_binning(
         else:
             query_cat_cut = f"({current_split_var} {cat_key})"
 
-        combined_cut = f"{process_cuts} & {query_cat_cut}"
+        combined_cut = " & ".join(part for part in (process_cuts, query_cat_cut) if part)
         sub_df = df.query(combined_cut)
         current_cat_keys = parent_cat_keys + [cat_key]
 
@@ -319,6 +342,32 @@ def get_binning(
     return output_bins, generated_edges, generated_categories
 
 
+def _config_identifiers(obj: Union[dict, list, str, None]) -> set:
+    """
+    Collects every python identifier appearing anywhere in a config (keys and values,
+    recursively). Used to pick the branches to read: intersecting this with the tree's
+    branch names yields a superset of the columns the binning needs -- var_dependence,
+    split_categories keys and everything referenced in the cut expressions -- without
+    re-walking the block structure of the main loop.
+
+    Args:
+        obj: Config fragment (dict, list, str, or scalar)
+
+    Return:
+        Set of identifier-like tokens found in the fragment
+    """
+    found = set()
+    if isinstance(obj, str):
+        found |= set(re.findall(r"[A-Za-z_]\w*", obj))
+    elif isinstance(obj, dict):
+        for key, value in obj.items():
+            found |= _config_identifiers(str(key)) | _config_identifiers(value)
+    elif isinstance(obj, (list, tuple)):
+        for value in obj:
+            found |= _config_identifiers(value)
+    return found
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     args.config = Path(args.config).resolve()
@@ -341,7 +390,7 @@ if __name__ == "__main__":
         config = func.configured_yaml.load(f)
 
     base_directory, directory, era, channel, tree, file = (
-        Path(common_settings["output_path"]),
+        Path(common_settings["file_path"]),
         "preselection",
         common_settings["era"],
         config["channel"],
@@ -350,7 +399,15 @@ if __name__ == "__main__":
     )
     root_file_path = base_directory / directory / era / channel / file
     console.print(f"Loading data from [cyan]{root_file_path}[/cyan]")
-    dataframe = uproot.open(root_file_path)[tree].arrays(library="pd")
+    ntuple = uproot.open(root_file_path)[tree]
+
+    # Read only the branches the configs reference
+    branches = sorted(
+        set(ntuple.keys())
+        & (_config_identifiers(config) | _config_identifiers(cuts_config) | {"weight"})
+    )
+    console.print(f"Reading {len(branches)} of {len(ntuple.keys())} branches: [dim]{branches}[/dim]")
+    dataframe = ntuple.arrays(branches, library="pd")
 
     if (bool_cols := dataframe.select_dtypes(include=['bool']).columns).any():
         dataframe[bool_cols] = dataframe[bool_cols].astype(int)
@@ -375,7 +432,7 @@ if __name__ == "__main__":
         # Apply local cuts
         merged_cuts.update(var_config.get(f"{args.cut_region}_cuts", {}))
 
-        return " & ".join(f"({c})" for _, c in func.cut_items(merged_cuts))
+        return join_cuts(merged_cuts)
 
     for process in args.processes:
         console.print(f"\n[bold green]Processing: {process}[/bold green]")
@@ -385,12 +442,12 @@ if __name__ == "__main__":
                 console.print(f"[red]Block {process} not found in config. Skipping.[/red]")
                 continue
             process_config = config[process]
-            cuts = " & ".join(f"({c})" for _, c in func.cut_items(process_config["AR_cuts"]))
+            cuts = join_cuts(process_config["AR_cuts"])
             console.print(f"Using AR cuts for {process}.")
         elif process in config.get("target_processes", {}):
             process_config = config["target_processes"][process]
             cuts_source = cuts_config["target_processes"][process] if cuts_config else process_config
-            cuts = " & ".join(f"({c})" for _, c in func.cut_items(cuts_source[f"{args.cut_region}_cuts"]))
+            cuts = join_cuts(cuts_source[f"{args.cut_region}_cuts"])
         else:
             console.print(f"[red]Process '{process}' not found in config. Skipping.[/red]")
             continue

@@ -3,7 +3,6 @@ Script for preprocessing n-tuples for the fake factor calculation
 """
 
 import argparse
-import json
 import logging
 import os
 from io import StringIO
@@ -15,7 +14,6 @@ from wurlitzer import STDOUT, pipes
 import helper.filters as filters
 import helper.functions as func
 import CustomLogging as logging_helper
-import helper.weights as weights
 
 parser = argparse.ArgumentParser()
 
@@ -130,18 +128,17 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
         log.info(f"WARNING: Sample {sample} is empty. Skipping...")
         return ()
 
+    # gen_match_1 does not exist on the input n-tuple for "et"/"mt" 
+    if "gen_match_1" not in rdf.GetColumnNames():
+        rdf = rdf.Define("gen_match_1", "-1")
+
     # get column definitions from config and declare definitions on the RDataFrame
     column_definitions = config.get("column_definitions", {})
     if column_definitions:
         rdf = func.define_columns(rdf, column_definitions, process)
 
     # apply analysis specific event filters. Configs whose input ntuples carry CROWN's
-    # presel_mask branch declare a single 'presel_mask: (presel_mask > 0.5)' entry here instead
-    # of the individual cut strings -- there is no runtime mask-vs-cut-strings choice, it is a
-    # config-authoring decision, same as fake-factor regions' 'region_mask'.
-    # Nominal only: this Filter fixes one row count for the whole tree, so it can't carry a
-    # per-shift decision even though CROWN's presel_mask itself is shift-varied
-    # (presel_mask__<shift> branches).
+    # presel_mask branch declare a single mask
     selection_conf = config["event_selection"]
     for cut in selection_conf:
         rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
@@ -149,51 +146,12 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if process == "embedding":
         rdf = filters.emb_tau_gen_match(rdf=rdf, channel=config["channel"])
 
-    # calculate event weights
-    rdf = rdf.Define("weight", "1.")
-
-    mc_weight_conf = config["mc_weights"]
-    if process not in ["data", "embedding"]:
-        for weight in mc_weight_conf:
-            if weight == "generator":
-                # calculating generator weight (including cross section weight)
-                if "stitching" in mc_weight_conf["generator"]:
-                    if process in mc_weight_conf["generator"]["stitching"]:
-                        rdf = weights.stitching_gen_weight(
-                            rdf=rdf,
-                            era=config["era"],
-                            process=process,
-                            sample_info=datasets[sample],
-                        )
-                    else:
-                        rdf = weights.gen_weight(
-                            rdf=rdf, sample_info=datasets[sample]
-                        )
-                else:
-                    rdf = weights.gen_weight(rdf=rdf, sample_info=datasets[sample])
-            elif weight == "lumi":
-                rdf = weights.lumi_weight(rdf=rdf, era=config["era"])
-            elif weight == "Z_pt_reweighting":
-                if process in ["DYjets"]:
-                    rdf = rdf.Redefine(
-                        "weight", f"weight * ({mc_weight_conf[weight]})"
-                    )
-            elif weight == "Top_pt_reweighting":
-                if process == "ttbar":
-                    rdf = rdf.Redefine(
-                        "weight", f"weight * ({mc_weight_conf[weight]})"
-                    )
-            elif weight == "ttbar_norm_weight":
-                if process == "ttbar" and tau_gen_mode in ["L", "J", "T"]:
-                    # This function applies an additional normalization weight to tt backgrounds
-                    # obtained from simulation. The factor corrects for a mismodelling of the
-                    # normalization of tt compared to data and is extracted in an e mu control
-                    # region.
-                    rdf = rdf.Redefine(
-                        "weight", f"weight * ({mc_weight_conf[weight]})"
-                    )
-            else:
-                rdf = rdf.Redefine("weight", f"weight * ({mc_weight_conf[weight]})")
+    # CROWN's friend weight (all SFs, 1 for data/embedding); `friend_weight` picks another column, e.g. without the btag SF
+    friend_weight = config.get("friend_weight", "weight")
+    if friend_weight not in rdf.GetColumnNames():
+        raise ValueError(f"No CROWN friend column {friend_weight} on the input n-tuple of {sample}, attach the selection friend.")
+    if friend_weight != "weight":
+        rdf = rdf.Redefine("weight", friend_weight)
 
     if process == "embedding":
         emb_weight_conf = config["emb_weights"]
@@ -204,21 +162,14 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     if process in ["data", "embedding"]:
         if "btag_weight" not in rdf.GetColumnNames():
             rdf = rdf.Define("btag_weight", "1.")
-        for wp in config["tau_vs_jet_wgt_wps"]:
-            weightname = "id_wgt_tau_vsJet_" + wp + "_2"
-            if weightname not in rdf.GetColumnNames():
-                rdf = rdf.Define(weightname, "1.")
-        if config["channel"] == "tt":
-            for wp in config["tau_vs_jet_wgt_wps"]:
-                weightname = "id_wgt_tau_vsJet_" + wp + "_1"
-                if weightname not in rdf.GetColumnNames():
-                    rdf = rdf.Define(weightname, "1.")
+        for idx in ["2", "1"] if config["channel"] == "tt" else ["2"]:
+            for wp in config.get("tau_vs_jet_wgt_wps", []):
+                if f"id_wgt_tau_vsJet_{wp}_{idx}" not in rdf.GetColumnNames():
+                    rdf = rdf.Define(f"id_wgt_tau_vsJet_{wp}_{idx}", "1.")
 
-    # for data set gen_match to -1
+    # for data set gen_match to -1 
     if process == "data":
         rdf = rdf.Define("gen_match_2", "-1.")
-        if config["channel"] in ["tt", "mm"]:
-            rdf = rdf.Define("gen_match_1", "-1.")
 
     # splitting data frame based on the tau origin (genuine, jet fake, lepton fake)
     tmp_rdf = rdf
@@ -282,9 +233,12 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
         (process, config, output_path, ncores, sample, tau_gen_mode) for tau_gen_mode in config["processes"][process]["tau_gen_modes"] for sample in process_samples
     ]
 
+    # Bounded independently from the outer (per-process) pool in __main__ below 
+    _inner_cap = os.environ.get("TFF_PRESEL_INNER_WORKERS")
     results = func.optional_process_pool(
         args_list=args_list,
         function=run_sample_preselection,
+        max_workers=int(_inner_cap) if _inner_cap else None,
     )
     for files in results:
         if files:
@@ -345,28 +299,25 @@ if __name__ == "__main__":
         level=logging_helper.LOG_LEVEL,
     )
 
-    # Load general dataset info file for xsec and event number
-    datasets_file = os.path.join(
-        config["sample_database"], config["nanoAOD_version"], "datasets.json"
-    )
-    with open(datasets_file, "r") as file:
-        datasets = json.load(file)
-    log.info(f"Loading sample database from {datasets_file}")
-
-    # get needed features for fake factor calculation, from TauKITFlow's config/variables.yaml
+    # get needed features for fake factor calculation, from TAUER's config/variables.yaml
     # (single source of truth, see func.load_output_features) rather than a per-config copy
     output_features = func.load_output_features(config)
+
+    # per-config additions on top of the shared variables.yaml list
+    for feature in config.get("output_features", []) or []:
+        if feature not in output_features:
+            output_features.append(feature)
 
     if config["channel"] not in ["mm", "ee", "em"]:
         for wp in config["tau_vs_jet_wps"]:
             output_features.append("id_tau_vsJet_" + wp + "_2")
-        for wp in config["tau_vs_jet_wgt_wps"]:
+        for wp in config.get("tau_vs_jet_wgt_wps", []):
             output_features.append("id_wgt_tau_vsJet_" + wp + "_2")
 
     if config["channel"] == "tt":
         for wp in config["tau_vs_jet_wps"]:
             output_features.append("id_tau_vsJet_" + wp + "_1")
-        for wp in config["tau_vs_jet_wgt_wps"]:
+        for wp in config.get("tau_vs_jet_wgt_wps", []):
             output_features.append("id_wgt_tau_vsJet_" + wp + "_1")
 
     log.info(f"Used output features: {output_features}")
@@ -374,9 +325,11 @@ if __name__ == "__main__":
     # going through all wanted processes and run the preselection function with a pool of 8 workers
     args_list = [(process, config, output_path, int(args.ncores)) for process in config["processes"]]
 
+    _outer_cap = os.environ.get("TFF_PRESEL_OUTER_WORKERS")
     func.optional_process_pool(
         args_list=args_list,
         function=run_preselection,
+        max_workers=int(_outer_cap) if _outer_cap else None,
     )
 
     # dumping config to output directory for documentation

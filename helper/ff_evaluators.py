@@ -38,18 +38,15 @@ class FakeFactorEvaluator:
             else:
                 path = os.path.join(load_path, f"fake_factors_{config['channel']}_for_corrections.json")
         else:
-            directories = ["workdir", config["workdir_name"], config["era"]]
             if not for_DRtoSR:
-                path = os.path.join(*directories, f"fake_factors_{config['channel']}.json")
+                ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
+                path = os.path.join(ff_dir, f"fake_factors_{config['channel']}.json")
             else:
-                correction_tag = config.get("correction_tag", None)
-                path = os.path.join(
-                    *directories,
-                    "corrections",
-                    f"{config['channel']}",
-                    correction_tag,
-                    f"fake_factors_{config['channel']}_for_corrections.json",
+                corr_dir = func.get_workdir_path(
+                    step="corrections", era=config["era"], ntupletag=config["workdir_name"],
+                    tag=config.get("correction_tag"), channel=config["channel"],
                 )
+                path = os.path.join(corr_dir, f"fake_factors_{config['channel']}_for_corrections.json")
 
         log.info(f"Loading fake factor file {path} for process {process}")
         correctionlib.register_pyroot_binding()
@@ -173,16 +170,15 @@ class FakeFactorCorrectionEvaluator:
         if load_path is not None:
             path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json")
         else:
-            directories = ["workdir", config["workdir_name"], config["era"]]
             if not for_DRtoSR:
-                path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
+                ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
+                path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json")
             else:
-                path = os.path.join(
-                    *directories,
-                    "corrections",
-                    f"{config['channel']}",
-                    f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json",
+                corr_dir = func.get_workdir_path(
+                    step="corrections", era=config["era"], ntupletag=config["workdir_name"],
+                    tag=config.get("correction_tag"), channel=config["channel"],
                 )
+                path = os.path.join(corr_dir, f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json")
 
         variable = corr_variable if isinstance(corr_variable, str) else corr_variable[0]
 
@@ -329,8 +325,8 @@ class DRSRCorrectionEvaluator:
         if load_path is not None:
             path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json")
         else:
-            directories = ["workdir", config["workdir_name"], config["era"]]
-            path = os.path.join(*directories, f"FF_corrections_{config['channel']}.json")
+            ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
+            path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json")
 
         log.info(f"Loading DR_SR correction from file {path} for process {process}")
         correctionlib.register_pyroot_binding()
@@ -643,11 +639,11 @@ def get_fake_factor_evaluator(
 
     log = logging.getLogger(logger)
 
-    directories = ["workdir", config["workdir_name"], config["era"]]
+    ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
     if not for_DRtoSR:
-        yaml_path = os.path.join(*directories, f"fake_factors_models_{config['channel']}.yaml")
+        yaml_path = os.path.join(ff_dir, f"fake_factors_models_{config['channel']}.yaml")
     else:
-        yaml_path = os.path.join(*directories, f"fake_factors_models_DR_SR_{config['channel']}.yaml")
+        yaml_path = os.path.join(ff_dir, f"fake_factors_models_DR_SR_{config['channel']}.yaml")
 
     if os.path.exists(yaml_path):
         log.info(f"Found FF model config at {yaml_path}. Attempting to load ONNX-based evaluator for process {process}.")

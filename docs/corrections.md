@@ -9,7 +9,7 @@ Currently two different correction types are implemented:
 All information for the FF correction calculation step is defined in a configuration file in the `configs/ANALYSIS/ERA/` folder using the `common_settings.yaml` and a more specific config file. The `common_settings.yaml` has to be named like that and is used for all steps of the fake factor estimation (`preselection`, `FF calculation`, `FF corrections`). Additional information is loaded from the used config in the previous FF calculation step (this is done automatically). <br>
 The FF correction config has the following parameters:
 
-The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/*
+The expected input folder structure is workdir/WORKDIR_NAME/ERA/fake_factors/CHANNEL/* (WORKDIR_NAME is the ntuple tag); corrections go to workdir/WORKDIR_NAME/ERA/corrections/[CORRECTION_TAG/]CHANNEL/, plots to a plots/ subdirectory
 
   parameter | type | description
   ---|---|---

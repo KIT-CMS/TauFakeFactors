@@ -180,20 +180,17 @@ if __name__ == "__main__":
     # loading of the chosen config file
     config = func.load_config(args.config_file)
 
-    func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS = config.get("tau_vs_jet_id_sf_wps")
-
     func.RuntimeVariables.INPUT_FILE_PATH = os.path.join(config["output_path"], config["era"], config["channel"])
 
-    save_path_ffs = os.path.join("workdir", config["workdir_name"], config["era"])
-    func.check_path(path=os.path.join(os.getcwd(), save_path_ffs))
-    save_path_plots = os.path.join(
-        "workdir",
-        config["workdir_name"],
-        config["era"],
-        "fake_factors",
-        config["channel"],
+    save_path_ffs = func.get_workdir_path(
+        step="fake_factors", era=config["era"], ntupletag=config["workdir_name"],
     )
-    func.check_path(path=os.path.join(os.getcwd(), save_path_plots))
+    func.check_path(path=save_path_ffs)
+    save_path_plots = func.get_workdir_path(
+        step="fake_factors", era=config["era"], ntupletag=config["workdir_name"],
+        channel=config["channel"],
+    )
+    func.check_path(path=save_path_plots)
 
     # start output logging
     subcategories = list(config["target_processes"].keys())

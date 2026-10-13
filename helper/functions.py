@@ -185,13 +185,7 @@ REGION_MASK_KEY = "region_mask"
 REGION_MASK_SRLIKE_KEY = "region_mask_SRlike"
 REGION_MASK_ARLIKE_KEY = "region_mask_ARlike"
 
-# Declares which tau-ID-vs-jet scale factor(s) a region needs, by role ('SRlike': the single
-# tight/signal-like WP; 'ARlike': the [loose, tight] anti-tag range) instead of a cut string --
-# see helper.ff_functions.resolve_id_sf_wps. A bare string for et/mt (one tau leg); a
-# {tau_index: role} dict for tt (two legs, e.g. {1: "SRlike", 2: "ARlike"}).
-ID_SF_KEY = "id_sf"
-
-NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY, ID_SF_KEY})
+NON_CUT_KEYS = frozenset({REGION_MASK_KEY, REGION_MASK_SRLIKE_KEY, REGION_MASK_ARLIKE_KEY})
 
 PRESELECTION_MASK = "presel_mask"
 SELECTION_MASK_NAMES = frozenset({PRESELECTION_MASK, "sel_os", "sel_ss"})
@@ -270,10 +264,6 @@ class RuntimeVariables(object):
     SKIP_CORRECTIONS_COMPATIBLE_TO_ONE = True
     SKIP_CORRECTIONS_P_VALUE = 0.05
     USE_SUPPRESSED_MC_ERRORS_FOR_CORRECTION_SELECTION = True
-
-    # common_settings.yaml's 'tau_vs_jet_id_sf_wps' ({"SRlike": <tight WP>, "ARlike": <loose
-    # WP>}), backing 'id_sf' role resolution -- see helper.ff_functions.resolve_id_sf_wps.
-    TAU_VS_JET_ID_SF_WPS = None
 
     def __new__(cls) -> "RuntimeVariables":
         if not hasattr(cls, "instance"):
@@ -473,7 +463,13 @@ def optional_process_pool(
     Args:
         args_list: List of tuples with arguments for the function
         function: Function to be executed
-        max_workers: Number of workers to be used in the multiprocessing pool (default: None)
+        max_workers: Number of workers to be used in the multiprocessing pool (default: None,
+            i.e. one worker per item in args_list -- unbounded). Callers with nested pools
+            (e.g. preselection.py's main(), which calls this once per TFF process and again
+            per sample within each process) should pass an explicit cap at each level rather
+            than relying on this default -- two unbounded levels multiply out to one
+            RDataFrame worker per (process, sample, tau_gen_mode) all running at once,
+            confirmed to OOM condor jobs even at 32000 MB for configs with many samples.
 
     Return:
         List of results of the function
@@ -485,7 +481,7 @@ def optional_process_pool(
     if len(args_list) == 1 or not RuntimeVariables.USE_MULTIPROCESSING:
         results = [function(args) for args in args_list]
     else:
-        n = max_workers if max_workers is not None else len(args_list)
+        n = min(len(args_list), max_workers) if max_workers is not None else len(args_list)
         with logging_helper.LogContext(log).parallel_session() as pool_config:
             with concurrent.futures.ProcessPoolExecutor(max_workers=n, **pool_config) as executor:
                 results = list(executor.map(function, args_list))
@@ -558,12 +554,17 @@ def load_config(config_file: str) -> Dict:
         print(f"Error: Config file {config_file} not found.")
         sys.exit(1)
 
+    # paths may use environment variables, e.g. $USER
+    for key, value in config.items():
+        if isinstance(value, str):
+            config[key] = os.path.expandvars(value)
     return config
+
 
 
 def load_output_features(config: Dict) -> List[str]:
     """
-    Loads the branch whitelist for the preselected ntuple: TauKITFlow's config/variables.yaml
+    Loads the branch whitelist for the preselected ntuple: TAUER's config/variables.yaml
     'output_features:' (the single source of truth for analysis variables, see that file's
     header) plus its 'selection_masks:' block's 'common' and per-channel entries (presel_mask,
     sel_os/sel_ss, ff_* -- these are bookkeeping branches, deliberately not part of
@@ -585,7 +586,46 @@ def load_output_features(config: Dict) -> List[str]:
     names += list(masks.get(config["channel"], []) or [])
 
     seen = set()
-    return [n for n in names if not (n in seen or seen.add(n))]
+    return [
+        n for n in names
+        if not (n in seen or seen.add(n))
+    ]
+
+
+def get_workdir_root() -> str:
+    """
+    Root of TauFakeFactors' own on-disk workdir tree (TauFakeFactors/workdir/),
+    resolved from this file's own location rather than the caller's cwd --
+    run.py/condor's wrapper.sh always `cd` to the repo root before invoking
+    ff_calculation.py/ff_corrections.py, so a plain "workdir" relative path
+    used to land under the repo root's workdir/ (shared and mixed with
+    btag_efficiencies' own workdir/ output there) instead of here.
+    """
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workdir")
+
+
+def get_workdir_path(step: str, era: str, ntupletag: str, tag: str = None, channel: str = None) -> str:
+    """
+    Build a path under TauFakeFactors/workdir/, laid out as
+    <ntupletag>/<era>/<step>[/<tag>][/<channel>] -- step is "fake_factors" or
+    "corrections"; tag (ff_corrections.py's correction_tag) is only nested
+    when set.
+    """
+    parts = [get_workdir_root(), ntupletag, era, step]
+    if tag:
+        parts.append(tag)
+    if channel:
+        parts.append(channel)
+    return os.path.join(*parts)
+
+
+def get_plot_path(output_path: str) -> str:
+    """
+    Plot images (png/pdf) go to a "plots" subdirectory of the workdir
+    output_path; everything else (config.yaml, logs, .cache pickles, JSON
+    evaluator files) stays directly under output_path.
+    """
+    return os.path.join(output_path, "plots")
 
 
 def check_path(path: str) -> None:

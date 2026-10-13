@@ -1,0 +1,22 @@
+# ntuple_path/output_path/file_path/workdir_name are intentionally NOT set
+# here -- they are always resolved from --ntupletag (and friends from
+# --selection-friend) by run_fake_factor_measurement.py's _patched_tff_config,
+# which generates a patched tmp copy of this file. See its module docstring
+# and run.py's --ntupletag/--selection-friend help text.
+
+era: '2022'
+tree: ntuple
+nanoAOD_version: "nanoAOD_v12"
+sample_database: "/work/$USER/TAUER/sample_database"
+variables_yaml: "/work/$USER/TAUER/config/variables.yaml"
+
+tau_vs_jet_wps:
+  - VVVLoose
+  - Medium
+
+use_embedding: false
+use_center_of_mass_bins: true
+
+skip_corrections_compatible_to_one: true
+skip_corrections_p_value: 0.05
+use_suppressed_mc_errors_for_correction_selection: true

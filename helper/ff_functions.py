@@ -25,7 +25,6 @@ from wurlitzer import STDOUT, pipes
 import configs.general_definitions as gd
 import helper.fitting_helper as fitting_helper
 import helper.functions as func
-import helper.weights as weights
 from configs.general_definitions import random_seed
 from helper.hooks_and_patches import (_EXTRA_PARAM_COUNTS, _EXTRA_PARAM_FLAG,
                                       _EXTRA_PARAM_MEANS)
@@ -784,92 +783,6 @@ def rdf_column_names(rdf: Any) -> set:
     return columns
 
 
-
-def resolve_id_sf_wps(role: str) -> Union[str, List[str]]:
-    """
-    Resolves an 'id_sf' role to the tau-ID-vs-jet working point(s) to apply the scale factor
-    for, using common_settings.yaml's named 'tau_vs_jet_id_sf_wps' ({"SRlike": ..., "ARlike":
-    ...}), declared once at startup into func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS, instead of
-    parsing a cut string. 'ARlike's value is the loose end of the anti-tag range; the tight end
-    is always 'SRlike's value.
-
-    Args:
-        role: 'SRlike' (the single tight/signal-like WP) or 'ARlike' (the [loose, tight)
-            anti-tag range)
-
-    Return:
-        A single WP name for 'SRlike', or a [loose, tight] pair for 'ARlike'
-    """
-    named_wps = func.RuntimeVariables.TAU_VS_JET_ID_SF_WPS
-    if role == "SRlike":
-        return named_wps["SRlike"]
-    if role == "ARlike":
-        return [named_wps["ARlike"], named_wps["SRlike"]]
-    raise ValueError(f"Unknown id_sf role: {role!r}")
-
-
-def apply_selection_dependent_weights(
-    rdf: Any,
-    channel: str,
-    sample: str,
-    cuts: Dict[str, str],
-    logger: Union[str, None] = None,
-) -> Any:
-    """
-    Applies the event weights which depend on the applied event selection, namely the tau ID
-    vs jet scale factors and (for boosted tau analyses) the boosted tau isolation scale factors.
-    The tau ID vs jet weight is deduced from the region's 'id_sf' role declaration (see
-    resolve_id_sf_wps); this has to run regardless of whether the events are afterwards
-    selected with the legacy cut strings or with a precomputed CROWN selection mask.
-
-    Args:
-        rdf: root DataFrame object
-        channel: Analysis channel of the tau analysis e.g. "et", "mt" or "tt"
-        sample: Name of the sample/process of the "rdf", needed to prevent weight application to data
-        cuts: Dictionary of all cuts of the region (region cuts and category splitting cuts)
-        logger: Logger name for logging purposes
-
-    Return:
-        root DataFrame with the selection dependent weights applied
-    """
-    log = logging.getLogger(logger) if logger is not None else logging.getLogger(__name__)
-
-    id_sf = cuts.get(func.ID_SF_KEY)
-    if id_sf is not None and sample not in ["data"]:
-        # et/mt: a bare role for the one tau leg (idx=None -> hardcoded "_2" downstream).
-        # tt: a {tau_index: role} dict, one entry per leg.
-        per_leg = id_sf.items() if isinstance(id_sf, dict) else [(None, id_sf)]
-        for idx, role in per_leg:
-            wps = resolve_id_sf_wps(role)
-            idx = str(idx) if idx is not None else None
-            log.debug(f"Applying tau id vs jet weight for role '{role}' (wps: {wps}, idx: {idx})")
-            rdf = weights.apply_tau_id_vsJet_weight(
-                rdf=rdf, channel=channel, wps=wps, idx=idx
-            )
-
-    for cut, cut_string in func.cut_items(cuts):
-        if cut in ["nbtag", "bb_selection"]:
-            continue
-
-        if "had_boostedtau_id_iso" in cut:  # only relevant for an analysis with boosted tau pairs
-            wp = get_wps(cut_string=cut_string)
-            try:
-                idx = cut.rsplit("_")[4]
-            except Exception:
-                idx = None
-            if sample not in ["data"]:
-                log.debug(f"Applying boosted tau id iso weight for '{cut}' (wp: {wp}, idx: {idx})")
-                rdf = weights.apply_boostedtau_id_iso_weight(
-                    rdf=rdf,
-                    channel=channel,
-                    cut_string=cut_string,
-                    wp=wp,
-                    idx=idx,
-                )
-
-    return rdf
-
-
 @cache_rdf_snapshot(cache_dir=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".RDF_CACHE"))
 def apply_region_filters(
     rdf: Any,
@@ -881,7 +794,6 @@ def apply_region_filters(
 ) -> Any:
     """
     Function which applies filters to a root DataFrame for the fake factor calculation. This includes the region cuts and the category splitting.
-    Additionally some weights are applied in this step because they depend on the full event selection.
 
     region_mask is just one more cut among category_cuts/region_cuts's other entries, applied
     unconditionally when the region cut dictionary defines one -- there is no legacy cut-string
@@ -908,19 +820,13 @@ def apply_region_filters(
                 tmp[cut] = f"(({cut} {a}) {op} ({cut} {b}))"
     sum_cuts = {**tmp, **region_cuts}
 
-    # weights depending on the full event selection; must run independently of how the events
-    # are selected afterwards (legacy cut strings or CROWN selection mask)
-    rdf = apply_selection_dependent_weights(
-        rdf=rdf, channel=channel, sample=sample, cuts=sum_cuts, logger=logger
-    )
-
     log = logging.getLogger(logger)
 
     # 'region_mask' is just one more cut, like any entry in cut_items(sum_cuts) -- it is
     # excluded from that loop (NON_CUT_KEYS) only because its comparison ('> 0.5') is fixed
     # rather than spelled out in the config, and applied here explicitly instead.
     for cut, cut_string in func.cut_items(sum_cuts):
-        if cut not in ["nbtag", "bb_selection"]:
+        if cut != "nbtag":
             rdf = rdf.Filter(f"({cut_string})", f"cut on {cut}")
 
     mask = region_cuts.get(func.REGION_MASK_KEY)
@@ -932,19 +838,6 @@ def apply_region_filters(
             )
         log.info(f"Selecting region with CROWN selection mask '{mask}'.")
         rdf = rdf.Filter(f"({mask}) > 0.5", f"region mask {mask}")
-    # cut on number of b-tagged jets needs to be the last cut to do an on-the-fly calculation of the b-tagger weight
-    # outdated since now we calculate efficiencies and the btag weight is just a weight to be applied per sample as it is 
-    # if "nbtag" in sum_cuts.keys():
-    #     if sample not in ["data", "embedding"]:
-    #         rdf = weights.apply_btag_weight(rdf=rdf)
-    #     rdf = rdf.Filter(f"({sum_cuts['nbtag']})", "cut on nbtag")
-    if "bb_selection" in sum_cuts.keys():
-        if sample not in ["data", "embedding"] and "fj_Xbb" in sum_cuts["bb_selection"]:
-            rdf = weights.apply_pNet_weight(rdf=rdf)
-        if sample not in ["data", "embedding"] and "nbtag" not in sum_cuts.keys():
-            rdf = weights.apply_btag_weight(rdf=rdf)
-        rdf = rdf.Filter(f"({sum_cuts['bb_selection']})", "cut on bb pair")
-
     # redirecting C++ stdout for Report() to python stdout
     out = StringIO()
     with pipes(stdout=out, stderr=STDOUT):
@@ -953,27 +846,6 @@ def apply_region_filters(
     log.debug("-" * 50)
 
     return rdf
-
-
-def get_wps(cut_string: str) -> Union[List[str], str]:
-    """
-    This function reads out the tau id vs jet working points based on the cut string.
-    The names of the tau id variable is expected to be "id_tau_vsJet_{WP}_*".
-
-    Args:
-        cut_string: String with the tau id vs jet cuts
-
-    Return:
-        One working point or if the cut is between two working points a list of two working points
-    """
-    if "&&" in cut_string:
-        wp_1 = cut_string.rsplit("&&")[0].rsplit("_")[3]
-        wp_2 = cut_string.rsplit("&&")[1].rsplit("_")[3]
-        wps = [wp_1, wp_2]
-    else:
-        wps = cut_string.rsplit("_")[3]
-
-    return wps
 
 
 def QCD_SS_estimate(hists: Dict[str, Any]) -> Any:
@@ -1576,13 +1448,19 @@ def smooth_function(
 
     corr_dict["default"]["variations"].pop("StatUp")
     corr_dict["default"]["variations"].pop("StatDown")
-    
+
+    # All sibling fits (MC-shift, bandwidth variations below) must share the nominal fit's
+    # prepend/append decision -- see _smooth_function's force_prepend/force_append docstring.
+    _prepend = corr_dict.pop("_prepend_applied", False)
+    _append = corr_dict.pop("_append_applied", False)
+    _sibling_kwargs = dict(_kwargs, force_prepend=_prepend, force_append=_append)
+
     if mc_shifted_hist is None:
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = corr_dict["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = corr_dict["default"]["nominal"]
     else:
-        _, _mc_sub_up = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftUp"], "stat_sigma": stat_sigma})
-        _, _mc_sub_down = _smooth_function(**{**_kwargs, "hist": mc_shifted_hist["MCShiftDown"], "stat_sigma": stat_sigma})
+        _, _mc_sub_up = _smooth_function(**{**_sibling_kwargs, "hist": mc_shifted_hist["MCShiftUp"], "stat_sigma": stat_sigma})
+        _, _mc_sub_down = _smooth_function(**{**_sibling_kwargs, "hist": mc_shifted_hist["MCShiftDown"], "stat_sigma": stat_sigma})
 
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Up"] = _mc_sub_up["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_MC + "Down"] = _mc_sub_down["default"]["nominal"]
@@ -1610,8 +1488,8 @@ def smooth_function(
                 "content": corr_dict["default"]["variations"][key],
             }
     else:
-        _, _high = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[1], "stat_sigma": stat_sigma})
-        _, _low = _smooth_function(**{**_kwargs, "bandwidth": bandwidth * bandwidth_variations[0], "stat_sigma": stat_sigma})
+        _, _high = _smooth_function(**{**_sibling_kwargs, "bandwidth": bandwidth * bandwidth_variations[1], "stat_sigma": stat_sigma})
+        _, _low = _smooth_function(**{**_sibling_kwargs, "bandwidth": bandwidth * bandwidth_variations[0], "stat_sigma": stat_sigma})
 
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Up"] = (_high["default"]["nominal"] - corr_dict["default"]["nominal"]) + corr_dict["default"]["nominal"]
         corr_dict["default"]["variations"][gd.VARIATIONS.SYST_BAND_HIGH + "Down"] = (corr_dict["default"]["nominal"] - _high["default"]["nominal"]) + corr_dict["default"]["nominal"]
@@ -1648,6 +1526,8 @@ def _smooth_function(
     correction_option: str,
     bandwidth: float,
     stat_sigma: float = 1.0,
+    force_prepend: Union[bool, None] = None,
+    force_append: Union[bool, None] = None,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     This function performs a smoothing fit of a histogram. Smoothing is mainly used for the corrections of the fake factors.
@@ -1659,6 +1539,16 @@ def _smooth_function(
         correction_option: String defining how the correction should look like, examples are "binwise", "smoothed", "binwise#[0,]#[-1,]+smoothed" (binned for first and last bin, rest smoothed)
         bandwidth: Bandwidth parameter for the kernel regression estimator
         stat_sigma: Value used for the definition of the statistical uncertainty variation (used multiplicatively on the standard deviation)
+        force_prepend: If given, overrides the data-driven decision of whether to prepend a bin_edges[0]
+            knot (see below) -- callers building sibling variations (MC-shift, bandwidth) of an already-computed
+            nominal fit must pass the nominal's decision through here so all variations share the same array
+            length. Left to compute its own decision (default), the check compares `x[start_idx]` -- which, for
+            histograms carrying weighted-mean x-positions (_EXTRA_PARAM_MEANS), is data-dependent -- against
+            bin_edges[0]; that comparison is not guaranteed to agree between the nominal histogram and a
+            MCShiftUp/Down variant, which used to silently desync corr_dict["default"]["edges"] (from the
+            nominal call) from a "variations" array (from a sibling call) by one element, surfacing downstream
+            as sparsify()'s "Shape mismatch: edges must be len(values)+1".
+        force_append: Same as force_prepend, for the bin_edges[-1] knot.
 
     Return:
         1. Initial histogram as TGraph
@@ -1781,14 +1671,16 @@ def _smooth_function(
     _down_stat[_down_stat < 0] = 0
 
     # adjustment to bin edges
-    if _bins[0] != bin_edges[0]:
+    needs_prepend = (_bins[0] != bin_edges[0]) if force_prepend is None else force_prepend
+    if needs_prepend:
 
         def _prepend(a, b=None):
             return np.concatenate(([a[0] if b is None else b[0]], a))
 
         _bins = _prepend(_bins, bin_edges)
         _nom, _up_stat, _down_stat = _prepend(_nom), _prepend(_up_stat), _prepend(_down_stat)
-    if _bins[-1] != bin_edges[-1]:
+    needs_append = (_bins[-1] != bin_edges[-1]) if force_append is None else force_append
+    if needs_append:
 
         def _append(a, b=None):
             return np.concatenate((a, [a[-1] if b is None else b[-1]]))
@@ -1805,6 +1697,8 @@ def _smooth_function(
                 "StatDown": _down_stat,
             },
         },
+        "_prepend_applied": needs_prepend,
+        "_append_applied": needs_append,
     }
 
     return nominal_graph, corr_dict

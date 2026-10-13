@@ -18,6 +18,7 @@ from matplotlib.patches import Patch
 
 import configs.general_definitions as gd
 import helper.ff_functions as func
+import helper.functions as hf
 import CustomLogging as logging_helper
 
 hep.style.use(hep.style.CMS)
@@ -144,11 +145,15 @@ def save_plots_and_data(
     """
     base_filename_plot, plot_obj = "", None
     base_filename_data, data_obj = "", None
+    # png/pdf go to output_path/plots; pickled data stays under output_path.
+    plot_output_path = hf.get_plot_path(output_path)
 
     def save_canvas(ext):
-        plot_obj.savefig(os.path.join(output_path, ext, f"{base_filename_plot}.{ext}"))
+        # png/pdf land directly in plot_output_path, side by side (no
+        # per-extension subfolder) -- unlike save_data below.
+        plot_obj.savefig(os.path.join(plot_output_path, f"{base_filename_plot}.{ext}"))
         if logger:
-            logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_plot}.{ext}')}")
+            logger.info(f"Saved {os.path.join(plot_output_path, f'{base_filename_plot}.{ext}')}")
 
     def save_data(ext):
         filepath = os.path.join(output_path, ext, f"{base_filename_data}.{ext}")
@@ -160,18 +165,16 @@ def save_plots_and_data(
         if logger:
             logger.info(f"Saved {os.path.join(output_path, extension, f'{base_filename_data}.{ext}')}")
 
-    tasks = []
     if plot_filename_and_obj is not None:
         base_filename_plot, plot_obj = plot_filename_and_obj
-        tasks.append((plot_extensions, save_canvas))
+        os.makedirs(plot_output_path, exist_ok=True)
+        for extension in plot_extensions:
+            save_canvas(extension)
     if data_filename_and_obj is not None:
         base_filename_data, data_obj = data_filename_and_obj
-        tasks.append((data_extensions, save_data))
-
-    for extensions, _func in tasks:
-        for extension in extensions:
+        for extension in data_extensions:
             os.makedirs(os.path.join(output_path, extension), exist_ok=True)
-            _func(extension)
+            save_data(extension)
 
 
 def TH1_to_numpy(
@@ -458,7 +461,7 @@ def plot_FFs(
     ax.set_title(plot_text, loc="left", fontsize=25)
     ax.set_title(gd.era_dict[era], loc="right", fontsize=25)
 
-    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20, exp="")
 
     data_handler = ax.errorbar(
         x,
@@ -798,7 +801,7 @@ def plot_data_mc_ratio(
     ax_ratio.set_xlabel(gd.variable_dict[channel].get(variable, variable))
     ax_ratio.grid(axis="y")
 
-    hep.cms.text(text=gd.default_CMS_text, ax=ax_top, loc=2, fontsize=20)
+    hep.cms.text(text=gd.default_CMS_text, ax=ax_top, loc=2, fontsize=20, exp="")
 
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, {process.replace('_', ' ')}, " + ", ".join(
@@ -919,7 +922,7 @@ def plot_fractions(
 
     ax.legend(loc="upper right", fontsize=20, labelspacing=0.2)
 
-    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20)
+    hep.cms.text(text=gd.default_CMS_text, ax=ax, loc=2, fontsize=20, exp="")
 
     if category is not None:
         plot_text = f"{gd.channel_dict[channel]}, " + ", ".join(
@@ -1075,7 +1078,7 @@ def plot_correction(
     elif "DR_SR" in corr_name:
         ax[0].text(0.08, 0.8, "DR to SR correction", transform=ax[0].transAxes, fontsize=20)
 
-    hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20)
+    hep.cms.text(text=gd.default_CMS_text, ax=ax[0], loc=1, fontsize=20, exp="")
     
     total_unct_up, total_unct_down = calc_total_uncertainty(nominal, unc_variations, [gd.VARIATIONS.STAT, gd.VARIATIONS.SYST_MC, gd.VARIATIONS.SYST_BAND_ASYM])
 

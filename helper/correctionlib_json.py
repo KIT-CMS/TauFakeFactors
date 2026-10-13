@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+import re
 from itertools import product
 from typing import Any, Dict, List, Tuple, Union
 
@@ -98,6 +99,49 @@ def get_edges_and_content(
     }
 
 
+def uncertainty_name(process: str, uncertainty: str, era: str, channel: str) -> str:
+    """
+    Name of a fake factor uncertainty, following CMS_fake_t_{process}_{uncertainty}_{era}_{channel}{Up/Down}.
+
+    Args:
+        process: Name of the process the uncertainty belongs to, e.g. QCD or QCD_subleading
+        uncertainty: Uncertainty name ending with its direction (Up/Down/_up/_down), e.g. StatShiftUp
+        era: Era tag of the measurement
+        channel: Channel of the measurement
+
+    Return:
+        Uncertainty name used as "syst" key in the correctionlib files
+    """
+    match = re.fullmatch(r"(.+?)_?(Up|Down|up|down)", uncertainty)
+    if match is None:
+        raise ValueError(f"Uncertainty '{uncertainty}' does not end with a direction (Up/Down).")
+    return f"CMS_fake_t_{process}_{match.group(1)}_{era}_{channel}{match.group(2).capitalize()}"
+
+
+def fraction_uncertainty_name(fraction_name: str, uncertainty: str, era: str, channel: str) -> str:
+    """
+    Name of a process fraction uncertainty, e.g. frac_QCD_up of process_fractions_subleading
+    becomes CMS_fake_t_QCD_subleading_fraction_{era}_{channel}Up.
+
+    Args:
+        fraction_name: Name of the fraction correction, process_fractions or process_fractions_subleading
+        uncertainty: Fraction variation name, frac_{PROCESS}_up or frac_{PROCESS}_down
+        era: Era tag of the measurement
+        channel: Channel of the measurement
+
+    Return:
+        Uncertainty name used as "syst" key in the correctionlib files
+    """
+    if uncertainty == "nominal":
+        return "nominal"
+    match = re.fullmatch(r"frac_(.+)_(up|down)", uncertainty)
+    if match is None:
+        raise ValueError(f"Fraction variation '{uncertainty}' does not follow frac_<process>_<up/down>.")
+    process = "ttbar" if match.group(1) == "ttbar_J" else match.group(1)
+    suffix = fraction_name.removeprefix("process_fractions")
+    return uncertainty_name(f"{process}{suffix}", f"fraction{match.group(2).capitalize()}", era, channel)
+
+
 def write_json(path: str, item: Union[cs.CorrectionSet, cs.Correction]) -> None:
     _open, _mode = open, "w"
     if path.endswith(".gz"):
@@ -144,6 +188,8 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
+                    era=config["era"],
+                    channel=config["channel"],
                 )
             elif len(proc_conf["split_categories"]) == 2:
                 process_ff = make_2D_ff(
@@ -151,6 +197,8 @@ def generate_ff_corrlib_json(
                     process_conf=proc_conf,
                     variable_info=(var, binning),
                     ff_functions=ff_functions[process],
+                    era=config["era"],
+                    channel=config["channel"],
                 )
             corrlib_corrections.append(process_ff)
 
@@ -164,6 +212,8 @@ def generate_ff_corrlib_json(
             variable_info=(var, binning),
             fractions=fractions,
             fraction_name="process_fractions",
+            era=config["era"],
+            channel=config["channel"],
         )
         corrlib_corrections.append(fraction)
 
@@ -177,6 +227,8 @@ def generate_ff_corrlib_json(
             variable_info=(var, binning),
             fractions=fractions_subleading,
             fraction_name="process_fractions_subleading",
+            era=config["era"],
+            channel=config["channel"],
         )
         corrlib_corrections.append(fraction)
 
@@ -261,6 +313,8 @@ def make_1D_ff(
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, str]],
+    era: str,
+    channel: str,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 1D categories.
@@ -270,6 +324,8 @@ def make_1D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][VARIATION]
+        era: Era tag used in the uncertainty names
+        channel: Channel used in the uncertainty names
 
     Return:
         Correction object from correcionlib
@@ -321,7 +377,7 @@ def make_1D_ff(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + unc_name,
+                    key=uncertainty_name(process, unc_name, era, channel),
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
@@ -355,6 +411,8 @@ def make_2D_ff(
     process_conf: Dict[str, Union[Dict, List, str]],
     variable_info: Tuple[str, List[float]],
     ff_functions: Dict[str, Dict[str, Dict[str, str]]],
+    era: str,
+    channel: str,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factors (including variations) for the case of 2D categories.
@@ -364,6 +422,8 @@ def make_2D_ff(
         process_conf: A dictionary with all the relevant information for the fake factors of a specific "process"
         variable_info: Tuple with information (name and binning) about the variable the fake factors depends on
         ff_functions: Dictionary of fake factor functions as strings, e.g. ff_function[PROCESS][CATEGORY_1][CATEGORY_2][VARIATION]
+        era: Era tag used in the uncertainty names
+        channel: Channel used in the uncertainty names
 
     Return:
         Correction object from correcionlib
@@ -430,7 +490,7 @@ def make_2D_ff(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=process + unc_name,
+                    key=uncertainty_name(process, unc_name, era, channel),
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
@@ -490,6 +550,8 @@ def make_1D_fractions(
     variable_info: Tuple[str, List[float]],
     fractions: Dict[str, Dict[str, Dict[str, List[float]]]],
     fraction_name: str,
+    era: str,
+    channel: str,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fractions (including variations).
@@ -499,7 +561,8 @@ def make_1D_fractions(
         variable_info: Tuple with information (name and binning) about the variable the fractions depends on
         fractions: Dictionary of fraction values, e.g. fractions[CATEGORY][VARIATION][PROCESS]
         fraction_name: Name of the calculated fraction, relevant if more than one fraction should be added
-        uncertainties: Dictionary of uncertainty names which should be added
+        era: Era tag used in the uncertainty names
+        channel: Channel used in the uncertainty names
 
     Return:
         Correction object from correcionlib
@@ -549,7 +612,7 @@ def make_1D_fractions(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=fraction_name + unc_name,
+                    key=fraction_uncertainty_name(fraction_name, unc_name, era, channel),
                     value=cs.Category(
                         nodetype="category",
                         input="process",
@@ -681,6 +744,8 @@ def generate_correction_corrlib(
                     corrections=correction_dict,
                     variable=variable,
                     variations=correction_variations,
+                    era=config["era"],
+                    channel=config["channel"],
                 )
             else:
                 corr = make_1D_correction(
@@ -689,6 +754,8 @@ def generate_correction_corrlib(
                     correction_name=correction,
                     correction=correction_dict,
                     variations=correction_variations,
+                    era=config["era"],
+                    channel=config["channel"],
                 )
 
             corrlib_ff_corrections.append(corr)
@@ -758,6 +825,8 @@ def make_1D_correction(
     correction_name: str,
     correction: Dict[str, np.ndarray],
     variations: Tuple[str],
+    era: str,
+    channel: str,
 ) -> cs.Correction:
     """
     Function which produces a correctionlib Correction based on the measured fake factor corrections (including variations).
@@ -767,6 +836,9 @@ def make_1D_correction(
         variable: Name of the variable the correction depends on
         correction_name: Name of the correction
         correction: Dictionary with the correction information for edge values and nominal, up and down variations
+        variations: Names of the correction variations, e.g. StatShiftUp
+        era: Era tag used in the uncertainty names
+        channel: Channel used in the uncertainty names
 
     Return:
         Correction object from correcionlib
@@ -810,7 +882,7 @@ def make_1D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}{_correction_name}_Corr{variation}",
+                    key=uncertainty_name(process, f"{_correction_name}_Corr{variation}", era, channel),
                     value=cs.Binning(
                         nodetype="binning",
                         input=variable,
@@ -821,7 +893,7 @@ def make_1D_correction(
                 )
                 for variation, _correction_name in product(
                     variations,
-                    [f"_{correction_name}"] + (["_non_closure"] if "non_closure" in correction_name else []),
+                    [correction_name] + (["non_closure"] if "non_closure" in correction_name else []),
                 )
             ] + [
                 cs.CategoryItem(
@@ -844,6 +916,8 @@ def make_2D_correction(
     correction_name: str,
     variable: str,
     variations: Tuple[str],
+    era: str,
+    channel: str,
 ) -> cs.Correction:
     cat_inputs = list(corr_conf["split_categories"].keys())
     cat_values = [corr_conf["split_categories"][cat] for cat in corr_conf["split_categories"]]
@@ -900,7 +974,7 @@ def make_2D_correction(
             input="syst",
             content=[
                 cs.CategoryItem(
-                    key=f"{process}{_correction_name}_Corr{variation}",
+                    key=uncertainty_name(process, f"{_correction_name}_Corr{variation}", era, channel),
                     value=cs.Binning(
                         nodetype="binning",
                         input=cat_inputs[0],
@@ -920,7 +994,7 @@ def make_2D_correction(
                 )
                 for variation, _correction_name in product(
                     variations,
-                    [f"_{correction_name}"] + (["_non_closure"] if "non_closure" in correction_name else []),
+                    [correction_name] + (["non_closure"] if "non_closure" in correction_name else []),
                 )
             ] + [
                 cs.CategoryItem(
