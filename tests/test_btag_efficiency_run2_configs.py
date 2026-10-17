@@ -4,6 +4,11 @@ Runs without the probe-jet production: config loading, the sample database, pool
 against the pinned BTV payload, and every selection and weight expression JIT-compiled by ROOT.
 
     python3 -m pytest tests/test_btag_efficiency_run2_configs.py
+
+Environment: the conda env fake_factors, or the LCG_108 view
+(source /cvmfs/sft.cern.ch/lcg/views/LCG_108/x86_64-el9-gcc15-opt/setup.sh; python3 without -I). Nothing here
+imports btag_efficiency.py or wurlitzer. Skipped only without cvmfs (BTV pin), without ROOT (expression
+compilation) or without a CROWN sample list next to this checkout (set CROWN_SAMPLE_LIST_DIR).
 """
 import gzip
 import json
@@ -12,6 +17,7 @@ import re
 
 import pytest
 
+from helper.btag_pools import validate_process_config
 from helper.config_loading import load_config
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -175,12 +181,11 @@ def test_efficiency_config(era, channel):
         assert pools == {"vjets", "top", "diboson", "higgs_bb", "higgs_tautau"}
 
 
-def test_efficiency_config_passes_the_measurement_checks():
-    """btag_efficiency.validate_process_config (duplicate keys, shared inputs, required sample types)."""
-    be = pytest.importorskip("btag_efficiency")
-    for era in ERAS:
-        for channel in CHANNELS:
-            be.validate_process_config(efficiency(era, channel))
+@pytest.mark.parametrize("era", ERAS)
+@pytest.mark.parametrize("channel", CHANNELS)
+def test_efficiency_config_passes_the_measurement_checks(era, channel):
+    """validate_process_config of btag_efficiency.py (duplicate keys, shared inputs, required sample types)."""
+    validate_process_config(efficiency(era, channel))
 
 
 @pytest.mark.parametrize("era", ERAS)

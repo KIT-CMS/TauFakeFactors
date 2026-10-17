@@ -19,7 +19,7 @@
 # btag_efficiency.py writes eff = 0.0 for an empty bin, so a thin cell
 # produces exactly the values that crash it; validate_payload: error below
 # refuses to write such a payload. Before installing it into CROWN run
-#   python3 /work/sdaigler/bbtautau/check_btag_payload.py --era 2018 --sf-check \
+#   python3 scripts/check_btag_payload.py --era 2018 --sf-check \
 #       workdir/btag_eff_2018/2018/*/btag_efficiency.json.gz
 # against the era's pinned BTV payload (Run2-2018-UL-NanoAODv15/2026-06-18).
 # ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ channels: [et, mt, tt, ee, em, mm]
 
 # Refuse to write a payload the strict consumer would throw on ('warn' logs
 # and writes anyway). The scale-factor-weighted jet-weight check needs the
-# BTV payload and stays in check_btag_payload.py --sf-check; passing here is
+# BTV payload and stays in scripts/check_btag_payload.py --sf-check; passing here is
 # necessary, not sufficient.
 validate_payload: error
 

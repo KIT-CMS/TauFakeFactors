@@ -22,7 +22,7 @@ grids the generator just produced, no scale-factor payload.  The consumer has
 a fourth requirement -- that the resulting jet weight ``num / denom`` stays
 finite and positive -- which cannot be decided without the experiment's scale
 factors, so it lives in the standalone
-``/work/sdaigler/bbtautau/check_btag_payload.py --sf-check`` instead.  Passing
+``scripts/check_btag_payload.py --sf-check`` instead.  Passing
 the checks here is necessary, not sufficient.
 """
 from typing import Dict, List, Tuple
