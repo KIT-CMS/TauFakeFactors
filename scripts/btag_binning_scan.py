@@ -77,6 +77,22 @@ def region_names(wps: List[Tuple[str, float]]) -> List[str]:
     return names
 
 
+def filled_files(files: List[str], tree: str) -> List[str]:
+    """The files whose tree holds entries. preselection.py writes a process without any selected
+    event as an empty tree without branches, which a chain of its own cannot read."""
+    import ROOT
+
+    kept = []
+    for path in files:
+        handle = ROOT.TFile.Open(path)
+        ttree = handle.Get(tree) if handle and not handle.IsZombie() else None
+        if ttree and ttree.GetEntries() > 0:
+            kept.append(path)
+        if handle:
+            handle.Close()
+    return kept
+
+
 def count_jets(files: List[str], config: Dict, pt_edges: List[float], eta_edges: List[float], tree: str) -> Dict[str, np.ndarray]:
     """Unweighted probe-jet counts per flavour: array [region, pt bin, eta bin] on the fine grid."""
     import ROOT
@@ -87,6 +103,7 @@ def count_jets(files: List[str], config: Dict, pt_edges: List[float], eta_edges:
     flavor_col, score_col = config["jet_flavor_column"], config["jet_btag_column"]
     n_regions = len(wps) + 1
     result = {name: np.zeros((n_regions, len(pt_edges) - 1, len(eta_edges) - 1)) for name in flavors}
+    files = filled_files(files, tree)
     if not files:
         return result
 

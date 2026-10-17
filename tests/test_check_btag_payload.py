@@ -1,4 +1,4 @@
-"""Tests of scripts/check_btag_payload.py on small synthetic correctionlib payloads.
+"""Tests of scripts/check_btag_payload.py and scripts/install_btag_payloads.sh on small synthetic correctionlib payloads.
 
 The scale-factor payload mimics the layout of the BTV UParTAK4 payload (systematic -> working_point -> flavor ->
 abseta -> pt; the b/c pT axis starts at 30 GeV with a constant flow value), so the consumer emulation of
@@ -9,11 +9,13 @@ btag_sf_strict.cxx is exercised without cvmfs. Needs correctionlib (LCG_108 view
 import gzip
 import json
 import os
+import subprocess
 import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT_DIR, "scripts"))
 
 import check_btag_payload as chk  # noqa: E402
 
@@ -212,3 +214,44 @@ def test_complete_payload_is_safe_to_ship(tmp_path, capsys):
     for era in chk.RUN2_ERAS:
         assert chk.main(["--era", era, "--sf-check", "--sf-payload", sf, eff_payload(tmp_path / "eff.json.gz")]) == 0
         assert "PAYLOAD IS SAFE TO SHIP" in capsys.readouterr().out
+
+
+# --- scripts/install_btag_payloads.sh ---------------------------------------------------------------------------------
+
+CHANNELS = ["et", "mt", "tt", "ee", "em", "mm"]
+
+
+def install(tmp_path, sf, channels=CHANNELS, era="2017"):
+    workdir, crown = tmp_path / "workdir", tmp_path / "crown"
+    (crown / "payloads").mkdir(parents=True, exist_ok=True)
+    for channel in channels:
+        directory = workdir / f"btag_eff_{era}" / era / channel
+        directory.mkdir(parents=True, exist_ok=True)
+        eff_payload(directory / "btag_efficiency.json.gz")
+    env = dict(os.environ, WORKDIR=str(workdir), CROWN_BBTAUTAU=str(crown), SF_PAYLOAD=sf)
+    result = subprocess.run([os.path.join(ROOT_DIR, "scripts", "install_btag_payloads.sh"), era],
+                            env=env, capture_output=True, text=True)
+    return result, crown / "payloads" / "btagging_efficiencies" / "upart" / era, workdir / f"btag_eff_{era}" / era
+
+
+def test_install_copies_the_checked_payloads_under_the_crown_names(tmp_path):
+    result, target, source = install(tmp_path, sf_payload(tmp_path / "sf.json.gz", UNITY))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert sorted(os.listdir(target)) == sorted(f"btag_efficiency_{channel}.json.gz" for channel in CHANNELS)
+    for channel in CHANNELS:
+        assert (target / f"btag_efficiency_{channel}.json.gz").read_bytes() == \
+            (source / channel / "btag_efficiency.json.gz").read_bytes()
+
+
+def test_install_refuses_an_incomplete_era(tmp_path):
+    result, target, _ = install(tmp_path, sf_payload(tmp_path / "sf.json.gz", UNITY), channels=CHANNELS[:-1])
+    assert result.returncode == 1 and "mm/btag_efficiency.json.gz is missing" in result.stderr
+    assert not target.exists()
+
+
+def test_install_refuses_payloads_that_fail_the_check(tmp_path):
+    comb = {"central": {"M": 1.0, "T": 1.0}, "up": {"M": 1.1, "T": 1.1}}  # the 25 GeV b jet of the test above
+    result, target, _ = install(tmp_path, sf_payload(tmp_path / "sf.json.gz", comb))
+    assert result.returncode == 1 and "DO NOT SHIP" in result.stdout and "the check failed" in result.stderr
+    assert not target.exists()
+

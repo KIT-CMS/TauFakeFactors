@@ -106,12 +106,10 @@ required_sample_types:
 # No 140 GeV merge any more (it existed only for the L SF ceiling); the
 # 300 GeV b edge stays wherever the statistics allow (E14). The rule is
 # implemented in scripts/btag_binning_scan.py.
-# The grids below are a PROJECTION made before smrun2_btag_eff_v1 existed:
-# the 2018 v3 probe jets (sm2018_binned_btag_eff_v3) with this era's WP cuts,
-# each input process scaled by its nevents ratio (this era's v7 list over the
-# 2018 v3 list) times 0.85 for the tighter v7 selection. 'margin' is the
-# projected thinnest region over the six channels. RE-RUN the scan on the
-# real preselection before measuring and adapt the grids:
+# The grids below are the scan's proposals on the real probe jets (the
+# smrun2_btag_eff_v1 preselection of this era, 2026-10-17); 'margin' is the
+# thinnest score region over the channels the pool is measured in. Re-run
+# the scan after any change of the preselection:
 #   python3 scripts/btag_binning_scan.py --config-dir configs/btag_efficiency/2018
 # ---------------------------------------------------------------------------
 processes:
@@ -121,9 +119,9 @@ processes:
     input_processes: [dyjets, wjets, electroweak_boson]
     sample_types:    [dyjets, wjets, electroweak_boson]
     flavor_bins:
-      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 25.5
-      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 6.8
-      light: {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7.6
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 28
+      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7
+      light: {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 7
 
   # ttbar + singletop + rem_ttbar + rem_higgs. rem_higgs is ttH(non-bb): its
   # b jets come from the top decays, so it belongs with top, not with Higgs.
@@ -131,9 +129,9 @@ processes:
     input_processes: [ttbar, singletop, rem_ttbar, rem_higgs]
     sample_types:    [ttbar, singletop, rem_ttbar, rem_higgs]
     flavor_bins:
-      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 18.4
-      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 200, 1000],          jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 8.5
-      light: {jet_pt_bins: [20, 30, 50, 70, 100, 1000],               jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5.1
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 20
+      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 6
+      light: {jet_pt_bins: [20, 30, 70, 140, 1000],                    jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
 
   # Diboson plus rem_htautau (VH, H->tautau; new in v7). The VH jets are
   # mostly the V -> qq decay products (b jets from Z -> bb, c jets from
@@ -143,9 +141,9 @@ processes:
     input_processes: [diboson, rem_htautau]
     sample_types:    [diboson, rem_htautau]
     flavor_bins:
-      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],     jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 9.7
-      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],          jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 6.2
-      light: {jet_pt_bins: [20, 30, 50, 70, 100, 1000],               jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 6.2
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 18
+      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      light: {jet_pt_bins: [20, 30, 50, 70, 100, 140, 1000],           jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
 
   # H -> bb: the signal (powheg kl = 1 in v7) plus the other b-associated
   # Higgs modes. Kept apart from H -> tautau, whose b efficiency differs.
@@ -153,15 +151,15 @@ processes:
     input_processes: [hh2b2tau, vbf_hbb, rem_hbb]
     sample_types:    [hh2b2tau, vbf_hbb, rem_hbb]
     flavor_bins:
-      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 24.6
-      c:     {jet_pt_bins: [20, 30, 50, 140, 1000],                   jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 6.0
-      light: {jet_pt_bins: [20, 30, 70, 1000],                        jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5.1
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 26
+      c:     {jet_pt_bins: [20, 30, 50, 70, 140, 1000],                jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      light: {jet_pt_bins: [20, 30, 50, 70, 1000],                     jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
 
   # H -> tautau (ggH, VBF): jets are recoil/ISR rather than Higgs decay products.
   higgs_tautau:
     input_processes: [ggh_htautau, vbf_htautau]
     sample_types:    [ggh_htautau, vbf_htautau]
     flavor_bins:
-      b:     {jet_pt_bins: [20, 30, 70, 1000],                        jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5.1
-      c:     {jet_pt_bins: [20, 30, 50, 70, 140, 1000],               jet_eta_bins: [0.0, 2.4]}   # margin 6.8
-      light: {jet_pt_bins: [20, 30, 70, 1000],                        jet_eta_bins: [0.0, 2.4]}   # margin 6.8
+      b:     {jet_pt_bins: [20, 30, 50, 70, 1000],                     jet_eta_bins: [0.0, 1.4, 2.4]}   # margin 5
+      c:     {jet_pt_bins: [20, 30, 50, 70, 140, 1000],                jet_eta_bins: [0.0, 2.4]}   # margin 8
+      light: {jet_pt_bins: [20, 30, 70, 1000],                         jet_eta_bins: [0.0, 2.4]}   # margin 7

@@ -1,4 +1,4 @@
-"""Unit tests of the grid logic of scripts/btag_binning_scan.py (no ROOT input needed)."""
+"""Unit tests of the grid logic of scripts/btag_binning_scan.py (ROOT only for the empty-process case)."""
 import os
 import sys
 
@@ -69,3 +69,22 @@ def test_region_names_follow_the_working_points():
     wps = scan.wps_loose_to_tight({"btag_working_points": {"T": 0.54, "M": 0.16}})
     assert [name for name, _ in wps] == ["M", "T"]
     assert scan.region_names(wps) == ["fail M", "M not T", "pass T"]
+
+
+def test_a_process_without_events_counts_as_empty(tmp_path):
+    # preselection.py writes a process without selected events as a tree without branches
+    ROOT = pytest.importorskip("ROOT")
+    path = str(tmp_path / "vbf_hbb.root")
+    handle = ROOT.TFile(path, "RECREATE")
+    ROOT.TTree("ntuple", "ntuple").Write()
+    handle.Close()
+    config = {
+        "btag_working_points": {"T": 0.54, "M": 0.16},
+        "jet_flavor_categories": {"b": 5, "c": 4, "light": 0},
+        "jet_pt_column": "btag_probe_jet_pt", "jet_eta_column": "btag_probe_jet_eta",
+        "jet_flavor_column": "btag_probe_jet_hadron_flavour", "jet_btag_column": "btag_probe_jet_upart",
+    }
+    assert scan.filled_files([path], "ntuple") == []
+    result = scan.count_jets([path], config, PT, ETA, "ntuple")
+    assert set(result) == {"b", "c", "light"}
+    assert all(grid.shape == (3, len(PT) - 1, len(ETA) - 1) and not grid.any() for grid in result.values())

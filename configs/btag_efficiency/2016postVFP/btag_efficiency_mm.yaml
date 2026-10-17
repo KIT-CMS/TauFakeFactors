@@ -12,5 +12,5 @@ processes:
     sample_types:    [dyjets, wjets, electroweak_boson, ggh_htautau, vbf_htautau]
     flavor_bins:
       b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}
-      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],     jet_eta_bins: [0.0, 1.4, 2.4]}
-      light: {jet_pt_bins: [20, 30, 50, 70, 100, 200, 300, 1000],     jet_eta_bins: [0.0, 1.4, 2.4]}
+      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}
+      light: {jet_pt_bins: [20, 30, 50, 70, 100, 140, 300, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}
