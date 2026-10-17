@@ -5,6 +5,9 @@
 # No Z_pt reweighting (Run-3-only producer) and no b-tag weight (this IS the b-tag efficiency
 # measurement). MC only. btag_efficiency.py counts the probe jets unweighted, so the event weights
 # below only fill the 'weight' column.
+# The nicks are exactly those of the list except the madgraph node_SM HH cross-check (hh2b2tau is the
+# powheg kl=1 signal); the list has no ZH/ggZH HToBB ZToBB (double counted with ZToQQ, not produced).
+# tests/test_btag_efficiency_run2_configs.py compares them with the CROWN list.
 # No rem_htautau: UL16 postVFP has no NanoAODv15 VH->tautau sample (v7 spec 3.3); btag_efficiency.yaml
 # still writes its payload key from the diboson pool.
 processes:
@@ -103,11 +106,9 @@ processes:
     samples:
       - WminusH_HToBB_WToLNu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - WplusH_HToBB_WToLNu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
-      - ZH_HToBB_ZToBB_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ZH_HToBB_ZToNuNu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
-      - ggZH_HToBB_ZToBB_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ggZH_HToBB_ZToLL_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ggZH_HToBB_ZToNuNu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
       - ggZH_HToBB_ZToQQ_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1
