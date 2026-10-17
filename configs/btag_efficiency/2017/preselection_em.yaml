@@ -1,0 +1,23 @@
+# 2017 UL preselection, e-mu channel: IsoMu27 on the muon (pT > 29), opposite sign, >= 2 analysis jets (ttbar-enriched).
+# Inherits preselection.yaml (processes, output columns) and common_settings.yaml (paths).
+# Trigger, offline thresholds and lepton |eta| per era after v7 spec 6.2 (E2-E7, E31); 2018 also
+# the HEM 15/16 veto (E29, CROWN column hem_veto). The probe jets are counted unweighted, so the
+# mc_weights only fill the 'weight' column.
+base_config_file: preselection.yaml
+channel: em
+event_selection:
+  lep_pt_and_trigger: (pt_1 > 15) && (pt_2 > 29) && (trg_single_mu27 > 0.5)
+  two_analysis_jets: n_jets >= 2
+  opposite_sign: (q_1 * q_2) < 0
+  lepton_isolation: (iso_1 >= 0.0) && (iso_1 < 0.15) && (iso_2 >= 0.0) && (iso_2 < 0.15)
+  no_extra_lepton: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+
+mc_weights:
+  Top_pt_reweighting: topPtReweightWeight
+  generator: ""
+  lep_id: id_wgt_ele_1 * id_wgt_mu_2
+  lep_reco: reco_wgt_ele_1
+  lep_iso: iso_wgt_mu_2
+  lumi: ""
+  pileup: puweight
+  single_trigger: trg_wgt_single_mu27

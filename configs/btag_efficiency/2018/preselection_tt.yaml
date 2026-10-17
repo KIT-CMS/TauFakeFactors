@@ -1,5 +1,10 @@
-# 2018 UL preselection, tau_h-tau_h channel: double-tau trigger, Medium vsJet on both legs.
+# 2018 UL preselection, tau_h-tau_h channel: OR of the four 2018 di-tau paths, pT > 40 GeV, Medium vsJet on both legs.
 # Inherits preselection.yaml (processes, output columns) and common_settings.yaml (paths).
+# Trigger, offline thresholds and lepton |eta| per era after v7 spec 6.2 (E2-E7, E31); 2018 also
+# the HEM 15/16 veto (E29, CROWN column hem_veto). The probe jets are counted unweighted, so the
+# mc_weights only fill the 'weight' column.
+# Trigger weight: the POG di-tau SF leg product of the first fired path in the order listed (as
+# ShapeSmith triggers.ditau_mc_weight); CROWN names it trg_wgt<path without 'trg'>_leg1/2.
 base_config_file: preselection.yaml
 channel: tt
 event_selection:
@@ -7,11 +12,13 @@ event_selection:
   had_tau_decay_mode_2: (tau_decaymode_2 == 0) || (tau_decaymode_2 == 1) || (tau_decaymode_2 == 10) || (tau_decaymode_2 == 11)
   had_tau_id_vs_ele: (id_tau_vsEle_VVLoose_1 > 0.5) && (id_tau_vsEle_VVLoose_2 > 0.5)
   had_tau_id_vs_mu: (id_tau_vsMu_VLoose_1 > 0.5) && (id_tau_vsMu_VLoose_2 > 0.5)
-  had_tau_pt: (pt_1 > 40) && (pt_2 > 40) && (trg_double_tau35_mediumiso > 0.5)
+  had_tau_pt: (pt_1 > 40) && (pt_2 > 40)
+  double_trigger: ((trg_double_tau35_mediumiso > 0.5) || (trg_double_tau35_tightiso > 0.5) || (trg_double_tau40_mediumiso > 0.5) || (trg_double_tau40_tightiso > 0.5))
   had_tau_id_vs_jet_1: id_tau_vsJet_Medium_1 > 0.5
   had_tau_id_vs_jet_2: id_tau_vsJet_Medium_2 > 0.5
   tau_pair_sign: ((q_1*q_2) < 0)
   no_extra_lep: (extramuon_veto < 0.5) && (extraelec_veto < 0.5)
+  hem_veto: (hem_veto < 0.5)
 
 mc_weights:
   Top_pt_reweighting: topPtReweightWeight
@@ -22,4 +29,4 @@ mc_weights:
   had_tau_id_vs_mu_2: (gen_match_2==5) * ((id_tau_vsMu_VLoose_2>0.5)*id_wgt_tau_vsMu_VLoose_2 + (id_tau_vsMu_VLoose_2<0.5)) + (gen_match_2!=5)
   lumi: ""
   pileup: puweight
-  double_trigger: (trg_wgtdouble_tau35_mediumiso_leg1 * trg_wgtdouble_tau35_mediumiso_leg2)
+  double_trigger: (((trg_double_tau35_mediumiso > 0.5)) * (trg_wgtdouble_tau35_mediumiso_leg1 * trg_wgtdouble_tau35_mediumiso_leg2) + ((trg_double_tau35_mediumiso < 0.5) && (trg_double_tau35_tightiso > 0.5)) * (trg_wgtdouble_tau35_tightiso_leg1 * trg_wgtdouble_tau35_tightiso_leg2) + ((trg_double_tau35_mediumiso < 0.5) && (trg_double_tau35_tightiso < 0.5) && (trg_double_tau40_mediumiso > 0.5)) * (trg_wgtdouble_tau40_mediumiso_leg1 * trg_wgtdouble_tau40_mediumiso_leg2) + ((trg_double_tau35_mediumiso < 0.5) && (trg_double_tau35_tightiso < 0.5) && (trg_double_tau40_mediumiso < 0.5) && (trg_double_tau40_tightiso > 0.5)) * (trg_wgtdouble_tau40_tightiso_leg1 * trg_wgtdouble_tau40_tightiso_leg2))

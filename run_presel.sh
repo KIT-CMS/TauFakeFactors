@@ -1,6 +1,6 @@
 #!/bin/bash
 
-eras=("2018" "2022preEE" "2022postEE" "2023preBPix" "2023postBPix" "2024" "2025")
+eras=("2016preVFP" "2016postVFP" "2017" "2018" "2022preEE" "2022postEE" "2023preBPix" "2023postBPix" "2024" "2025")
 channels=("et" "mt" "tt" "ee" "em" "mm")
 
 for era in "${eras[@]}"; do
