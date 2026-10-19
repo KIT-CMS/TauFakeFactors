@@ -78,16 +78,16 @@ def cache_rdf_snapshot(cache_dir: str = "./.RDF_CACHE") -> Callable:
             if "logger" in key_args:
                 del key_args["logger"]
 
-            os.makedirs(cache_dir, exist_ok=True)
+            directory = func.snapshot_dir(cache_dir)
 
             cache_hash = func.CachingKeyHelper.generate_key((), func.CachingKeyHelper.make_hashable(key_args))
-            cache_filepath = os.path.join(cache_dir, f"{cache_hash}.root")
+            cache_filepath = os.path.join(directory, f"{cache_hash}.root")
 
             if os.path.exists(cache_filepath) and func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
-                log.info(f"Using existent filtered Rdf: {cache_filepath}")
+                log.debug(f"Using existent filtered Rdf: {cache_filepath}")
                 return ROOT.RDataFrame(tree_name, cache_filepath)
 
-            log.info(f"Creating filtered Rdf under: {cache_filepath}")
+            log.debug(f"Creating filtered Rdf under: {cache_filepath}")
 
             cols = [str(c) for c in base_rdf.GetColumnNames()]
             filtered_rdf = function(*args, **kwargs)
@@ -783,7 +783,10 @@ def rdf_column_names(rdf: Any) -> set:
     return columns
 
 
-@cache_rdf_snapshot(cache_dir=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".RDF_CACHE"))
+RDF_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".RDF_CACHE")
+
+
+@cache_rdf_snapshot(cache_dir=RDF_CACHE_DIR)
 def apply_region_filters(
     rdf: Any,
     channel: str,
@@ -836,7 +839,7 @@ def apply_region_filters(
                 f"region_mask '{mask}' is declared for this region but not present on the "
                 f"input n-tuple -- there is no legacy cut-string fallback."
             )
-        log.info(f"Selecting region with CROWN selection mask '{mask}'.")
+        log.debug(f"Selecting region with CROWN selection mask '{mask}'.")
         rdf = rdf.Filter(f"({mask}) > 0.5", f"region mask {mask}")
     # redirecting C++ stdout for Report() to python stdout
     out = StringIO()

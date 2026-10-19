@@ -97,14 +97,14 @@ def fraction_calculation(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(
+        log.debug(
             f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
         )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info("Filtering events for the fraction calculation in the application region.")
+        log.debug("Filtering events for the fraction calculation in the application region.")
         region_conf = copy.deepcopy(process_conf["AR_cuts"])
         rdf_AR = ff_func.apply_region_filters(
             rdf=rdf,
@@ -116,7 +116,7 @@ def fraction_calculation(
         )
 
         # this is not needed for the FF calculation, just for control plots
-        log.info("Filtering events for the fraction calculation in the signal region.")
+        log.debug("Filtering events for the fraction calculation in the signal region.")
         region_conf = copy.deepcopy(process_conf["SR_cuts"])
         rdf_SR = ff_func.apply_region_filters(
             rdf=rdf,

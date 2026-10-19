@@ -287,19 +287,20 @@ def run_non_closure_correction(
                 for_DRtoSR=for_DRtoSR,
             )
 
-            with open(cached_non_closure, "wb") as f:
-                pickle.dump(
-                    tuple(
-                        [
-                            corrections,
-                            corr_config,
-                            ff_config,
-                            _chained_DR_SR_process_config,
-                        ]
-                    ),
-                    f,
-                    protocol=pickle.HIGHEST_PROTOCOL,
-                )
+            if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+                with open(cached_non_closure, "wb") as f:
+                    pickle.dump(
+                        tuple(
+                            [
+                                corrections,
+                                corr_config,
+                                ff_config,
+                                _chained_DR_SR_process_config,
+                            ]
+                        ),
+                        f,
+                        protocol=pickle.HIGHEST_PROTOCOL,
+                    )
 
     return corrections
 
@@ -553,12 +554,13 @@ def run_correction(
             else:
                 corrections[process]["DR_SR"] = ff_func.fill_corrlib_expression(results, split_collections.split_variables)
 
-            with open(cached_DR_SR, "wb") as f:
-                pickle.dump(
-                    (corrections, DR_SR_config),
-                    f,
-                    protocol=pickle.HIGHEST_PROTOCOL,
-                )
+            if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+                with open(cached_DR_SR, "wb") as f:
+                    pickle.dump(
+                        (corrections, DR_SR_config),
+                        f,
+                        protocol=pickle.HIGHEST_PROTOCOL,
+                    )
 
         DR_SR_correction = DRSRCorrectionEvaluator.loading_from_CorrectionSet(
             correction=corrlib.generate_correction_corrlib(
@@ -606,6 +608,7 @@ if __name__ == "__main__":
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
     func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = not args.ignore_cached_intermediary_steps
+    func.snapshot_dir(ff_func.RDF_CACHE_DIR)  # created before the worker processes start
 
     # loading of the chosen config file
     corr_config = func.load_config(args.config_file)
@@ -708,12 +711,13 @@ if __name__ == "__main__":
                 for_corrections=True,
             )
 
-        with open(cached_DR_SR_ffs, "wb") as f:
-            pickle.dump(
-                (fake_factors, corr_config),
-                f,
-                protocol=pickle.HIGHEST_PROTOCOL,
-            )
+        if func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+            with open(cached_DR_SR_ffs, "wb") as f:
+                pickle.dump(
+                    (fake_factors, corr_config),
+                    f,
+                    protocol=pickle.HIGHEST_PROTOCOL,
+                )
 
     DR_SR_corrections = {
         "QCD": {},

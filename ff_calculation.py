@@ -176,6 +176,7 @@ if __name__ == "__main__":
 
     func.RuntimeVariables.USE_MULTIPROCESSING = not args.disable_multiprocessing
     func.RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS = not args.ignore_cached_intermediary_steps
+    func.snapshot_dir(ff_func.RDF_CACHE_DIR)  # created before the worker processes start
 
     # loading of the chosen config file
     config = func.load_config(args.config_file)

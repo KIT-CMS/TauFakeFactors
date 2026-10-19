@@ -62,14 +62,14 @@ def calculation_ttbar_FFs(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         # FFs for ttbar from mc -> only ttbar with true misindentified jets relevant
         if sample in ["ttbar_J"]:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
             )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-            log.info(f"Filtering events for the signal region. Target process: {process}")
+            log.debug(f"Filtering events for the signal region. Target process: {process}")
             region_conf = copy.deepcopy(process_conf["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -80,7 +80,7 @@ def calculation_ttbar_FFs(
                 logger=logger,
             )
 
-            log.info(f"Filtering events for the application region. Target process: {process}")
+            log.debug(f"Filtering events for the application region. Target process: {process}")
             region_conf = copy.deepcopy(process_conf["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -219,12 +219,12 @@ def calculation_FF_data_scaling_factor(
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(f"Processing {sample} for the ttbar global data/mc scale factor.")
+        log.debug(f"Processing {sample} for the ttbar global data/mc scale factor.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.debug(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -237,7 +237,7 @@ def calculation_FF_data_scaling_factor(
 
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant (signal-like region)
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
         )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
@@ -249,7 +249,7 @@ def calculation_FF_data_scaling_factor(
             logger=logger,
         )
 
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.debug(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -262,7 +262,7 @@ def calculation_FF_data_scaling_factor(
 
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant (application-like region)
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
         )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
@@ -363,18 +363,18 @@ def non_closure_correction(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "ttbar_J":
             if splitting.split is not None:
-                log.info(
+                log.debug(
                     f"Processing {sample} for the non-closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
                 )
             else:
-                log.info(
+                log.debug(
                     f"Processing {sample} for the non-closure correction for {process}."
                 )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-            log.info(f"Filtering events for the signal region. Target process: {process}")
+            log.debug(f"Filtering events for the signal region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["SR_cuts"])
             rdf_SR = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -385,7 +385,7 @@ def non_closure_correction(
                 logger=logger,
             )
 
-            log.info(f"Filtering events for the application region. Target process: {process}")
+            log.debug(f"Filtering events for the application region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["AR_cuts"])
             rdf_AR = ff_func.apply_region_filters(
                 rdf=rdf,

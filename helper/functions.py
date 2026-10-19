@@ -2,6 +2,7 @@
 Collection of helpful functions for other scripts
 """
 
+import atexit
 import concurrent.futures
 import glob
 import hashlib
@@ -10,7 +11,9 @@ import json
 import logging
 import os
 import re
+import shutil
 import sys
+import tempfile
 from decimal import Decimal
 from typing import Any, Callable, Dict, Iterator, List, Tuple, Union
 import pathlib
@@ -301,7 +304,8 @@ def get_cached_file_path(
         String with the file name
     """
     cache_path = os.path.join(output_path, ".cache")
-    os.makedirs(cache_path, exist_ok=True)
+    if RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+        os.makedirs(cache_path, exist_ok=True)
 
     corr_type_str = "DR_SR" if variables is None else "non_closure"
     for_DRtoSR_str = "for_DRtoSR" if for_DRtoSR else ""
@@ -489,6 +493,21 @@ def optional_process_pool(
     return results
 
 
+def snapshot_dir(cache_dir: str) -> str:
+    """
+    Directory of the filtered RDataFrame snapshots: cache_dir itself when the cached intermediate steps are
+    used, otherwise a directory of this run below it, removed when the process that created it exits.
+    The path is kept in the environment, so that worker processes write to the same directory.
+    """
+    if RuntimeVariables.USE_CACHED_INTERMEDIATE_STEPS:
+        return cache_dir
+    if not os.environ.get("TFF_RUN_CACHE_DIR"):
+        os.makedirs(cache_dir, exist_ok=True)
+        os.environ["TFF_RUN_CACHE_DIR"] = tempfile.mkdtemp(prefix="run_", dir=cache_dir)
+        atexit.register(shutil.rmtree, os.environ["TFF_RUN_CACHE_DIR"], ignore_errors=True)
+    return os.environ["TFF_RUN_CACHE_DIR"]
+
+
 def load_config(config_file: str) -> Dict:
     """
     This function loads the configuration file. It first loads the common settings which
@@ -564,7 +583,7 @@ def load_config(config_file: str) -> Dict:
 
 def load_output_features(config: Dict) -> List[str]:
     """
-    Loads the branch whitelist for the preselected ntuple: TAUER's config/variables.yaml
+    Loads the branch whitelist for the preselected ntuple: TAUER's common/variables.yaml
     'output_features:' (the single source of truth for analysis variables, see that file's
     header) plus its 'selection_masks:' block's 'common' and per-channel entries (presel_mask,
     sel_os/sel_ss, ff_* -- these are bookkeeping branches, deliberately not part of

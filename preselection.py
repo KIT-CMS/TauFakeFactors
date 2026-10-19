@@ -99,6 +99,9 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
 
     # loading ntuple files
     ntuple_list = func.get_ntuples(config=config, process=process, sample=sample)
+    if not ntuple_list:
+        log.info(f"WARNING: Sample {sample} has no non-empty files. Skipping...")
+        return ()
     chain = ROOT.TChain(config["tree"])
 
     for ntuple in ntuple_list:
@@ -148,7 +151,7 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
 
     # CROWN's friend weight (all SFs, 1 for data/embedding); `friend_weight` picks another column, e.g. without the btag SF
     friend_weight = config.get("friend_weight", "weight")
-    if friend_weight not in rdf.GetColumnNames():
+    if friend_weight not in {str(x).replace("ntuple.", "") for x in rdf.GetColumnNames()}:
         raise ValueError(f"No CROWN friend column {friend_weight} on the input n-tuple of {sample}, attach the selection friend.")
     if friend_weight != "weight":
         rdf = rdf.Redefine("weight", friend_weight)
@@ -299,7 +302,7 @@ if __name__ == "__main__":
         level=logging_helper.LOG_LEVEL,
     )
 
-    # get needed features for fake factor calculation, from TAUER's config/variables.yaml
+    # get needed features for fake factor calculation, from TAUER's common/variables.yaml
     # (single source of truth, see func.load_output_features) rather than a per-config copy
     output_features = func.load_output_features(config)
 

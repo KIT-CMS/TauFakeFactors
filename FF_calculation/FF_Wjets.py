@@ -59,7 +59,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(
+        log.debug(
             f"Processing {sample} for the {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])} category."
         )
         log.info("-" * 50)
@@ -67,7 +67,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
         # event filter for Wjets signal-like region
-        log.info(
+        log.debug(
             f"Filtering events for the signal-like region. Target process: {process}"
         )
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
@@ -83,7 +83,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         # QCD estimation from same sign in signal-like region
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
         )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
@@ -96,7 +96,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         )
 
         # event filter for Wjets application-like region
-        log.info(
+        log.debug(
             f"Filtering events for the application-like region. Target process: {process}"
         )
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
@@ -112,7 +112,7 @@ def calculation_Wjets_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[Dict[str, st
         # QCD estimation from same sign in application-like region
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
         )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
@@ -341,18 +341,18 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if splitting.split is not None:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the non-closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
             )
         else:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the non-closure correction for {process}."
             )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.debug(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -365,7 +365,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
 
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant (signal-like region)
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the signal-like region. Target process: {process}"
         )
         rdf_SRlike_qcd = ff_func.apply_region_filters(
@@ -377,7 +377,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             logger=logger,
         )
 
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.debug(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -390,7 +390,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
 
         switch_to_same_sign_mask(region_conf)  # region_mask -> its same-sign variant (application-like region)
 
-        log.info(
+        log.debug(
             f"Filtering events for QCD estimation in the application-like region. Target process: {process}"
         )
         rdf_ARlike_qcd = ff_func.apply_region_filters(
@@ -616,18 +616,18 @@ def DR_SR_correction(
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if sample == "Wjets":
             if splitting.split is not None:
-                log.info(
+                log.debug(
                     f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
                 )
             else:
-                log.info(
+                log.debug(
                     f"Processing {sample} for the DR to SR correction for {process}."
                 )
             log.info("-" * 50)
 
             rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-            log.info(f"Filtering events for the signal-like region. Target process: {process}")
+            log.debug(f"Filtering events for the signal-like region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
             rdf_SRlike = ff_func.apply_region_filters(
                 rdf=rdf,
@@ -638,7 +638,7 @@ def DR_SR_correction(
                 logger=logger,
             )
 
-            log.info(f"Filtering events for the application-like region. Target process: {process}")
+            log.debug(f"Filtering events for the application-like region. Target process: {process}")
             region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
             rdf_ARlike = ff_func.apply_region_filters(
                 rdf=rdf,

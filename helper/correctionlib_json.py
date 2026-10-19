@@ -101,7 +101,7 @@ def get_edges_and_content(
 
 def uncertainty_name(process: str, uncertainty: str, era: str, channel: str) -> str:
     """
-    Name of a fake factor uncertainty, following CMS_fake_t_{process}_{uncertainty}_{era}_{channel}{Up/Down}.
+    Name of a fake factor uncertainty, following CMS_fake_t_{process}_{uncertainty}_{channel}_{era}{Up/Down}.
 
     Args:
         process: Name of the process the uncertainty belongs to, e.g. QCD or QCD_subleading
@@ -115,13 +115,13 @@ def uncertainty_name(process: str, uncertainty: str, era: str, channel: str) -> 
     match = re.fullmatch(r"(.+?)_?(Up|Down|up|down)", uncertainty)
     if match is None:
         raise ValueError(f"Uncertainty '{uncertainty}' does not end with a direction (Up/Down).")
-    return f"CMS_fake_t_{process}_{match.group(1)}_{era}_{channel}{match.group(2).capitalize()}"
+    return f"CMS_fake_t_{process}_{match.group(1)}_{channel}_{era}{match.group(2).capitalize()}"
 
 
 def fraction_uncertainty_name(fraction_name: str, uncertainty: str, era: str, channel: str) -> str:
     """
     Name of a process fraction uncertainty, e.g. frac_QCD_up of process_fractions_subleading
-    becomes CMS_fake_t_QCD_subleading_fraction_{era}_{channel}Up.
+    becomes CMS_fake_t_QCD_subleading_fraction_{channel}_{era}Up.
 
     Args:
         fraction_name: Name of the fraction correction, process_fractions or process_fractions_subleading
@@ -242,7 +242,6 @@ def generate_ff_corrlib_json(
     if output_path is not None:
         base_filepath = os.path.join(output_path, f"fake_factors_{config['channel']}")
         suffix = "_for_corrections" if for_corrections else ""
-        write_json(f"{base_filepath}{suffix}.json", cset)
         write_json(f"{base_filepath}{suffix}.json.gz", cset)
     return cset
 
@@ -813,7 +812,6 @@ def generate_correction_corrlib(
     if output_path is not None:
         base_filepath = os.path.join(output_path, f"FF_corrections_{config['channel']}")
         suffix = "_for_DRtoSR" if for_DRtoSR else ""
-        write_json(f"{base_filepath}{suffix}.json", cset)
         write_json(f"{base_filepath}{suffix}.json.gz", cset)
 
     return cset

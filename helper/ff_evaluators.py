@@ -34,19 +34,19 @@ class FakeFactorEvaluator:
 
         if load_path is not None:
             if not for_DRtoSR:
-                path = os.path.join(load_path, f"fake_factors_{config['channel']}.json")
+                path = os.path.join(load_path, f"fake_factors_{config['channel']}.json.gz")
             else:
-                path = os.path.join(load_path, f"fake_factors_{config['channel']}_for_corrections.json")
+                path = os.path.join(load_path, f"fake_factors_{config['channel']}_for_corrections.json.gz")
         else:
             if not for_DRtoSR:
                 ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
-                path = os.path.join(ff_dir, f"fake_factors_{config['channel']}.json")
+                path = os.path.join(ff_dir, f"fake_factors_{config['channel']}.json.gz")
             else:
                 corr_dir = func.get_workdir_path(
                     step="corrections", era=config["era"], ntupletag=config["workdir_name"],
                     tag=config.get("correction_tag"), channel=config["channel"],
                 )
-                path = os.path.join(corr_dir, f"fake_factors_{config['channel']}_for_corrections.json")
+                path = os.path.join(corr_dir, f"fake_factors_{config['channel']}_for_corrections.json.gz")
 
         log.info(f"Loading fake factor file {path} for process {process}")
         correctionlib.register_pyroot_binding()
@@ -168,17 +168,17 @@ class FakeFactorCorrectionEvaluator:
         _for_DRtoSR = "for_DRtoSR" if for_DRtoSR else ""
 
         if load_path is not None:
-            path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json")
+            path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json.gz")
         else:
             if not for_DRtoSR:
                 ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
-                path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json")
+                path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json.gz")
             else:
                 corr_dir = func.get_workdir_path(
                     step="corrections", era=config["era"], ntupletag=config["workdir_name"],
                     tag=config.get("correction_tag"), channel=config["channel"],
                 )
-                path = os.path.join(corr_dir, f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json")
+                path = os.path.join(corr_dir, f"FF_corrections_{config['channel']}_{_for_DRtoSR}.json.gz")
 
         variable = corr_variable if isinstance(corr_variable, str) else corr_variable[0]
 
@@ -323,10 +323,10 @@ class DRSRCorrectionEvaluator:
         log = logging.getLogger(logger)
 
         if load_path is not None:
-            path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json")
+            path = os.path.join(load_path, f"FF_corrections_{config['channel']}.json.gz")
         else:
             ff_dir = func.get_workdir_path(step="fake_factors", era=config["era"], ntupletag=config["workdir_name"])
-            path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json")
+            path = os.path.join(ff_dir, f"FF_corrections_{config['channel']}.json.gz")
 
         log.info(f"Loading DR_SR correction from file {path} for process {process}")
         correctionlib.register_pyroot_binding()

@@ -118,7 +118,7 @@ def save_plots_and_data(
     plot_filename_and_obj: Union[Tuple[str, Any], None] = None,
     data_filename_and_obj: Union[Tuple[str, Any], None] = None,
     plot_extensions: Iterable[str] = ("png", "pdf"),
-    data_extensions: Iterable[str] = ("pickle",),
+    data_extensions: Iterable[str] = (),
     logger: Union[logging.Logger, None] = None,
 ) -> None:
     """

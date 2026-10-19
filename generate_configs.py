@@ -5,11 +5,11 @@ config YAML files, for each (era, channel) pair:
   fake_factors/configs/smhtt/{era}/preselection_{ch}.yaml
 
 Sections written:
-  processes       -- sample lists and tau_gen_modes (config/backgrounds.yaml); the combined eras
+  processes       -- sample lists and tau_gen_modes (common/datasets.yaml); the combined eras
                      list every sample under era_overrides with its sub-era, 2025 data also takes
                      the 2026 samples
   event_selection -- CROWN's presel_mask (weights, region masks and output columns come from the
-                     CROWN friend and config/variables.yaml's selection_masks, nothing is built here)
+                     CROWN friend and common/variables.yaml's selection_masks, nothing is built here)
 
 Normally invoked via `run.py GEN-TFF-CONFIGS`.
 """
@@ -24,15 +24,15 @@ import yaml
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-from config.logging_setup_configs import setup_logging
-from config.analysis import DATA_ERA_MERGE, PRESELECTION_MASK_BRANCH
+from CustomLogging import setup_logging
+from common.analysis import DATA_ERA_MERGE, PRESELECTION_MASK_BRANCH
 
 logger = setup_logging(logger=logging.getLogger(__name__))
 
 TFF_CONFIG_ROOT = _REPO_ROOT / "fake_factors" / "configs" / "smhtt"
-_BACKGROUNDS_YAML = _REPO_ROOT / "config" / "backgrounds.yaml"
+_DATASETS_YAML = _REPO_ROOT / "common" / "datasets.yaml"
 
-# FF config era -> the sub-eras of backgrounds.yaml it combines
+# FF config era -> the sub-eras of datasets.yaml it combines
 FF_ERAS = {
     "2022": ["2022preEE", "2022postEE"],
     "2023": ["2023preBPix", "2023postBPix"],
@@ -54,8 +54,7 @@ def build_processes(era: str, channel: str, backgrounds: dict) -> dict:
             info = backgrounds[sub_era].get(proc)
             if info is not None:
                 samples = info["by_channel"].get(channel, []) if proc == "data" else info.get("samples", [])
-                # NanoAODv15 ntuple folders are named without the `_mcRun3…` tail of the dataset name
-                by_era[sub_era] = [s.split("_mcRun3")[0] if "NanoAODv15" in s else s for s in samples]
+                by_era[sub_era] = list(samples)
         if not by_era:
             continue
         info = backgrounds[sub_eras[0]][proc]
@@ -81,7 +80,8 @@ def main() -> None:
         if invalid := [v for v in values if v not in valid]:
             parser.error(f"Unknown {kind}(s): {invalid}. Valid: {list(valid)}")
 
-    backgrounds = yaml.safe_load(_BACKGROUNDS_YAML.read_text())["backgrounds"]
+    datasets = yaml.safe_load(_DATASETS_YAML.read_text())
+    backgrounds = {era: {**procs, **datasets["data"].get(era, {})} for era, procs in datasets["backgrounds"].items()}
     for era in eras:
         for channel in channels:
             path = TFF_CONFIG_ROOT / era / f"preselection_{channel}.yaml"

@@ -8,7 +8,7 @@ era: '2024'
 tree: ntuple
 nanoAOD_version: "nanoAOD_v15"
 sample_database: "/work/$USER/TAUER/sample_database"
-variables_yaml: "/work/$USER/TAUER/config/variables.yaml"
+variables_yaml: "/work/$USER/TAUER/common/variables.yaml"
 
 tau_vs_jet_wps:
   - VVVLoose

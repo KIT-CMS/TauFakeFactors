@@ -56,14 +56,14 @@ def calculation_QCD_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[str, Dict[str,
     for sample_path in sample_paths:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
-        log.info(
+        log.debug(
             f"Processing {sample} for the {', '.join(['{} {}'.format(var, splitting.split[var]) for var in splitting.variables])} category."
         )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.debug(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -74,7 +74,7 @@ def calculation_QCD_FFs(args: Tuple[Any, ...]) -> Dict[str, Union[str, Dict[str,
             logger=logger,
         )
 
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.debug(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(process_conf["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -265,18 +265,18 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if splitting.split is not None:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the non-closure correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
             )
         else:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the non-closure correction for {process}."
             )
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.debug(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -287,7 +287,7 @@ def non_closure_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             logger=logger,
         )
 
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.debug(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -491,16 +491,16 @@ def DR_SR_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
         # getting the name of the process from the sample path
         sample = sample_path.rsplit("/")[-1].rsplit(".")[0]
         if splitting.split is not None:
-            log.info(
+            log.debug(
                 f"Processing {sample} for the DR to SR correction for {process} for {', '.join([f'{var} {splitting.split[var]}' for var in splitting.variables])}."
             )
         else:
-            log.info(f"Processing {sample} for the DR to SR correction for {process}.")
+            log.debug(f"Processing {sample} for the DR to SR correction for {process}.")
         log.info("-" * 50)
 
         rdf = ROOT.RDataFrame(config["tree"], sample_path)
 
-        log.info(f"Filtering events for the signal-like region. Target process: {process}")
+        log.debug(f"Filtering events for the signal-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["SRlike_cuts"])
         rdf_SRlike = ff_func.apply_region_filters(
             rdf=rdf,
@@ -511,7 +511,7 @@ def DR_SR_correction(args: Tuple[Any, ...]) -> Dict[str, np.ndarray]:
             logger=logger,
         )
 
-        log.info(f"Filtering events for the application-like region. Target process: {process}")
+        log.debug(f"Filtering events for the application-like region. Target process: {process}")
         region_conf = copy.deepcopy(config["target_processes"][process]["ARlike_cuts"])
         rdf_ARlike = ff_func.apply_region_filters(
             rdf=rdf,
