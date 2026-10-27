@@ -8,7 +8,7 @@ target_processes:
     equipopulated_binning_options:
       variable_config:
         pt_1:
-          min: 35.0
+          min: 30.0
           max: 150.0
           rounding: 2
       var_dependence_n_bins: [50, 40, 30]
@@ -36,7 +36,7 @@ target_processes:
     equipopulated_binning_options:
       variable_config:
         pt_2:
-          min: 35.0
+          min: 30.0
           max: 150.0
           rounding: 2
       var_dependence_n_bins: [50, 40, 30]
