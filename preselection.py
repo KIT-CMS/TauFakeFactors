@@ -97,6 +97,13 @@ def run_sample_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], 
     for cut in selection_conf:
         rdf = rdf.Filter(f"({selection_conf[cut]})", f"cut on {cut}")
 
+    # apply an optional cut to single samples of a process, e.g. to take only a part of an inclusive
+    # sample; the cut does not change the event weights (without stitching, the generator weight
+    # keeps the cross section and event number of the full sample)
+    sample_cut = config["processes"][process].get("sample_cuts", {}).get(sample)
+    if sample_cut:
+        rdf = rdf.Filter(f"({sample_cut})", f"sample cut on {sample}")
+
     # For Run 3 DY samples, we need to collect the events from two samples, that need to be selected
     # for different flavors
     # if sample.startswith("DYto2L"):
@@ -237,6 +244,10 @@ def run_preselection(args: Tuple[str, Dict[str, Union[Dict, List, str]], str, in
     log.info(
         f"Considered samples for process {process}: {config['processes'][process]['samples']}"
     )
+    # a sample cut on a misspelled tag would be silently ignored and leave its sample uncut
+    unknown_cuts = set(config["processes"][process].get("sample_cuts", {})) - set(config["processes"][process]["samples"])
+    if unknown_cuts:
+        raise ValueError(f"sample_cuts of process {process} name samples not in its samples list: {sorted(unknown_cuts)}")
 
     # going through all contributing samples for the process
     args_list = [

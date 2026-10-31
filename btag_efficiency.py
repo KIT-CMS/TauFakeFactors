@@ -18,6 +18,11 @@ following nested lookup structure:
                      -> Binning(jet_pt)
                           -> float  (efficiency)
 
+Several MC processes may share one measurement (``input_processes``) and one
+measurement may be written under several ``sample_types`` keys; the pT/|eta|
+binning is resolved per jet flavour, because the binning nodes sit below the
+flavour category and light jets support a far coarser grid than b jets.
+
 Usage
 -----
     python btag_efficiency.py --config-file configs/btag_efficiency/2024/btag_efficiency.yaml
@@ -43,6 +48,8 @@ import correctionlib.schemav2 as cs
 import CustomLogging as logging_helper
 import helper.functions as func
 from helper.correctionlib_json import write_json
+import helper.btag_payload_validation as payload_validation
+from helper.btag_pools import get_input_processes, get_output_sample_types, validate_process_config
 
 hep.style.use(hep.style.CMS)
 plt.rcParams["axes.linewidth"] = 1.0 # set non bold axes lines
@@ -71,6 +78,18 @@ parser.add_argument(
     help="Number of parallel worker processes for inter-sample parallelization (default: 1).",
 )
 parser.add_argument(
+    "--validate-payload",
+    choices=["off", "warn", "error"],
+    default=None,
+    help=(
+        "Check the finished efficiency map against the strict-consumer "
+        "invariants (0 < eff <= 1, strictly decreasing over working points, "
+        "1 - eff(loosest) > 0) before writing it. 'error' refuses to write a "
+        "violating payload. Overrides the config key 'validate_payload', "
+        "whose own default is 'off'."
+    ),
+)
+parser.add_argument(
     "--threads",
     type=int,
     default=4,
@@ -84,16 +103,19 @@ parser.add_argument(
 def get_process_files(
     config: Dict,
     process: str,
+    input_processes: List[str] = None,
 ) -> List[str]:
     """Return all ROOT files that belong to *process*.
 
     The function searches for files matching
-        {file_path}/preselection/{era}/{channel}/{process}*.root
-    for every configured channel.
+        {file_path}/preselection/{era}/{channel}/{member}*.root
+    for every configured channel and every pooled input process *member*
+    (just *process* itself unless the config pools several).
 
     Args:
         config: Loaded configuration dictionary.
         process: Process / sample-type name (e.g. ``"ttbar"``).
+        input_processes: Processes to pool; defaults to ``[process]``.
 
     Returns:
         List of matching file paths (may be empty).
@@ -101,6 +123,7 @@ def get_process_files(
     file_path = config["file_path"]
     channels = get_config_channels(config)
     era = config.get("era", None)
+    members = input_processes if input_processes else [process]
 
     found: List[str] = []
     if era is None:
@@ -108,14 +131,23 @@ def get_process_files(
             "Config must specify an 'era' for file discovery."
         )
     for channel in channels:
-        pattern = os.path.join(
-            file_path,
-            "preselection",
-            era,
-            channel,
-            f"{process}*.root",
-        )
-        found.extend(glob.glob(pattern))
+        for member in members:
+            pattern = os.path.join(
+                file_path,
+                "preselection",
+                era,
+                channel,
+                f"{member}*.root",
+            )
+            matches = glob.glob(pattern)
+            if not matches and not config.get("allow_missing_inputs", False):
+                raise FileNotFoundError(
+                    f"Process '{process}': no ROOT file for pooled input "
+                    f"'{member}' matching '{pattern}'. A missing input would "
+                    f"silently shrink the measured sample; set "
+                    f"'allow_missing_inputs: true' to downgrade this to a skip."
+                )
+            found.extend(matches)
 
     return sorted(set(found))
 
@@ -170,16 +202,45 @@ def get_channel_configs(config: Dict) -> List[Dict]:
 def get_process_bins(
     config: Dict,
     process: str,
-) -> Tuple[List[float], List[float]]:
-    """Return (pt_bins, eta_bins) for *process*.
+) -> Dict[str, Tuple[List[float], List[float]]]:
+    """Return ``{flavour: (pt_bins, eta_bins)}`` for *process*.
 
-    Per-process overrides in ``processes[process]`` take
-    precedence; otherwise the global ``jet_pt_bins`` / ``jet_eta_bins`` are used.
+    Binning is resolved per jet flavour, most specific first:
+    ``processes[process].flavor_bins[<flavour>]``, then the per-process
+    ``processes[process].jet_pt_bins`` / ``jet_eta_bins``, then the global
+    ``jet_pt_bins`` / ``jet_eta_bins``.
+
+    Flavours are binned independently because they exhaust the available
+    statistics at wildly different rates: the pass-XXT region holds ~50% of b
+    jets but ~1e-4 of light jets, so the grid that light jets can support is
+    roughly three orders of magnitude coarser.  With one shared grid the light
+    jets dictate it and the b-jet efficiency -- the one that actually drives
+    the event weight -- loses its pT dependence.  The correctionlib schema puts
+    the pT/|eta| binning nodes *below* the flavour category, so a per-flavour
+    grid needs no change on the consumer side.
     """
-    proc_conf = config["processes"].get(process, {})
-    pt_bins = proc_conf.get("jet_pt_bins", config["jet_pt_bins"])
-    eta_bins = proc_conf.get("jet_eta_bins", config["jet_eta_bins"])
-    return list(pt_bins), list(eta_bins)
+    proc_conf = config["processes"].get(process, {}) or {}
+    flavors: Dict[str, int] = config["jet_flavor_categories"]
+
+    default_pt = proc_conf.get("jet_pt_bins", config["jet_pt_bins"])
+    default_eta = proc_conf.get("jet_eta_bins", config["jet_eta_bins"])
+    per_flavor = proc_conf.get("flavor_bins", {}) or {}
+
+    unknown = sorted(set(per_flavor) - set(flavors))
+    if unknown:
+        raise ValueError(
+            f"Process '{process}': 'flavor_bins' names unknown flavour(s) "
+            f"{unknown}; known flavours are {sorted(flavors)}."
+        )
+
+    resolved: Dict[str, Tuple[List[float], List[float]]] = {}
+    for flavor_name in flavors:
+        override = per_flavor.get(flavor_name, {}) or {}
+        resolved[flavor_name] = (
+            list(override.get("jet_pt_bins", default_pt)),
+            list(override.get("jet_eta_bins", default_eta)),
+        )
+    return resolved
 
 
 # ---------------------------------------------------------------------------
@@ -189,8 +250,7 @@ def calculate_efficiency_histograms(
     chain: ROOT.TChain,
     config: Dict,
     process: str,
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
 ) -> Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]]:
     """Fill 2-D (pT, |eta|) histograms for every (WP, flavour) combination.
 
@@ -200,9 +260,11 @@ def calculate_efficiency_histograms(
     flavour.
 
     Args:
-        chain:   ROOT TChain with all files for this process already attached.
-        config:  Loaded configuration dictionary.
-        process: Process name (used only for histogram titles / logging).
+        chain:       ROOT TChain with all files for this process attached.
+        config:      Loaded configuration dictionary.
+        process:     Process name (used only for histogram titles / logging).
+        flavor_bins: ``{flavour: (pt_bins, eta_bins)}`` from
+                     :func:`get_process_bins`; each flavour gets its own grid.
 
     Returns:
         ``results[wp_name][flavor_name] = (h_pass, h_total)``
@@ -217,11 +279,6 @@ def calculate_efficiency_histograms(
 
     wps: Dict[str, float] = config["btag_working_points"]
     flavors: Dict[str, int] = config["jet_flavor_categories"]
-
-    n_pt = len(pt_bins) - 1
-    n_eta = len(eta_bins) - 1
-    pt_arr = np.array(pt_bins, dtype=float)
-    eta_arr = np.array(eta_bins, dtype=float)
 
     rdf = ROOT.RDataFrame(chain)
 
@@ -260,9 +317,15 @@ def calculate_efficiency_histograms(
     for wp_name, wp_cut in wps.items():
         results[wp_name] = {}
         for flavor_name, flavor_id in flavors.items():
+            pt_bins, eta_bins = flavor_bins[flavor_name]
+            n_pt = len(pt_bins) - 1
+            n_eta = len(eta_bins) - 1
+            pt_arr = np.array(pt_bins, dtype=float)
+            eta_arr = np.array(eta_bins, dtype=float)
             log.debug(
                 f"  Filling histograms: process={process}, WP={wp_name}, "
-                f"flavor={flavor_name} (hadronFlavour=={flavor_id})"
+                f"flavor={flavor_name} (hadronFlavour=={flavor_id}), "
+                f"{n_pt} pt x {n_eta} eta bins"
             )
             # Masked RVec columns for this flavour
             flavor_mask = f"({jet_flavor_col_use} == {flavor_id})"
@@ -311,15 +374,14 @@ def calculate_efficiency_histograms(
 
 def histograms_to_efficiencies(
     histograms: Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
 ) -> Tuple[Dict[str, Dict[str, List[List[float]]]], Dict[str, Dict[str, List[List[float]]]]]:
     """Convert (h_pass, h_total) histogram pairs to efficiency grids.
 
     Args:
-        histograms: ``histograms[wp][flavor] = (h_pass, h_total)``
-        pt_bins:    pT bin edges.
-        eta_bins:   |eta| bin edges.
+        histograms:  ``histograms[wp][flavor] = (h_pass, h_total)``
+        flavor_bins: ``{flavour: (pt_bins, eta_bins)}``; each flavour's grid is
+                     read back with the binning it was filled with.
 
     Returns:
         Tuple of two dicts with identical structure ``[wp][flavor]``:
@@ -329,15 +391,15 @@ def histograms_to_efficiencies(
     """
     log = logging.getLogger("btag_efficiency")
 
-    n_pt = len(pt_bins) - 1
-    n_eta = len(eta_bins) - 1
-
     efficiencies: Dict[str, Dict[str, List[List[float]]]] = {}
     stat_uncertainties: Dict[str, Dict[str, List[List[float]]]] = {}
     for wp_name, flavor_hists in histograms.items():
         efficiencies[wp_name] = {}
         stat_uncertainties[wp_name] = {}
         for flavor_name, (h_pass, h_total) in flavor_hists.items():
+            pt_bins, eta_bins = flavor_bins[flavor_name]
+            n_pt = len(pt_bins) - 1
+            n_eta = len(eta_bins) - 1
             eff_grid: List[List[float]] = []
             unc_grid: List[List[float]] = []
             for i_pt in range(1, n_pt + 1):
@@ -405,18 +467,25 @@ def _build_eta_binning(
 
 def _build_flavor_category(
     flavors: Dict[str, int],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
     wp_efficiencies: Dict[str, List[List[float]]],
 ) -> cs.Category:
-    """Category node over jet flavour labels."""
+    """Category node over jet flavour labels.
+
+    Each flavour carries its own |eta|/pT binning nodes, so the grids need not
+    agree between flavours.
+    """
     return cs.Category(
         nodetype="category",
         input="jet_flavor",
         content=[
             cs.CategoryItem(
                 key=flavors[flavor_name],
-                value=_build_eta_binning(eta_bins, pt_bins, wp_efficiencies[flavor_name]),
+                value=_build_eta_binning(
+                    flavor_bins[flavor_name][1],
+                    flavor_bins[flavor_name][0],
+                    wp_efficiencies[flavor_name],
+                ),
             )
             for flavor_name in flavors
         ],
@@ -426,8 +495,7 @@ def _build_flavor_category(
 def _build_wp_category(
     wps: Dict[str, float],
     flavors: Dict[str, int],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
     sample_efficiencies: Dict[str, Dict[str, List[List[float]]]],
 ) -> cs.Category:
     """Category node over b-tag working points."""
@@ -438,7 +506,7 @@ def _build_wp_category(
             cs.CategoryItem(
                 key=wp_name,
                 value=_build_flavor_category(
-                    flavors, pt_bins, eta_bins, sample_efficiencies[wp_name]
+                    flavors, flavor_bins, sample_efficiencies[wp_name]
                 ),
             )
             for wp_name in wps
@@ -465,8 +533,8 @@ _FLAVOR_LABELS = {
 _CHANNEL_LABELS = {
     "em":    r"$e\mu$",
     "et":    r"$e\tau_h$",
-    "mt":    r"\mu\tau_h",
-    "tt":    r"\tau_h\tau_h",
+    "mt":    r"$\mu\tau_h$",
+    "tt":    r"$\tau_h\tau_h$",
     "ee":    r"ee",
     "mm":    r"$\mu\mu$",
 } 
@@ -475,8 +543,7 @@ def plot_histograms_and_efficiencies(
     histograms: Dict[str, Dict[str, Tuple[ROOT.TH2D, ROOT.TH2D]]],
     efficiencies: Dict[str, Dict[str, List[List[float]]]],
     uncertainties: Dict[str, Dict[str, List[List[float]]]],
-    pt_bins: List[float],
-    eta_bins: List[float],
+    flavor_bins: Dict[str, Tuple[List[float], List[float]]],
     process: str,
     config: Dict,
     output_path: str,
@@ -502,18 +569,8 @@ def plot_histograms_and_efficiencies(
     flavor_list = list(flavors.keys())
     n_flavors   = len(flavor_list)
  
-    n_eta = len(eta_bins) - 1
-    n_pt  = len(pt_bins)  - 1
- 
-    eta_labels = [
-        f"{eta_bins[i]:.1f}–{eta_bins[i+1]:.1f}"
-        for i in range(n_eta)
-    ]
-    pt_centres = np.array(
-        [(pt_bins[i] + pt_bins[i + 1]) / 2.0 for i in range(n_pt)]
-    )
- 
     era     = config.get("era", "")
+    center_of_mass = config.get("center_of_mass", 13.6)
     channel = get_channel_display(config)
  
     plot_dir = os.path.join(output_path, "plots")
@@ -540,7 +597,20 @@ def plot_histograms_and_efficiencies(
         for i_flav, flavor in enumerate(flavor_list):
             ax_top = axes[0, i_flav]
             ax_bot = axes[1, i_flav]
- 
+
+            # Each flavour carries its own grid, so the axis labels and bin
+            # centres have to be rebuilt per column rather than once per figure.
+            pt_bins, eta_bins = flavor_bins[flavor]
+            n_eta = len(eta_bins) - 1
+            n_pt = len(pt_bins) - 1
+            eta_labels = [
+                f"{eta_bins[i]:.1f}–{eta_bins[i+1]:.1f}"
+                for i in range(n_eta)
+            ]
+            pt_centres = np.array(
+                [(pt_bins[i] + pt_bins[i + 1]) / 2.0 for i in range(n_pt)]
+            )
+
             h_pass, h_total = histograms[wp][flavor]
             eff_grid = efficiencies[wp][flavor]
             unc_grid = uncertainties[wp][flavor]
@@ -648,7 +718,7 @@ def plot_histograms_and_efficiencies(
             # Right side: channel and era (on all panels)
             ax_top.text(
                 1.00, 1.01,
-                f"({era}, 13.6 TeV)",
+                f"({era}, {center_of_mass} TeV)",
                 transform=ax_top.transAxes,
                 fontsize=9,
                 va="bottom", ha="right",
@@ -724,7 +794,7 @@ def plot_histograms_and_efficiencies(
 
 def _process_one(
     task: Tuple,
-) -> Tuple[str, List[float], List[float], Dict, Dict]:
+) -> Tuple[List[str], Dict, Dict, Dict]:
     """Process one MC sample; designed to run in a subprocess.
 
     Handles file discovery, RDataFrame histogram filling, efficiency
@@ -735,7 +805,9 @@ def _process_one(
         task: ``(process, proc_conf, config, output_path, n_threads, log_level)``
 
     Returns:
-        ``(sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties)``
+        ``(sample_types, flavor_bins, efficiencies, stat_uncertainties)``
+        where *sample_types* are the payload keys this one measurement fills
+        and *flavor_bins* is its per-flavour ``(pt_bins, eta_bins)`` mapping.
 
     Raises:
         FileNotFoundError: No ROOT files found for the process.
@@ -762,14 +834,18 @@ def _process_one(
     )
     log.setLevel(log_level)
 
-    sample_type: str = proc_conf["sample_type"]
-    log.info(f"Processing process '{process}' -> sample type '{sample_type}'")
+    sample_types: List[str] = get_output_sample_types(proc_conf, process)
+    input_processes: List[str] = get_input_processes(proc_conf, process)
+    log.info(
+        f"Processing process '{process}': pooling {input_processes} "
+        f"-> sample type(s) {sample_types}"
+    )
 
-    pt_bins, eta_bins = get_process_bins(config, process)
-    log.info(f"  pt bins:  {pt_bins}")
-    log.info(f"  eta bins: {eta_bins}")
+    flavor_bins = get_process_bins(config, process)
+    for _flav, (_pt, _eta) in flavor_bins.items():
+        log.info(f"  bins[{_flav}]: pt {_pt} | eta {_eta}")
 
-    files = get_process_files(config, process)
+    files = get_process_files(config, process, input_processes)
     if not files:
         raise FileNotFoundError(
             f"No ROOT files found for process '{process}' under "
@@ -783,20 +859,20 @@ def _process_one(
     for f in files:
         chain.Add(f)
 
-    histograms = calculate_efficiency_histograms(chain, config, process, pt_bins, eta_bins)
-    efficiencies, stat_uncertainties = histograms_to_efficiencies(histograms, pt_bins, eta_bins)
+    histograms = calculate_efficiency_histograms(chain, config, process, flavor_bins)
+    efficiencies, stat_uncertainties = histograms_to_efficiencies(histograms, flavor_bins)
 
     log.info(f"  Plotting histograms and efficiencies for '{process}' ...")
     plot_histograms_and_efficiencies(
         histograms, efficiencies, stat_uncertainties,
-        pt_bins, eta_bins, process, config, output_path,
+        flavor_bins, process, config, output_path,
     )
-    log.info(f"  Finished processing '{process}' (sample type key: '{sample_type}')")
-    return sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties
+    log.info(f"  Finished processing '{process}' (sample type keys: {sample_types})")
+    return sample_types, flavor_bins, efficiencies, stat_uncertainties
 
 def build_correctionlib_json(
     all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]],
-    all_bins: Dict[str, Tuple[List[float], List[float]]],
+    all_bins: Dict[str, Dict[str, Tuple[List[float], List[float]]]],
     config: Dict,
     output_path: str,
 ) -> cs.CorrectionSet:
@@ -804,18 +880,26 @@ def build_correctionlib_json(
     wps: Dict[str, float] = config["btag_working_points"]
     flavors: Dict[str, int] = config["jet_flavor_categories"]
 
+    # Sorted, not insertion-ordered: the multiprocessing path fills
+    # all_efficiencies in worker-completion order, so an unsorted payload has a
+    # run-dependent byte layout even when every number is identical. Sorting
+    # makes the payload reproducible from its config, which is what lets a hash
+    # establish provenance.
     sample_items = [
         cs.CategoryItem(
             key=process,
-            value=_build_wp_category(
-                wps, flavors, all_bins[process][0], all_bins[process][1], proc_eff
-            ),
+            value=_build_wp_category(wps, flavors, all_bins[process], proc_eff),
         )
-        for process, proc_eff in all_efficiencies.items()
+        for process, proc_eff in sorted(all_efficiencies.items())
     ]
 
-    pt_bins_global: List[float] = config["jet_pt_bins"]
-    eta_bins_global: List[float] = config["jet_eta_bins"]
+    # Report the actual covered range rather than the global config bins: with
+    # per-flavour grids the two can differ, and the range is what documents the
+    # clamp behaviour to whoever reads the payload.
+    _all_pt = [e for fb in all_bins.values() for pt, _ in fb.values() for e in pt]
+    _all_eta = [e for fb in all_bins.values() for _, eta in fb.values() for e in eta]
+    pt_bins_global: List[float] = _all_pt or config["jet_pt_bins"]
+    eta_bins_global: List[float] = _all_eta or config["jet_eta_bins"]
 
     correction = cs.Correction(
         name="btag_efficiency",
@@ -824,7 +908,7 @@ def build_correctionlib_json(
             "jet flavour, jet pT [GeV] and jet |eta|. "
             f"Era: {config.get('era', 'unknown')}. "
             "Efficiency = N(jets passing WP) / N(total jets) per bin. "
-            "Binning may differ per sample type."
+            "Binning may differ per sample type and per jet flavour."
         ),
         version=1,
         inputs=[
@@ -876,9 +960,13 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
     log.info(f"Channel: {channel}")
     log.info(f"Output directory: {output_path}")
 
+    # Abort before any jets are read: a duplicated payload key or an input
+    # process pooled twice yields a wrong payload, not a failed run.
+    validate_process_config(config)
+
     all_efficiencies: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
     all_uncertainties: Dict[str, Dict[str, Dict[str, List[List[float]]]]] = {}
-    all_bins: Dict[str, Tuple[List[float], List[float]]] = {}
+    all_bins: Dict[str, Dict[str, Tuple[List[float], List[float]]]] = {}
 
     if args.workers == 1:
         # -------------------------------------------------------------------
@@ -890,14 +978,18 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
             ROOT.EnableImplicitMT(args.threads)
 
         for process, proc_conf in config["processes"].items():
-            sample_type: str = proc_conf["sample_type"]
-            log.info(f"Processing process '{process}' -> sample type '{sample_type}'")
+            sample_types: List[str] = get_output_sample_types(proc_conf, process)
+            input_processes: List[str] = get_input_processes(proc_conf, process)
+            log.info(
+                f"Processing process '{process}': pooling {input_processes} "
+                f"-> sample type(s) {sample_types}"
+            )
 
-            pt_bins, eta_bins = get_process_bins(config, process)
-            log.info(f"  pt bins:  {pt_bins}")
-            log.info(f"  eta bins: {eta_bins}")
+            flavor_bins = get_process_bins(config, process)
+            for _flav, (_pt, _eta) in flavor_bins.items():
+                log.info(f"  bins[{_flav}]: pt {_pt} | eta {_eta}")
 
-            files = get_process_files(config, process)
+            files = get_process_files(config, process, input_processes)
             if not files:
                 log.warning(
                     f"No ROOT files found for process '{process}' under "
@@ -914,25 +1006,25 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
                 chain.Add(f)
 
             try:
-                histograms = calculate_efficiency_histograms(chain, config, process, pt_bins, eta_bins)
+                histograms = calculate_efficiency_histograms(chain, config, process, flavor_bins)
             except RuntimeError as exc:
                 log.warning(f"Skipping process '{process}': {exc}")
                 continue
 
             efficiencies, stat_uncertainties = histograms_to_efficiencies(
                 histograms,
-                pt_bins,
-                eta_bins,
+                flavor_bins,
             )
             log.info(f"  Plotting histograms and efficiencies for '{process}' ...")
             plot_histograms_and_efficiencies(
                 histograms, efficiencies, stat_uncertainties,
-                pt_bins, eta_bins, process, config, output_path,
+                flavor_bins, process, config, output_path,
             )
-            all_efficiencies[sample_type] = efficiencies
-            all_uncertainties[sample_type] = stat_uncertainties
-            all_bins[sample_type] = (pt_bins, eta_bins)
-            log.info(f"  Finished processing '{process}' (sample type key: '{sample_type}')")
+            for sample_type in sample_types:
+                all_efficiencies[sample_type] = efficiencies
+                all_uncertainties[sample_type] = stat_uncertainties
+                all_bins[sample_type] = flavor_bins
+            log.info(f"  Finished processing '{process}' (sample type keys: {sample_types})")
 
     else:
         # -------------------------------------------------------------------
@@ -952,18 +1044,56 @@ def run_for_channel(config: Dict, args: argparse.Namespace) -> None:
             for future in concurrent.futures.as_completed(futures):
                 process = futures[future]
                 try:
-                    sample_type, pt_bins, eta_bins, efficiencies, stat_uncertainties = future.result()
+                    sample_types, flavor_bins, efficiencies, stat_uncertainties = future.result()
                 except (FileNotFoundError, RuntimeError) as exc:
                     log.warning(f"Skipping process '{process}': {exc}")
                     continue
-                log.info(f"Finished '{process}' (sample type: '{sample_type}')")
-                all_efficiencies[sample_type] = efficiencies
-                all_uncertainties[sample_type] = stat_uncertainties
-                all_bins[sample_type] = (pt_bins, eta_bins)
+                log.info(f"Finished '{process}' (sample types: {sample_types})")
+                for sample_type in sample_types:
+                    all_efficiencies[sample_type] = efficiencies
+                    all_uncertainties[sample_type] = stat_uncertainties
+                    all_bins[sample_type] = flavor_bins
 
     if not all_efficiencies:
         log.error("No processes were successfully processed. Aborting.")
         raise SystemExit(1)
+
+    # Validate before writing: a payload that violates the strict-consumer
+    # invariants is not a partial result, it is one that aborts every
+    # production job that touches an affected bin. Writing it anyway is how the
+    # broken sm2018_binned_v1 payload reached dCache.
+    mode = payload_validation.resolve_mode(config, args.validate_payload)
+    if mode == "off":
+        log.info(
+            "Payload validation disabled (validate_payload: off); "
+            "run scripts/check_btag_payload.py by hand before shipping."
+        )
+    else:
+        problems = payload_validation.validate_efficiencies(
+            all_efficiencies, all_bins, config
+        )
+        if not problems:
+            log.info(
+                f"Payload validation passed ({mode}): efficiencies are finite, "
+                f"in (0, 1], strictly decreasing over working points, and "
+                f"leave a positive untagged probability."
+            )
+        else:
+            emit = log.error if mode == "error" else log.warning
+            emit(f"Payload validation found {len(problems)} violation(s):")
+            for problem in problems:
+                emit(f"  {problem}")
+            emit(
+                "Remedy: coarsen jet_pt_bins / jet_eta_bins for the affected "
+                "process and flavour (per-process 'flavor_bins'), or pool the "
+                "process with a physically similar one via 'input_processes'."
+            )
+            if mode == "error":
+                log.error(
+                    "Refusing to write a payload the strict consumer would "
+                    "throw on. Set validate_payload: warn to write it anyway."
+                )
+                raise SystemExit(1)
 
     log.info("Building correctionlib JSON ...")
     build_correctionlib_json(all_efficiencies, all_bins, config, output_path)

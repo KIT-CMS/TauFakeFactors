@@ -19,9 +19,8 @@ import ROOT
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
-from XRootD import client
-
 import CustomLogging as logging_helper
+from helper.config_loading import load_config as load_composed_config
 from helper.hooks_and_patches import PassThroughWrapper
 
 
@@ -424,46 +423,17 @@ def load_config(config_file: str) -> Dict:
     else:
         print("No common config file found!")
 
-    # Container of the loaded configuration
-    # 
-    # Some default values are pre-defined in the config dict that is going to contain the loaded
-    # configuration. These values are overwritten if they are explicitly set in the common config file.
-    #
-    # The variables, for which defaults are set, are:
-    #
-    # - 'sample_database`: Path to the sample database directory. Usually, this path is set to the
-    #   `datasets` submodule of the `TauFakeFactors` module. Users can set a custom path, e.g.,
-    #   to an external path to a working version of their sample database.
-    config = {
-        "sample_database": os.path.join(TAU_FAKE_FACTORS_DIR, "datasets"),
-    }
-
-    # Update the config with common settings, applying to all steps
-    with open(common_config_file, "r") as file:
-        config.update(configured_yaml.load(file))
-
-    # loading of the chosen config file
     try:
-        with open(config_file, "r") as file:
-            _config = configured_yaml.load(file)
-            repeating_keys = set(config.keys()).intersection(set(_config.keys()))
-            if repeating_keys:
-                _overwriting = "\n\t".join(f"{k}: {_config[k]}" for k in repeating_keys)
-                print(
-                    f"""
-    Warning: The following keys are present in both the common and the specific config file:
-        {repeating_keys}
-    and are overwritten by the ones in {config_file} to
-        {_overwriting}
-                    """
-                )
-            config.update(_config)
-
+        return load_composed_config(
+            config_file,
+            defaults={
+                "sample_database": os.path.join(TAU_FAKE_FACTORS_DIR, "datasets")
+            },
+            yaml=configured_yaml,
+        )
     except FileNotFoundError:
         print(f"Error: Config file {config_file} not found.")
         sys.exit(1)
-
-    return config
 
 
 def check_path(path: str) -> None:
@@ -525,6 +495,11 @@ def check_inputfiles(path: str, process: str, tree: str) -> List[str]:
         List of file paths with not empty files
     """
     log = logging.getLogger(f"preselection.{process}")
+
+    # Loading XRootD is only necessary at this remote-I/O boundary. Keeping the
+    # extension out of config-only processes also makes local validation usable
+    # in ROOT environments whose XRootD bindings are provided separately.
+    from XRootD import client
 
     fsname = "root://cmsdcache-kit-disk.gridka.de/"
     xrdclient = client.FileSystem(fsname)

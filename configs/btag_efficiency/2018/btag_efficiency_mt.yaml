@@ -1,0 +1,3 @@
+# 2018 UL b-tag efficiency, mu-tau_h channel. Inherits btag_efficiency.yaml; paths from common_settings.yaml.
+base_config_file: btag_efficiency.yaml
+channel: mt

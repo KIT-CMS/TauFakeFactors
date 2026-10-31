@@ -1,0 +1,3 @@
+# 2016preVFP UL (HIPM) b-tag efficiency, e-mu channel. Inherits btag_efficiency.yaml; paths from common_settings.yaml.
+base_config_file: btag_efficiency.yaml
+channel: em

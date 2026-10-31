@@ -1,0 +1,16 @@
+# 2016preVFP UL (HIPM) b-tag efficiency, mumu channel. Inherits btag_efficiency.yaml; paths from common_settings.yaml.
+base_config_file: btag_efficiency.yaml
+channel: mm
+
+# Override (as 2018 v1-v3): higgs_tautau (ggH + VBF H->tautau) is thin here,
+# so its two keys are measured on vjets instead: recoil/ISR jets in both
+# cases. 'null' removes the inherited pool; pools must be disjoint.
+processes:
+  higgs_tautau: null
+  vjets:
+    input_processes: [dyjets, wjets, electroweak_boson, ggh_htautau, vbf_htautau]
+    sample_types:    [dyjets, wjets, electroweak_boson, ggh_htautau, vbf_htautau]
+    flavor_bins:
+      b:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 300, 1000], jet_eta_bins: [0.0, 1.4, 2.4]}
+      c:     {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}
+      light: {jet_pt_bins: [20, 30, 50, 70, 100, 140, 200, 1000],      jet_eta_bins: [0.0, 1.4, 2.4]}
