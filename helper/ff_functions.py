@@ -949,14 +949,15 @@ def calculate_ttbar_FF(
     ratio_mc = SR["ttbar_J"].Clone()
     ratio_mc.Divide(AR["ttbar_J"])
 
-    ratio_DR_data = SRlike["data_subtracted"].Clone()
-    ratio_DR_data.Divide(ARlike["data_subtracted"])
+    # remove temp for negative ratio issue
+    # ratio_DR_data = SRlike["data_subtracted"].Clone()
+    # ratio_DR_data.Divide(ARlike["data_subtracted"])
 
-    ratio_DR_mc = SRlike["ttbar_J"].Clone()
-    ratio_DR_mc.Divide(ARlike["ttbar_J"])
+    # ratio_DR_mc = SRlike["ttbar_J"].Clone()
+    # ratio_DR_mc.Divide(ARlike["ttbar_J"])
 
-    sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
-    ratio_mc.Scale(sf)
+    # sf = ratio_DR_data.GetMaximum() / ratio_DR_mc.GetMaximum()
+    # ratio_mc.Scale(sf)
 
     return ratio_mc
 
